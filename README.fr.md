@@ -22,6 +22,7 @@ Copier le dossier `EDRockMaster` du zip de la release dans le dossier `plugins` 
 ## Documentation
 
 - [Prérequis EDMC et registre de plugins](docs/prerequisites.fr.md)
+- [Conception du plugin](docs/design.fr.md)
 - Règles d'ingénierie et architecture : dépôt `edrockmaster-architecture`
 
 ## Développement
