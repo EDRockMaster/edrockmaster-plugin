@@ -19,7 +19,8 @@ jobs:
       - run: uv sync
       - run: uv run ruff check .
       - run: uv run ruff format --check .
-      - run: uv run pytest
+      - run: uv run mypy
+      - run: uv run pytest --cov
 
   release:
     needs: test
@@ -32,7 +33,8 @@ jobs:
       - name: Construire le zip
         run: |
           mkdir -p dist/EDRockMaster
-          cp -r load.py mining LICENSE README.md dist/EDRockMaster/
+          cp -r load.py edrockmaster L10n LICENSE README.md README.fr.md dist/EDRockMaster/
+          find dist -name __pycache__ -type d -prune -exec rm -rf {} +
           cd dist && zip -r EDRockMaster-${{ gitea.ref_name }}.zip EDRockMaster
       - name: Release Gitea
         uses: akkuman/gitea-release-action@v1

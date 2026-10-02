@@ -1,43 +1,35 @@
-"""Points d'entrée EDMC. La logique vit dans le paquet ``mining``."""
+"""EDMC entry points of the EDRockMaster plugin.
+
+EDMC imports this module and calls the hooks below. They only delegate to
+``edrockmaster.edmc.plugin``; nothing else belongs here.
+"""
 
 from __future__ import annotations
 
-import logging
-import os
-import tkinter as tk
 from typing import Any
 
-from config import appname  # type: ignore[import-not-found]
+from edrockmaster import VERSION
+from edrockmaster.edmc.plugin import Plugin
 
-from mining.session import MiningSession
+__all__ = ["VERSION", "journal_entry", "plugin_start3", "plugin_stop"]
 
-plugin_name = os.path.basename(os.path.dirname(__file__))
-logger = logging.getLogger(f"{appname}.{plugin_name}")
-
-session = MiningSession()
+_plugin = Plugin()
 
 
 def plugin_start3(plugin_dir: str) -> str:
-    logger.info("EDRockMaster loaded from %s", plugin_dir)
-    return "EDRockMaster"
+    return _plugin.start(plugin_dir)
 
 
 def plugin_stop() -> None:
-    pass
-
-
-def plugin_app(parent: tk.Frame) -> tk.Frame:
-    frame = tk.Frame(parent)
-    tk.Label(frame, text="EDRockMaster").grid(row=0, column=0, sticky=tk.W)
-    return frame
+    _plugin.stop()
 
 
 def journal_entry(
     cmdr: str,
     is_beta: bool,
-    system: str,
-    station: str,
+    system: str | None,
+    station: str | None,
     entry: dict[str, Any],
     state: dict[str, Any],
-) -> None:
-    session.handle(entry)
+) -> str | None:
+    return _plugin.journal_entry(cmdr, is_beta, system, station, entry, state)
