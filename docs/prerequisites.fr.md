@@ -1,5 +1,7 @@
 # Prérequis du plugin
 
+*[English](prerequisites.md) · Français*
+
 Contraintes imposées par EDMarketConnector (EDMC) et par le registre officiel des plugins d'EDCD. Relevées le 2026-10-02 sur EDMC 6.1.2.
 
 Sources :
@@ -47,6 +49,12 @@ Seuls ces imports sont supportés :
 
 Événements particuliers à gérer : `StartUp` (synthétique, quand EDMC démarre en cours de partie : pas de `LoadGame` ni de `Location`, mais `state` est à jour), `ShutDown` (synthétique, plantage du jeu) et `Shutdown` (sortie normale), `Cargo` enrichi du contenu de `Cargo.json`.
 
+## Distribution des événements par EDMC
+
+- **Chaque plugin reçoit chaque événement.** EDMC parcourt tous les plugins chargés et appelle le `journal_entry` de chacun avec **sa propre copie** de l'événement et de l'état (vérifié dans `plug.py:notify_journal_entry`). Aucun abonnement exclusif ; un plugin qui plante ne gêne pas les autres.
+- EDMC **ignore les événements de plus de 60 minutes** : pas de rejeu de l'historique. Importer d'anciens journaux, si un jour c'est utile, demande de lire directement les fichiers `Journal.*.log`, en lecture seule, sur demande explicite du joueur.
+- EDMC joint le contenu de `Cargo.json`, `NavRoute.json` et `ModulesInfo.json`, mais pas celui de `Market.json`, `Outfitting.json` ou `Shipyard.json` : pour ceux-là, l'événement n'est qu'un signal, et le plugin lit le fichier dans le dossier du journal.
+
 ## Règles d'exécution
 
 - **Tous les hooks tournent sur le fil principal de tkinter.** Rien de long (plus d'une seconde) ni de réseau dans un hook.
@@ -54,6 +62,7 @@ Seuls ces imports sont supportés :
 - **Un fil secondaire ne touche jamais à tkinter.** Il prévient le fil principal par `event_generate()` sur un événement virtuel lié par `bind_all()`, **sauf pendant l'arrêt** (`config.shutting_down`), sinon EDMC se bloque.
 - **Erreurs** : une chaîne retournée par un hook, ou `plug.show_error()` depuis un fil. La zone d'état est partagée et le message disparaît vite : l'état de la liaison serveur a son propre widget.
 - **Journalisation** avec `logging`, selon le modèle de `PLUGINS.md` (logger nommé `f"{appname}.{nom_du_dossier}"`). Jamais de `print`.
+- **Traductions** : textes source en anglais passés par `functools.partial(l10n.translations.tl, context=__file__)`, français dans `L10n/fr.strings` (format `.strings`, UTF-8) ; les textes affichés sont rafraîchis dans `prefs_changed`, au cas où le joueur change la langue d'EDMC.
 
 ## Nommage et paquetage
 
