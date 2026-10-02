@@ -1,0 +1,49 @@
+# CI sur Gitea Actions (runner du cluster). Le miroir GitHub n'exécute rien.
+# Sur un tag v*, le zip installable est publié en release sur Gitea et sur GitHub (dépôt public,
+# là où les joueurs le cherchent). La release GitHub demande le secret GH_RELEASE_TOKEN
+# (jeton fine-grained limité à EDRockMaster/edrockmaster-plugin, Contents en écriture).
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest
+
+  release:
+    needs: test
+    if: startsWith(gitea.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    env:
+      GH_RELEASE_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construire le zip
+        run: |
+          mkdir -p dist/EDRockMaster
+          cp -r load.py mining LICENSE README.md dist/EDRockMaster/
+          cd dist && zip -r EDRockMaster-${{ gitea.ref_name }}.zip EDRockMaster
+      - name: Release Gitea
+        uses: akkuman/gitea-release-action@v1
+        with:
+          files: dist/*.zip
+      - name: Release GitHub
+        if: env.GH_RELEASE_TOKEN != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: EDRockMaster/edrockmaster-plugin
+          token: ${{ env.GH_RELEASE_TOKEN }}
+          # Le tag peut ne pas encore être poussé par le miroir : GitHub le crée sur ce commit
+          target_commitish: ${{ gitea.sha }}
+          files: dist/*.zip
