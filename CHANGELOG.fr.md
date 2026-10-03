@@ -4,11 +4,12 @@
 
 Les changements notables du plugin EDRockMaster. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), et les versions suivent le [versionnage sémantique](https://semver.org/lang/fr/).
 
-## [Non publié]
+## [0.2.2] - 2026-10-03
 
 ### Corrigé
 
 - Rendement de la chasse : le temps actif est désormais le **temps sur site** (en espace normal hors des stations, depuis l'arrivée sur le site de la première récompense). La recherche de cibles compte ; les trajets et l'amarrage non. Une recherche de 20 minutes entre deux primes était écartée, ce qui affichait 36 M CR/h au lieu de 10 M CR/h sur une vraie session.
+- Les primes sont maintenant vérifiées sur une vraie session (jeu 4.4.1.1) : victimes, récompenses payées par plusieurs factions et encaissement par faction correspondent au jeu.
 
 ## [0.2.1] - 2026-10-03
 
@@ -48,6 +49,7 @@ Première version, pour le premier essai en jeu. Le plugin fonctionne seul, sans
 - Pas de valeur estimée de la soute : elle demande les prix du serveur.
 - Pas encore vérifiés : le thème sombre d'EDMC, le son d'alerte sous Windows.
 
+[0.2.2]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.2
 [0.2.1]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.1
 [0.2.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.0
 [0.1.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.1.0
