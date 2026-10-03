@@ -149,3 +149,15 @@ def test_bounties_are_left_out_when_only_combat_bonds_were_earned(
     model = presenter.apply([HuntUpdated(stats(bounty_credits=0, bond_credits=224_467))])
     assert "Bounties" not in labels(model)
     assert value(model, "Combat bonds") == "224,467 CR"
+
+
+def test_only_combat_bonds_is_a_conflict_zone(presenter: HuntingPresenter) -> None:
+    bonds_only = stats(bounty_credits=0, bond_credits=224_467)
+    assert presenter.apply([HuntStarted(T0), HuntUpdated(bonds_only)]).status == "Conflict zone"
+    ended = presenter.apply([HuntEnded(T0, HuntEndReason.MANUAL, bonds_only)])
+    assert ended.status == "Conflict zone ended: reset"
+
+
+def test_any_bounty_makes_it_bounty_hunting(presenter: HuntingPresenter) -> None:
+    mixed = stats(bounty_credits=100_000, bond_credits=224_467)
+    assert presenter.apply([HuntStarted(T0), HuntUpdated(mixed)]).status == "Bounty hunting"

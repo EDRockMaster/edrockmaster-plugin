@@ -8,7 +8,7 @@ All notable changes to the EDRockMaster plugin. The format follows [Keep a Chang
 
 ### Changed
 
-- Bounty hunting panel: the bounty line is left out when only combat bonds were earned (conflict zones).
+- Bounty hunting panel: when only combat bonds are earned, the status reads **Conflict zone** and the empty bounty line is left out.
 
 ## [0.2.0] - 2026-10-03
 

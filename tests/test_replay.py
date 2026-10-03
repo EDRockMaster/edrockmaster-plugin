@@ -92,7 +92,7 @@ def test_conflict_zone_is_not_mining(conflict_zone: Replay) -> None:
 def test_conflict_zone_panel_shows_the_hunt(conflict_zone: Replay) -> None:
     assert conflict_zone.presenter.current is Activity.BOUNTY_HUNTING
     model = conflict_zone.presenter.render()
-    assert model.status == "Bounty hunting"
+    assert model.status == "Conflict zone"
     lines = [(line.label, line.value) for line in model.lines]
     assert ("Combat bonds", "224,467 CR") in lines
     assert ("Éliminez les pilotes criminels…", "2,408,404, top 50 %") in lines

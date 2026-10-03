@@ -120,7 +120,7 @@ Statistiques d'une session : durée active, tonnes par commodité, tonnes totale
 | `CommunityGoal` | Les objectifs rejoints par le commandant : contribution, tranche de classement, palier atteint |
 | Réinitialisation manuelle (bouton du panneau, chasse affichée) | La session se termine, une nouvelle peut commencer |
 
-Statistiques d'une session de chasse : durée active, victimes (et victimes partagées), crédits de primes et d'obligations de combat, crédits par heure. Communs au panneau : les bons non encaissés (connus seulement depuis le lancement d'EDMC : le journal ne redonne pas les plus anciens) et les objectifs communautaires. Les superpuissances écrites `$faction_Federation;` sont ramenées à `Federation`.
+Statistiques d'une session de chasse : durée active, victimes (et victimes partagées), crédits de primes et d'obligations de combat, crédits par heure. Communs au panneau : les bons non encaissés (connus seulement depuis le lancement d'EDMC : le journal ne redonne pas les plus anciens) et les objectifs communautaires. Les superpuissances écrites `$faction_Federation;` sont ramenées à `Federation`. Une session avec des obligations de combat et aucune prime s'affiche comme **Zone de conflit**, sans la ligne des primes, vide.
 
 ## Alertes du prospecteur
 

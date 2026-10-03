@@ -8,7 +8,7 @@ Les changements notables du plugin EDRockMaster. Le format suit [Keep a Changelo
 
 ### Modifié
 
-- Panneau de chasse : la ligne des primes est masquée quand seules des obligations de combat ont été gagnées (zones de conflit).
+- Panneau de chasse : quand seules des obligations de combat sont gagnées, l'état affiche **Zone de conflit** et la ligne des primes, vide, est masquée.
 
 ## [0.2.0] - 2026-10-03
 

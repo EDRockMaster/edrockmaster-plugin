@@ -120,7 +120,7 @@ Statistics of a session: active duration, tons per commodity, total tons, tons p
 | `CommunityGoal` | The goals the commander joined: contribution, percentile band, tier reached |
 | Manual reset (panel button, hunting shown) | Session ends, a new one can start |
 
-Statistics of a hunting session: active duration, kills (and shared kills), bounty and combat bond credits, credits per hour. Shared with the panel: unredeemed vouchers (known since EDMC started only: the journal does not restate older ones) and the community goals. Superpower factions written `$faction_Federation;` are normalised to `Federation`.
+Statistics of a hunting session: active duration, kills (and shared kills), bounty and combat bond credits, credits per hour. Shared with the panel: unredeemed vouchers (known since EDMC started only: the journal does not restate older ones) and the community goals. Superpower factions written `$faction_Federation;` are normalised to `Federation`. A session with combat bonds and no bounty is shown as **Conflict zone**, without the empty bounty line.
 
 ## Prospector alerts
 

@@ -82,11 +82,20 @@ class HuntingPresenter:
 
     def _status(self) -> str:
         tl = self._tl
+        conflict_zone = self._is_conflict_zone()
         if self._running:
-            return tl("Bounty hunting")
+            return tl("Conflict zone") if conflict_zone else tl("Bounty hunting")
         if self._ended is not None:
-            return tl("Hunt ended: {reason}").format(reason=tl(_END_REASONS[self._ended]))
+            ended = (
+                tl("Conflict zone ended: {reason}") if conflict_zone else tl("Hunt ended: {reason}")
+            )
+            return ended.format(reason=tl(_END_REASONS[self._ended]))
         return tl("No hunting session")
+
+    def _is_conflict_zone(self) -> bool:
+        """Only combat bonds and no bounty: the commander fights in a conflict zone."""
+        stats = self._stats
+        return stats is not None and bool(stats.bond_credits) and not stats.bounty_credits
 
     def _session_lines(self, stats: HuntStats) -> Iterable[StatLine]:
         tl, number = self._tl, self._number
