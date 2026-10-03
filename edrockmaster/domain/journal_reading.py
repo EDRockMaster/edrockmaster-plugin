@@ -37,11 +37,16 @@ def translate[F](entry: Entry, parsers: Mapping[str, Parser[F]]) -> F | None:
 
 
 def timestamp(entry: Entry) -> datetime:
-    raw = required(entry, "timestamp", str)
+    return instant(entry, "timestamp")
+
+
+def instant(entry: Entry, name: str) -> datetime:
+    """A date field of the journal (``2026-10-03T21:00:00Z``), in UTC."""
+    raw = required(entry, name, str)
     try:
         return datetime.strptime(raw, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
     except ValueError as error:
-        raise MalformedEntryError from error
+        raise MalformedEntryError(name) from error
 
 
 def required[T](entry: Entry, name: str, kind: type[T]) -> T:
