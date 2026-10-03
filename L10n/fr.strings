@@ -1,0 +1,2 @@
+/* edmc/plugin.py: status bar message when the plugin fails */
+"EDRockMaster: internal error, see the EDMC log" = "EDRockMaster : erreur interne, voir le journal d'EDMC";

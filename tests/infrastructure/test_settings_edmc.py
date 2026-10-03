@@ -9,33 +9,12 @@ from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.journal import ContentLevel
 from edrockmaster.domain.prospecting import AlertSettings
 from edrockmaster.infrastructure.settings_edmc import EdmcSettingsStore
+from tests.fakes import FakeConfig
 
 PAINITE = Commodity.from_symbol("painite")
 OSMIUM = Commodity.from_symbol("osmium")
 
 logger = logging.getLogger("test.settings")
-
-
-class FakeConfig:
-    """Mimics EDMC's ``config``: typed getters with keyword-only defaults."""
-
-    def __init__(self, values: dict[str, object] | None = None) -> None:
-        self.values: dict[str, object] = dict(values or {})
-
-    def get_str(self, key: str, *, default: str | None = None) -> str | None:
-        value = self.values.get(key, default)
-        if value is not None and not isinstance(value, str):
-            raise ValueError(key)
-        return value
-
-    def get_bool(self, key: str, *, default: bool | None = None) -> bool:
-        value = self.values.get(key, default)
-        if not isinstance(value, bool):
-            raise ValueError(key)
-        return value
-
-    def set(self, key: str, value: str | bool) -> None:
-        self.values[key] = value
 
 
 CUSTOM = replace(

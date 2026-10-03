@@ -2,7 +2,7 @@
 
 Every key is prefixed with ``edrockmaster.``. Values are read one by one: an
 invalid value falls back to its own default and is logged, the others are kept.
-EDMC's config has no float type, so numbers are stored as text.
+Numbers are stored as text, which every EDMC config back-end supports.
 """
 
 from __future__ import annotations

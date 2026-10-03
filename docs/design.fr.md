@@ -47,7 +47,7 @@ edrockmaster/
 L10n/fr.strings                 traductions françaises
 ```
 
-Règle de dépendance : `domain` n'importe rien du plugin ; `application` importe `domain` ; `infrastructure`, `edmc` et `ui` importent `application` et `domain`. Seuls `edmc/`, `ui/` et les adaptateurs propres à EDMC importent des modules d'EDMC, toujours protégés par `try/except ImportError` pour que le reste soit testable hors d'EDMC.
+Règle de dépendance : `domain` n'importe rien du plugin ; `application` importe `domain` ; `infrastructure`, `edmc` et `ui` importent `application` et `domain`. Seuls `load.py` (qui ne s'exécute que dans EDMC), `edmc/`, `ui/` et les adaptateurs propres à EDMC importent des modules d'EDMC ; hormis dans `load.py`, toujours protégés par `try/except ImportError` pour que le reste soit testable hors d'EDMC.
 
 ## Circulation des données
 
@@ -61,6 +61,8 @@ Règle de dépendance : `domain` n'importe rien du plugin ; `application` import
 
 Tout ceci n'est que du calcul sur de petits objets (bien moins d'une milliseconde par événement) : ça reste sur le fil principal. Tout ce qui touche aux fichiers ou au réseau passe par le fil d'entrées-sorties.
 
+`edmc/plugin.py` est la racine de composition. `load.py` lui fournit le `config` d'EDMC ; il construit le fil d'entrées-sorties, les adaptateurs et le `MiningService` dans `plugin_start3`, et arrête le fil dans `plugin_stop`. L'interface s'abonne aux notifications et fournit le son d'alerte, qui a besoin d'un widget. Toute exception pendant le traitement d'une entrée est journalisée et signalée dans la barre d'état d'EDMC ; les entrées suivantes sont traitées normalement. Le logger est celui qu'EDMC prépare pour le plugin, `<appname>.<dossier du plugin>`.
+
 ## Fils d'exécution
 
 - **Fil principal** : hooks, domaine, interface.
@@ -71,7 +73,7 @@ Tout ceci n'est que du calcul sur de petits objets (bien moins d'une millisecond
 
 | Situation | Effet |
 | --- | --- |
-| `SupercruiseExit` avec `BodyType` = `PlanetaryRing` | Anneau courant connu (nom, système) |
+| `SupercruiseExit`, `Location` ou `StartUp` avec `BodyType` = `PlanetaryRing` | Anneau courant connu (nom, système) |
 | Première activité de minage (`LaunchDrone` prospecteur, `ProspectedAsteroid`, `MiningRefined`) | Une session démarre s'il n'y en a pas en cours |
 | `ProspectedAsteroid` | Astéroïde enregistré, politique d'alerte évaluée |
 | `MiningRefined` | Une tonne de la commodité comptée |
@@ -81,11 +83,12 @@ Tout ceci n'est que du calcul sur de petits objets (bien moins d'une millisecond
 | `EjectCargo` | Tonnes larguées comptées à part (hors production) |
 | Aucune activité de minage pendant 10 minutes | Session en pause : le temps inactif n'est pas compté |
 | `SupercruiseEntry`, `FSDJump`, `Docked`, `Shutdown`, `ShutDown` | Fin de la session |
-| `StartUp` (EDMC lancé en cours de partie) | Contexte reconstruit à partir de `state` (vaisseau, soute, système) |
+| `StartUp` (synthétique, EDMC lancé en cours de partie) | Anneau courant tiré de `Body`/`BodyType` de l'événement ; les chiffres de la soute arrivent avec le prochain événement `Cargo` (le jeu en écrit un à chaque raffinage) |
+| `MarketSell` | Crédité à la session en cours, sinon à la dernière terminée : seulement ses tonnes minées ni éjectées ni encore vendues, au prix unitaire de la vente |
 | Réinitialisation manuelle (bouton du panneau) | Fin de la session, une nouvelle peut démarrer |
 | `is_beta`, ou `gameversion` autre que 4.x dans `LoadGame` | Tout fonctionne en local ; marqué comme non envoyable (1B) |
 
-Statistiques d'une session : durée active, tonnes par commodité, tonnes totales, tonnes par heure, astéroïdes prospectés (par niveau de teneur), cores trouvés et fissurés, drones lancés (prospecteurs, collecteurs), raffinages par minute.
+Statistiques d'une session : durée active, tonnes par commodité, tonnes totales, tonnes par heure, astéroïdes prospectés (par niveau de teneur), cores trouvés et fissurés, drones lancés (prospecteurs, collecteurs), raffinages par minute, tonnes vendues et crédits gagnés.
 
 ## Alertes du prospecteur
 
@@ -104,7 +107,7 @@ Enregistrés avec le `config` d'EDMC (`config.set` / `config.get_*`), clés pré
 | `edrockmaster.settings_version` | texte | Version du format des clés ci-dessous (`1`), pour les migrations futures |
 | `edrockmaster.alert.thresholds` | texte | Objet JSON, clé de commodité → pourcentage (`{"painite": 25.0, …}`) |
 | `edrockmaster.alert.minimum_content` | texte | `low`, `medium` ou `high` |
-| `edrockmaster.alert.minimum_remaining` | texte | Pourcentage, ou vide si aucune (le config d'EDMC n'a pas de type flottant) |
+| `edrockmaster.alert.minimum_remaining` | texte | Pourcentage, ou vide si aucune (en texte, pour tous les stockages de config d'EDMC) |
 | `edrockmaster.alert.cores` | booléen | Alerte sur les cores |
 | `edrockmaster.sound` | booléen | Alertes sonores |
 | `edrockmaster.record_journal` | booléen | Enregistreur du journal |
@@ -143,6 +146,7 @@ Ports définis en 1A, réalisés en 1B :
 - `Authenticator` : device flow Keycloak ; refresh token stocké avec `config`.
 - `Uploader` : lots (gzip) vers `edrockmaster-ingest`, sur le fil d'entrées-sorties, avec reprise progressive.
 - Killswitch : module `killswitch` d'EDMC, relu toutes les 10 minutes depuis notre serveur.
+- Galaxie au `StartUp` : il n'y a pas de `LoadGame` dans ce cas, la version du jeu doit donc être lue dans `state["GameVersion"]` pour distinguer Live et Legacy.
 
 ## Tests
 

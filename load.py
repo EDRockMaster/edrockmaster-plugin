@@ -6,17 +6,20 @@ EDMC imports this module and calls the hooks below. They only delegate to
 
 from __future__ import annotations
 
+import os
 from typing import Any
+
+from config import config  # type: ignore[import-not-found]  # EDMC's settings store
 
 from edrockmaster import VERSION
 from edrockmaster.edmc.plugin import Plugin
 
 __all__ = ["VERSION", "journal_entry", "plugin_start3", "plugin_stop"]
 
-_plugin = Plugin()
+_plugin = Plugin(config)
 
 
-def plugin_start3(plugin_dir: str) -> str:
+def plugin_start3(plugin_dir: str | os.PathLike[str]) -> str:
     return _plugin.start(plugin_dir)
 
 

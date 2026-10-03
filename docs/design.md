@@ -47,7 +47,7 @@ edrockmaster/
 L10n/fr.strings                 French translations
 ```
 
-Dependency rule: `domain` imports nothing from the plugin; `application` imports `domain`; `infrastructure`, `edmc` and `ui` import `application` and `domain`. Only `edmc/`, `ui/` and the EDMC-specific adapters import EDMC modules, always guarded by `try/except ImportError` so that the rest is testable outside EDMC.
+Dependency rule: `domain` imports nothing from the plugin; `application` imports `domain`; `infrastructure`, `edmc` and `ui` import `application` and `domain`. Only `load.py` (which only runs inside EDMC), `edmc/`, `ui/` and the EDMC-specific adapters import EDMC modules; except in `load.py`, always guarded by `try/except ImportError` so that the rest is testable outside EDMC.
 
 ## Data flow
 
@@ -61,6 +61,8 @@ Dependency rule: `domain` imports nothing from the plugin; `application` imports
 
 All of this is pure computation on small objects (well under a millisecond per event): it stays on the main thread. Anything touching files or the network goes through the I/O thread.
 
+`edmc/plugin.py` is the composition root. `load.py` hands it EDMC's `config`; it builds the I/O thread, the adapters and the `MiningService` in `plugin_start3`, and stops the thread in `plugin_stop`. The UI subscribes to the notifications and provides the alert sound, which needs a widget. Any exception while handling an entry is logged and reported in EDMC's status bar; the next entries are handled normally. The logger is the one EDMC prepares for the plugin, `<appname>.<plugin folder>`.
+
 ## Threads
 
 - **Main thread**: hooks, domain, UI.
@@ -71,7 +73,7 @@ All of this is pure computation on small objects (well under a millisecond per e
 
 | Situation | Effect |
 | --- | --- |
-| `SupercruiseExit` with `BodyType` = `PlanetaryRing` | Current ring known (name, system) |
+| `SupercruiseExit`, `Location` or `StartUp` with `BodyType` = `PlanetaryRing` | Current ring known (name, system) |
 | First mining activity (`LaunchDrone` prospector, `ProspectedAsteroid`, `MiningRefined`) | Session starts if none is running |
 | `ProspectedAsteroid` | Asteroid recorded, alert policy evaluated |
 | `MiningRefined` | One ton of the commodity counted |
@@ -81,11 +83,12 @@ All of this is pure computation on small objects (well under a millisecond per e
 | `EjectCargo` | Ejected tons counted apart (not part of production) |
 | No mining activity for 10 minutes | Session paused: inactive time is not counted |
 | `SupercruiseEntry`, `FSDJump`, `Docked`, `Shutdown`, `ShutDown` | Session ends |
-| `StartUp` (EDMC started mid-game) | Context rebuilt from `state` (ship, cargo, system) |
+| `StartUp` (synthetic, EDMC started mid-game) | Current ring from the event's `Body`/`BodyType`; cargo figures come with the next `Cargo` event (the game writes one at each refinement) |
+| `MarketSell` | Credited to the running session, or else to the last one that ended: only its mined tons not yet ejected nor sold, at the sale's unit price |
 | Manual reset (panel button) | Session ends, a new one can start |
 | `is_beta`, or `gameversion` not 4.x in `LoadGame` | Everything works locally; flagged as not uploadable (1B) |
 
-Statistics of a session: active duration, tons per commodity, total tons, tons per hour, asteroids prospected (by content level), cores found and cracked, limpets launched (prospector, collector), refinements per minute.
+Statistics of a session: active duration, tons per commodity, total tons, tons per hour, asteroids prospected (by content level), cores found and cracked, limpets launched (prospector, collector), refinements per minute, tons sold and credits earned.
 
 ## Prospector alerts
 
@@ -104,7 +107,7 @@ Stored with EDMC's `config` (`config.set` / `config.get_*`), keys prefixed with 
 | `edrockmaster.settings_version` | text | Format version of the keys below (`1`), for future migrations |
 | `edrockmaster.alert.thresholds` | text | JSON object, commodity key → percent (`{"painite": 25.0, …}`) |
 | `edrockmaster.alert.minimum_content` | text | `low`, `medium` or `high` |
-| `edrockmaster.alert.minimum_remaining` | text | Percent, or empty for none (EDMC's config has no float type) |
+| `edrockmaster.alert.minimum_remaining` | text | Percent, or empty for none (text, for every EDMC config back-end) |
 | `edrockmaster.alert.cores` | bool | Alert on cores |
 | `edrockmaster.sound` | bool | Audible alerts |
 | `edrockmaster.record_journal` | bool | Journal recorder |
@@ -143,6 +146,7 @@ Ports defined in 1A, implemented in 1B:
 - `Authenticator`: Keycloak device flow; refresh token stored with `config`.
 - `Uploader`: batches (gzip) to `edrockmaster-ingest`, on the I/O thread, with backoff.
 - Kill switch: EDMC's `killswitch` module, fetched every 10 minutes from our server.
+- Galaxy on `StartUp`: there is no `LoadGame` then, so the game version must be read from `state["GameVersion"]` to tell Live from Legacy.
 
 ## Testing
 
