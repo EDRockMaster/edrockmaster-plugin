@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 
 import pytest
 
@@ -21,102 +21,18 @@ from edrockmaster.domain.mining.session import (
     SessionStarted,
     SessionUpdated,
 )
+from tests.fakes import FakeNotifier, FixedClock
+from tests.journal_entries import (
+    T0,
+    prospected_entry,
+    refined_entry,
+    ring_entry,
+    supercruise_entry,
+    timestamp,
+)
 
-T0 = datetime(2026, 10, 3, 12, 0, tzinfo=UTC)
 PAINITE = Commodity.from_symbol("painite")
 PLATINUM = Commodity.from_symbol("platinum")
-
-
-# --- test doubles -------------------------------------------------------------------------
-
-
-class FakeSettingsStore:
-    def __init__(self, settings: PluginSettings = DEFAULT_SETTINGS) -> None:
-        self.stored = settings
-        self.saves = 0
-
-    def load(self) -> PluginSettings:
-        return self.stored
-
-    def save(self, settings: PluginSettings) -> None:
-        self.stored = settings
-        self.saves += 1
-
-
-class FakeNotifier:
-    def __init__(self) -> None:
-        self.notified: list[ProspectorAlertRaised] = []
-
-    def notify(self, alert: ProspectorAlertRaised) -> None:
-        self.notified.append(alert)
-
-
-class FakeRecorder:
-    def __init__(self) -> None:
-        self.recorded: list[tuple[Entry, bool]] = []
-
-    def record(self, entry: Entry, is_beta: bool) -> None:
-        self.recorded.append((entry, is_beta))
-
-
-class FixedClock:
-    def __init__(self, now: datetime) -> None:
-        self.current = now
-
-    def now(self) -> datetime:
-        return self.current
-
-
-# --- journal entries ----------------------------------------------------------------------
-
-
-def timestamp(minutes: float) -> str:
-    return (T0 + timedelta(minutes=minutes)).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-def ring_entry(minutes: float = 0) -> Entry:
-    return {
-        "timestamp": timestamp(minutes),
-        "event": "SupercruiseExit",
-        "StarSystem": "Col 285 Sector AB-C d1",
-        "SystemAddress": 42,
-        "Body": "Col 285 Sector AB-C d1 2 A Ring",
-        "BodyType": "PlanetaryRing",
-    }
-
-
-def prospected_entry(
-    minutes: float,
-    painite: float = 30.0,
-    content: str = "$AsteroidMaterialContent_High;",
-    motherlode: str | None = None,
-) -> Entry:
-    entry: dict[str, object] = {
-        "timestamp": timestamp(minutes),
-        "event": "ProspectedAsteroid",
-        "Materials": [
-            {"Name": "Painite", "Proportion": painite},
-            {"Name": "Bromellite", "Proportion": 100.0 - painite},
-        ],
-        "Content": content,
-        "Remaining": 100.0,
-    }
-    if motherlode is not None:
-        entry["MotherlodeMaterial"] = motherlode
-    return entry
-
-
-def refined_entry(minutes: float, commodity: str = "$painite_name;") -> Entry:
-    return {
-        "timestamp": timestamp(minutes),
-        "event": "MiningRefined",
-        "Type": commodity,
-        "Type_Localised": "Painite",
-    }
-
-
-def supercruise_entry(minutes: float) -> Entry:
-    return {"timestamp": timestamp(minutes), "event": "SupercruiseEntry", "StarSystem": "Col 285"}
 
 
 # --- fixture ------------------------------------------------------------------------------
@@ -124,16 +40,9 @@ def supercruise_entry(minutes: float) -> Entry:
 
 class Harness:
     def __init__(self, settings: PluginSettings = DEFAULT_SETTINGS) -> None:
-        self.store = FakeSettingsStore(settings)
         self.notifier = FakeNotifier()
-        self.recorder = FakeRecorder()
         self.clock = FixedClock(T0 + timedelta(hours=1))
-        self.service = MiningService(
-            settings_store=self.store,
-            notifier=self.notifier,
-            recorder=self.recorder,
-            clock=self.clock,
-        )
+        self.service = MiningService(settings=settings, notifier=self.notifier, clock=self.clock)
 
 
 @pytest.fixture
@@ -221,23 +130,6 @@ def test_beta_flag_reaches_the_tracker(harness: Harness) -> None:
     assert not harness.service.is_live
 
 
-# --- journal recorder ---------------------------------------------------------------------
-
-
-def test_recorder_is_off_by_default(harness: Harness) -> None:
-    harness.service.handle_journal_entry(refined_entry(0), is_beta=False)
-    assert harness.recorder.recorded == []
-
-
-def test_recorder_copies_every_entry_when_enabled() -> None:
-    harness = Harness(replace(DEFAULT_SETTINGS, record_journal=True))
-    music: Entry = {"timestamp": timestamp(0), "event": "Music", "MusicTrack": "Exploration"}
-    refined = refined_entry(1)
-    harness.service.handle_journal_entry(music, is_beta=False)
-    harness.service.handle_journal_entry(refined, is_beta=True)
-    assert harness.recorder.recorded == [(music, False), (refined, True)]
-
-
 # --- manual reset -------------------------------------------------------------------------
 
 
@@ -257,12 +149,7 @@ def test_reset_without_session_does_nothing(harness: Harness) -> None:
 # --- settings -----------------------------------------------------------------------------
 
 
-def test_settings_are_loaded_from_the_store() -> None:
-    custom = replace(DEFAULT_SETTINGS, sound_enabled=False)
-    assert Harness(custom).service.settings == custom
-
-
-def test_changed_settings_are_saved_and_applied(harness: Harness) -> None:
+def test_new_settings_apply_to_the_next_asteroids(harness: Harness) -> None:
     strict = replace(
         DEFAULT_SETTINGS,
         alerts=AlertSettings(
@@ -272,19 +159,11 @@ def test_changed_settings_are_saved_and_applied(harness: Harness) -> None:
             alert_on_cores=True,
         ),
     )
-    harness.service.change_settings(strict)
-    assert harness.store.stored == strict
-    assert harness.store.saves == 1
-    assert harness.service.settings == strict
+    harness.service.apply_settings(strict)
     notifications = harness.service.handle_journal_entry(
         prospected_entry(1, painite=30.0), is_beta=False
     )
     assert alerts_in(notifications) == []
-
-
-def test_unchanged_settings_are_not_saved_again(harness: Harness) -> None:
-    harness.service.change_settings(DEFAULT_SETTINGS)
-    assert harness.store.saves == 0
 
 
 def test_default_settings_match_the_documented_defaults() -> None:

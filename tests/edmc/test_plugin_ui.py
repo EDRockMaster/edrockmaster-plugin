@@ -74,9 +74,9 @@ def test_preferences_are_applied_and_saved_when_the_dialog_closes(
     assert tab is not None
     tab._thresholds["painite"].set("45")
     harness.plugin.prefs_changed()
-    service = harness.plugin.service
-    assert service is not None
-    assert service.settings.alerts.thresholds[Commodity.from_symbol("painite")] == 45.0
+    companion = harness.plugin.companion
+    assert companion is not None
+    assert companion.settings.alerts.thresholds[Commodity.from_symbol("painite")] == 45.0
     assert '"painite": 45.0' in str(harness.config.values["edrockmaster.alert.thresholds"])
     harness.plugin.journal_entry("Cmdr", False, None, None, PROSPECTED, {})
     assert harness.plugin._panel is not None
@@ -105,3 +105,30 @@ def test_recordings_folder_is_created_and_opened(harness: Harness, root: tk.Tk) 
     [folder] = harness.opened
     assert folder.name == "recordings"
     assert folder.is_dir()
+
+
+BOUNTY: Entry = {
+    "timestamp": "2026-10-03T12:10:00Z",
+    "event": "Bounty",
+    "Rewards": [{"Faction": "Federation", "Reward": 250000}],
+    "TotalReward": 250000,
+    "Target": "anaconda",
+}
+
+
+def test_a_kill_switches_the_panel_to_bounty_hunting(harness: Harness) -> None:
+    harness.plugin.journal_entry("Cmdr", False, None, None, PROSPECTED, {})
+    harness.plugin.journal_entry("Cmdr", False, None, None, BOUNTY, {})
+    assert harness.status() == "Bounty hunting"
+
+
+def test_reset_acts_on_the_activity_shown(harness: Harness) -> None:
+    harness.plugin.journal_entry("Cmdr", False, None, None, PROSPECTED, {})
+    harness.plugin.journal_entry("Cmdr", False, None, None, BOUNTY, {})
+    panel = harness.plugin._panel
+    assert panel is not None
+    panel._reset.invoke()
+    assert harness.status() == "Hunt ended: reset"
+    companion = harness.plugin.companion
+    assert companion is not None
+    assert companion.mining.current_stats is not None

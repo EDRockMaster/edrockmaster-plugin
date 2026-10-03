@@ -9,20 +9,20 @@
 /* ui/panel.py: button ending the current mining session */
 "Reset" = "Réinitialiser";
 
-/* ui/presenter.py: panel status */
+/* ui/mining_presenter.py: panel status */
 "No mining session" = "Aucune session de minage";
 "Mining" = "Minage en cours";
 "Mining: {ring}" = "Minage : {ring}";
 "Session ended: {reason}" = "Session terminée : {reason}";
 
-/* ui/presenter.py: why the session ended, inserted in "Session ended: {reason}" */
+/* ui/mining_presenter.py: why the session ended, inserted in "Session ended: {reason}" */
 "supercruise" = "supercroisière";
 "jump" = "saut";
 "docked" = "amarrage";
 "game closed" = "jeu fermé";
 "reset" = "réinitialisée";
 
-/* ui/presenter.py: statistic labels */
+/* ui/mining_presenter.py: statistic labels */
 "Active time" = "Temps actif";
 "Refined" = "Raffiné";
 "Rate" = "Rendement";
@@ -32,17 +32,36 @@
 "Cargo" = "Soute";
 "Sold" = "Vendu";
 
-/* ui/presenter.py: statistic values */
+/* ui/mining_presenter.py and ui/panel_model.py: statistic values */
 "{hours} h {minutes} min" = "{hours} h {minutes} min";
 "{minutes} min" = "{minutes} min";
 "{tons} t" = "{tons} t";
 "{rate} t/h" = "{rate} t/h";
 "{found} found, {cracked} cracked" = "trouvés : {found}, fissurés : {cracked}";
 "prospectors: {prospectors}, collectors: {collectors}" = "prospecteurs : {prospectors}, collecteurs : {collectors}";
-"{tons}, {credits} CR" = "{tons}, {credits} CR";
+"{tons}, {credits}" = "{tons}, {credits}";
+"{credits} CR" = "{credits} CR";
+"{credits}/h" = "{credits}/h";
 
-/* ui/presenter.py: prospector alert for a core (motherlode) */
+/* ui/mining_presenter.py: prospector alert for a core (motherlode) */
 "Core: {commodity}" = "Core : {commodity}";
+
+/* ui/hunting_presenter.py: panel status */
+"No hunting session" = "Aucune session de chasse";
+"Bounty hunting" = "Chasse à la prime";
+"Hunt ended: {reason}" = "Chasse terminée : {reason}";
+"ship destroyed" = "vaisseau détruit";
+
+/* ui/hunting_presenter.py: statistic labels and values */
+"Kills" = "Victimes";
+"{kills} ({shared} shared)" = "{kills} (dont {shared} partagées)";
+"Bounties" = "Primes";
+"Combat bonds" = "Obligations de combat";
+"Unredeemed" = "Non encaissé";
+
+/* ui/hunting_presenter.py: community goal: contribution, percentile band, tier */
+"top {band} %" = "top {band} %";
+"{goal} (complete)" = "{goal} (terminé)";
 
 /* ui/preferences.py: settings tab */
 "Prospector alerts" = "Alertes du prospecteur";
