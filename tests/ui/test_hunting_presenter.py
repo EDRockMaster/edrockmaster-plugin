@@ -141,3 +141,11 @@ def test_long_community_goal_titles_are_shortened(presenter: HuntingPresenter) -
     assert len(line.label) <= 32
     assert line.label.endswith("…")
     assert title.startswith(line.label[:-1])
+
+
+def test_bounties_are_left_out_when_only_combat_bonds_were_earned(
+    presenter: HuntingPresenter,
+) -> None:
+    model = presenter.apply([HuntUpdated(stats(bounty_credits=0, bond_credits=224_467))])
+    assert "Bounties" not in labels(model)
+    assert value(model, "Combat bonds") == "224,467 CR"

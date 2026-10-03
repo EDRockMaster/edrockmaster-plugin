@@ -168,6 +168,7 @@ Contenu en 1A : `recordings/` (enregistrements du journal, JSONL, un fichier par
 - Écrit chaque entrée reçue par le plugin, sans modification, un objet JSON par ligne, avec l'indicateur `is_beta` : `{"is_beta": false, "entry": {…}}`. Fichier : `recordings/journal-<début, UTC, AAAAMMJJTHHMMSSZ>.jsonl`.
 - L'entrée est sérialisée dès sa réception (EDMC partage le même dict avec tous les plugins), puis écrite par le fil d'entrées-sorties.
 - C'est à partir de ces enregistrements que l'on constitue `tests/fixtures/` ; le joueur décide de ce qu'il partage.
+- Le dépôt est public, et un enregistrement brut contient des données personnelles (nom et identifiant Frontier du commandant, escadron, porte-vaisseaux, messages, noms d'autres joueurs, réputation). Un enregistrement ne devient donnée de test qu'à travers `scripts/sanitise_recording.py` : il garde les événements lus par le plugin et quelques événements anodins, réduit `LoadGame` à la version du jeu, retire la réputation, et refuse d'écrire si le nom ou l'identifiant du commandant subsiste. `tests/test_replay.py` rejoue chaque jeu de données, avec des chiffres vérifiés à la main sur le journal brut.
 
 ## Internationalisation
 

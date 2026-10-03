@@ -30,7 +30,7 @@ What changed in each version: [changelog](CHANGELOG.md).
 - `edrockmaster/`: the plugin code, in a uniquely named package (see [prerequisites](docs/prerequisites.md)). Domain logic depends neither on EDMC nor on tkinter, and is tested with `pytest`.
 - `L10n/`: translations (`fr.strings`).
 - `tests/fixtures/`: excerpts of real journals.
-- `scripts/`: packaging (`package.sh`), release notes (`release_notes.sh`), version (`version.sh`), GitHub release (`github_release.py`).
+- `scripts/`: packaging (`package.sh`), release notes (`release_notes.sh`), version (`version.sh`), GitHub release (`github_release.py`), recording to test fixture (`sanitise_recording.py`).
 
 ## Documentation
 

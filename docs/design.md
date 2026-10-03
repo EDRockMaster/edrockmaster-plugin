@@ -168,6 +168,7 @@ Contents in 1A: `recordings/` (journal recordings, JSONL, one file per EDMC run)
 - Writes every entry received by the plugin, unmodified, one JSON object per line, with the `is_beta` flag: `{"is_beta": false, "entry": {…}}`. File: `recordings/journal-<start, UTC, YYYYMMDDTHHMMSSZ>.jsonl`.
 - The entry is serialised when received (EDMC shares the same dict with every plugin) and written by the I/O thread.
 - Recordings are what we turn into `tests/fixtures/`; the player decides what to share.
+- The repository is public, and a raw recording holds personal data (commander name and Frontier id, squadron, carrier, chat messages, other players' names, reputation). A recording becomes a fixture only through `scripts/sanitise_recording.py`: it keeps the events the plugin reads and a few harmless ones, reduces `LoadGame` to the game version, drops the reputation, and refuses to write if the commander's name or id remains. `tests/test_replay.py` replays each fixture, with figures checked by hand against the raw journal.
 
 ## Internationalisation
 

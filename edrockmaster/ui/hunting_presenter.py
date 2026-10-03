@@ -97,7 +97,9 @@ class HuntingPresenter:
                 kills=kills, shared=number(stats.shared_kills, 0)
             )
         yield StatLine(tl("Kills"), kills)
-        yield StatLine(tl("Bounties"), self._credits(stats.bounty_credits))
+        if stats.bounty_credits or not stats.bond_credits:
+            # In a conflict zone, only combat bonds are earned: no empty bounty line
+            yield StatLine(tl("Bounties"), self._credits(stats.bounty_credits))
         if stats.bond_credits:
             yield StatLine(tl("Combat bonds"), self._credits(stats.bond_credits))
         yield StatLine(

@@ -4,6 +4,12 @@
 
 Les changements notables du plugin EDRockMaster. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), et les versions suivent le [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [Non publié]
+
+### Modifié
+
+- Panneau de chasse : la ligne des primes est masquée quand seules des obligations de combat ont été gagnées (zones de conflit).
+
 ## [0.2.0] - 2026-10-03
 
 ### Ajouté
