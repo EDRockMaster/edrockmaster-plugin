@@ -40,10 +40,13 @@ edrockmaster/
   edmc/
     plugin.py                   assemblage : construit le graphe d'objets, implémente les hooks
     i18n.py                     tl() relié au l10n d'EDMC, avec un repli pour les tests
+    host.py                     services d'EDMC (theme, plug.show_error, l10n.Locale), avec replis
   ui/
-    panel.py                    panneau de la fenêtre principale (tkinter, fil principal uniquement)
+    presenter.py                PanelModel (textes) construit à partir des notifications, sans tkinter
+    preferences_form.py         réglages <-> champs des préférences, validation, sans tkinter
+    commodity_names.py          noms des commodités minables connues avant que le journal ne les nomme
+    panel.py                    panneau de la fenêtre principale (tkinter, fil principal uniquement), recopie PanelModel
     preferences.py              onglet des préférences (myNotebook)
-    presenter.py                modèles de vue construits à partir des notifications du domaine
 L10n/fr.strings                 traductions françaises
 ```
 
@@ -66,7 +69,7 @@ Tout ceci n'est que du calcul sur de petits objets (bien moins d'une millisecond
 ## Fils d'exécution
 
 - **Fil principal** : hooks, domaine, interface.
-- **Un fil d'entrées-sorties** (`infrastructure/worker.py`) : fil démon alimenté par une `queue.Queue` de tâches (ajout au fichier d'enregistrement en 1A ; envois et authentification en 1B). Il ne touche jamais à tkinter. Quand il doit mettre à jour l'interface, il dépose un message dans une file de résultats et appelle `event_generate("<<EDRockMasterUpdate>>")` sur le panneau, sauf si `config.shutting_down` est vrai.
+- **Un fil d'entrées-sorties** (`infrastructure/worker.py`) : fil démon alimenté par une `queue.Queue` de tâches (ajout au fichier d'enregistrement en 1A ; envois et authentification en 1B). Il ne touche jamais à tkinter. En 1A, il n'a rien à signaler à l'interface. À partir de 1B (état des envois), il déposera un message dans une file de résultats et appellera `event_generate("<<EDRockMasterUpdate>>")` sur le panneau, sauf si `config.shutting_down` est vrai.
 - `plugin_stop()` dépose une tâche d'arrêt, attend la fin du fil avec un délai maximal, et vide l'enregistreur.
 
 ## Cycle de vie d'une session de minage
@@ -97,6 +100,12 @@ Statistiques d'une session : durée active, tonnes par commodité, tonnes totale
 - Réserve restante minimale (`Remaining`), facultative.
 - Un motherlode (core) déclenche sa propre alerte, quels que soient les seuils.
 - Prospecter deux fois le même astéroïde (même composition à moins de 60 secondes d'intervalle) ne déclenche pas de seconde alerte.
+
+## Interface
+
+**Panneau** (fenêtre principale d'EDMC) : état (aucune session, minage dans un anneau, session terminée et pourquoi), la dernière alerte du prospecteur, mise en évidence jusqu'au prochain astéroïde prospecté, puis les statistiques : temps actif, tonnes raffinées, rendement, tonnes par commodité, astéroïdes prospectés et, dès qu'ils sont connus, cores, drones, soute et ventes. Les statistiques d'une session terminée restent affichées, et ses ventes s'y ajoutent. Un bouton **Réinitialiser** termine la session en cours. Les nombres suivent les réglages régionaux du système, comme ceux d'EDMC.
+
+**Onglet des préférences** : un champ de pourcentage par commodité minable (vide : pas d'alerte), teneur minimale, réserve minimale, alerte sur les cores, son, enregistreur du journal et un bouton qui ouvre le dossier des enregistrements. Les nombres se saisissent selon les réglages régionaux du système. À la fermeture de la fenêtre, une saisie invalide garde sa valeur précédente et est citée dans la barre d'état d'EDMC ; les saisies valides sont appliquées tout de suite.
 
 ## Réglages
 
@@ -135,7 +144,9 @@ Contenu en 1A : `recordings/` (enregistrements du journal, JSONL, un fichier par
 
 - Textes source en anglais dans le code, passés par `tl()` (`edmc/i18n.py`, relié à `l10n.translations.tl` avec `context=__file__`).
 - Français dans `L10n/fr.strings` (format `.strings`, UTF-8).
-- Les textes affichés sont rafraîchis dans `prefs_changed`.
+- Les textes affichés sont rafraîchis dans `prefs_changed` : le présentateur garde des objets du domaine, pas des textes, et reconstruit chaque texte dans la langue courante.
+- Les décomptes évitent l'accord au pluriel (`prospecteurs : 3`), que les fichiers `.strings` ne savent pas exprimer.
+- `tests/test_translations.py` échoue si un texte passé à `tl()` n'a pas de traduction française, si une traduction ne sert plus, ou si les paramètres diffèrent.
 - Les noms de commodités viennent des champs `*_Localised` du journal quand ils existent (la langue du jeu), sinon de nos propres noms.
 
 ## Préparé pour l'étape 1B
@@ -154,5 +165,5 @@ Ports définis en 1A, réalisés en 1B :
 - **Jeux de données** : extraits de vrais journaux (`tests/fixtures/*.jsonl`), enregistrés avec l'enregistreur.
 - **Tests de rejeu** : une session enregistrée complète est rejouée dans `MiningService`, et les statistiques finales sont vérifiées.
 - **Adaptateurs EDMC** : testés avec de faux modules `config`, `l10n` et `theme` injectés par `tests/conftest.py`.
-- **Interface** : volontairement mince (présentateur testé, widgets non testés unitairement) ; vérifiée en jeu pendant le test 1A.
+- **Interface** : le présentateur et le formulaire des préférences sont purs et entièrement testés. Les widgets tkinter restent minces ; leurs tests utilisent un vrai Tk et sont sautés là où il n'y a pas d'affichage (CI), ils tournent donc sur les postes des développeurs. Vérifiée en jeu pendant le test 1A.
 - CI : `ruff`, `mypy --strict`, `pytest` avec couverture sur `domain/` et `application/`.

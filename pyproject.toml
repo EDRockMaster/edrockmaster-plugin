@@ -38,7 +38,9 @@ pythonpath = ["."]
 addopts = "--strict-markers"
 
 [tool.coverage.run]
-source = ["edrockmaster/domain", "edrockmaster/application"]
+source = ["edrockmaster/domain", "edrockmaster/application", "edrockmaster/ui"]
+# tkinter widgets: tested only where a display exists (not in CI), kept thin
+omit = ["edrockmaster/ui/panel.py", "edrockmaster/ui/preferences.py"]
 branch = true
 
 [tool.coverage.report]

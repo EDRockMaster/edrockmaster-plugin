@@ -94,6 +94,13 @@ def test_first_mining_activity_starts_a_session(first_activity: object) -> None:
     assert tracker.session.started_at == at(1)
 
 
+def test_the_first_activity_is_counted_and_notified_with_the_start() -> None:
+    started, updated = MiningTracker().handle(refined(1))
+    assert isinstance(started, SessionStarted)
+    assert isinstance(updated, SessionUpdated)
+    assert updated.stats.total_tons == 1
+
+
 def test_non_mining_limpet_does_not_start_a_session() -> None:
     tracker = MiningTracker()
     assert tracker.handle(launched(1, LimpetKind.OTHER)) == []

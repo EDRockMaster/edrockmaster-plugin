@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import logging
 import os
+import tkinter as tk
+import webbrowser
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -15,13 +17,22 @@ from typing import Any
 from edrockmaster import VERSION
 from edrockmaster.application.mining_service import MiningNotification, MiningService
 from edrockmaster.application.ports import Clock
+from edrockmaster.edmc import host
 from edrockmaster.edmc.i18n import tl
 from edrockmaster.infrastructure.clock import SystemClock
 from edrockmaster.infrastructure.paths import data_directory as default_data_directory
 from edrockmaster.infrastructure.recorder_jsonl import JsonlJournalRecorder
 from edrockmaster.infrastructure.settings_edmc import EdmcConfig, EdmcSettingsStore
-from edrockmaster.infrastructure.sound import SoundNotifier
+from edrockmaster.infrastructure.sound import SoundNotifier, system_alert_sound
 from edrockmaster.infrastructure.worker import IoWorker
+from edrockmaster.ui.panel import Panel
+from edrockmaster.ui.preferences import PreferencesTab
+from edrockmaster.ui.preferences_form import (
+    settings_from_values,
+    threshold_rows,
+    values_from_settings,
+)
+from edrockmaster.ui.presenter import Presenter
 
 try:  # pragma: no cover - only available inside EDMC
     from config import appname  # type: ignore[import-not-found]
@@ -49,6 +60,10 @@ def _internal_error() -> str:
     return tl("EDRockMaster: internal error, see the EDMC log")
 
 
+def _open_folder(folder: Path) -> None:
+    webbrowser.open(folder.as_uri())
+
+
 class Plugin:
     """The plugin as seen by EDMC. All methods run on EDMC's main thread."""
 
@@ -57,10 +72,15 @@ class Plugin:
         config: EdmcConfig,
         data_directory: Callable[[], Path] = default_data_directory,
         clock: Clock | None = None,
+        open_folder: Callable[[Path], None] = _open_folder,
     ) -> None:
         self._config = config
         self._data_directory = data_directory
         self._clock = clock or SystemClock()
+        self._open_folder = open_folder
+        self._presenter = Presenter(tl, host.format_number)
+        self._panel: Panel | None = None
+        self._tab: PreferencesTab | None = None
         self._worker = IoWorker(logger)
         self._service: MiningService | None = None
         self._listeners: list[Listener] = []
@@ -87,6 +107,55 @@ class Plugin:
     def stop(self) -> None:
         self._worker.stop()
         logger.info("EDRockMaster stopped")
+
+    def app(self, parent: tk.Misc) -> tk.Frame:
+        """``plugin_app``: the panel in EDMC's main window."""
+        panel = self._panel = Panel(parent, self.reset_session, tl, host.theme_update)
+        panel.render(self._presenter.render())
+        self.subscribe(lambda notifications: panel.render(self._presenter.apply(notifications)))
+        self.attach_alert_sound(system_alert_sound(panel.frame))
+        return panel.frame
+
+    def prefs(self, parent: tk.Misc) -> tk.Widget:
+        """``plugin_prefs``: the plugin's tab in EDMC's settings dialog."""
+        if self._service is None:
+            raise RuntimeError("the plugin has not started")
+        settings = self._service.settings
+        self._tab = PreferencesTab(
+            parent,
+            values_from_settings(settings, host.format_number),
+            threshold_rows(settings, tl),
+            tl,
+            self.open_recordings,
+        )
+        frame: tk.Widget = self._tab.frame
+        return frame
+
+    def prefs_changed(self) -> None:
+        """``prefs_changed``: apply the tab's entries, refresh texts (the language may change)."""
+        tab, self._tab = self._tab, None
+        if tab is not None and self._service is not None:
+            settings, invalid = settings_from_values(
+                tab.values(), self._service.settings, host.parse_number, tl
+            )
+            self._service.change_settings(settings)
+            if invalid:
+                host.show_error(
+                    tl("Invalid entries ignored: {fields}").format(fields=", ".join(invalid))
+                )
+        if self._panel is not None:
+            self._panel.retranslate()
+            self._panel.render(self._presenter.render())
+
+    def reset_session(self) -> None:
+        """The panel's reset button."""
+        if self._service is not None:
+            self._publish(self._service.reset_session())
+
+    def open_recordings(self) -> None:
+        folder = self._data_directory() / "recordings"
+        folder.mkdir(parents=True, exist_ok=True)
+        self._open_folder(folder)
 
     def subscribe(self, listener: Listener) -> None:
         self._listeners.append(listener)
