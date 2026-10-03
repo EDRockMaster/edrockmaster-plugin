@@ -4,12 +4,17 @@
 
 Les changements notables du plugin EDRockMaster. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), et les versions suivent le [versionnage sémantique](https://semver.org/lang/fr/).
 
-## [Non publié]
+## [0.2.0] - 2026-10-03
 
 ### Ajouté
 
-- **Chasse à la prime** ([ADR 0011](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0011-plugin-activities.fr.md)) : une session de chasse commence à la première prime ou obligation de combat et se termine à la mort, à la sortie du jeu ou avec **Réinitialiser** ; l'amarrage et les sauts ne la terminent pas. Statistiques : temps actif (pauses de plus de 15 minutes exclues), victimes et victimes partagées, primes, obligations de combat, crédits par heure. Bons non encaissés, perdus en cas de mort. Objectifs communautaires : contribution, tranche de classement, palier atteint.
+- **Chasse à la prime** (décision de conception ADR 0011, dans le dépôt d'architecture du projet) : une session de chasse commence à la première prime ou obligation de combat et se termine à la mort, à la sortie du jeu ou avec **Réinitialiser** ; l'amarrage et les sauts ne la terminent pas. Statistiques : temps actif (pauses de plus de 15 minutes exclues), victimes et victimes partagées, primes, obligations de combat, crédits par heure. Bons non encaissés, perdus en cas de mort. Objectifs communautaires : contribution, tranche de classement, palier atteint.
 - Le panneau montre l'activité en cours, minage ou chasse à la prime ; **Réinitialiser** agit sur elle.
+
+### Limites connues
+
+- Les bons non encaissés ne sont connus qu'à partir du lancement d'EDMC : le journal du jeu ne redonne pas les plus anciens.
+- Le compteur de chasse n'a pas encore été vérifié sur une vraie session de chasse : activez l'enregistreur du journal en chassant et signalez tout chiffre faux.
 
 ## [0.1.0] - 2026-10-03
 
@@ -30,4 +35,5 @@ Première version, pour le premier essai en jeu. Le plugin fonctionne seul, sans
 - Pas de valeur estimée de la soute : elle demande les prix du serveur.
 - Pas encore vérifiés : le thème sombre d'EDMC, le son d'alerte sous Windows.
 
+[0.2.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.0
 [0.1.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.1.0

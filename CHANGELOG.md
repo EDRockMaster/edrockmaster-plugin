@@ -4,12 +4,17 @@
 
 All notable changes to the EDRockMaster plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.2.0] - 2026-10-03
 
 ### Added
 
-- **Bounty hunting** ([ADR 0011](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0011-plugin-activities.md)): a hunting session starts with the first bounty or combat bond and ends on death, game exit or **Reset**; docking and jumps do not end it. Statistics: active time (pauses over 15 minutes left out), kills and shared kills, bounties, combat bonds, credits per hour. Unredeemed vouchers, which are lost on death. Community goals: contribution, percentile band, tier reached.
+- **Bounty hunting** (design decision ADR 0011, in the project's architecture repository): a hunting session starts with the first bounty or combat bond and ends on death, game exit or **Reset**; docking and jumps do not end it. Statistics: active time (pauses over 15 minutes left out), kills and shared kills, bounties, combat bonds, credits per hour. Unredeemed vouchers, which are lost on death. Community goals: contribution, percentile band, tier reached.
 - The panel shows the activity in progress, mining or bounty hunting; **Reset** acts on it.
+
+### Known limitations
+
+- Unredeemed vouchers are known only from the moment EDMC started: the game journal does not restate older ones.
+- The bounty hunting counter has not been checked against a real hunting session yet: please enable the journal recorder while hunting and report any wrong figure.
 
 ## [0.1.0] - 2026-10-03
 
@@ -30,4 +35,5 @@ First version, for the first in-game test. The plugin works on its own, without 
 - No estimated value of the cargo: it needs the server's prices.
 - Not checked yet: EDMC's dark theme, the alert sound on Windows.
 
+[0.2.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.0
 [0.1.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.1.0

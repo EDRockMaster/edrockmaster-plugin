@@ -2,7 +2,7 @@
 
 *[English](design.md) · Français*
 
-Conception du plugin EDMC d'EDRockMaster. Périmètre : **jalon 1, étape 1A** (plugin local, premier essai en jeu), plus l'activité de chasse à la prime ([ADR 0011](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0011-plugin-activities.fr.md)). La liaison avec le serveur (étape 1B) est conçue ici pour ne pas avoir à reprendre 1A, mais elle n'est pas encore réalisée. Les contraintes viennent des [prérequis](prerequisites.fr.md) ; les règles d'ingénierie, de `edrockmaster-architecture`.
+Conception du plugin EDMC d'EDRockMaster. Périmètre : **jalon 1, étape 1A** (plugin local, premier essai en jeu), plus l'activité de chasse à la prime (décision de conception ADR 0011, dans le dépôt d'architecture du projet). La liaison avec le serveur (étape 1B) est conçue ici pour ne pas avoir à reprendre 1A, mais elle n'est pas encore réalisée. Les contraintes viennent des [prérequis](prerequisites.fr.md) ; les règles d'ingénierie, de `edrockmaster-architecture`.
 
 ## Objectifs de l'étape 1A
 
