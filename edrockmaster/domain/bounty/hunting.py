@@ -4,6 +4,11 @@
 mining, durations come from journal timestamps, never from the wall clock, so
 that a replayed journal yields the same statistics.
 
+Active time is the **time on site**: in normal space away from stations, from
+the arrival on the site of the first reward. Searching for targets counts,
+travelling and docking do not. (Gaps between rewards, as for mining, made a
+20-minute search vanish and the rate soar: see the bounty replay.)
+
 Vouchers are only known from the moment EDMC started: the journal does not
 restate the vouchers earned before.
 """
@@ -27,12 +32,11 @@ from edrockmaster.domain.bounty.journal import (
     Fact,
     FactionReward,
     GameClosed,
+    SiteEntered,
+    SiteLeft,
     VoucherKind,
     VouchersRedeemed,
 )
-
-HUNT_IDLE_THRESHOLD = timedelta(minutes=15)
-"""A gap between two rewards longer than this is a pause, not active time."""
 
 type Reward = BountyAwarded | CombatBondAwarded
 
@@ -114,10 +118,11 @@ type HuntingNotification = (
 class HuntingSession:
     """A running hunting session. Mutated only through ``HuntingTracker``."""
 
-    def __init__(self, started_at: datetime) -> None:
+    def __init__(self, started_at: datetime, on_site_since: datetime | None) -> None:
         self.started_at = started_at
-        self._last_reward = started_at
-        self._active = timedelta(0)
+        self._on_site_since: datetime | None = on_site_since or started_at
+        self._last_seen = started_at
+        self._time_on_site = timedelta(0)
         self._kills = 0
         self._shared_kills = 0
         self._bounty_credits = 0
@@ -125,20 +130,31 @@ class HuntingSession:
 
     @property
     def stats(self) -> HuntStats:
+        current = self._last_seen - self._on_site_since if self._on_site_since else timedelta(0)
         return HuntStats(
             started_at=self.started_at,
-            active_duration=self._active,
+            active_duration=self._time_on_site + max(current, timedelta(0)),
             kills=self._kills,
             shared_kills=self._shared_kills,
             bounty_credits=self._bounty_credits,
             bond_credits=self._bond_credits,
         )
 
+    def site_entered(self, at: datetime) -> None:
+        self._see(at)
+        if self._on_site_since is None:
+            self._on_site_since = at
+
+    def site_left(self, at: datetime) -> None:
+        self._see(at)
+        if self._on_site_since is not None:
+            self._time_on_site += max(at - self._on_site_since, timedelta(0))
+            self._on_site_since = None
+
     def apply(self, reward: Reward) -> None:
-        gap = reward.at - self._last_reward
-        if timedelta(0) < gap <= HUNT_IDLE_THRESHOLD:
-            self._active += gap
-        self._last_reward = max(self._last_reward, reward.at)
+        self._see(reward.at)
+        if self._on_site_since is None:  # a site the journal did not tell
+            self._on_site_since = reward.at
         match reward:
             case BountyAwarded(total=total, shared=shared):
                 self._kills += 1
@@ -150,12 +166,16 @@ class HuntingSession:
             case _:  # pragma: no cover - exhaustiveness checked by mypy
                 assert_never(reward)
 
+    def _see(self, at: datetime) -> None:
+        self._last_seen = max(self._last_seen, at)
+
 
 class HuntingTracker:
     """Aggregate root: follows the commander's kills, vouchers and community goals."""
 
     def __init__(self) -> None:
         self._session: HuntingSession | None = None
+        self._on_site_since: datetime | None = None
         self._bounties: Counter[str] = Counter()
         self._bonds: Counter[str] = Counter()
         self._goals: tuple[CommunityGoal, ...] = ()
@@ -185,14 +205,11 @@ class HuntingTracker:
                 )
                 return [VouchersUpdated(self.vouchers)]
             case CommanderDied(at=at):
-                notifications = self._ended(at, HuntEndReason.DIED)
-                if self.vouchers.total:
-                    self._bounties.clear()
-                    self._bonds.clear()
-                    notifications.append(VouchersUpdated(self.vouchers))
-                return notifications
+                return self._on_death(at)
             case GameClosed(at=at):
                 return self._ended(at, HuntEndReason.GAME_CLOSED)
+            case SiteEntered() | SiteLeft():
+                return self._on_site(fact)
             case CommunityGoalsUpdated(goals=goals):
                 self._goals = goals
                 return [CommunityGoalsChanged(goals)]
@@ -202,10 +219,30 @@ class HuntingTracker:
     def reset(self, at: datetime) -> HuntEnded | None:
         return self._end(at, HuntEndReason.MANUAL)
 
+    def _on_site(self, fact: SiteEntered | SiteLeft) -> list[HuntingNotification]:
+        if isinstance(fact, SiteEntered):
+            self._on_site_since = fact.at
+            if self._session is not None:
+                self._session.site_entered(fact.at)
+            return []
+        self._on_site_since = None
+        if self._session is None:
+            return []
+        self._session.site_left(fact.at)
+        return [HuntUpdated(self._session.stats)]
+
+    def _on_death(self, at: datetime) -> list[HuntingNotification]:
+        notifications = self._ended(at, HuntEndReason.DIED)
+        if self.vouchers.total:
+            self._bounties.clear()
+            self._bonds.clear()
+            notifications.append(VouchersUpdated(self.vouchers))
+        return notifications
+
     def _on_reward(self, reward: Reward) -> list[HuntingNotification]:
         notifications: list[HuntingNotification] = []
         if self._session is None:
-            self._session = HuntingSession(reward.at)
+            self._session = HuntingSession(reward.at, self._on_site_since)
             notifications.append(HuntStarted(reward.at))
         self._session.apply(reward)
         if isinstance(reward, BountyAwarded):
@@ -231,8 +268,11 @@ class HuntingTracker:
         return [ended] if ended else []
 
     def _end(self, at: datetime, reason: HuntEndReason) -> HuntEnded | None:
+        if reason is not HuntEndReason.MANUAL:
+            self._on_site_since = None
         if self._session is None:
             return None
+        self._session.site_left(at)
         ended = HuntEnded(at=at, reason=reason, stats=self._session.stats)
         self._session = None
         return ended

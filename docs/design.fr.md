@@ -112,15 +112,15 @@ Statistiques d'une session : durée active, tonnes par commodité, tonnes totale
 | `FactionKillBond` | Une victime ; crédits et bon d'obligation de combat |
 | `CapShipBond` | Crédits et bon d'obligation de combat, sans victime |
 | Première récompense | La session de chasse commence |
-| Aucune récompense pendant 15 minutes | Session en pause : le temps inactif n'est pas compté |
-| Amarrage, supercroisière, sauts | Rien : les chasseurs passent d'un site à l'autre et s'amarrent pour se réarmer |
+| `SupercruiseExit` ailleurs qu'en station, `Location` en espace normal hors station | Arrivée sur un site : le compteur de temps sur site tourne (depuis cette arrivée si la première récompense suit) |
+| `SupercruiseEntry`, `Docked`, `FSDJump` | Départ du site : le compteur s'arrête ; la session continue (les chasseurs passent d'un site à l'autre et s'amarrent pour se réarmer) |
 | `Died` | La session se termine ; les bons non encaissés sont perdus |
 | `Shutdown`, `ShutDown` | La session se termine |
 | `RedeemVoucher` (primes, obligations de combat) | Les bons payés sont retirés, par faction, jamais en dessous de zéro |
 | `CommunityGoal` | Les objectifs rejoints par le commandant : contribution, tranche de classement, palier atteint |
 | Réinitialisation manuelle (bouton du panneau, chasse affichée) | La session se termine, une nouvelle peut commencer |
 
-Statistiques d'une session de chasse : durée active, victimes (et victimes partagées), crédits de primes et d'obligations de combat, crédits par heure. Communs au panneau : les bons non encaissés (connus seulement depuis le lancement d'EDMC : le journal ne redonne pas les plus anciens) et les objectifs communautaires. Les superpuissances écrites `$faction_Federation;` sont ramenées à `Federation`. Une session avec des obligations de combat et aucune prime s'affiche comme **Zone de conflit**, sans la ligne des primes, vide.
+Statistiques d'une session de chasse : durée active, mesurée en **temps sur site** (en espace normal hors des stations, depuis l'arrivée sur le site de la première récompense ; la recherche de cibles compte, les trajets et l'amarrage non), victimes (et victimes partagées), crédits de primes et d'obligations de combat, crédits par heure. Communs au panneau : les bons non encaissés (connus seulement depuis le lancement d'EDMC : le journal ne redonne pas les plus anciens) et les objectifs communautaires. Les superpuissances écrites `$faction_Federation;` sont ramenées à `Federation`. Une session avec des obligations de combat et aucune prime s'affiche comme **Zone de conflit**, sans la ligne des primes, vide.
 
 ## Alertes du prospecteur
 
@@ -168,7 +168,7 @@ Contenu en 1A : `recordings/` (enregistrements du journal, JSONL, un fichier par
 - Écrit chaque entrée reçue par le plugin, sans modification, un objet JSON par ligne, avec l'indicateur `is_beta` : `{"is_beta": false, "entry": {…}}`. Fichier : `recordings/journal-<début, UTC, AAAAMMJJTHHMMSSZ>.jsonl`.
 - L'entrée est sérialisée dès sa réception (EDMC partage le même dict avec tous les plugins), puis écrite par le fil d'entrées-sorties.
 - C'est à partir de ces enregistrements que l'on constitue `tests/fixtures/` ; le joueur décide de ce qu'il partage.
-- Le dépôt est public, et un enregistrement brut contient des données personnelles (nom et identifiant Frontier du commandant, escadron, porte-vaisseaux, messages, noms d'autres joueurs, réputation). Un enregistrement ne devient donnée de test qu'à travers `scripts/sanitise_recording.py` : il garde les événements lus par le plugin et quelques événements anodins, réduit `LoadGame` à la version du jeu, retire la réputation, et refuse d'écrire si le nom ou l'identifiant du commandant subsiste. `tests/test_replay.py` rejoue chaque jeu de données, avec des chiffres vérifiés à la main sur le journal brut.
+- Le dépôt est public, et un enregistrement brut contient des données personnelles (nom et identifiant Frontier du commandant, escadron, porte-vaisseaux, messages, noms d'autres joueurs, réputation). Un enregistrement ne devient donnée de test qu'à travers `scripts/sanitise_recording.py` : il garde les événements lus par le plugin et quelques événements anodins, réduit `LoadGame` à la version du jeu, retire la réputation (`Location.Factions`) et le nom du pilote des cibles (`Bounty.PilotName`), événement par événement, et refuse d'écrire si le nom ou l'identifiant du commandant subsiste. `tests/test_replay.py` rejoue chaque jeu de données, avec des chiffres vérifiés à la main sur le journal brut.
 
 ## Internationalisation
 

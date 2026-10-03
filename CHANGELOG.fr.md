@@ -4,6 +4,12 @@
 
 Les changements notables du plugin EDRockMaster. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), et les versions suivent le [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [Non publié]
+
+### Corrigé
+
+- Rendement de la chasse : le temps actif est désormais le **temps sur site** (en espace normal hors des stations, depuis l'arrivée sur le site de la première récompense). La recherche de cibles compte ; les trajets et l'amarrage non. Une recherche de 20 minutes entre deux primes était écartée, ce qui affichait 36 M CR/h au lieu de 10 M CR/h sur une vraie session.
+
 ## [0.2.1] - 2026-10-03
 
 ### Modifié

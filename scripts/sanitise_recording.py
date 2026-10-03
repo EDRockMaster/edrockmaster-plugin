@@ -4,8 +4,8 @@ The plugin repository is public. A raw recording holds personal data: the
 commander's name and Frontier id, squadron, carrier, chat messages and other
 players' names. This script keeps only the events the plugin reads, plus a few
 harmless ones that prove unknown events are ignored, reduces ``LoadGame`` to
-the game version and drops the commander's reputation, then refuses to write
-anything if the commander's name or id is still present.
+the game version, drops the commander's reputation and targets' pilot names,
+then refuses to write anything if the commander's name or id is still present.
 
 Usage: python3 scripts/sanitise_recording.py <recording.jsonl> <fixture.jsonl>
 """
@@ -60,8 +60,14 @@ HARMLESS = {
     "ReservoirReplenished",
 }
 LOAD_GAME_FIELDS = {"timestamp", "event", "gameversion", "build", "Horizons", "Odyssey"}
-PERSONAL_FIELDS = {"Factions"}
-"""Fields the plugin does not read that describe the commander (here: reputation per faction)."""
+PERSONAL_FIELDS = {
+    # the commander's reputation with each faction of the system
+    "Location": {"Factions"},
+    # the pilot of a target: another commander when the target is a player
+    "Bounty": {"PilotName", "PilotName_Localised"},
+}
+"""Fields the plugin does not read that describe people, per event. Per event: the same
+name elsewhere may be needed (``RedeemVoucher.Factions`` is what was redeemed)."""
 
 
 def identities(records: list[dict[str, Any]]) -> set[str]:
@@ -85,7 +91,8 @@ def sanitise(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
             continue
         if event == "LoadGame":
             entry = {key: value for key, value in entry.items() if key in LOAD_GAME_FIELDS}
-        entry = {key: value for key, value in entry.items() if key not in PERSONAL_FIELDS}
+        personal = PERSONAL_FIELDS.get(event, set())
+        entry = {key: value for key, value in entry.items() if key not in personal}
         kept.append({"is_beta": record["is_beta"], "entry": entry})
     return kept
 
