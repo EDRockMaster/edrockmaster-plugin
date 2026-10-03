@@ -21,6 +21,7 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy
+      - run: uv run mypy --strict scripts
       - run: uv run pytest --cov
       - name: Package
         run: scripts/package.sh "$(scripts/version.sh)"
@@ -62,15 +63,6 @@ jobs:
           files: dist/*.zip
       - name: GitHub release
         if: env.GH_RELEASE_TOKEN != ''
-        uses: softprops/action-gh-release@v2
-        env:
-          # Gitea Actions points GITHUB_API_URL at Gitea's own API: target GitHub explicitly
-          GITHUB_API_URL: https://api.github.com
-        with:
-          repository: EDRockMaster/edrockmaster-plugin
-          token: ${{ env.GH_RELEASE_TOKEN }}
-          name: EDRockMaster ${{ gitea.ref_name }}
-          body_path: dist/release-notes.md
-          # The mirror may not have pushed the tag yet: GitHub creates it on this commit
-          target_commitish: ${{ gitea.sha }}
-          files: dist/*.zip
+        # A script rather than a marketplace action: under Gitea Actions, GITHUB_API_URL points
+        # at Gitea, and JavaScript actions keep that value even when the step overrides it
+        run: python3 scripts/github_release.py "$TAG" "${{ gitea.sha }}" dist/release-notes.md dist/*.zip
