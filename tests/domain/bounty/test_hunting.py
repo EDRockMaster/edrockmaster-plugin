@@ -4,7 +4,6 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from edrockmaster.domain.bounty.hunting import (
-    HUNT_IDLE_THRESHOLD,
     CommunityGoalsChanged,
     HuntEnded,
     HuntEndReason,
@@ -21,6 +20,8 @@ from edrockmaster.domain.bounty.journal import (
     CommunityGoalsUpdated,
     FactionReward,
     GameClosed,
+    SiteEntered,
+    SiteLeft,
     VoucherKind,
     VouchersRedeemed,
 )
@@ -138,13 +139,69 @@ def test_shared_kills_are_counted_apart() -> None:
     assert (updated.stats.kills, updated.stats.shared_kills) == (2, 1)
 
 
-def test_idle_time_is_not_counted() -> None:
+def active(notification: object) -> timedelta:
+    assert isinstance(notification, HuntUpdated | HuntEnded)
+    return notification.stats.active_duration
+
+
+def test_time_on_site_counts_from_the_arrival_before_the_first_reward() -> None:
+    tracker = HuntingTracker()
+    assert tracker.handle(SiteEntered(at(0))) == []
+    assert active(tracker.handle(bounty(5))[1]) == timedelta(minutes=5)
+
+
+def test_searching_for_targets_counts_however_long_it_takes() -> None:
+    tracker = HuntingTracker()
+    tracker.handle(SiteEntered(at(0)))
+    tracker.handle(bounty(1))
+    assert active(tracker.handle(bounty(31))[0]) == timedelta(minutes=31)
+
+
+def test_time_off_site_is_not_counted() -> None:
+    tracker = HuntingTracker()
+    tracker.handle(SiteEntered(at(0)))
+    tracker.handle(bounty(10))
+    [left] = tracker.handle(SiteLeft(at(12)))
+    assert active(left) == timedelta(minutes=12)
+    tracker.handle(SiteEntered(at(30)))
+    assert active(tracker.handle(bounty(40))[0]) == timedelta(minutes=22)
+
+
+def test_sites_without_a_session_notify_nothing() -> None:
+    tracker = HuntingTracker()
+    assert tracker.handle(SiteEntered(at(0))) == []
+    assert tracker.handle(SiteLeft(at(5))) == []
+
+
+def test_an_earlier_site_does_not_count_for_a_later_session() -> None:
+    tracker = HuntingTracker()
+    tracker.handle(SiteEntered(at(0)))
+    tracker.handle(SiteLeft(at(5)))
+    tracker.handle(SiteEntered(at(60)))
+    assert active(tracker.handle(bounty(70))[1]) == timedelta(minutes=10)
+
+
+def test_without_a_known_site_time_counts_from_the_first_reward() -> None:
     tracker = HuntingTracker()
     tracker.handle(bounty(0))
+    assert active(tracker.handle(bounty(10))[0]) == timedelta(minutes=10)
+
+
+@pytest.mark.parametrize("end", [GameClosed(at(20)), CommanderDied(at(20))])
+def test_the_end_of_a_session_closes_the_site(end: GameClosed | CommanderDied) -> None:
+    tracker = HuntingTracker()
+    tracker.handle(SiteEntered(at(0)))
     tracker.handle(bounty(5))
-    updated = tracker.handle(bounty(5 + HUNT_IDLE_THRESHOLD.total_seconds() / 60 + 1))[0]
-    assert isinstance(updated, HuntUpdated)
-    assert updated.stats.active_duration == timedelta(minutes=5)
+    assert active(tracker.handle(end)[0]) == timedelta(minutes=20)
+
+
+def test_a_reset_closes_the_site() -> None:
+    tracker = HuntingTracker()
+    tracker.handle(SiteEntered(at(0)))
+    tracker.handle(bounty(5))
+    ended = tracker.reset(at(8))
+    assert ended is not None
+    assert ended.stats.active_duration == timedelta(minutes=8)
 
 
 def test_rates_are_zero_without_active_time() -> None:
@@ -228,3 +285,21 @@ def test_community_goals_are_kept_and_notified() -> None:
     assert tracker.handle(CommunityGoalsUpdated(at(0), (goal,))) == [CommunityGoalsChanged((goal,))]
     assert tracker.community_goals == (goal,)
     assert tracker.session is None
+
+
+def test_a_second_arrival_without_leaving_keeps_the_first() -> None:
+    tracker = HuntingTracker()
+    tracker.handle(SiteEntered(at(0)))
+    tracker.handle(bounty(5))
+    tracker.handle(SiteEntered(at(7)))
+    assert active(tracker.handle(bounty(10))[0]) == timedelta(minutes=10)
+
+
+def test_a_reward_off_site_restarts_the_site_clock() -> None:
+    # The journal did not tell the new site: time counts from that reward
+    tracker = HuntingTracker()
+    tracker.handle(SiteEntered(at(0)))
+    tracker.handle(bounty(5))
+    tracker.handle(SiteLeft(at(6)))
+    tracker.handle(bounty(10))
+    assert active(tracker.handle(bounty(12))[0]) == timedelta(minutes=8)

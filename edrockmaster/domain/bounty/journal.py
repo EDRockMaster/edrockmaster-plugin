@@ -77,6 +77,18 @@ class GameClosed:
 
 
 @dataclass(frozen=True, slots=True)
+class SiteEntered:
+    """In normal space away from any station: where targets are found (and searched for)."""
+
+    at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class SiteLeft:
+    at: datetime
+
+
+@dataclass(frozen=True, slots=True)
 class CommunityGoal:
     cgid: int
     title: str
@@ -103,6 +115,8 @@ type Fact = (
     | VouchersRedeemed
     | CommanderDied
     | GameClosed
+    | SiteEntered
+    | SiteLeft
     | CommunityGoalsUpdated
 )
 
@@ -193,6 +207,25 @@ def _closed(_entry: Entry, at: datetime) -> GameClosed:
     return GameClosed(at)
 
 
+_STATION = "Station"
+
+
+def _supercruise_exit(entry: Entry, at: datetime) -> SiteEntered | None:
+    return None if optional(entry, "BodyType", str) == _STATION else SiteEntered(at)
+
+
+def _location(entry: Entry, at: datetime) -> SiteEntered | None:
+    """The game loaded, or the commander respawned: a site only in normal space, off station."""
+    body_type = optional(entry, "BodyType", str)
+    if optional(entry, "Docked", bool) or body_type in (None, _STATION):
+        return None
+    return SiteEntered(at)
+
+
+def _site_left(_entry: Entry, at: datetime) -> SiteLeft:
+    return SiteLeft(at)
+
+
 def _goal(item: Entry) -> CommunityGoal:
     top_tier = item.get("TopTier")
     return CommunityGoal(
@@ -223,4 +256,9 @@ _PARSERS: dict[str, Parser[Fact | None]] = {
     "Shutdown": _closed,
     "ShutDown": _closed,  # synthetic event from EDMC when the game crashed
     "CommunityGoal": _goals,
+    "SupercruiseExit": _supercruise_exit,
+    "Location": _location,
+    "SupercruiseEntry": _site_left,
+    "Docked": _site_left,
+    "FSDJump": _site_left,
 }

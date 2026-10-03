@@ -10,6 +10,8 @@ from edrockmaster.domain.bounty.journal import (
     CommunityGoalsUpdated,
     FactionReward,
     GameClosed,
+    SiteEntered,
+    SiteLeft,
     VoucherKind,
     VouchersRedeemed,
     faction_name,
@@ -248,3 +250,39 @@ def test_superpower_symbols_are_normalised(raw: str, name: str) -> None:
 )
 def test_irrelevant_or_malformed_entries_are_ignored(entry: dict[str, object]) -> None:
     assert parse_entry(entry) is None
+
+
+# --- combat sites -------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("body_type", ["Planet", "PlanetaryRing", "Star", "Null"])
+def test_dropping_out_of_supercruise_away_from_a_station_enters_a_site(body_type: str) -> None:
+    entry = {"timestamp": TS, "event": "SupercruiseExit", "Body": "X", "BodyType": body_type}
+    assert parse_entry(entry) == SiteEntered(AT)
+
+
+def test_dropping_at_a_station_is_not_a_site() -> None:
+    entry = {"timestamp": TS, "event": "SupercruiseExit", "Body": "X", "BodyType": "Station"}
+    assert parse_entry(entry) is None
+
+
+def test_game_loaded_in_normal_space_away_from_a_station_is_a_site() -> None:
+    entry = {"timestamp": TS, "event": "Location", "Docked": False, "BodyType": "Planet"}
+    assert parse_entry(entry) == SiteEntered(AT)
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        {"timestamp": TS, "event": "Location", "Docked": True, "BodyType": "Station"},
+        {"timestamp": TS, "event": "Location", "Docked": False, "BodyType": "Station"},
+        {"timestamp": TS, "event": "Location", "Docked": False},
+    ],
+)
+def test_other_locations_are_not_sites(entry: dict[str, object]) -> None:
+    assert parse_entry(entry) is None
+
+
+@pytest.mark.parametrize("event", ["SupercruiseEntry", "Docked", "FSDJump"])
+def test_leaving_normal_space_leaves_the_site(event: str) -> None:
+    assert parse_entry({"timestamp": TS, "event": event}) == SiteLeft(AT)
