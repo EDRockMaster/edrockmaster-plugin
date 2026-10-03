@@ -36,6 +36,7 @@ edrockmaster/
     sound.py                    Notifier: sound alerts (winsound on Windows, Tk bell elsewhere)
     paths.py                    data directory per platform
     worker.py                   the plugin's single I/O thread and its queue
+    clock.py                    Clock: system time, UTC
   edmc/
     plugin.py                   wiring: builds the object graph, implements the hooks
     i18n.py                     tl() bound to EDMC's l10n, with a fallback for tests
@@ -98,6 +99,18 @@ Statistics of a session: active duration, tons per commodity, total tons, tons p
 
 Stored with EDMC's `config` (`config.set` / `config.get_*`), keys prefixed with `edrockmaster.`, read once at start and on `prefs_changed`. Domain code receives an immutable settings object, never the store.
 
+| Key | Type | Content |
+| --- | --- | --- |
+| `edrockmaster.settings_version` | text | Format version of the keys below (`1`), for future migrations |
+| `edrockmaster.alert.thresholds` | text | JSON object, commodity key → percent (`{"painite": 25.0, …}`) |
+| `edrockmaster.alert.minimum_content` | text | `low`, `medium` or `high` |
+| `edrockmaster.alert.minimum_remaining` | text | Percent, or empty for none (EDMC's config has no float type) |
+| `edrockmaster.alert.cores` | bool | Alert on cores |
+| `edrockmaster.sound` | bool | Audible alerts |
+| `edrockmaster.record_journal` | bool | Journal recorder |
+
+Values are read one by one: a missing or invalid value falls back to its own default (and is logged), the others are kept.
+
 ## Files
 
 Data directory, outside the plugin folder so that it survives plugin updates:
@@ -111,7 +124,8 @@ Contents in 1A: `recordings/` (journal recordings, JSONL, one file per EDMC run)
 ## Journal recorder
 
 - Off by default; enabled in preferences ("Record journal for debugging").
-- Writes every entry received by the plugin, unmodified, one JSON object per line, with the `is_beta` flag.
+- Writes every entry received by the plugin, unmodified, one JSON object per line, with the `is_beta` flag: `{"is_beta": false, "entry": {…}}`. File: `recordings/journal-<start, UTC, YYYYMMDDTHHMMSSZ>.jsonl`.
+- The entry is serialised when received (EDMC shares the same dict with every plugin) and written by the I/O thread.
 - Recordings are what we turn into `tests/fixtures/`; the player decides what to share.
 
 ## Internationalisation

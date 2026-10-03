@@ -36,6 +36,7 @@ edrockmaster/
     sound.py                    Notifier : alertes sonores (winsound sous Windows, cloche Tk ailleurs)
     paths.py                    dossier de données selon le système
     worker.py                   l'unique fil d'entrées-sorties du plugin et sa file
+    clock.py                    Clock : heure système, en UTC
   edmc/
     plugin.py                   assemblage : construit le graphe d'objets, implémente les hooks
     i18n.py                     tl() relié au l10n d'EDMC, avec un repli pour les tests
@@ -98,6 +99,18 @@ Statistiques d'une session : durée active, tonnes par commodité, tonnes totale
 
 Enregistrés avec le `config` d'EDMC (`config.set` / `config.get_*`), clés préfixées par `edrockmaster.`, lus au démarrage et dans `prefs_changed`. Le domaine reçoit un objet de réglages immuable, jamais le stockage.
 
+| Clé | Type | Contenu |
+| --- | --- | --- |
+| `edrockmaster.settings_version` | texte | Version du format des clés ci-dessous (`1`), pour les migrations futures |
+| `edrockmaster.alert.thresholds` | texte | Objet JSON, clé de commodité → pourcentage (`{"painite": 25.0, …}`) |
+| `edrockmaster.alert.minimum_content` | texte | `low`, `medium` ou `high` |
+| `edrockmaster.alert.minimum_remaining` | texte | Pourcentage, ou vide si aucune (le config d'EDMC n'a pas de type flottant) |
+| `edrockmaster.alert.cores` | booléen | Alerte sur les cores |
+| `edrockmaster.sound` | booléen | Alertes sonores |
+| `edrockmaster.record_journal` | booléen | Enregistreur du journal |
+
+Les valeurs sont lues une à une : une valeur absente ou invalide reprend sa propre valeur par défaut (avec un avertissement dans le journal), les autres sont conservées.
+
 ## Fichiers
 
 Dossier de données, hors du dossier du plugin pour survivre aux mises à jour du plugin :
@@ -111,7 +124,8 @@ Contenu en 1A : `recordings/` (enregistrements du journal, JSONL, un fichier par
 ## Enregistreur de journal
 
 - Désactivé par défaut ; activé dans les préférences (« Enregistrer le journal pour le débogage »).
-- Écrit chaque entrée reçue par le plugin, sans modification, un objet JSON par ligne, avec l'indicateur `is_beta`.
+- Écrit chaque entrée reçue par le plugin, sans modification, un objet JSON par ligne, avec l'indicateur `is_beta` : `{"is_beta": false, "entry": {…}}`. Fichier : `recordings/journal-<début, UTC, AAAAMMJJTHHMMSSZ>.jsonl`.
+- L'entrée est sérialisée dès sa réception (EDMC partage le même dict avec tous les plugins), puis écrite par le fil d'entrées-sorties.
 - C'est à partir de ces enregistrements que l'on constitue `tests/fixtures/` ; le joueur décide de ce qu'il partage.
 
 ## Internationalisation
