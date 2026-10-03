@@ -1,0 +1,80 @@
+/* French translations of EDRockMaster. Checked by tests/test_translations.py. */
+
+/* edmc/plugin.py: status bar message when the plugin fails */
+"EDRockMaster: internal error, see the EDMC log" = "EDRockMaster : erreur interne, voir le journal d'EDMC";
+
+/* edmc/plugin.py: status bar message after the settings dialog; fields = names of the fields */
+"Invalid entries ignored: {fields}" = "Saisies invalides ignorées : {fields}";
+
+/* ui/panel.py: button ending the current mining session */
+"Reset" = "Réinitialiser";
+
+/* ui/presenter.py: panel status */
+"No mining session" = "Aucune session de minage";
+"Mining" = "Minage en cours";
+"Mining: {ring}" = "Minage : {ring}";
+"Session ended: {reason}" = "Session terminée : {reason}";
+
+/* ui/presenter.py: why the session ended, inserted in "Session ended: {reason}" */
+"supercruise" = "supercroisière";
+"jump" = "saut";
+"docked" = "amarrage";
+"game closed" = "jeu fermé";
+"reset" = "réinitialisée";
+
+/* ui/presenter.py: statistic labels */
+"Active time" = "Temps actif";
+"Refined" = "Raffiné";
+"Rate" = "Rendement";
+"Prospected" = "Prospectés";
+"Cores" = "Cores";
+"Limpets" = "Drones";
+"Cargo" = "Soute";
+"Sold" = "Vendu";
+
+/* ui/presenter.py: statistic values */
+"{hours} h {minutes} min" = "{hours} h {minutes} min";
+"{minutes} min" = "{minutes} min";
+"{tons} t" = "{tons} t";
+"{rate} t/h" = "{rate} t/h";
+"{found} found, {cracked} cracked" = "trouvés : {found}, fissurés : {cracked}";
+"prospectors: {prospectors}, collectors: {collectors}" = "prospecteurs : {prospectors}, collecteurs : {collectors}";
+"{tons}, {credits} CR" = "{tons}, {credits} CR";
+
+/* ui/presenter.py: prospector alert for a core (motherlode) */
+"Core: {commodity}" = "Core : {commodity}";
+
+/* ui/preferences.py: settings tab */
+"Prospector alerts" = "Alertes du prospecteur";
+"Alert when an asteroid holds at least this percentage. Leave empty for no alert." = "Alerte quand un astéroïde contient au moins ce pourcentage. Laisser vide pour ne pas être alerté.";
+"Minimum content" = "Teneur minimale";
+"Minimum remaining" = "Réserve minimale";
+"Low" = "Faible";
+"Medium" = "Moyenne";
+"High" = "Élevée";
+"Alert on cores (motherlodes)" = "Alerte sur les cores (filons-mères)";
+"Play a sound on alerts" = "Jouer un son lors des alertes";
+"Debugging" = "Débogage";
+"Record the journal (for bug reports)" = "Enregistrer le journal (pour signaler un bogue)";
+"Open recordings folder" = "Ouvrir le dossier des enregistrements";
+
+/* ui/commodity_names.py: commodity names, as the game shows them in French */
+"Alexandrite" = "Alexandrite";
+"Benitoite" = "Bénitoïte";
+"Bromellite" = "Bromellite";
+"Gold" = "Or";
+"Grandidierite" = "Grandidiérite";
+"Low Temperature Diamonds" = "Diamants basse température";
+"Monazite" = "Monazite";
+"Musgravite" = "Musgravite";
+"Osmium" = "Osmium";
+"Painite" = "Painite";
+"Palladium" = "Palladium";
+"Platinum" = "Platine";
+"Praseodymium" = "Praséodyme";
+"Rhodplumsite" = "Rhodplumsite";
+"Samarium" = "Samarium";
+"Serendibite" = "Sérendibite";
+"Silver" = "Argent";
+"Tritium" = "Tritium";
+"Void Opals" = "Opales du Néant";

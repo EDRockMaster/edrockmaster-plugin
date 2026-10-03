@@ -36,17 +36,21 @@ edrockmaster/
     sound.py                    Notifier : alertes sonores (winsound sous Windows, cloche Tk ailleurs)
     paths.py                    dossier de données selon le système
     worker.py                   l'unique fil d'entrées-sorties du plugin et sa file
+    clock.py                    Clock : heure système, en UTC
   edmc/
     plugin.py                   assemblage : construit le graphe d'objets, implémente les hooks
     i18n.py                     tl() relié au l10n d'EDMC, avec un repli pour les tests
+    host.py                     services d'EDMC (theme, plug.show_error, l10n.Locale), avec replis
   ui/
-    panel.py                    panneau de la fenêtre principale (tkinter, fil principal uniquement)
+    presenter.py                PanelModel (textes) construit à partir des notifications, sans tkinter
+    preferences_form.py         réglages <-> champs des préférences, validation, sans tkinter
+    commodity_names.py          noms des commodités minables connues avant que le journal ne les nomme
+    panel.py                    panneau de la fenêtre principale (tkinter, fil principal uniquement), recopie PanelModel
     preferences.py              onglet des préférences (myNotebook)
-    presenter.py                modèles de vue construits à partir des notifications du domaine
 L10n/fr.strings                 traductions françaises
 ```
 
-Règle de dépendance : `domain` n'importe rien du plugin ; `application` importe `domain` ; `infrastructure`, `edmc` et `ui` importent `application` et `domain`. Seuls `edmc/`, `ui/` et les adaptateurs propres à EDMC importent des modules d'EDMC, toujours protégés par `try/except ImportError` pour que le reste soit testable hors d'EDMC.
+Règle de dépendance : `domain` n'importe rien du plugin ; `application` importe `domain` ; `infrastructure`, `edmc` et `ui` importent `application` et `domain`. Seuls `load.py` (qui ne s'exécute que dans EDMC), `edmc/`, `ui/` et les adaptateurs propres à EDMC importent des modules d'EDMC ; hormis dans `load.py`, toujours protégés par `try/except ImportError` pour que le reste soit testable hors d'EDMC.
 
 ## Circulation des données
 
@@ -60,17 +64,19 @@ Règle de dépendance : `domain` n'importe rien du plugin ; `application` import
 
 Tout ceci n'est que du calcul sur de petits objets (bien moins d'une milliseconde par événement) : ça reste sur le fil principal. Tout ce qui touche aux fichiers ou au réseau passe par le fil d'entrées-sorties.
 
+`edmc/plugin.py` est la racine de composition. `load.py` lui fournit le `config` d'EDMC ; il construit le fil d'entrées-sorties, les adaptateurs et le `MiningService` dans `plugin_start3`, et arrête le fil dans `plugin_stop`. L'interface s'abonne aux notifications et fournit le son d'alerte, qui a besoin d'un widget. Toute exception pendant le traitement d'une entrée est journalisée et signalée dans la barre d'état d'EDMC ; les entrées suivantes sont traitées normalement. Le logger est celui qu'EDMC prépare pour le plugin, `<appname>.<dossier du plugin>`.
+
 ## Fils d'exécution
 
 - **Fil principal** : hooks, domaine, interface.
-- **Un fil d'entrées-sorties** (`infrastructure/worker.py`) : fil démon alimenté par une `queue.Queue` de tâches (ajout au fichier d'enregistrement en 1A ; envois et authentification en 1B). Il ne touche jamais à tkinter. Quand il doit mettre à jour l'interface, il dépose un message dans une file de résultats et appelle `event_generate("<<EDRockMasterUpdate>>")` sur le panneau, sauf si `config.shutting_down` est vrai.
+- **Un fil d'entrées-sorties** (`infrastructure/worker.py`) : fil démon alimenté par une `queue.Queue` de tâches (ajout au fichier d'enregistrement en 1A ; envois et authentification en 1B). Il ne touche jamais à tkinter. En 1A, il n'a rien à signaler à l'interface. À partir de 1B (état des envois), il déposera un message dans une file de résultats et appellera `event_generate("<<EDRockMasterUpdate>>")` sur le panneau, sauf si `config.shutting_down` est vrai.
 - `plugin_stop()` dépose une tâche d'arrêt, attend la fin du fil avec un délai maximal, et vide l'enregistreur.
 
 ## Cycle de vie d'une session de minage
 
 | Situation | Effet |
 | --- | --- |
-| `SupercruiseExit` avec `BodyType` = `PlanetaryRing` | Anneau courant connu (nom, système) |
+| `SupercruiseExit`, `Location` ou `StartUp` avec `BodyType` = `PlanetaryRing` | Anneau courant connu (nom, système) |
 | Première activité de minage (`LaunchDrone` prospecteur, `ProspectedAsteroid`, `MiningRefined`) | Une session démarre s'il n'y en a pas en cours |
 | `ProspectedAsteroid` | Astéroïde enregistré, politique d'alerte évaluée |
 | `MiningRefined` | Une tonne de la commodité comptée |
@@ -80,11 +86,12 @@ Tout ceci n'est que du calcul sur de petits objets (bien moins d'une millisecond
 | `EjectCargo` | Tonnes larguées comptées à part (hors production) |
 | Aucune activité de minage pendant 10 minutes | Session en pause : le temps inactif n'est pas compté |
 | `SupercruiseEntry`, `FSDJump`, `Docked`, `Shutdown`, `ShutDown` | Fin de la session |
-| `StartUp` (EDMC lancé en cours de partie) | Contexte reconstruit à partir de `state` (vaisseau, soute, système) |
+| `StartUp` (synthétique, EDMC lancé en cours de partie) | Anneau courant tiré de `Body`/`BodyType` de l'événement ; les chiffres de la soute arrivent avec le prochain événement `Cargo` (le jeu en écrit un à chaque raffinage) |
+| `MarketSell` | Crédité à la session en cours, sinon à la dernière terminée : seulement ses tonnes minées ni éjectées ni encore vendues, au prix unitaire de la vente |
 | Réinitialisation manuelle (bouton du panneau) | Fin de la session, une nouvelle peut démarrer |
 | `is_beta`, ou `gameversion` autre que 4.x dans `LoadGame` | Tout fonctionne en local ; marqué comme non envoyable (1B) |
 
-Statistiques d'une session : durée active, tonnes par commodité, tonnes totales, tonnes par heure, astéroïdes prospectés (par niveau de teneur), cores trouvés et fissurés, drones lancés (prospecteurs, collecteurs), raffinages par minute.
+Statistiques d'une session : durée active, tonnes par commodité, tonnes totales, tonnes par heure, astéroïdes prospectés (par niveau de teneur), cores trouvés et fissurés, drones lancés (prospecteurs, collecteurs), raffinages par minute, tonnes vendues et crédits gagnés.
 
 ## Alertes du prospecteur
 
@@ -94,9 +101,27 @@ Statistiques d'une session : durée active, tonnes par commodité, tonnes totale
 - Un motherlode (core) déclenche sa propre alerte, quels que soient les seuils.
 - Prospecter deux fois le même astéroïde (même composition à moins de 60 secondes d'intervalle) ne déclenche pas de seconde alerte.
 
+## Interface
+
+**Panneau** (fenêtre principale d'EDMC) : état (aucune session, minage dans un anneau, session terminée et pourquoi), la dernière alerte du prospecteur, mise en évidence jusqu'au prochain astéroïde prospecté, puis les statistiques : temps actif, tonnes raffinées, rendement, tonnes par commodité, astéroïdes prospectés et, dès qu'ils sont connus, cores, drones, soute et ventes. Les statistiques d'une session terminée restent affichées, et ses ventes s'y ajoutent. Un bouton **Réinitialiser** termine la session en cours. Les nombres suivent les réglages régionaux du système, comme ceux d'EDMC.
+
+**Onglet des préférences** : un champ de pourcentage par commodité minable (vide : pas d'alerte), teneur minimale, réserve minimale, alerte sur les cores, son, enregistreur du journal et un bouton qui ouvre le dossier des enregistrements. Les nombres se saisissent selon les réglages régionaux du système. À la fermeture de la fenêtre, une saisie invalide garde sa valeur précédente et est citée dans la barre d'état d'EDMC ; les saisies valides sont appliquées tout de suite.
+
 ## Réglages
 
 Enregistrés avec le `config` d'EDMC (`config.set` / `config.get_*`), clés préfixées par `edrockmaster.`, lus au démarrage et dans `prefs_changed`. Le domaine reçoit un objet de réglages immuable, jamais le stockage.
+
+| Clé | Type | Contenu |
+| --- | --- | --- |
+| `edrockmaster.settings_version` | texte | Version du format des clés ci-dessous (`1`), pour les migrations futures |
+| `edrockmaster.alert.thresholds` | texte | Objet JSON, clé de commodité → pourcentage (`{"painite": 25.0, …}`) |
+| `edrockmaster.alert.minimum_content` | texte | `low`, `medium` ou `high` |
+| `edrockmaster.alert.minimum_remaining` | texte | Pourcentage, ou vide si aucune (en texte, pour tous les stockages de config d'EDMC) |
+| `edrockmaster.alert.cores` | booléen | Alerte sur les cores |
+| `edrockmaster.sound` | booléen | Alertes sonores |
+| `edrockmaster.record_journal` | booléen | Enregistreur du journal |
+
+Les valeurs sont lues une à une : une valeur absente ou invalide reprend sa propre valeur par défaut (avec un avertissement dans le journal), les autres sont conservées.
 
 ## Fichiers
 
@@ -111,14 +136,17 @@ Contenu en 1A : `recordings/` (enregistrements du journal, JSONL, un fichier par
 ## Enregistreur de journal
 
 - Désactivé par défaut ; activé dans les préférences (« Enregistrer le journal pour le débogage »).
-- Écrit chaque entrée reçue par le plugin, sans modification, un objet JSON par ligne, avec l'indicateur `is_beta`.
+- Écrit chaque entrée reçue par le plugin, sans modification, un objet JSON par ligne, avec l'indicateur `is_beta` : `{"is_beta": false, "entry": {…}}`. Fichier : `recordings/journal-<début, UTC, AAAAMMJJTHHMMSSZ>.jsonl`.
+- L'entrée est sérialisée dès sa réception (EDMC partage le même dict avec tous les plugins), puis écrite par le fil d'entrées-sorties.
 - C'est à partir de ces enregistrements que l'on constitue `tests/fixtures/` ; le joueur décide de ce qu'il partage.
 
 ## Internationalisation
 
 - Textes source en anglais dans le code, passés par `tl()` (`edmc/i18n.py`, relié à `l10n.translations.tl` avec `context=__file__`).
 - Français dans `L10n/fr.strings` (format `.strings`, UTF-8).
-- Les textes affichés sont rafraîchis dans `prefs_changed`.
+- Les textes affichés sont rafraîchis dans `prefs_changed` : le présentateur garde des objets du domaine, pas des textes, et reconstruit chaque texte dans la langue courante.
+- Les décomptes évitent l'accord au pluriel (`prospecteurs : 3`), que les fichiers `.strings` ne savent pas exprimer.
+- `tests/test_translations.py` échoue si un texte passé à `tl()` n'a pas de traduction française, si une traduction ne sert plus, ou si les paramètres diffèrent.
 - Les noms de commodités viennent des champs `*_Localised` du journal quand ils existent (la langue du jeu), sinon de nos propres noms.
 
 ## Préparé pour l'étape 1B
@@ -129,6 +157,7 @@ Ports définis en 1A, réalisés en 1B :
 - `Authenticator` : device flow Keycloak ; refresh token stocké avec `config`.
 - `Uploader` : lots (gzip) vers `edrockmaster-ingest`, sur le fil d'entrées-sorties, avec reprise progressive.
 - Killswitch : module `killswitch` d'EDMC, relu toutes les 10 minutes depuis notre serveur.
+- Galaxie au `StartUp` : il n'y a pas de `LoadGame` dans ce cas, la version du jeu doit donc être lue dans `state["GameVersion"]` pour distinguer Live et Legacy.
 
 ## Tests
 
@@ -136,5 +165,5 @@ Ports définis en 1A, réalisés en 1B :
 - **Jeux de données** : extraits de vrais journaux (`tests/fixtures/*.jsonl`), enregistrés avec l'enregistreur.
 - **Tests de rejeu** : une session enregistrée complète est rejouée dans `MiningService`, et les statistiques finales sont vérifiées.
 - **Adaptateurs EDMC** : testés avec de faux modules `config`, `l10n` et `theme` injectés par `tests/conftest.py`.
-- **Interface** : volontairement mince (présentateur testé, widgets non testés unitairement) ; vérifiée en jeu pendant le test 1A.
+- **Interface** : le présentateur et le formulaire des préférences sont purs et entièrement testés. Les widgets tkinter restent minces ; leurs tests utilisent un vrai Tk et sont sautés là où il n'y a pas d'affichage (CI), ils tournent donc sur les postes des développeurs. Vérifiée en jeu pendant le test 1A.
 - CI : `ruff`, `mypy --strict`, `pytest` avec couverture sur `domain/` et `application/`.

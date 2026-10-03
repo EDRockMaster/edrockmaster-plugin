@@ -36,17 +36,21 @@ edrockmaster/
     sound.py                    Notifier: sound alerts (winsound on Windows, Tk bell elsewhere)
     paths.py                    data directory per platform
     worker.py                   the plugin's single I/O thread and its queue
+    clock.py                    Clock: system time, UTC
   edmc/
     plugin.py                   wiring: builds the object graph, implements the hooks
     i18n.py                     tl() bound to EDMC's l10n, with a fallback for tests
+    host.py                     EDMC services (theme, plug.show_error, l10n.Locale), with fallbacks
   ui/
-    panel.py                    main-window panel (tkinter, main thread only)
+    presenter.py                PanelModel (texts) built from the notifications, no tkinter
+    preferences_form.py         settings <-> preferences fields, validation, no tkinter
+    commodity_names.py          names of the mineable commodities known before the journal names them
+    panel.py                    main-window panel (tkinter, main thread only), copies PanelModel
     preferences.py              preferences tab (myNotebook)
-    presenter.py                view models built from domain notifications
 L10n/fr.strings                 French translations
 ```
 
-Dependency rule: `domain` imports nothing from the plugin; `application` imports `domain`; `infrastructure`, `edmc` and `ui` import `application` and `domain`. Only `edmc/`, `ui/` and the EDMC-specific adapters import EDMC modules, always guarded by `try/except ImportError` so that the rest is testable outside EDMC.
+Dependency rule: `domain` imports nothing from the plugin; `application` imports `domain`; `infrastructure`, `edmc` and `ui` import `application` and `domain`. Only `load.py` (which only runs inside EDMC), `edmc/`, `ui/` and the EDMC-specific adapters import EDMC modules; except in `load.py`, always guarded by `try/except ImportError` so that the rest is testable outside EDMC.
 
 ## Data flow
 
@@ -60,17 +64,19 @@ Dependency rule: `domain` imports nothing from the plugin; `application` imports
 
 All of this is pure computation on small objects (well under a millisecond per event): it stays on the main thread. Anything touching files or the network goes through the I/O thread.
 
+`edmc/plugin.py` is the composition root. `load.py` hands it EDMC's `config`; it builds the I/O thread, the adapters and the `MiningService` in `plugin_start3`, and stops the thread in `plugin_stop`. The UI subscribes to the notifications and provides the alert sound, which needs a widget. Any exception while handling an entry is logged and reported in EDMC's status bar; the next entries are handled normally. The logger is the one EDMC prepares for the plugin, `<appname>.<plugin folder>`.
+
 ## Threads
 
 - **Main thread**: hooks, domain, UI.
-- **One I/O thread** (`infrastructure/worker.py`): a daemon thread fed by a `queue.Queue` of jobs (append to the recording file in 1A; uploads and authentication in 1B). It never touches tkinter. When it needs to update the UI, it posts a message on a result queue and calls `event_generate("<<EDRockMasterUpdate>>")` on the panel, unless `config.shutting_down` is set.
+- **One I/O thread** (`infrastructure/worker.py`): a daemon thread fed by a `queue.Queue` of jobs (append to the recording file in 1A; uploads and authentication in 1B). It never touches tkinter. In 1A it has nothing to tell the UI. From 1B (upload status), it will post a message on a result queue and call `event_generate("<<EDRockMasterUpdate>>")` on the panel, unless `config.shutting_down` is set.
 - `plugin_stop()` posts a stop job, joins the thread with a timeout, and flushes the recorder.
 
 ## Mining session lifecycle
 
 | Situation | Effect |
 | --- | --- |
-| `SupercruiseExit` with `BodyType` = `PlanetaryRing` | Current ring known (name, system) |
+| `SupercruiseExit`, `Location` or `StartUp` with `BodyType` = `PlanetaryRing` | Current ring known (name, system) |
 | First mining activity (`LaunchDrone` prospector, `ProspectedAsteroid`, `MiningRefined`) | Session starts if none is running |
 | `ProspectedAsteroid` | Asteroid recorded, alert policy evaluated |
 | `MiningRefined` | One ton of the commodity counted |
@@ -80,11 +86,12 @@ All of this is pure computation on small objects (well under a millisecond per e
 | `EjectCargo` | Ejected tons counted apart (not part of production) |
 | No mining activity for 10 minutes | Session paused: inactive time is not counted |
 | `SupercruiseEntry`, `FSDJump`, `Docked`, `Shutdown`, `ShutDown` | Session ends |
-| `StartUp` (EDMC started mid-game) | Context rebuilt from `state` (ship, cargo, system) |
+| `StartUp` (synthetic, EDMC started mid-game) | Current ring from the event's `Body`/`BodyType`; cargo figures come with the next `Cargo` event (the game writes one at each refinement) |
+| `MarketSell` | Credited to the running session, or else to the last one that ended: only its mined tons not yet ejected nor sold, at the sale's unit price |
 | Manual reset (panel button) | Session ends, a new one can start |
 | `is_beta`, or `gameversion` not 4.x in `LoadGame` | Everything works locally; flagged as not uploadable (1B) |
 
-Statistics of a session: active duration, tons per commodity, total tons, tons per hour, asteroids prospected (by content level), cores found and cracked, limpets launched (prospector, collector), refinements per minute.
+Statistics of a session: active duration, tons per commodity, total tons, tons per hour, asteroids prospected (by content level), cores found and cracked, limpets launched (prospector, collector), refinements per minute, tons sold and credits earned.
 
 ## Prospector alerts
 
@@ -94,9 +101,27 @@ Statistics of a session: active duration, tons per commodity, total tons, tons p
 - A motherlode (core) raises its own alert, whatever the thresholds.
 - Duplicate prospecting of the same asteroid (same composition within 60 seconds) does not raise a second alert.
 
+## User interface
+
+**Panel** (EDMC's main window): status (no session, mining in a ring, session ended and why), the last prospector alert, highlighted, until the next asteroid is prospected, then the statistics: active time, refined tons, rate, tons per commodity, asteroids prospected and, once known, cores, limpets, cargo and sales. The statistics of an ended session stay displayed, and its sales are added to them. A **Reset** button ends the running session. Numbers follow the system's locale, like EDMC's own.
+
+**Preferences tab**: a percentage field per mineable commodity (empty means no alert), minimum content, minimum remaining reserve, alert on cores, sound, journal recorder and a button opening the recordings folder. Numbers are typed in the system's locale. When the dialog closes, an invalid entry keeps its previous value and is named in EDMC's status bar; the valid ones are applied at once.
+
 ## Settings
 
 Stored with EDMC's `config` (`config.set` / `config.get_*`), keys prefixed with `edrockmaster.`, read once at start and on `prefs_changed`. Domain code receives an immutable settings object, never the store.
+
+| Key | Type | Content |
+| --- | --- | --- |
+| `edrockmaster.settings_version` | text | Format version of the keys below (`1`), for future migrations |
+| `edrockmaster.alert.thresholds` | text | JSON object, commodity key → percent (`{"painite": 25.0, …}`) |
+| `edrockmaster.alert.minimum_content` | text | `low`, `medium` or `high` |
+| `edrockmaster.alert.minimum_remaining` | text | Percent, or empty for none (text, for every EDMC config back-end) |
+| `edrockmaster.alert.cores` | bool | Alert on cores |
+| `edrockmaster.sound` | bool | Audible alerts |
+| `edrockmaster.record_journal` | bool | Journal recorder |
+
+Values are read one by one: a missing or invalid value falls back to its own default (and is logged), the others are kept.
 
 ## Files
 
@@ -111,14 +136,17 @@ Contents in 1A: `recordings/` (journal recordings, JSONL, one file per EDMC run)
 ## Journal recorder
 
 - Off by default; enabled in preferences ("Record journal for debugging").
-- Writes every entry received by the plugin, unmodified, one JSON object per line, with the `is_beta` flag.
+- Writes every entry received by the plugin, unmodified, one JSON object per line, with the `is_beta` flag: `{"is_beta": false, "entry": {…}}`. File: `recordings/journal-<start, UTC, YYYYMMDDTHHMMSSZ>.jsonl`.
+- The entry is serialised when received (EDMC shares the same dict with every plugin) and written by the I/O thread.
 - Recordings are what we turn into `tests/fixtures/`; the player decides what to share.
 
 ## Internationalisation
 
 - English source strings in the code, wrapped with `tl()` (`edmc/i18n.py`, bound to `l10n.translations.tl` with `context=__file__`).
 - French in `L10n/fr.strings` (UTF-8 `.strings` format).
-- Displayed strings are refreshed in `prefs_changed`.
+- Displayed strings are refreshed in `prefs_changed`: the presenter keeps domain objects, not texts, and rebuilds every text in the current language.
+- Counts avoid plural agreement (`prospectors: 3`), which `.strings` files cannot express.
+- `tests/test_translations.py` fails if a text passed to `tl()` has no French translation, if a translation is no longer used, or if placeholders differ.
 - Commodity names come from the journal's `*_Localised` fields when present (the game's own language), otherwise from our own names.
 
 ## Prepared for step 1B
@@ -129,6 +157,7 @@ Ports defined in 1A, implemented in 1B:
 - `Authenticator`: Keycloak device flow; refresh token stored with `config`.
 - `Uploader`: batches (gzip) to `edrockmaster-ingest`, on the I/O thread, with backoff.
 - Kill switch: EDMC's `killswitch` module, fetched every 10 minutes from our server.
+- Galaxy on `StartUp`: there is no `LoadGame` then, so the game version must be read from `state["GameVersion"]` to tell Live from Legacy.
 
 ## Testing
 
@@ -136,5 +165,5 @@ Ports defined in 1A, implemented in 1B:
 - **Fixtures**: real journal excerpts (`tests/fixtures/*.jsonl`), recorded with the recorder.
 - **Replay tests**: a whole recorded session is replayed through `MiningService`, and the final statistics are asserted.
 - **EDMC adapters**: tested with fake `config`, `l10n` and `theme` modules injected by `tests/conftest.py`.
-- **UI**: kept thin (presenter tested, widgets not unit-tested); checked in game during test 1A.
+- **UI**: the presenter and the preferences form are pure and fully tested. The tkinter widgets are kept thin; their tests use a real Tk and are skipped where no display exists (CI), so they run on developers' machines. Checked in game during test 1A.
 - CI: `ruff`, `mypy --strict`, `pytest` with coverage on `domain/` and `application/`.

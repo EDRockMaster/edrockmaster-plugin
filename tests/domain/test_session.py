@@ -9,6 +9,7 @@ from edrockmaster.domain.journal import (
     CargoChanged,
     CargoEjected,
     CommodityRefined,
+    CommoditySold,
     ContentLevel,
     GameLoaded,
     LeaveReason,
@@ -22,7 +23,9 @@ from edrockmaster.domain.session import (
     IDLE_THRESHOLD,
     EndReason,
     MiningTracker,
+    SaleRecorded,
     SessionEnded,
+    SessionNotification,
     SessionStarted,
     SessionUpdated,
 )
@@ -89,6 +92,13 @@ def test_first_mining_activity_starts_a_session(first_activity: object) -> None:
     assert notifications[0].system == "Col 285"
     assert tracker.session is not None
     assert tracker.session.started_at == at(1)
+
+
+def test_the_first_activity_is_counted_and_notified_with_the_start() -> None:
+    started, updated = MiningTracker().handle(refined(1))
+    assert isinstance(started, SessionStarted)
+    assert isinstance(updated, SessionUpdated)
+    assert updated.stats.total_tons == 1
 
 
 def test_non_mining_limpet_does_not_start_a_session() -> None:
@@ -287,6 +297,91 @@ def test_ejected_cargo_is_counted_apart() -> None:
 
 def test_ejected_cargo_outside_a_session_is_ignored() -> None:
     assert MiningTracker().handle(CargoEjected(at=at(1), commodity=PLATINUM, count=3)) == []
+
+
+# --- sales ------------------------------------------------------------------------------
+
+
+def sold(
+    minutes: float, count: int, commodity: Commodity = PAINITE, price: int = 100
+) -> CommoditySold:
+    return CommoditySold(
+        at=at(minutes), commodity=commodity, count=count, unit_price=price, total=count * price
+    )
+
+
+def only_sale(notifications: list[SessionNotification]) -> SaleRecorded:
+    [recorded] = notifications
+    assert isinstance(recorded, SaleRecorded)
+    return recorded
+
+
+def docked(minutes: float) -> MiningAreaLeft:
+    return MiningAreaLeft(at=at(minutes), reason=LeaveReason.DOCKED)
+
+
+def test_sale_after_the_session_is_credited_to_it() -> None:
+    tracker = MiningTracker()
+    for minute in (0, 1, 2):
+        tracker.handle(refined(minute))
+    tracker.handle(docked(10))
+    recorded = only_sale(tracker.handle(sold(12, 3)))
+    assert recorded == SaleRecorded(
+        at=at(12), commodity=PAINITE, count=3, credits=300, stats=recorded.stats
+    )
+    assert recorded.stats.sold_tons == {PAINITE: 3}
+    assert recorded.stats.credits_earned == 300
+
+
+def test_only_the_mined_tons_still_unsold_are_credited() -> None:
+    tracker = MiningTracker()
+    tracker.handle(refined(0))
+    tracker.handle(refined(1))
+    tracker.handle(docked(5))
+    recorded = only_sale(tracker.handle(sold(6, 5)))
+    assert (recorded.count, recorded.credits) == (2, 200)
+    assert tracker.handle(sold(7, 5)) == []
+
+
+def test_ejected_tons_cannot_be_sold() -> None:
+    tracker = MiningTracker()
+    for minute in (0, 1, 2):
+        tracker.handle(refined(minute))
+    tracker.handle(CargoEjected(at=at(3), commodity=PAINITE, count=1))
+    tracker.handle(docked(5))
+    recorded = only_sale(tracker.handle(sold(6, 3)))
+    assert recorded.count == 2
+
+
+def test_sale_of_a_commodity_not_mined_is_ignored() -> None:
+    tracker = MiningTracker()
+    tracker.handle(refined(0))
+    tracker.handle(docked(5))
+    assert tracker.handle(sold(6, 4, PLATINUM)) == []
+
+
+def test_sale_without_any_session_is_ignored() -> None:
+    assert MiningTracker().handle(sold(0, 4)) == []
+
+
+def test_sales_go_to_the_latest_session_only() -> None:
+    tracker = MiningTracker()
+    tracker.handle(refined(0))
+    tracker.handle(docked(5))
+    tracker.handle(refined(10, PLATINUM))
+    tracker.handle(docked(15))
+    assert tracker.handle(sold(16, 1)) == []
+    recorded = only_sale(tracker.handle(sold(17, 1, PLATINUM)))
+    assert recorded.commodity == PLATINUM
+
+
+def test_sale_during_a_running_session_is_credited_to_it() -> None:
+    tracker = MiningTracker()
+    tracker.handle(refined(0))
+    recorded = only_sale(tracker.handle(sold(1, 1)))
+    assert recorded.count == 1
+    assert tracker.session is not None
+    assert tracker.session.stats.credits_earned == 100
 
 
 # --- galaxy ------------------------------------------------------------------------------
