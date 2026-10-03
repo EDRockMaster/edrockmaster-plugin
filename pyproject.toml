@@ -30,7 +30,7 @@ ignore = ["PLR2004"]
 [tool.mypy]
 strict = true
 python_version = "3.13"
-packages = ["edrockmaster"]
+packages = ["edrockmaster", "tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
