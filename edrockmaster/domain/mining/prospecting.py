@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from types import MappingProxyType
 
 from edrockmaster.domain.commodities import Commodity
-from edrockmaster.domain.journal import AsteroidProspected, ContentLevel
+from edrockmaster.domain.mining.journal import AsteroidProspected, ContentLevel
 
 DUPLICATE_WINDOW = timedelta(seconds=60)
 """Prospecting an identical asteroid again within this window does not alert twice."""

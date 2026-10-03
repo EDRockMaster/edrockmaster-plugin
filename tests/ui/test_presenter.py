@@ -6,9 +6,9 @@ from types import MappingProxyType
 import pytest
 
 from edrockmaster.domain.commodities import Commodity
-from edrockmaster.domain.journal import ContentLevel, LimpetKind
-from edrockmaster.domain.prospecting import CommodityAlert, CoreAlert, ProspectorAlertRaised
-from edrockmaster.domain.session import (
+from edrockmaster.domain.mining.journal import ContentLevel, LimpetKind
+from edrockmaster.domain.mining.prospecting import CommodityAlert, CoreAlert, ProspectorAlertRaised
+from edrockmaster.domain.mining.session import (
     EndReason,
     SaleRecorded,
     SessionEnded,

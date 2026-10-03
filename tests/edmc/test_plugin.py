@@ -7,9 +7,9 @@ from pathlib import Path
 import pytest
 
 from edrockmaster.application.mining_service import MiningNotification
-from edrockmaster.domain.journal import Entry
-from edrockmaster.domain.prospecting import ProspectorAlertRaised
-from edrockmaster.domain.session import SessionStarted
+from edrockmaster.domain.journal_reading import Entry
+from edrockmaster.domain.mining.prospecting import ProspectorAlertRaised
+from edrockmaster.domain.mining.session import SessionStarted
 from edrockmaster.edmc.i18n import tl
 from edrockmaster.edmc.plugin import PLUGIN_NAME, Plugin, plugin_logger_name
 from edrockmaster.infrastructure.worker import THREAD_NAME

@@ -10,7 +10,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
-from edrockmaster.domain.journal import Entry
+from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.infrastructure.worker import Job
 
 

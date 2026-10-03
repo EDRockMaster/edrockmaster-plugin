@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from edrockmaster.application.ports import Clock, JournalRecorder, Notifier, SettingsStore
 from edrockmaster.application.settings import PluginSettings
-from edrockmaster.domain.journal import AsteroidProspected, Entry, parse_entry
-from edrockmaster.domain.prospecting import ProspectingMonitor, ProspectorAlertRaised
-from edrockmaster.domain.session import MiningTracker, SessionNotification, SessionStats
+from edrockmaster.domain.journal_reading import Entry
+from edrockmaster.domain.mining.journal import AsteroidProspected, parse_entry
+from edrockmaster.domain.mining.prospecting import ProspectingMonitor, ProspectorAlertRaised
+from edrockmaster.domain.mining.session import MiningTracker, SessionNotification, SessionStats
 
 type MiningNotification = SessionNotification | ProspectorAlertRaised
 """What the presentation layer is told after each use case."""

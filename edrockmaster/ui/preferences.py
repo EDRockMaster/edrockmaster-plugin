@@ -7,7 +7,7 @@ from collections.abc import Callable
 from tkinter import ttk
 from typing import Any
 
-from edrockmaster.domain.journal import ContentLevel
+from edrockmaster.domain.mining.journal import ContentLevel
 from edrockmaster.ui.preferences_form import PreferencesValues
 
 try:  # pragma: no cover - only available inside EDMC

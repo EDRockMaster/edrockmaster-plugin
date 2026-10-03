@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from edrockmaster.domain.commodities import Commodity
-from edrockmaster.domain.journal import Entry
+from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.edmc.plugin import Plugin
 from tests.fakes import FakeConfig
 

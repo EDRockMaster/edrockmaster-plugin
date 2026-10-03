@@ -7,7 +7,7 @@ import sys
 import tkinter
 from collections.abc import Callable
 
-from edrockmaster.domain.prospecting import ProspectorAlertRaised
+from edrockmaster.domain.mining.prospecting import ProspectorAlertRaised
 
 if sys.platform == "win32":  # pragma: no cover
     import winsound

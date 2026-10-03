@@ -3,7 +3,7 @@
 import tkinter as tk
 
 from edrockmaster.application.settings import DEFAULT_SETTINGS
-from edrockmaster.domain.journal import ContentLevel
+from edrockmaster.domain.mining.journal import ContentLevel
 from edrockmaster.ui.panel import Panel
 from edrockmaster.ui.preferences import PreferencesTab
 from edrockmaster.ui.preferences_form import threshold_rows, values_from_settings

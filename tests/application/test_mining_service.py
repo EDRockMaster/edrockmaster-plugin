@@ -7,14 +7,15 @@ import pytest
 from edrockmaster.application.mining_service import MiningService
 from edrockmaster.application.settings import DEFAULT_SETTINGS, PluginSettings
 from edrockmaster.domain.commodities import Commodity
-from edrockmaster.domain.journal import ContentLevel, Entry
-from edrockmaster.domain.prospecting import (
+from edrockmaster.domain.journal_reading import Entry
+from edrockmaster.domain.mining.journal import ContentLevel
+from edrockmaster.domain.mining.prospecting import (
     AlertSettings,
     CommodityAlert,
     CoreAlert,
     ProspectorAlertRaised,
 )
-from edrockmaster.domain.session import (
+from edrockmaster.domain.mining.session import (
     EndReason,
     SessionEnded,
     SessionStarted,

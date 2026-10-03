@@ -17,7 +17,7 @@ from types import MappingProxyType
 from typing import TypeIs, assert_never
 
 from edrockmaster.domain.commodities import LIMPET, Commodity
-from edrockmaster.domain.journal import (
+from edrockmaster.domain.mining.journal import (
     AsteroidCracked,
     AsteroidProspected,
     CargoChanged,

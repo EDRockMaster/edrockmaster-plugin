@@ -13,9 +13,9 @@ from typing import assert_never
 
 from edrockmaster.application.mining_service import MiningNotification
 from edrockmaster.domain.commodities import Commodity
-from edrockmaster.domain.journal import LimpetKind
-from edrockmaster.domain.prospecting import CommodityAlert, CoreAlert, ProspectorAlertRaised
-from edrockmaster.domain.session import (
+from edrockmaster.domain.mining.journal import LimpetKind
+from edrockmaster.domain.mining.prospecting import CommodityAlert, CoreAlert, ProspectorAlertRaised
+from edrockmaster.domain.mining.session import (
     EndReason,
     SaleRecorded,
     SessionEnded,

@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from edrockmaster.domain.commodities import Commodity
-from edrockmaster.domain.journal import (
+from edrockmaster.domain.mining.journal import (
     AsteroidCracked,
     AsteroidProspected,
     CargoChanged,
@@ -19,7 +19,7 @@ from edrockmaster.domain.journal import (
     MiningAreaLeft,
     RingEntered,
 )
-from edrockmaster.domain.session import (
+from edrockmaster.domain.mining.session import (
     IDLE_THRESHOLD,
     EndReason,
     MiningTracker,

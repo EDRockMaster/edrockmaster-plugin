@@ -14,8 +14,8 @@ from typing import Protocol
 
 from edrockmaster.application.settings import DEFAULT_SETTINGS, PluginSettings
 from edrockmaster.domain.commodities import Commodity
-from edrockmaster.domain.journal import ContentLevel
-from edrockmaster.domain.prospecting import AlertSettings
+from edrockmaster.domain.mining.journal import ContentLevel
+from edrockmaster.domain.mining.prospecting import AlertSettings
 
 SETTINGS_VERSION = "1"
 

@@ -1,20 +1,28 @@
 """Translation of raw journal entries into facts of the mining domain.
 
-This module is the plugin's anti-corruption layer for the game journal: the
-rest of the domain never sees a raw entry. It is a tolerant reader: unknown
-events, unknown fields and malformed entries are ignored, never fatal.
+This module is the mining context's anti-corruption layer for the game
+journal: the rest of the context never sees a raw entry. It reads entries
+with the tolerant helpers of the shared kernel (``journal_reading``).
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from enum import Enum
 
 from edrockmaster.domain.commodities import LIMPET, Commodity
-
-type Entry = Mapping[str, object]
+from edrockmaster.domain.journal_reading import (
+    Entry,
+    MalformedEntryError,
+    commodity,
+    items,
+    number,
+    optional,
+    required,
+    translate,
+)
 
 
 class ContentLevel(Enum):
@@ -134,67 +142,9 @@ type Fact = (
 )
 
 
-class _MalformedEntryError(Exception):
-    """Raised internally when an entry lacks a required field or has a wrong type."""
-
-
 def parse_entry(entry: Entry) -> Fact | None:
-    """Return the domain fact carried by a journal entry, or ``None`` if irrelevant."""
-    event = entry.get("event")
-    parser = _PARSERS.get(event) if isinstance(event, str) else None
-    if parser is None:
-        return None
-    try:
-        return parser(entry, _timestamp(entry))
-    except _MalformedEntryError:
-        return None
-
-
-# --- field access -------------------------------------------------------------------------
-
-
-def _timestamp(entry: Entry) -> datetime:
-    raw = _required(entry, "timestamp", str)
-    try:
-        return datetime.strptime(raw, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
-    except ValueError as error:
-        raise _MalformedEntryError from error
-
-
-def _required[T](entry: Entry, name: str, kind: type[T]) -> T:
-    value = entry.get(name)
-    if not isinstance(value, kind) or (isinstance(value, bool) and kind is not bool):
-        raise _MalformedEntryError(name)
-    return value
-
-
-def _optional[T](entry: Entry, name: str, kind: type[T]) -> T | None:
-    return _required(entry, name, kind) if name in entry else None
-
-
-def _number(entry: Entry, name: str) -> float | None:
-    value = entry.get(name)
-    if value is None:
-        return None
-    if isinstance(value, bool) or not isinstance(value, int | float):
-        raise _MalformedEntryError(name)
-    return float(value)
-
-
-def _commodity(entry: Entry, name: str) -> Commodity:
-    try:
-        return Commodity.from_symbol(
-            _required(entry, name, str), _optional(entry, f"{name}_Localised", str)
-        )
-    except ValueError as error:
-        raise _MalformedEntryError(name) from error
-
-
-def _items(entry: Entry, name: str) -> list[Entry]:
-    items = _required(entry, name, list)
-    if not all(isinstance(item, Mapping) for item in items):
-        raise _MalformedEntryError(name)
-    return items
+    """Return the mining fact carried by a journal entry, or ``None`` if irrelevant."""
+    return translate(entry, _PARSERS)
 
 
 # --- parsers ------------------------------------------------------------------------------
@@ -218,26 +168,26 @@ _LEAVE_REASONS = {
 
 def _prospected(entry: Entry, at: datetime) -> AsteroidProspected:
     materials = tuple(
-        MaterialShare(_commodity(item, "Name"), _number(item, "Proportion") or 0.0)
-        for item in _items(entry, "Materials")
+        MaterialShare(commodity(item, "Name"), number(item, "Proportion") or 0.0)
+        for item in items(entry, "Materials")
     )
-    content = _optional(entry, "Content", str) or ""
-    motherlode = _commodity(entry, "MotherlodeMaterial") if "MotherlodeMaterial" in entry else None
+    content = optional(entry, "Content", str) or ""
+    motherlode = commodity(entry, "MotherlodeMaterial") if "MotherlodeMaterial" in entry else None
     return AsteroidProspected(
         at=at,
         materials=materials,
         content=_CONTENT_LEVELS.get(content.lower(), ContentLevel.UNKNOWN),
-        remaining=_number(entry, "Remaining"),
+        remaining=number(entry, "Remaining"),
         motherlode=motherlode,
     )
 
 
 def _refined(entry: Entry, at: datetime) -> CommodityRefined:
-    return CommodityRefined(at=at, commodity=_commodity(entry, "Type"))
+    return CommodityRefined(at=at, commodity=commodity(entry, "Type"))
 
 
 def _limpet(entry: Entry, at: datetime) -> LimpetLaunched:
-    kind = _required(entry, "Type", str).lower()
+    kind = required(entry, "Type", str).lower()
     return LimpetLaunched(at=at, kind=_LIMPET_KINDS.get(kind, LimpetKind.OTHER))
 
 
@@ -251,47 +201,47 @@ def _ring_position(entry: Entry, at: datetime) -> RingEntered | None:
         return None
     return RingEntered(
         at=at,
-        system=_required(entry, "StarSystem", str),
-        system_address=_optional(entry, "SystemAddress", int),
-        ring=_required(entry, "Body", str),
+        system=required(entry, "StarSystem", str),
+        system_address=optional(entry, "SystemAddress", int),
+        ring=required(entry, "Body", str),
     )
 
 
 def _left(entry: Entry, at: datetime) -> MiningAreaLeft:
-    return MiningAreaLeft(at=at, reason=_LEAVE_REASONS[_required(entry, "event", str)])
+    return MiningAreaLeft(at=at, reason=_LEAVE_REASONS[required(entry, "event", str)])
 
 
 def _cargo(entry: Entry, at: datetime) -> CargoChanged | None:
     if entry.get("Vessel") != "Ship" or "Inventory" not in entry:
         return None
     inventory = tuple(
-        (_commodity(item, "Name"), _required(item, "Count", int))
-        for item in _items(entry, "Inventory")
+        (commodity(item, "Name"), required(item, "Count", int))
+        for item in items(entry, "Inventory")
     )
-    return CargoChanged(at=at, total=_required(entry, "Count", int), inventory=inventory)
+    return CargoChanged(at=at, total=required(entry, "Count", int), inventory=inventory)
 
 
 def _ejected(entry: Entry, at: datetime) -> CargoEjected:
     return CargoEjected(
-        at=at, commodity=_commodity(entry, "Type"), count=_required(entry, "Count", int)
+        at=at, commodity=commodity(entry, "Type"), count=required(entry, "Count", int)
     )
 
 
 def _sold(entry: Entry, at: datetime) -> CommoditySold:
-    count = _required(entry, "Count", int)
+    count = required(entry, "Count", int)
     if count <= 0:
-        raise _MalformedEntryError("Count")
+        raise MalformedEntryError("Count")
     return CommoditySold(
         at=at,
-        commodity=_commodity(entry, "Type"),
+        commodity=commodity(entry, "Type"),
         count=count,
-        unit_price=_required(entry, "SellPrice", int),
-        total=_required(entry, "TotalSale", int),
+        unit_price=required(entry, "SellPrice", int),
+        total=required(entry, "TotalSale", int),
     )
 
 
 def _game_loaded(entry: Entry, at: datetime) -> GameLoaded:
-    version = _required(entry, "gameversion", str)
+    version = required(entry, "gameversion", str)
     return GameLoaded(at=at, game_version=version, is_live=version.startswith("4."))
 
 
