@@ -277,8 +277,7 @@ class MiningTracker:
             notifications.append(SessionStarted(fact.at, self._session.system, self._session.ring))
         self._session.record_activity(fact.at)
         self._session.apply(fact)
-        if not notifications:
-            notifications.append(SessionUpdated(self._session.stats))
+        notifications.append(SessionUpdated(self._session.stats))
         return notifications
 
     def _on_sale(self, sale: CommoditySold) -> SaleRecorded | None:
