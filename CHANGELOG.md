@@ -4,11 +4,12 @@
 
 All notable changes to the EDRockMaster plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.2.1] - 2026-10-03
 
 ### Changed
 
 - Bounty hunting panel: when only combat bonds are earned, the status reads **Conflict zone** and the empty bounty line is left out.
+- Checked against a real conflict zone session (game 4.4.1.1): combat bonds, active time, redemption and community goal figures match the game. Bounties themselves remain to be checked in game.
 
 ## [0.2.0] - 2026-10-03
 
@@ -41,5 +42,6 @@ First version, for the first in-game test. The plugin works on its own, without 
 - No estimated value of the cargo: it needs the server's prices.
 - Not checked yet: EDMC's dark theme, the alert sound on Windows.
 
+[0.2.1]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.1
 [0.2.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.0
 [0.1.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.1.0
