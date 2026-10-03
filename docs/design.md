@@ -2,7 +2,7 @@
 
 *English · [Français](design.fr.md)*
 
-Design of the EDRockMaster EDMC plugin. Scope: **milestone 1, step 1A** (local plugin, first in-game test), plus the bounty hunting activity ([ADR 0011](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0011-plugin-activities.md)). The server link (step 1B) is designed here so that 1A does not have to be reworked, but it is not implemented yet. Constraints come from [prerequisites](prerequisites.md); engineering rules from `edrockmaster-architecture`.
+Design of the EDRockMaster EDMC plugin. Scope: **milestone 1, step 1A** (local plugin, first in-game test), plus the bounty hunting activity (design decision ADR 0011, in the project's architecture repository). The server link (step 1B) is designed here so that 1A does not have to be reworked, but it is not implemented yet. Constraints come from [prerequisites](prerequisites.md); engineering rules from `edrockmaster-architecture`.
 
 ## Goals of step 1A
 
