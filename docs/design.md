@@ -2,7 +2,7 @@
 
 *English · [Français](design.fr.md)*
 
-Design of the EDRockMaster EDMC plugin. Scope of this version: **milestone 1, step 1A** (local plugin, first in-game test). The server link (step 1B) is designed here so that 1A does not have to be reworked, but it is not implemented yet. Constraints come from [prerequisites](prerequisites.md); engineering rules from `edrockmaster-architecture`.
+Design of the EDRockMaster EDMC plugin. Scope: **milestone 1, step 1A** (local plugin, first in-game test), plus the bounty hunting activity ([ADR 0011](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0011-plugin-activities.md)). The server link (step 1B) is designed here so that 1A does not have to be reworked, but it is not implemented yet. Constraints come from [prerequisites](prerequisites.md); engineering rules from `edrockmaster-architecture`.
 
 ## Goals of step 1A
 
@@ -22,14 +22,22 @@ load.py                         EDMC entry points only, delegates to edrockmaste
 edrockmaster/
   __init__.py                   VERSION
   domain/                       pure Python: no EDMC, no tkinter, no I/O
-    journal.py                  journal entry → domain fact (tolerant reader)
-    commodities.py              commodity names, normalisation
-    prospecting.py              prospected asteroid, alert policy
-    session.py                  MiningSession aggregate (lifecycle, statistics)
+    journal_reading.py          shared kernel: tolerant reading of journal entries (ADR 0011)
+    commodities.py              shared kernel: commodity names, normalisation
+    mining/                     mining context
+      journal.py                journal entry → mining fact
+      prospecting.py            prospected asteroid, alert policy
+      session.py                MiningTracker aggregate (lifecycle, statistics, sales)
+    bounty/                     bounty hunting context
+      journal.py                journal entry → bounty hunting fact
+      hunting.py                HuntingTracker aggregate (sessions, vouchers, community goals)
   application/
+    activity.py                 the activities: mining, bounty hunting
+    companion.py                Companion: records the journal once, hands each entry to every activity, owns the settings
     settings.py                 PluginSettings (alerts, sound, recorder) and their defaults
     ports.py                    Clock, SettingsStore, Notifier, JournalRecorder (and, in 1B, UploadQueue, Authenticator)
-    mining_service.py           use cases: handle a journal entry, reset the session, change settings
+    mining_service.py           mining use cases: handle a journal entry, reset the session, apply settings
+    hunting_service.py          bounty hunting use cases: handle a journal entry, reset the session
   infrastructure/
     settings_edmc.py            SettingsStore on EDMC's config (keys prefixed "edrockmaster.")
     recorder_jsonl.py           JournalRecorder: JSONL files in the data directory
@@ -42,7 +50,10 @@ edrockmaster/
     i18n.py                     tl() bound to EDMC's l10n, with a fallback for tests
     host.py                     EDMC services (theme, plug.show_error, l10n.Locale), with fallbacks
   ui/
-    presenter.py                PanelModel (texts) built from the notifications, no tkinter
+    panel_model.py              PanelModel (texts) and shared formatting, no tkinter
+    presenter.py                ActivityPresenter: shows the activity in progress
+    mining_presenter.py         mining notifications → PanelModel
+    hunting_presenter.py        bounty hunting notifications → PanelModel
     preferences_form.py         settings <-> preferences fields, validation, no tkinter
     commodity_names.py          names of the mineable commodities known before the journal names them
     panel.py                    main-window panel (tkinter, main thread only), copies PanelModel
@@ -55,16 +66,16 @@ Dependency rule: `domain` imports nothing from the plugin; `application` imports
 ## Data flow
 
 1. EDMC calls `journal_entry(...)` on the main thread.
-2. `edmc/plugin.py` passes the entry to `MiningService.handle_journal_entry(entry, is_beta)`.
-3. `domain/journal.py` turns the raw entry into a typed fact (`AsteroidProspected`, `CommodityRefined`, `LimpetLaunched`, `RingEntered`, …) or ignores it. Unknown events and fields are ignored, never fatal.
+2. `edmc/plugin.py` passes the entry to `Companion.handle_journal_entry(entry, is_beta)`, which copies it to the `JournalRecorder` (if recording is enabled), then hands it to each activity: `MiningService`, then `HuntingService`. Each activity translates the journal on its own; below, the mining path.
+3. `domain/mining/journal.py` turns the raw entry into a typed fact (`AsteroidProspected`, `CommodityRefined`, `LimpetLaunched`, `RingEntered`, …) or ignores it. Unknown events and fields are ignored, never fatal.
 4. The `MiningTracker` aggregate applies the fact and returns session notifications.
 5. The `ProspectingMonitor` evaluates every prospected asteroid against the alert settings.
-6. The service forwards the outcome: the alert to the `Notifier` (if sound is enabled), the verbatim entry to the `JournalRecorder` (if recording is enabled), and returns the notifications (`SessionStarted`, `SessionUpdated`, `SessionEnded`, `ProspectorAlertRaised`) to the caller, which hands them to the presenter.
+6. The service forwards the outcome: the alert to the `Notifier` (if sound is enabled), and returns the notifications (`SessionStarted`, `SessionUpdated`, `SessionEnded`, `ProspectorAlertRaised`) to the caller, which hands them to the `ActivityPresenter`: it shows the last activity whose session progressed.
 7. The panel is refreshed on the main thread.
 
 All of this is pure computation on small objects (well under a millisecond per event): it stays on the main thread. Anything touching files or the network goes through the I/O thread.
 
-`edmc/plugin.py` is the composition root. `load.py` hands it EDMC's `config`; it builds the I/O thread, the adapters and the `MiningService` in `plugin_start3`, and stops the thread in `plugin_stop`. The UI subscribes to the notifications and provides the alert sound, which needs a widget. Any exception while handling an entry is logged and reported in EDMC's status bar; the next entries are handled normally. The logger is the one EDMC prepares for the plugin, `<appname>.<plugin folder>`.
+`edmc/plugin.py` is the composition root. `load.py` hands it EDMC's `config`; it builds the I/O thread, the adapters and the `Companion` in `plugin_start3`, and stops the thread in `plugin_stop`. The UI subscribes to the notifications and provides the alert sound, which needs a widget. The reset button ends the session of the activity shown. Any exception while handling an entry is logged and reported in EDMC's status bar; the next entries are handled normally. The logger is the one EDMC prepares for the plugin, `<appname>.<plugin folder>`.
 
 ## Threads
 
@@ -92,6 +103,24 @@ All of this is pure computation on small objects (well under a millisecond per e
 | `is_beta`, or `gameversion` not 4.x in `LoadGame` | Everything works locally; flagged as not uploadable (1B) |
 
 Statistics of a session: active duration, tons per commodity, total tons, tons per hour, asteroids prospected (by content level), cores found and cracked, limpets launched (prospector, collector), refinements per minute, tons sold and credits earned.
+
+## Bounty hunting
+
+| Situation | Effect |
+| --- | --- |
+| `Bounty` (ship format with `Rewards`, or flat format for skimmers and on foot) | One kill; bounty credits; a bounty voucher per paying faction |
+| `FactionKillBond` | One kill; combat bond credits and voucher |
+| `CapShipBond` | Combat bond credits and voucher, no kill |
+| First reward | Hunting session starts |
+| No reward for 15 minutes | Session paused: inactive time is not counted |
+| Docking, supercruise, jumps | Nothing: hunters move between sites and dock to rearm |
+| `Died` | Session ends; unredeemed vouchers are lost |
+| `Shutdown`, `ShutDown` | Session ends |
+| `RedeemVoucher` (bounties, combat bonds) | The vouchers paid are removed, per faction, never below zero |
+| `CommunityGoal` | The goals the commander joined: contribution, percentile band, tier reached |
+| Manual reset (panel button, hunting shown) | Session ends, a new one can start |
+
+Statistics of a hunting session: active duration, kills (and shared kills), bounty and combat bond credits, credits per hour. Shared with the panel: unredeemed vouchers (known since EDMC started only: the journal does not restate older ones) and the community goals. Superpower factions written `$faction_Federation;` are normalised to `Federation`.
 
 ## Prospector alerts
 
