@@ -14,7 +14,7 @@ import pytest
 from edrockmaster.application.activity import Activity
 from edrockmaster.application.companion import Companion, Notification
 from edrockmaster.application.settings import DEFAULT_SETTINGS
-from edrockmaster.domain.bounty.hunting import CommunityGoalsChanged
+from edrockmaster.domain.bounty.hunting import CommunityGoalsChanged, VouchersUpdated
 from edrockmaster.ui.presenter import ActivityPresenter
 from tests.fakes import FakeNotifier, FakeRecorder, FakeSettingsStore, FixedClock
 
@@ -101,3 +101,47 @@ def test_conflict_zone_panel_shows_the_hunt(conflict_zone: Replay) -> None:
 def test_conflict_zone_panel_does_not_show_empty_bounties(conflict_zone: Replay) -> None:
     labels = [line.label for line in conflict_zone.presenter.render().lines]
     assert "Bounties" not in labels
+
+
+@pytest.fixture(scope="module")
+def second_conflict_zone() -> Replay:
+    """The same day, 40 more minutes in that conflict zone: EDMC started while docked."""
+    return Replay("conflict-zone-2026-10-03-b.jsonl")
+
+
+def test_second_conflict_zone_figures(second_conflict_zone: Replay) -> None:
+    stats = second_conflict_zone.companion.hunting.current_stats
+    assert stats is not None
+    assert (stats.kills, stats.bounty_credits, stats.bond_credits) == (22, 0, 817_256)
+    assert stats.active_duration == timedelta(minutes=26, seconds=36)
+
+
+def test_second_conflict_zone_vouchers_peak_then_redeemed(second_conflict_zone: Replay) -> None:
+    unredeemed = [
+        notification.vouchers.total
+        for notification in second_conflict_zone.notifications
+        if isinstance(notification, VouchersUpdated)
+    ]
+    # 2,397,033 CR redeemed, of which 1,579,777 CR were earned before EDMC started
+    assert max(unredeemed) == 817_256
+    assert unredeemed[-1] == 0
+
+
+def test_second_conflict_zone_community_goal_grows_by_the_redemption(
+    second_conflict_zone: Replay,
+) -> None:
+    contributions = [
+        goal.contribution
+        for notification in second_conflict_zone.notifications
+        if isinstance(notification, CommunityGoalsChanged)
+        for goal in notification.goals
+    ]
+    assert (contributions[0], contributions[-1]) == (2_408_404, 4_805_437)
+    assert contributions[-1] - contributions[0] == 2_397_033
+
+
+def test_second_conflict_zone_panel(second_conflict_zone: Replay) -> None:
+    model = second_conflict_zone.presenter.render()
+    assert model.status == "Conflict zone"
+    assert ("Rate", "1,843,435 CR/h") in [(line.label, line.value) for line in model.lines]
+    assert second_conflict_zone.companion.mining.current_stats is None
