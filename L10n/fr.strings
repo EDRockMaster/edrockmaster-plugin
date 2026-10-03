@@ -50,6 +50,8 @@
 "No hunting session" = "Aucune session de chasse";
 "Bounty hunting" = "Chasse à la prime";
 "Hunt ended: {reason}" = "Chasse terminée : {reason}";
+"Conflict zone" = "Zone de conflit";
+"Conflict zone ended: {reason}" = "Zone de conflit terminée : {reason}";
 "ship destroyed" = "vaisseau détruit";
 
 /* ui/hunting_presenter.py: statistic labels and values */

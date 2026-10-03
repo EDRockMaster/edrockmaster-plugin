@@ -4,6 +4,12 @@
 
 All notable changes to the EDRockMaster plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Bounty hunting panel: when only combat bonds are earned, the status reads **Conflict zone** and the empty bounty line is left out.
+
 ## [0.2.0] - 2026-10-03
 
 ### Added
