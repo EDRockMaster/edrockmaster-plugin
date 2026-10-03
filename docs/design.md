@@ -40,10 +40,13 @@ edrockmaster/
   edmc/
     plugin.py                   wiring: builds the object graph, implements the hooks
     i18n.py                     tl() bound to EDMC's l10n, with a fallback for tests
+    host.py                     EDMC services (theme, plug.show_error, l10n.Locale), with fallbacks
   ui/
-    panel.py                    main-window panel (tkinter, main thread only)
+    presenter.py                PanelModel (texts) built from the notifications, no tkinter
+    preferences_form.py         settings <-> preferences fields, validation, no tkinter
+    commodity_names.py          names of the mineable commodities known before the journal names them
+    panel.py                    main-window panel (tkinter, main thread only), copies PanelModel
     preferences.py              preferences tab (myNotebook)
-    presenter.py                view models built from domain notifications
 L10n/fr.strings                 French translations
 ```
 
@@ -66,7 +69,7 @@ All of this is pure computation on small objects (well under a millisecond per e
 ## Threads
 
 - **Main thread**: hooks, domain, UI.
-- **One I/O thread** (`infrastructure/worker.py`): a daemon thread fed by a `queue.Queue` of jobs (append to the recording file in 1A; uploads and authentication in 1B). It never touches tkinter. When it needs to update the UI, it posts a message on a result queue and calls `event_generate("<<EDRockMasterUpdate>>")` on the panel, unless `config.shutting_down` is set.
+- **One I/O thread** (`infrastructure/worker.py`): a daemon thread fed by a `queue.Queue` of jobs (append to the recording file in 1A; uploads and authentication in 1B). It never touches tkinter. In 1A it has nothing to tell the UI. From 1B (upload status), it will post a message on a result queue and call `event_generate("<<EDRockMasterUpdate>>")` on the panel, unless `config.shutting_down` is set.
 - `plugin_stop()` posts a stop job, joins the thread with a timeout, and flushes the recorder.
 
 ## Mining session lifecycle
@@ -97,6 +100,12 @@ Statistics of a session: active duration, tons per commodity, total tons, tons p
 - Optional minimum remaining reserve (`Remaining`).
 - A motherlode (core) raises its own alert, whatever the thresholds.
 - Duplicate prospecting of the same asteroid (same composition within 60 seconds) does not raise a second alert.
+
+## User interface
+
+**Panel** (EDMC's main window): status (no session, mining in a ring, session ended and why), the last prospector alert, highlighted, until the next asteroid is prospected, then the statistics: active time, refined tons, rate, tons per commodity, asteroids prospected and, once known, cores, limpets, cargo and sales. The statistics of an ended session stay displayed, and its sales are added to them. A **Reset** button ends the running session. Numbers follow the system's locale, like EDMC's own.
+
+**Preferences tab**: a percentage field per mineable commodity (empty means no alert), minimum content, minimum remaining reserve, alert on cores, sound, journal recorder and a button opening the recordings folder. Numbers are typed in the system's locale. When the dialog closes, an invalid entry keeps its previous value and is named in EDMC's status bar; the valid ones are applied at once.
 
 ## Settings
 
@@ -135,7 +144,9 @@ Contents in 1A: `recordings/` (journal recordings, JSONL, one file per EDMC run)
 
 - English source strings in the code, wrapped with `tl()` (`edmc/i18n.py`, bound to `l10n.translations.tl` with `context=__file__`).
 - French in `L10n/fr.strings` (UTF-8 `.strings` format).
-- Displayed strings are refreshed in `prefs_changed`.
+- Displayed strings are refreshed in `prefs_changed`: the presenter keeps domain objects, not texts, and rebuilds every text in the current language.
+- Counts avoid plural agreement (`prospectors: 3`), which `.strings` files cannot express.
+- `tests/test_translations.py` fails if a text passed to `tl()` has no French translation, if a translation is no longer used, or if placeholders differ.
 - Commodity names come from the journal's `*_Localised` fields when present (the game's own language), otherwise from our own names.
 
 ## Prepared for step 1B
@@ -154,5 +165,5 @@ Ports defined in 1A, implemented in 1B:
 - **Fixtures**: real journal excerpts (`tests/fixtures/*.jsonl`), recorded with the recorder.
 - **Replay tests**: a whole recorded session is replayed through `MiningService`, and the final statistics are asserted.
 - **EDMC adapters**: tested with fake `config`, `l10n` and `theme` modules injected by `tests/conftest.py`.
-- **UI**: kept thin (presenter tested, widgets not unit-tested); checked in game during test 1A.
+- **UI**: the presenter and the preferences form are pure and fully tested. The tkinter widgets are kept thin; their tests use a real Tk and are skipped where no display exists (CI), so they run on developers' machines. Checked in game during test 1A.
 - CI: `ruff`, `mypy --strict`, `pytest` with coverage on `domain/` and `application/`.

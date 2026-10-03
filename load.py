@@ -7,6 +7,7 @@ EDMC imports this module and calls the hooks below. They only delegate to
 from __future__ import annotations
 
 import os
+import tkinter as tk
 from typing import Any
 
 from config import config  # type: ignore[import-not-found]  # EDMC's settings store
@@ -14,7 +15,15 @@ from config import config  # type: ignore[import-not-found]  # EDMC's settings s
 from edrockmaster import VERSION
 from edrockmaster.edmc.plugin import Plugin
 
-__all__ = ["VERSION", "journal_entry", "plugin_start3", "plugin_stop"]
+__all__ = [
+    "VERSION",
+    "journal_entry",
+    "plugin_app",
+    "plugin_prefs",
+    "plugin_start3",
+    "plugin_stop",
+    "prefs_changed",
+]
 
 _plugin = Plugin(config)
 
@@ -25,6 +34,18 @@ def plugin_start3(plugin_dir: str | os.PathLike[str]) -> str:
 
 def plugin_stop() -> None:
     _plugin.stop()
+
+
+def plugin_app(parent: tk.Frame) -> tk.Frame:
+    return _plugin.app(parent)
+
+
+def plugin_prefs(parent: Any, cmdr: str, is_beta: bool) -> tk.Widget:
+    return _plugin.prefs(parent)
+
+
+def prefs_changed(cmdr: str, is_beta: bool) -> None:
+    _plugin.prefs_changed()
 
 
 def journal_entry(
