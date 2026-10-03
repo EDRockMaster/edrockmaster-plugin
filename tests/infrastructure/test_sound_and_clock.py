@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from edrockmaster.domain.commodities import Commodity
-from edrockmaster.domain.prospecting import CoreAlert, ProspectorAlertRaised
+from edrockmaster.domain.mining.prospecting import CoreAlert, ProspectorAlertRaised
 from edrockmaster.infrastructure.clock import SystemClock
 from edrockmaster.infrastructure.sound import SoundNotifier
 

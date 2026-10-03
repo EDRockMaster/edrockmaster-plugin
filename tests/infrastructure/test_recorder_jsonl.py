@@ -3,7 +3,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
-from edrockmaster.domain.journal import Entry
+from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.infrastructure.recorder_jsonl import JsonlJournalRecorder
 
 STARTED = datetime(2026, 10, 3, 14, 5, 9, tzinfo=UTC)

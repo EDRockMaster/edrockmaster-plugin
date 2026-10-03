@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from edrockmaster.application.mining_service import MiningNotification
-from edrockmaster.domain.journal import Entry
-from edrockmaster.domain.prospecting import ProspectorAlertRaised
-from edrockmaster.domain.session import SessionStarted
+from edrockmaster.application.companion import Notification
+from edrockmaster.domain.journal_reading import Entry
+from edrockmaster.domain.mining.prospecting import ProspectorAlertRaised
+from edrockmaster.domain.mining.session import SessionStarted
 from edrockmaster.edmc.i18n import tl
 from edrockmaster.edmc.plugin import PLUGIN_NAME, Plugin, plugin_logger_name
 from edrockmaster.infrastructure.worker import THREAD_NAME
@@ -68,7 +68,7 @@ def test_entries_before_start_are_ignored() -> None:
 
 
 def test_notifications_reach_the_subscribers(started: Started) -> None:
-    received: list[Sequence[MiningNotification]] = []
+    received: list[Sequence[Notification]] = []
     started.plugin.subscribe(received.append)
     assert started.entry(PROSPECTED) is None
     [notifications] = received
@@ -77,7 +77,7 @@ def test_notifications_reach_the_subscribers(started: Started) -> None:
 
 
 def test_irrelevant_entries_notify_nobody(started: Started) -> None:
-    received: list[Sequence[MiningNotification]] = []
+    received: list[Sequence[Notification]] = []
     started.plugin.subscribe(received.append)
     started.entry({"timestamp": "2026-10-03T12:00:00Z", "event": "Music"})
     assert received == []
@@ -103,7 +103,7 @@ def test_journal_is_recorded_in_the_data_directory_when_enabled(tmp_path: Path) 
 def test_a_failure_is_logged_and_reported_without_breaking_the_plugin(
     started: Started, caplog: pytest.LogCaptureFixture
 ) -> None:
-    def broken(_notifications: Sequence[MiningNotification]) -> None:
+    def broken(_notifications: Sequence[Notification]) -> None:
         raise RuntimeError("boom")
 
     started.plugin.subscribe(broken)
@@ -111,7 +111,7 @@ def test_a_failure_is_logged_and_reported_without_breaking_the_plugin(
         error = started.entry(PROSPECTED)
     assert error == tl("EDRockMaster: internal error, see the EDMC log")
     assert "boom" in caplog.text
-    received: list[Sequence[MiningNotification]] = []
+    received: list[Sequence[Notification]] = []
     started.plugin.subscribe(received.append)
     started.entry({**PROSPECTED, "timestamp": "2026-10-03T12:05:00Z"})
     assert received
@@ -124,11 +124,11 @@ def test_translation_falls_back_to_english_outside_edmc() -> None:
 def test_a_failing_use_case_is_logged_and_reported(
     started: Started, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    def broken(entry: Entry, is_beta: bool) -> list[MiningNotification]:
+    def broken(entry: Entry, is_beta: bool) -> list[Notification]:
         raise ValueError("unexpected entry")
 
-    assert started.plugin.service is not None
-    monkeypatch.setattr(started.plugin.service, "handle_journal_entry", broken)
+    assert started.plugin.companion is not None
+    monkeypatch.setattr(started.plugin.companion, "handle_journal_entry", broken)
     with caplog.at_level(logging.ERROR):
         error = started.entry(PROSPECTED)
     assert error == tl("EDRockMaster: internal error, see the EDMC log")

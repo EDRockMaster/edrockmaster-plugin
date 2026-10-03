@@ -4,13 +4,13 @@ import ast
 import re
 from pathlib import Path
 
-from edrockmaster.ui import preferences, presenter
+from edrockmaster.ui import hunting_presenter, mining_presenter, preferences
 from edrockmaster.ui.commodity_names import MINEABLE
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCES = sorted((ROOT / "edrockmaster").rglob("*.py"))
 TRANSLATION = re.compile(r'^\s*"((?:[^"\\]|\\.)+)"\s*=\s*"((?:[^"\\]|\\.)+)"\s*;\s*$')
-TRANSLATE_NAMES = {"tl", "_tl"}
+TRANSLATE_NAMES = {"tl", "_tl", "translate"}
 
 
 def literal_calls(path: Path) -> set[str]:
@@ -35,7 +35,8 @@ def source_strings() -> set[str]:
     strings = set().union(*(literal_calls(path) for path in SOURCES))
     # Texts translated through a variable: declared in tables
     strings |= {name for _, name in MINEABLE}
-    strings |= set(presenter._END_REASONS.values())
+    strings |= set(mining_presenter._END_REASONS.values())
+    strings |= set(hunting_presenter._END_REASONS.values())
     strings |= set(preferences._CONTENT_LEVELS.values())
     return strings
 

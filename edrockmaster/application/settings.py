@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from edrockmaster.domain.prospecting import DEFAULT_ALERT_SETTINGS, AlertSettings
+from edrockmaster.domain.mining.prospecting import DEFAULT_ALERT_SETTINGS, AlertSettings
 
 
 @dataclass(frozen=True, slots=True)

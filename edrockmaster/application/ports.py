@@ -9,8 +9,8 @@ from datetime import datetime
 from typing import Protocol
 
 from edrockmaster.application.settings import PluginSettings
-from edrockmaster.domain.journal import Entry
-from edrockmaster.domain.prospecting import ProspectorAlertRaised
+from edrockmaster.domain.journal_reading import Entry
+from edrockmaster.domain.mining.prospecting import ProspectorAlertRaised
 
 
 class Clock(Protocol):

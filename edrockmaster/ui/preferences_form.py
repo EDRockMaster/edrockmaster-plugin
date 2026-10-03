@@ -12,10 +12,10 @@ from dataclasses import dataclass
 
 from edrockmaster.application.settings import PluginSettings
 from edrockmaster.domain.commodities import Commodity
-from edrockmaster.domain.journal import ContentLevel
-from edrockmaster.domain.prospecting import AlertSettings
+from edrockmaster.domain.mining.journal import ContentLevel
+from edrockmaster.domain.mining.prospecting import AlertSettings
 from edrockmaster.ui.commodity_names import MINEABLE, commodity_name
-from edrockmaster.ui.presenter import NumberFormat
+from edrockmaster.ui.panel_model import NumberFormat
 
 type NumberParser = Callable[[str], float | None]
 """Parses a number typed by the player (locale-aware in EDMC), ``None`` if invalid."""

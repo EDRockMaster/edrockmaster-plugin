@@ -8,7 +8,7 @@ from __future__ import annotations
 import tkinter as tk
 from collections.abc import Callable
 
-from edrockmaster.ui.presenter import PanelModel
+from edrockmaster.ui.panel_model import PanelModel
 
 ALERT_COLOUR = "#ff8c00"
 

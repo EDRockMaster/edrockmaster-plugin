@@ -2,41 +2,28 @@
 
 from __future__ import annotations
 
-from edrockmaster.application.ports import Clock, JournalRecorder, Notifier, SettingsStore
+from edrockmaster.application.ports import Clock, Notifier
 from edrockmaster.application.settings import PluginSettings
-from edrockmaster.domain.journal import AsteroidProspected, Entry, parse_entry
-from edrockmaster.domain.prospecting import ProspectingMonitor, ProspectorAlertRaised
-from edrockmaster.domain.session import MiningTracker, SessionNotification, SessionStats
+from edrockmaster.domain.journal_reading import Entry
+from edrockmaster.domain.mining.journal import AsteroidProspected, parse_entry
+from edrockmaster.domain.mining.prospecting import ProspectingMonitor, ProspectorAlertRaised
+from edrockmaster.domain.mining.session import MiningTracker, SessionNotification, SessionStats
 
 type MiningNotification = SessionNotification | ProspectorAlertRaised
-"""What the presentation layer is told after each use case."""
+"""What the presentation layer is told after each mining use case."""
 
 
 class MiningService:
-    """Entry point of the application layer: one method per use case.
-
-    Called on EDMC's main thread only. Every call is pure computation; the
-    ports it uses must hand any slow work over to the I/O thread.
+    """Called on EDMC's main thread only. Every call is pure computation; the
+    notifier must hand any slow work over to the I/O thread.
     """
 
-    def __init__(
-        self,
-        settings_store: SettingsStore,
-        notifier: Notifier,
-        recorder: JournalRecorder,
-        clock: Clock,
-    ) -> None:
-        self._store = settings_store
+    def __init__(self, settings: PluginSettings, notifier: Notifier, clock: Clock) -> None:
         self._notifier = notifier
-        self._recorder = recorder
         self._clock = clock
-        self._settings = settings_store.load()
+        self._settings = settings
         self._tracker = MiningTracker()
-        self._monitor = ProspectingMonitor(self._settings.alerts)
-
-    @property
-    def settings(self) -> PluginSettings:
-        return self._settings
+        self._monitor = ProspectingMonitor(settings.alerts)
 
     @property
     def current_stats(self) -> SessionStats | None:
@@ -48,8 +35,6 @@ class MiningService:
         return self._tracker.is_live
 
     def handle_journal_entry(self, entry: Entry, is_beta: bool) -> list[MiningNotification]:
-        if self._settings.record_journal:
-            self._recorder.record(entry, is_beta)
         self._tracker.set_beta(is_beta)
         fact = parse_entry(entry)
         if fact is None:
@@ -67,9 +52,6 @@ class MiningService:
         ended = self._tracker.reset(self._clock.now())
         return [ended] if ended is not None else []
 
-    def change_settings(self, settings: PluginSettings) -> None:
-        if settings == self._settings:
-            return
-        self._store.save(settings)
+    def apply_settings(self, settings: PluginSettings) -> None:
         self._settings = settings
         self._monitor.update_settings(settings.alerts)

@@ -1,7 +1,8 @@
 """Wiring between EDMC's hooks and the plugin's application layer.
 
 ``Plugin`` is the composition root: it builds the adapters, the application
-service and the I/O thread, and turns EDMC's hooks into use cases.
+service (the ``Companion`` of the activities) and the I/O thread, and turns
+EDMC's hooks into use cases.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from edrockmaster import VERSION
-from edrockmaster.application.mining_service import MiningNotification, MiningService
+from edrockmaster.application.companion import Companion, Notification
 from edrockmaster.application.ports import Clock
 from edrockmaster.edmc import host
 from edrockmaster.edmc.i18n import tl
@@ -32,7 +33,7 @@ from edrockmaster.ui.preferences_form import (
     threshold_rows,
     values_from_settings,
 )
-from edrockmaster.ui.presenter import Presenter
+from edrockmaster.ui.presenter import ActivityPresenter
 
 try:  # pragma: no cover - only available inside EDMC
     from config import appname  # type: ignore[import-not-found]
@@ -41,7 +42,7 @@ except ImportError:  # pragma: no cover - outside EDMC (tests, tooling)
 
 PLUGIN_NAME = "EDRockMaster"
 
-type Listener = Callable[[Sequence[MiningNotification]], None]
+type Listener = Callable[[Sequence[Notification]], None]
 """Receives the notifications of each use case, on the main thread (the UI)."""
 
 
@@ -78,17 +79,17 @@ class Plugin:
         self._data_directory = data_directory
         self._clock = clock or SystemClock()
         self._open_folder = open_folder
-        self._presenter = Presenter(tl, host.format_number)
+        self._presenter = ActivityPresenter(tl, host.format_number)
         self._panel: Panel | None = None
         self._tab: PreferencesTab | None = None
         self._worker = IoWorker(logger)
-        self._service: MiningService | None = None
+        self._companion: Companion | None = None
         self._listeners: list[Listener] = []
         self._play_alert: Callable[[], None] | None = None
 
     @property
-    def service(self) -> MiningService | None:
-        return self._service
+    def companion(self) -> Companion | None:
+        return self._companion
 
     def start(self, plugin_dir: str | os.PathLike[str]) -> str:
         logger.info("EDRockMaster %s started from %s", VERSION, plugin_dir)
@@ -96,7 +97,7 @@ class Plugin:
         recorder = JsonlJournalRecorder(
             self._data_directory() / "recordings", self._worker.submit, self._clock.now()
         )
-        self._service = MiningService(
+        self._companion = Companion(
             settings_store=EdmcSettingsStore(self._config, logger),
             notifier=SoundNotifier(self._alert_sound, logger),
             recorder=recorder,
@@ -118,9 +119,9 @@ class Plugin:
 
     def prefs(self, parent: tk.Misc) -> tk.Widget:
         """``plugin_prefs``: the plugin's tab in EDMC's settings dialog."""
-        if self._service is None:
+        if self._companion is None:
             raise RuntimeError("the plugin has not started")
-        settings = self._service.settings
+        settings = self._companion.settings
         self._tab = PreferencesTab(
             parent,
             values_from_settings(settings, host.format_number),
@@ -134,11 +135,11 @@ class Plugin:
     def prefs_changed(self) -> None:
         """``prefs_changed``: apply the tab's entries, refresh texts (the language may change)."""
         tab, self._tab = self._tab, None
-        if tab is not None and self._service is not None:
+        if tab is not None and self._companion is not None:
             settings, invalid = settings_from_values(
-                tab.values(), self._service.settings, host.parse_number, tl
+                tab.values(), self._companion.settings, host.parse_number, tl
             )
-            self._service.change_settings(settings)
+            self._companion.change_settings(settings)
             if invalid:
                 host.show_error(
                     tl("Invalid entries ignored: {fields}").format(fields=", ".join(invalid))
@@ -148,9 +149,9 @@ class Plugin:
             self._panel.render(self._presenter.render())
 
     def reset_session(self) -> None:
-        """The panel's reset button."""
-        if self._service is not None:
-            self._publish(self._service.reset_session())
+        """The panel's reset button: ends the session of the activity shown."""
+        if self._companion is not None:
+            self._publish(self._companion.reset(self._presenter.current))
 
     def open_recordings(self) -> None:
         folder = self._data_directory() / "recordings"
@@ -173,16 +174,16 @@ class Plugin:
         entry: Mapping[str, Any],
         state: Mapping[str, Any],
     ) -> str | None:
-        if self._service is None:
+        if self._companion is None:
             return None
         try:
-            notifications = self._service.handle_journal_entry(entry, is_beta)
+            notifications = self._companion.handle_journal_entry(entry, is_beta)
         except Exception:
             logger.exception("Could not handle the journal entry %r", entry.get("event"))
             return _internal_error()
         return self._publish(notifications)
 
-    def _publish(self, notifications: Sequence[MiningNotification]) -> str | None:
+    def _publish(self, notifications: Sequence[Notification]) -> str | None:
         if not notifications:
             return None
         error = None

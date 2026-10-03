@@ -1,5 +1,11 @@
 """Test doubles shared by several test modules."""
 
+from datetime import datetime
+
+from edrockmaster.application.settings import DEFAULT_SETTINGS, PluginSettings
+from edrockmaster.domain.journal_reading import Entry
+from edrockmaster.domain.mining.prospecting import ProspectorAlertRaised
+
 
 class FakeConfig:
     """Stands for EDMC's ``config``.
@@ -26,3 +32,40 @@ class FakeConfig:
 
     def set(self, key: str, value: str | bool) -> None:
         self.values[key] = value
+
+
+class FakeSettingsStore:
+    def __init__(self, settings: PluginSettings = DEFAULT_SETTINGS) -> None:
+        self.stored = settings
+        self.saves = 0
+
+    def load(self) -> PluginSettings:
+        return self.stored
+
+    def save(self, settings: PluginSettings) -> None:
+        self.stored = settings
+        self.saves += 1
+
+
+class FakeNotifier:
+    def __init__(self) -> None:
+        self.notified: list[ProspectorAlertRaised] = []
+
+    def notify(self, alert: ProspectorAlertRaised) -> None:
+        self.notified.append(alert)
+
+
+class FakeRecorder:
+    def __init__(self) -> None:
+        self.recorded: list[tuple[Entry, bool]] = []
+
+    def record(self, entry: Entry, is_beta: bool) -> None:
+        self.recorded.append((entry, is_beta))
+
+
+class FixedClock:
+    def __init__(self, now: datetime) -> None:
+        self.current = now
+
+    def now(self) -> datetime:
+        return self.current

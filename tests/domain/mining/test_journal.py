@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 import pytest
 
 from edrockmaster.domain.commodities import Commodity
-from edrockmaster.domain.journal import (
+from edrockmaster.domain.mining.journal import (
     AsteroidCracked,
     AsteroidProspected,
     CargoChanged,

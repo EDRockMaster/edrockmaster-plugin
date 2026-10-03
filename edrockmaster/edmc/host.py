@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import tkinter as tk
 
-from edrockmaster.ui.presenter import default_number_format
+from edrockmaster.ui.panel_model import default_number_format
 
 try:  # pragma: no cover - only available inside EDMC
     import plug  # type: ignore[import-not-found]

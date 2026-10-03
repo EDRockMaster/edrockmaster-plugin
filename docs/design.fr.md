@@ -2,7 +2,7 @@
 
 *[English](design.md) · Français*
 
-Conception du plugin EDMC d'EDRockMaster. Périmètre de cette version : **jalon 1, étape 1A** (plugin local, premier essai en jeu). La liaison avec le serveur (étape 1B) est conçue ici pour ne pas avoir à reprendre 1A, mais elle n'est pas encore réalisée. Les contraintes viennent des [prérequis](prerequisites.fr.md) ; les règles d'ingénierie, de `edrockmaster-architecture`.
+Conception du plugin EDMC d'EDRockMaster. Périmètre : **jalon 1, étape 1A** (plugin local, premier essai en jeu), plus l'activité de chasse à la prime ([ADR 0011](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0011-plugin-activities.fr.md)). La liaison avec le serveur (étape 1B) est conçue ici pour ne pas avoir à reprendre 1A, mais elle n'est pas encore réalisée. Les contraintes viennent des [prérequis](prerequisites.fr.md) ; les règles d'ingénierie, de `edrockmaster-architecture`.
 
 ## Objectifs de l'étape 1A
 
@@ -22,14 +22,22 @@ load.py                         points d'entrée EDMC uniquement, délègue à e
 edrockmaster/
   __init__.py                   VERSION
   domain/                       Python pur : ni EDMC, ni tkinter, ni entrées-sorties
-    journal.py                  entrée du journal → fait du domaine (lecteur tolérant)
-    commodities.py              noms des commodités, normalisation
-    prospecting.py              astéroïde prospecté, politique d'alerte
-    session.py                  agrégat MiningSession (cycle de vie, statistiques)
+    journal_reading.py          noyau partagé : lecture tolérante des entrées du journal (ADR 0011)
+    commodities.py              noyau partagé : noms des commodités, normalisation
+    mining/                     contexte du minage
+      journal.py                entrée du journal → fait du minage
+      prospecting.py            astéroïde prospecté, politique d'alerte
+      session.py                agrégat MiningTracker (cycle de vie, statistiques, ventes)
+    bounty/                     contexte de la chasse à la prime
+      journal.py                entrée du journal → fait de la chasse
+      hunting.py                agrégat HuntingTracker (sessions, bons, objectifs communautaires)
   application/
+    activity.py                 les activités : minage, chasse à la prime
+    companion.py                Companion : enregistre le journal une fois, passe chaque entrée à chaque activité, porte les réglages
     settings.py                 PluginSettings (alertes, son, enregistreur) et leurs valeurs par défaut
     ports.py                    Clock, SettingsStore, Notifier, JournalRecorder (et, en 1B, UploadQueue, Authenticator)
-    mining_service.py           cas d'usage : traiter une entrée du journal, réinitialiser la session, modifier les réglages
+    mining_service.py           cas d'usage du minage : traiter une entrée du journal, réinitialiser la session, appliquer les réglages
+    hunting_service.py          cas d'usage de la chasse : traiter une entrée du journal, réinitialiser la session
   infrastructure/
     settings_edmc.py            SettingsStore sur le config d'EDMC (clés préfixées « edrockmaster. »)
     recorder_jsonl.py           JournalRecorder : fichiers JSONL dans le dossier de données
@@ -42,7 +50,10 @@ edrockmaster/
     i18n.py                     tl() relié au l10n d'EDMC, avec un repli pour les tests
     host.py                     services d'EDMC (theme, plug.show_error, l10n.Locale), avec replis
   ui/
-    presenter.py                PanelModel (textes) construit à partir des notifications, sans tkinter
+    panel_model.py              PanelModel (textes) et mise en forme commune, sans tkinter
+    presenter.py                ActivityPresenter : montre l'activité en cours
+    mining_presenter.py         notifications du minage → PanelModel
+    hunting_presenter.py        notifications de la chasse → PanelModel
     preferences_form.py         réglages <-> champs des préférences, validation, sans tkinter
     commodity_names.py          noms des commodités minables connues avant que le journal ne les nomme
     panel.py                    panneau de la fenêtre principale (tkinter, fil principal uniquement), recopie PanelModel
@@ -55,16 +66,16 @@ Règle de dépendance : `domain` n'importe rien du plugin ; `application` import
 ## Circulation des données
 
 1. EDMC appelle `journal_entry(...)` sur le fil principal.
-2. `edmc/plugin.py` transmet l'entrée à `MiningService.handle_journal_entry(entry, is_beta)`.
-3. `domain/journal.py` transforme l'entrée brute en fait typé (`AsteroidProspected`, `CommodityRefined`, `LimpetLaunched`, `RingEntered`…) ou l'ignore. Les événements et champs inconnus sont ignorés, jamais bloquants.
+2. `edmc/plugin.py` transmet l'entrée à `Companion.handle_journal_entry(entry, is_beta)`, qui la copie dans le `JournalRecorder` (si l'enregistrement est activé), puis la passe à chaque activité : `MiningService`, puis `HuntingService`. Chaque activité traduit le journal pour son propre compte ; ci-dessous, le chemin du minage.
+3. `domain/mining/journal.py` transforme l'entrée brute en fait typé (`AsteroidProspected`, `CommodityRefined`, `LimpetLaunched`, `RingEntered`…) ou l'ignore. Les événements et champs inconnus sont ignorés, jamais bloquants.
 4. L'agrégat `MiningTracker` applique le fait et renvoie des notifications de session.
 5. Le `ProspectingMonitor` évalue chaque astéroïde prospecté au regard des réglages d'alerte.
-6. Le service distribue le résultat : l'alerte au `Notifier` (si le son est activé), l'entrée telle quelle au `JournalRecorder` (si l'enregistrement est activé), et renvoie les notifications (`SessionStarted`, `SessionUpdated`, `SessionEnded`, `ProspectorAlertRaised`) à l'appelant, qui les passe au présentateur.
+6. Le service distribue le résultat : l'alerte au `Notifier` (si le son est activé), et renvoie les notifications (`SessionStarted`, `SessionUpdated`, `SessionEnded`, `ProspectorAlertRaised`) à l'appelant, qui les passe à l'`ActivityPresenter` : il montre la dernière activité dont la session a progressé.
 7. Le panneau est rafraîchi sur le fil principal.
 
 Tout ceci n'est que du calcul sur de petits objets (bien moins d'une milliseconde par événement) : ça reste sur le fil principal. Tout ce qui touche aux fichiers ou au réseau passe par le fil d'entrées-sorties.
 
-`edmc/plugin.py` est la racine de composition. `load.py` lui fournit le `config` d'EDMC ; il construit le fil d'entrées-sorties, les adaptateurs et le `MiningService` dans `plugin_start3`, et arrête le fil dans `plugin_stop`. L'interface s'abonne aux notifications et fournit le son d'alerte, qui a besoin d'un widget. Toute exception pendant le traitement d'une entrée est journalisée et signalée dans la barre d'état d'EDMC ; les entrées suivantes sont traitées normalement. Le logger est celui qu'EDMC prépare pour le plugin, `<appname>.<dossier du plugin>`.
+`edmc/plugin.py` est la racine de composition. `load.py` lui fournit le `config` d'EDMC ; il construit le fil d'entrées-sorties, les adaptateurs et le `Companion` dans `plugin_start3`, et arrête le fil dans `plugin_stop`. L'interface s'abonne aux notifications et fournit le son d'alerte, qui a besoin d'un widget. Le bouton de réinitialisation termine la session de l'activité affichée. Toute exception pendant le traitement d'une entrée est journalisée et signalée dans la barre d'état d'EDMC ; les entrées suivantes sont traitées normalement. Le logger est celui qu'EDMC prépare pour le plugin, `<appname>.<dossier du plugin>`.
 
 ## Fils d'exécution
 
@@ -92,6 +103,24 @@ Tout ceci n'est que du calcul sur de petits objets (bien moins d'une millisecond
 | `is_beta`, ou `gameversion` autre que 4.x dans `LoadGame` | Tout fonctionne en local ; marqué comme non envoyable (1B) |
 
 Statistiques d'une session : durée active, tonnes par commodité, tonnes totales, tonnes par heure, astéroïdes prospectés (par niveau de teneur), cores trouvés et fissurés, drones lancés (prospecteurs, collecteurs), raffinages par minute, tonnes vendues et crédits gagnés.
+
+## Chasse à la prime
+
+| Situation | Effet |
+| --- | --- |
+| `Bounty` (format vaisseau avec `Rewards`, ou format simple pour les skimmers et à pied) | Une victime ; crédits de prime ; un bon de prime par faction payeuse |
+| `FactionKillBond` | Une victime ; crédits et bon d'obligation de combat |
+| `CapShipBond` | Crédits et bon d'obligation de combat, sans victime |
+| Première récompense | La session de chasse commence |
+| Aucune récompense pendant 15 minutes | Session en pause : le temps inactif n'est pas compté |
+| Amarrage, supercroisière, sauts | Rien : les chasseurs passent d'un site à l'autre et s'amarrent pour se réarmer |
+| `Died` | La session se termine ; les bons non encaissés sont perdus |
+| `Shutdown`, `ShutDown` | La session se termine |
+| `RedeemVoucher` (primes, obligations de combat) | Les bons payés sont retirés, par faction, jamais en dessous de zéro |
+| `CommunityGoal` | Les objectifs rejoints par le commandant : contribution, tranche de classement, palier atteint |
+| Réinitialisation manuelle (bouton du panneau, chasse affichée) | La session se termine, une nouvelle peut commencer |
+
+Statistiques d'une session de chasse : durée active, victimes (et victimes partagées), crédits de primes et d'obligations de combat, crédits par heure. Communs au panneau : les bons non encaissés (connus seulement depuis le lancement d'EDMC : le journal ne redonne pas les plus anciens) et les objectifs communautaires. Les superpuissances écrites `$faction_Federation;` sont ramenées à `Federation`.
 
 ## Alertes du prospecteur
 

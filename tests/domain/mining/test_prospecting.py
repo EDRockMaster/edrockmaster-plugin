@@ -3,8 +3,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from edrockmaster.domain.commodities import Commodity
-from edrockmaster.domain.journal import AsteroidProspected, ContentLevel, MaterialShare
-from edrockmaster.domain.prospecting import (
+from edrockmaster.domain.mining.journal import AsteroidProspected, ContentLevel, MaterialShare
+from edrockmaster.domain.mining.prospecting import (
     DEFAULT_ALERT_SETTINGS,
     DUPLICATE_WINDOW,
     AlertSettings,

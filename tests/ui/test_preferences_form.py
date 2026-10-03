@@ -4,8 +4,8 @@ import pytest
 
 from edrockmaster.application.settings import DEFAULT_SETTINGS, PluginSettings
 from edrockmaster.domain.commodities import Commodity
-from edrockmaster.domain.journal import ContentLevel
-from edrockmaster.domain.prospecting import AlertSettings
+from edrockmaster.domain.mining.journal import ContentLevel
+from edrockmaster.domain.mining.prospecting import AlertSettings
 from edrockmaster.ui.commodity_names import MINEABLE
 from edrockmaster.ui.preferences_form import (
     PreferencesValues,
