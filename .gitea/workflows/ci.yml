@@ -31,7 +31,8 @@ jobs:
       - name: Release notes
         run: scripts/release_notes.sh "$(scripts/version.sh)"
       - name: Keep the dev build
-        uses: actions/upload-artifact@v4
+        # v4 refuses any server but github.com (it takes Gitea for GitHub Enterprise): v3 works
+        uses: actions/upload-artifact@v3
         with:
           name: EDRockMaster-dev-${{ gitea.sha }}
           path: dist/*.zip
