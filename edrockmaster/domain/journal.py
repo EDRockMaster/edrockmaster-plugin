@@ -105,6 +105,15 @@ class CargoEjected:
 
 
 @dataclass(frozen=True, slots=True)
+class CommoditySold:
+    at: datetime
+    commodity: Commodity
+    count: int
+    unit_price: int
+    total: int
+
+
+@dataclass(frozen=True, slots=True)
 class GameLoaded:
     at: datetime
     game_version: str
@@ -120,6 +129,7 @@ type Fact = (
     | MiningAreaLeft
     | CargoChanged
     | CargoEjected
+    | CommoditySold
     | GameLoaded
 )
 
@@ -235,7 +245,8 @@ def _cracked(_entry: Entry, at: datetime) -> AsteroidCracked:
     return AsteroidCracked(at=at)
 
 
-def _supercruise_exit(entry: Entry, at: datetime) -> RingEntered | None:
+def _ring_position(entry: Entry, at: datetime) -> RingEntered | None:
+    """Dropping out of supercruise in a ring, or the game (or EDMC) starting inside one."""
     if entry.get("BodyType") != "PlanetaryRing":
         return None
     return RingEntered(
@@ -266,6 +277,19 @@ def _ejected(entry: Entry, at: datetime) -> CargoEjected:
     )
 
 
+def _sold(entry: Entry, at: datetime) -> CommoditySold:
+    count = _required(entry, "Count", int)
+    if count <= 0:
+        raise _MalformedEntryError("Count")
+    return CommoditySold(
+        at=at,
+        commodity=_commodity(entry, "Type"),
+        count=count,
+        unit_price=_required(entry, "SellPrice", int),
+        total=_required(entry, "TotalSale", int),
+    )
+
+
 def _game_loaded(entry: Entry, at: datetime) -> GameLoaded:
     version = _required(entry, "gameversion", str)
     return GameLoaded(at=at, game_version=version, is_live=version.startswith("4."))
@@ -276,9 +300,12 @@ _PARSERS: dict[str, Callable[[Entry, datetime], Fact | None]] = {
     "MiningRefined": _refined,
     "LaunchDrone": _limpet,
     "AsteroidCracked": _cracked,
-    "SupercruiseExit": _supercruise_exit,
+    "SupercruiseExit": _ring_position,
+    "Location": _ring_position,
+    "StartUp": _ring_position,  # synthetic event from EDMC when started with the game running
     "Cargo": _cargo,
     "EjectCargo": _ejected,
+    "MarketSell": _sold,
     "LoadGame": _game_loaded,
     **dict.fromkeys(_LEAVE_REASONS, _left),
 }

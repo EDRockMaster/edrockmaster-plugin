@@ -9,6 +9,7 @@ from edrockmaster.domain.journal import (
     CargoChanged,
     CargoEjected,
     CommodityRefined,
+    CommoditySold,
     ContentLevel,
     GameLoaded,
     LeaveReason,
@@ -125,6 +126,34 @@ def test_entering_a_ring_is_parsed() -> None:
     )
 
 
+@pytest.mark.parametrize("event", ["StartUp", "Location"])
+def test_starting_inside_a_ring_is_parsed_as_entering_it(event: str) -> None:
+    fact = parse_entry(
+        {
+            "timestamp": TS,
+            "event": event,
+            "StarSystem": "Col 285 Sector AB-C d1",
+            "SystemAddress": 123456789,
+            "Body": "Col 285 Sector AB-C d1 2 A Ring",
+            "BodyID": 12,
+            "BodyType": "PlanetaryRing",
+            "Docked": False,
+        }
+    )
+    assert fact == RingEntered(
+        at=AT,
+        system="Col 285 Sector AB-C d1",
+        system_address=123456789,
+        ring="Col 285 Sector AB-C d1 2 A Ring",
+    )
+
+
+@pytest.mark.parametrize("event", ["StartUp", "Location"])
+def test_starting_outside_a_ring_is_ignored(event: str) -> None:
+    entry = {"timestamp": TS, "event": event, "StarSystem": "Sol", "Docked": True}
+    assert parse_entry(entry) is None
+
+
 def test_dropping_at_something_else_than_a_ring_is_ignored() -> None:
     entry = {"timestamp": TS, "event": "SupercruiseExit", "Body": "Station", "BodyType": "Station"}
     assert parse_entry(entry) is None
@@ -191,6 +220,29 @@ def test_game_loaded_tells_the_galaxy(version: str, live: bool) -> None:
     assert fact == GameLoaded(at=AT, game_version=version, is_live=live)
 
 
+def test_market_sale_is_parsed() -> None:
+    fact = parse_entry(
+        {
+            "timestamp": TS,
+            "event": "MarketSell",
+            "MarketID": 3228342528,
+            "Type": "painite",
+            "Type_Localised": "Painite",
+            "Count": 32,
+            "SellPrice": 512000,
+            "TotalSale": 16384000,
+            "AvgPricePaid": 0,
+        }
+    )
+    assert fact == CommoditySold(
+        at=AT,
+        commodity=Commodity.from_symbol("painite"),
+        count=32,
+        unit_price=512000,
+        total=16384000,
+    )
+
+
 @pytest.mark.parametrize(
     "entry",
     [
@@ -207,6 +259,15 @@ def test_game_loaded_tells_the_galaxy(version: str, live: bool) -> None:
             "Materials": [{"Name": "Painite", "Proportion": "high"}],
         },
         {"timestamp": TS, "event": "MiningRefined", "Type": "   "},
+        {"timestamp": TS, "event": "MarketSell", "Type": "painite", "Count": "32"},
+        {
+            "timestamp": TS,
+            "event": "MarketSell",
+            "Type": "painite",
+            "Count": 0,
+            "SellPrice": 1,
+            "TotalSale": 0,
+        },
         {"timestamp": TS},
         {"timestamp": TS, "event": ["ProspectedAsteroid"]},
         {},

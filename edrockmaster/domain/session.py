@@ -23,6 +23,7 @@ from edrockmaster.domain.journal import (
     CargoChanged,
     CargoEjected,
     CommodityRefined,
+    CommoditySold,
     ContentLevel,
     Fact,
     GameLoaded,
@@ -76,6 +77,8 @@ class SessionStats:
     ejected_tons: Mapping[Commodity, int]
     cargo_tons: int | None
     limpets_on_board: int | None
+    sold_tons: Mapping[Commodity, int]
+    credits_earned: int
 
     @property
     def total_tons(self) -> int:
@@ -115,7 +118,18 @@ class SessionEnded:
     stats: SessionStats
 
 
-type SessionNotification = SessionStarted | SessionUpdated | SessionEnded
+@dataclass(frozen=True, slots=True)
+class SaleRecorded:
+    """Mined tons sold, credited to the session that produced them."""
+
+    at: datetime
+    commodity: Commodity
+    count: int
+    credits: int
+    stats: SessionStats
+
+
+type SessionNotification = SessionStarted | SessionUpdated | SessionEnded | SaleRecorded
 
 
 @dataclass(slots=True)
@@ -135,6 +149,8 @@ class MiningSession:
     _ejected: Counter[Commodity] = field(default_factory=Counter)
     _cargo_tons: int | None = None
     _limpets_on_board: int | None = None
+    _sold: Counter[Commodity] = field(default_factory=Counter)
+    _credits: int = 0
 
     @property
     def stats(self) -> SessionStats:
@@ -150,6 +166,8 @@ class MiningSession:
             ejected_tons=MappingProxyType(dict(self._ejected)),
             cargo_tons=self._cargo_tons,
             limpets_on_board=self._limpets_on_board,
+            sold_tons=MappingProxyType(dict(self._sold)),
+            credits_earned=self._credits,
         )
 
     def record_activity(self, at: datetime) -> None:
@@ -157,6 +175,14 @@ class MiningSession:
         if timedelta(0) < gap <= IDLE_THRESHOLD:
             self._active += gap
         self._last_activity = max(self._last_activity, at)
+
+    def unsold_tons(self, commodity: Commodity) -> int:
+        """Tons of a commodity mined in this session and neither ejected nor sold yet."""
+        return max(0, self._tons[commodity] - self._ejected[commodity] - self._sold[commodity])
+
+    def record_sale(self, commodity: Commodity, count: int, credits: int) -> None:
+        self._sold[commodity] += count
+        self._credits += credits
 
     def apply(self, fact: SessionFact) -> None:
         match fact:
@@ -184,6 +210,7 @@ class MiningTracker:
 
     def __init__(self) -> None:
         self._session: MiningSession | None = None
+        self._previous: MiningSession | None = None
         self._ring: RingEntered | None = None
         self._galaxy_live = True
         self._beta = False
@@ -202,11 +229,8 @@ class MiningTracker:
 
     def handle(self, fact: Fact) -> list[SessionNotification]:
         match fact:
-            case RingEntered():
-                self._ring = fact
-                return []
-            case GameLoaded(is_live=is_live):
-                self._galaxy_live = is_live
+            case RingEntered() | GameLoaded():
+                self._remember_context(fact)
                 return []
             case MiningAreaLeft(at=at, reason=reason):
                 self._ring = None
@@ -217,11 +241,20 @@ class MiningTracker:
             case CargoChanged() | CargoEjected() if self._session is not None:
                 self._session.apply(fact)
                 return [SessionUpdated(self._session.stats)]
+            case CommoditySold():
+                recorded = self._on_sale(fact)
+                return [recorded] if recorded else []
             case _:
                 return []
 
     def reset(self, at: datetime) -> SessionEnded | None:
         return self._end(at, EndReason.MANUAL)
+
+    def _remember_context(self, fact: RingEntered | GameLoaded) -> None:
+        if isinstance(fact, RingEntered):
+            self._ring = fact
+        else:
+            self._galaxy_live = fact.is_live
 
     @staticmethod
     def _is_mining_activity(fact: Fact) -> TypeIs[MiningActivity]:
@@ -248,9 +281,21 @@ class MiningTracker:
             notifications.append(SessionUpdated(self._session.stats))
         return notifications
 
+    def _on_sale(self, sale: CommoditySold) -> SaleRecorded | None:
+        """Credit a sale to the running session, or else to the last one that ended."""
+        session = self._session or self._previous
+        if session is None:
+            return None
+        count = min(sale.count, session.unsold_tons(sale.commodity))
+        if count == 0:
+            return None
+        credits = count * sale.unit_price
+        session.record_sale(sale.commodity, count, credits)
+        return SaleRecorded(sale.at, sale.commodity, count, credits, session.stats)
+
     def _end(self, at: datetime, reason: EndReason) -> SessionEnded | None:
         if self._session is None:
             return None
         ended = SessionEnded(at=at, reason=reason, stats=self._session.stats)
-        self._session = None
+        self._previous, self._session = self._session, None
         return ended
