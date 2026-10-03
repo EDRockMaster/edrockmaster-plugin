@@ -1,3 +1,4 @@
+import gc
 import tkinter as tk
 from collections.abc import Iterator
 
@@ -14,3 +15,5 @@ def root() -> Iterator[tk.Tk]:
     root.withdraw()
     yield root
     root.destroy()
+    # Free Tk objects now, on this thread: collected later on another thread, Tk complains
+    gc.collect()
