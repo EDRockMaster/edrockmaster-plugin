@@ -26,10 +26,10 @@ edrockmaster/
     commodities.py              noms des commodités, normalisation
     prospecting.py              astéroïde prospecté, politique d'alerte
     session.py                  agrégat MiningSession (cycle de vie, statistiques)
-    events.py                   notifications du domaine (AlertRaised, SessionUpdated…)
   application/
+    settings.py                 PluginSettings (alertes, son, enregistreur) et leurs valeurs par défaut
     ports.py                    Clock, SettingsStore, Notifier, JournalRecorder (et, en 1B, UploadQueue, Authenticator)
-    mining_service.py           cas d'usage : traiter une entrée du journal, réinitialiser, appliquer les réglages
+    mining_service.py           cas d'usage : traiter une entrée du journal, réinitialiser la session, modifier les réglages
   infrastructure/
     settings_edmc.py            SettingsStore sur le config d'EDMC (clés préfixées « edrockmaster. »)
     recorder_jsonl.py           JournalRecorder : fichiers JSONL dans le dossier de données
@@ -53,9 +53,10 @@ Règle de dépendance : `domain` n'importe rien du plugin ; `application` import
 1. EDMC appelle `journal_entry(...)` sur le fil principal.
 2. `edmc/plugin.py` transmet l'entrée à `MiningService.handle_journal_entry(entry, is_beta)`.
 3. `domain/journal.py` transforme l'entrée brute en fait typé (`AsteroidProspected`, `CommodityRefined`, `LimpetLaunched`, `RingEntered`…) ou l'ignore. Les événements et champs inconnus sont ignorés, jamais bloquants.
-4. L'agrégat `MiningSession` applique le fait et renvoie des notifications du domaine.
-5. Le service les distribue : alertes au `Notifier`, copie pour l'enregistreur au fil d'entrées-sorties, modèle de vue au présentateur.
-6. Le panneau est rafraîchi sur le fil principal.
+4. L'agrégat `MiningTracker` applique le fait et renvoie des notifications de session.
+5. Le `ProspectingMonitor` évalue chaque astéroïde prospecté au regard des réglages d'alerte.
+6. Le service distribue le résultat : l'alerte au `Notifier` (si le son est activé), l'entrée telle quelle au `JournalRecorder` (si l'enregistrement est activé), et renvoie les notifications (`SessionStarted`, `SessionUpdated`, `SessionEnded`, `ProspectorAlertRaised`) à l'appelant, qui les passe au présentateur.
+7. Le panneau est rafraîchi sur le fil principal.
 
 Tout ceci n'est que du calcul sur de petits objets (bien moins d'une milliseconde par événement) : ça reste sur le fil principal. Tout ce qui touche aux fichiers ou au réseau passe par le fil d'entrées-sorties.
 
@@ -87,11 +88,11 @@ Statistiques d'une session : durée active, tonnes par commodité, tonnes totale
 
 ## Alertes du prospecteur
 
-- Seuil par commodité, en pourcentage de l'astéroïde (valeurs par défaut pour les commodités de valeur ; modifiables).
+- Seuil par commodité, en pourcentage de l'astéroïde, modifiable. Valeurs par défaut (2026-10-03, à ajuster après l'essai en jeu) : platine 20 %, diamants basse température 20 %, painite 25 %, osmium 25 %, palladium 25 %, or 25 %. Teneur minimale faible, pas de réserve minimale, alerte sur les cores, son activé, enregistreur du journal désactivé.
 - Niveau de teneur minimal (High, Medium, Low).
 - Réserve restante minimale (`Remaining`), facultative.
 - Un motherlode (core) déclenche sa propre alerte, quels que soient les seuils.
-- Prospecter deux fois le même astéroïde (même composition à quelques secondes d'intervalle) ne déclenche pas de seconde alerte.
+- Prospecter deux fois le même astéroïde (même composition à moins de 60 secondes d'intervalle) ne déclenche pas de seconde alerte.
 
 ## Réglages
 

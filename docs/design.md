@@ -26,10 +26,10 @@ edrockmaster/
     commodities.py              commodity names, normalisation
     prospecting.py              prospected asteroid, alert policy
     session.py                  MiningSession aggregate (lifecycle, statistics)
-    events.py                   domain notifications (AlertRaised, SessionUpdated…)
   application/
+    settings.py                 PluginSettings (alerts, sound, recorder) and their defaults
     ports.py                    Clock, SettingsStore, Notifier, JournalRecorder (and, in 1B, UploadQueue, Authenticator)
-    mining_service.py           use cases: handle a journal entry, reset, apply settings
+    mining_service.py           use cases: handle a journal entry, reset the session, change settings
   infrastructure/
     settings_edmc.py            SettingsStore on EDMC's config (keys prefixed "edrockmaster.")
     recorder_jsonl.py           JournalRecorder: JSONL files in the data directory
@@ -53,9 +53,10 @@ Dependency rule: `domain` imports nothing from the plugin; `application` imports
 1. EDMC calls `journal_entry(...)` on the main thread.
 2. `edmc/plugin.py` passes the entry to `MiningService.handle_journal_entry(entry, is_beta)`.
 3. `domain/journal.py` turns the raw entry into a typed fact (`AsteroidProspected`, `CommodityRefined`, `LimpetLaunched`, `RingEntered`, …) or ignores it. Unknown events and fields are ignored, never fatal.
-4. The `MiningSession` aggregate applies the fact and returns domain notifications.
-5. The service forwards them: alerts to the `Notifier`, the recorder copy to the I/O thread, the view model to the presenter.
-6. The panel is refreshed on the main thread.
+4. The `MiningTracker` aggregate applies the fact and returns session notifications.
+5. The `ProspectingMonitor` evaluates every prospected asteroid against the alert settings.
+6. The service forwards the outcome: the alert to the `Notifier` (if sound is enabled), the verbatim entry to the `JournalRecorder` (if recording is enabled), and returns the notifications (`SessionStarted`, `SessionUpdated`, `SessionEnded`, `ProspectorAlertRaised`) to the caller, which hands them to the presenter.
+7. The panel is refreshed on the main thread.
 
 All of this is pure computation on small objects (well under a millisecond per event): it stays on the main thread. Anything touching files or the network goes through the I/O thread.
 
@@ -87,11 +88,11 @@ Statistics of a session: active duration, tons per commodity, total tons, tons p
 
 ## Prospector alerts
 
-- Threshold per commodity, in percent of the asteroid (defaults for high-value commodities; editable).
+- Threshold per commodity, in percent of the asteroid, editable. Defaults (2026-10-03, to be tuned after the in-game test): platinum 20 %, low temperature diamonds 20 %, painite 25 %, osmium 25 %, palladium 25 %, gold 25 %. Minimum content Low, no minimum reserve, core alerts on, sound on, journal recorder off.
 - Minimum content level (High, Medium, Low).
 - Optional minimum remaining reserve (`Remaining`).
 - A motherlode (core) raises its own alert, whatever the thresholds.
-- Duplicate prospecting of the same asteroid (same composition within a few seconds) does not raise a second alert.
+- Duplicate prospecting of the same asteroid (same composition within 60 seconds) does not raise a second alert.
 
 ## Settings
 
