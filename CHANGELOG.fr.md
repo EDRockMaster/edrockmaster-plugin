@@ -4,11 +4,12 @@
 
 Les changements notables du plugin EDRockMaster. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), et les versions suivent le [versionnage sémantique](https://semver.org/lang/fr/).
 
-## [Non publié]
+## [0.2.1] - 2026-10-03
 
 ### Modifié
 
 - Panneau de chasse : quand seules des obligations de combat sont gagnées, l'état affiche **Zone de conflit** et la ligne des primes, vide, est masquée.
+- Vérifié sur une vraie session en zone de conflit (jeu 4.4.1.1) : obligations de combat, temps actif, encaissement et objectif communautaire correspondent au jeu. Les primes elles-mêmes restent à vérifier en jeu.
 
 ## [0.2.0] - 2026-10-03
 
@@ -41,5 +42,6 @@ Première version, pour le premier essai en jeu. Le plugin fonctionne seul, sans
 - Pas de valeur estimée de la soute : elle demande les prix du serveur.
 - Pas encore vérifiés : le thème sombre d'EDMC, le son d'alerte sous Windows.
 
+[0.2.1]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.1
 [0.2.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.0
 [0.1.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.1.0
