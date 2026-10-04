@@ -2,7 +2,7 @@
 
 *English · [Français](design.fr.md)*
 
-Design of the EDRockMaster EDMC plugin. Scope: **milestone 1, step 1A** (local plugin, first in-game test), plus the bounty hunting activity (design decision ADR 0011, in the project's architecture repository). The server link (step 1B) is designed here so that 1A does not have to be reworked, but it is not implemented yet. Constraints come from [prerequisites](prerequisites.md); engineering rules from `edrockmaster-architecture`.
+Design of the EDRockMaster EDMC plugin. Scope: **milestone 1, step 1A** (local plugin, first in-game test), plus the combat activity (design decisions ADR 0011 and ADR 0013, in the project's architecture repository). The server link (step 1B) is designed here so that 1A does not have to be reworked, but it is not implemented yet. Constraints come from [prerequisites](prerequisites.md); engineering rules from `edrockmaster-architecture`.
 
 ## Goals of step 1A
 
@@ -28,16 +28,17 @@ edrockmaster/
       journal.py                journal entry → mining fact
       prospecting.py            prospected asteroid, alert policy
       session.py                MiningTracker aggregate (lifecycle, statistics, sales)
-    bounty/                     bounty hunting context
-      journal.py                journal entry → bounty hunting fact
-      hunting.py                HuntingTracker aggregate (sessions, vouchers, community goals)
+    combat/                     combat context
+      journal.py                journal entry → combat fact
+      sites.py                  combat sites, as the game names them on arrival
+      session.py                CombatTracker aggregate (sessions by site segments, vouchers, crimes, community goals)
   application/
-    activity.py                 the activities: mining, bounty hunting
+    activity.py                 the activities: mining, combat
     companion.py                Companion: records the journal once, hands each entry to every activity, owns the settings
     settings.py                 PluginSettings (alerts, sound, recorder) and their defaults
     ports.py                    Clock, SettingsStore, Notifier, JournalRecorder (and, in 1B, UploadQueue, Authenticator)
     mining_service.py           mining use cases: handle a journal entry, reset the session, apply settings
-    hunting_service.py          bounty hunting use cases: handle a journal entry, reset the session
+    combat_service.py           combat use cases: handle a journal entry, reset the session
   infrastructure/
     settings_edmc.py            SettingsStore on EDMC's config (keys prefixed "edrockmaster.")
     recorder_jsonl.py           JournalRecorder: JSONL files in the data directory
@@ -53,7 +54,7 @@ edrockmaster/
     panel_model.py              PanelModel (texts) and shared formatting, no tkinter
     presenter.py                ActivityPresenter: shows the activity in progress
     mining_presenter.py         mining notifications → PanelModel
-    hunting_presenter.py        bounty hunting notifications → PanelModel
+    combat_presenter.py         combat notifications → PanelModel
     preferences_form.py         settings <-> preferences fields, validation, no tkinter
     commodity_names.py          names of the mineable commodities known before the journal names them
     panel.py                    main-window panel (tkinter, main thread only), copies PanelModel
@@ -104,23 +105,32 @@ All of this is pure computation on small objects (well under a millisecond per e
 
 Statistics of a session: active duration, tons per commodity, total tons, tons per hour, asteroids prospected (by content level), cores found and cracked, limpets launched (prospector, collector), refinements per minute, tons sold and credits earned.
 
-## Bounty hunting
+## Combat
+
+Combat covers bounty hunting, conflict zones and any kill ([ADR 0013](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0013-combat-segments-and-live-panel.md)). It is measured in **segments**: one stay on a combat site, from the arrival to the departure.
 
 | Situation | Effect |
 | --- | --- |
 | `Bounty` (ship format with `Rewards`, or flat format for skimmers and on foot) | One kill; bounty credits; a bounty voucher per paying faction |
 | `FactionKillBond` | One kill; combat bond credits and voucher |
 | `CapShipBond` | Combat bond credits and voucher, no kill |
-| First reward | Hunting session starts |
-| `SupercruiseExit` away from a station, `Location` in normal space off station | Arrival on a site: the clock of time on site runs (from this arrival when the first reward follows) |
-| `SupercruiseEntry`, `Docked`, `FSDJump` | Departure from the site: the clock stops; the session goes on (hunters move between sites and dock to rearm) |
+| First reward | Combat session starts |
+| `SupercruiseDestinationDrop` then `SupercruiseExit` | Arrival at a destination. A combat site if its type is known: conflict zone (low, medium, high), resource extraction site (low, normal, high, hazardous), navigation beacon |
+| `SupercruiseExit` without a destination (ring, planet, deep space), `Undocked` | Arrival somewhere that is not a combat site |
+| First reward on a combat site | A segment opens, **from the arrival**: the search for targets counts |
+| `SupercruiseEntry`, `Docked`, `FSDJump`, `StartJump` to hyperspace | Departure: the segment closes; the session goes on. A site left without any reward is not counted |
+| Reward elsewhere (a pirate while mining, near a station, after an interdiction) | **Miscellaneous**: counted in kills, credits and vouchers, in no rate |
+| Reward with no arrival seen (EDMC or the game started on the site: `StartUp`, `Location` off station) | A segment of type **unknown**, from that reward; miscellaneous if the commander mines there (`ProspectedAsteroid`, `MiningRefined`, `AsteroidCracked`, prospector or collector limpets) |
+| `CommitCrime` during a session | Counted by kind of crime: fines and bounties on the commander, never deducted from the credits |
 | `Died` | Session ends; unredeemed vouchers are lost |
 | `Shutdown`, `ShutDown` | Session ends |
 | `RedeemVoucher` (bounties, combat bonds) | The vouchers paid are removed, per faction, never below zero |
 | `CommunityGoal` | The goals the commander joined: contribution, percentile band, tier reached |
-| Manual reset (panel button, hunting shown) | Session ends, a new one can start |
+| Manual reset (panel button, combat shown) | Session ends, a new one can start; still on the site, the next segment starts at the reset |
 
-Statistics of a hunting session: active duration, measured as **time on site** (in normal space away from stations, from the arrival on the site of the first reward; searching for targets counts, travelling and docking do not), kills (and shared kills), bounty and combat bond credits, credits per hour. Shared with the panel: unredeemed vouchers (known since EDMC started only: the journal does not restate older ones) and the community goals. Superpower factions written `$faction_Federation;` are normalised to `Federation`. A session with combat bonds and no bounty is shown as **Conflict zone**, without the empty bounty line.
+Statistics of a combat session: its segments (site type, duration, kills, credits, rates), an average **per site type, weighted by time** (total kills and credits over total duration), time on combat sites, kills (and shared kills), bounty and combat bond credits, miscellaneous kills, crimes. Shared with the panel: unredeemed vouchers (known since EDMC started only: the journal does not restate older ones) and the community goals. Superpower factions written `$faction_Federation;` are normalised to `Federation`. Another activity never ends a combat session: a miner may fight back and keep mining.
+
+The panel shows the last activity to **progress**: for combat, a session or a segment that starts or ends, a reward or a crime; leaving a site without a segment, vouchers and community goals never switch it.
 
 ## Prospector alerts
 
@@ -168,7 +178,7 @@ Contents in 1A: `recordings/` (journal recordings, JSONL, one file per EDMC run)
 - Writes every entry received by the plugin, unmodified, one JSON object per line, with the `is_beta` flag: `{"is_beta": false, "entry": {…}}`. File: `recordings/journal-<start, UTC, YYYYMMDDTHHMMSSZ>.jsonl`.
 - The entry is serialised when received (EDMC shares the same dict with every plugin) and written by the I/O thread.
 - Recordings are what we turn into `tests/fixtures/`; the player decides what to share.
-- The repository is public, and a raw recording holds personal data (commander name and Frontier id, squadron, carrier, chat messages, other players' names, reputation). A recording becomes a fixture only through `scripts/sanitise_recording.py`: it keeps the events the plugin reads and a few harmless ones, reduces `LoadGame` to the game version, drops the reputation (`Location.Factions`) and the targets' pilot names (`Bounty.PilotName`), per event, and refuses to write if the commander's name or id remains. `tests/test_replay.py` replays each fixture, with figures checked by hand against the raw journal.
+- The repository is public, and a raw recording holds personal data (commander name and Frontier id, squadron, carrier, chat messages, other players' names, reputation). A recording becomes a fixture only through `scripts/sanitise_recording.py`: it keeps the events the plugin reads and a few harmless ones, reduces `LoadGame` to the game version, drops the reputation (`Factions` of `Location`, `FSDJump`, `StartUp`), the targets' pilot names (`Bounty.PilotName`) and crime victims (`CommitCrime.Victim`), per event, replaces every fleet carrier (name, callsign, id) with a neutral value, and refuses to write if the commander's name or id, or a carrier, remains. `tests/test_replay.py` replays each fixture, with figures checked by hand against the raw journal.
 
 ## Internationalisation
 

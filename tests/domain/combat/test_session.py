@@ -3,32 +3,41 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from edrockmaster.domain.bounty.hunting import (
-    CommunityGoalsChanged,
-    HuntEnded,
-    HuntEndReason,
-    HuntingTracker,
-    HuntStarted,
-    HuntUpdated,
-    VouchersUpdated,
-)
-from edrockmaster.domain.bounty.journal import (
+from edrockmaster.domain.combat.journal import (
     BountyAwarded,
     CombatBondAwarded,
     CommanderDied,
     CommunityGoal,
     CommunityGoalsUpdated,
+    CrimeCommitted,
+    DestinationDropped,
     FactionReward,
     GameClosed,
-    SiteEntered,
+    GameLoaded,
+    MiningSeen,
+    NormalSpaceEntered,
     SiteLeft,
     VoucherKind,
     VouchersRedeemed,
 )
+from edrockmaster.domain.combat.session import (
+    CombatEnded,
+    CombatEndReason,
+    CombatStarted,
+    CombatStats,
+    CombatTracker,
+    CombatUpdated,
+    CommunityGoalsChanged,
+    Tally,
+    VouchersUpdated,
+)
+from edrockmaster.domain.combat.sites import SiteType
 
 T0 = datetime(2026, 10, 3, 21, 0, tzinfo=UTC)
 FED = "Federation"
 SIRIUS = "Sirius Corporation"
+CZ = SiteType.CONFLICT_ZONE_HIGH
+RES = SiteType.RES_HAZARDOUS
 
 
 def at(minutes: float) -> datetime:
@@ -66,156 +75,316 @@ def kinds(notifications: Sequence[object]) -> list[type]:
     return [type(notification) for notification in notifications]
 
 
+def arrive(tracker: CombatTracker, minutes: float, site: SiteType | None = CZ) -> None:
+    """Supercruise ends at a chosen destination, as the journal writes it."""
+    assert tracker.handle(DestinationDropped(at(minutes), site)) == []
+    assert tracker.handle(NormalSpaceEntered(at(minutes))) == []
+
+
+def stats_of(notifications: Sequence[object]) -> CombatStats:
+    [stats] = [n.stats for n in notifications if isinstance(n, CombatUpdated | CombatEnded)]
+    return stats
+
+
+def on_site(tracker: CombatTracker) -> CombatTracker:
+    arrive(tracker, 0)
+    return tracker
+
+
 # --- lifecycle ----------------------------------------------------------------------------
 
 
-def test_first_kill_starts_a_session() -> None:
-    tracker = HuntingTracker()
-    notifications = tracker.handle(bounty(0))
-    assert kinds(notifications) == [HuntStarted, HuntUpdated, VouchersUpdated]
-    assert notifications[0] == HuntStarted(at(0))
+def test_first_reward_starts_a_session() -> None:
+    tracker = on_site(CombatTracker())
+    notifications = tracker.handle(bounty(1))
+    assert kinds(notifications) == [CombatStarted, CombatUpdated, VouchersUpdated]
+    assert notifications[0] == CombatStarted(at(1))
     assert tracker.session is not None
 
 
 def test_combat_bond_also_starts_a_session() -> None:
-    tracker = HuntingTracker()
-    assert kinds(tracker.handle(bond(0)))[0] is HuntStarted
+    assert kinds(on_site(CombatTracker()).handle(bond(1)))[0] is CombatStarted
 
 
 @pytest.mark.parametrize(
     ("fact", "reason"),
-    [(CommanderDied(at(5)), HuntEndReason.DIED), (GameClosed(at(5)), HuntEndReason.GAME_CLOSED)],
+    [
+        (CommanderDied(at(5)), CombatEndReason.DIED),
+        (GameClosed(at(5)), CombatEndReason.GAME_CLOSED),
+    ],
 )
 def test_death_or_game_exit_ends_the_session(
-    fact: CommanderDied | GameClosed, reason: HuntEndReason
+    fact: CommanderDied | GameClosed, reason: CombatEndReason
 ) -> None:
-    tracker = HuntingTracker()
-    tracker.handle(bounty(0))
+    tracker = on_site(CombatTracker())
+    tracker.handle(bounty(1))
     ended = tracker.handle(fact)[0]
-    assert isinstance(ended, HuntEnded)
+    assert isinstance(ended, CombatEnded)
     assert ended.reason is reason
     assert ended.stats.kills == 1
+    assert ended.stats.active_duration == timedelta(minutes=5)
     assert tracker.session is None
 
 
 def test_ending_without_a_session_notifies_nothing_about_it() -> None:
-    assert HuntingTracker().handle(GameClosed(at(0))) == []
+    assert CombatTracker().handle(GameClosed(at(0))) == []
 
 
 def test_manual_reset() -> None:
-    tracker = HuntingTracker()
+    tracker = on_site(CombatTracker())
     assert tracker.reset(at(0)) is None
-    tracker.handle(bounty(0))
+    tracker.handle(bounty(1))
     ended = tracker.reset(at(3))
     assert ended is not None
-    assert ended.reason is HuntEndReason.MANUAL
-    assert kinds(tracker.handle(bounty(4)))[0] is HuntStarted
+    assert ended.reason is CombatEndReason.MANUAL
+    assert ended.stats.active_duration == timedelta(minutes=3)
+    # Still on the site: the next segment starts at the reset
+    assert stats_of(tracker.handle(bounty(5))).active_duration == timedelta(minutes=2)
 
 
-# --- statistics ---------------------------------------------------------------------------
+def test_another_activity_never_ends_the_session() -> None:
+    tracker = on_site(CombatTracker())
+    tracker.handle(bounty(1))
+    tracker.handle(SiteLeft(at(2)))
+    tracker.handle(NormalSpaceEntered(at(10)))
+    assert tracker.handle(MiningSeen(at(11))) == []
+    assert tracker.session is not None
+
+
+# --- segments -----------------------------------------------------------------------------
+
+
+def test_a_segment_starts_on_arrival_at_the_combat_site() -> None:
+    tracker = on_site(CombatTracker())
+    stats = stats_of(tracker.handle(bond(5)))
+    assert stats.current is not None
+    assert stats.current.site is CZ
+    assert stats.current.started_at == at(0)
+    assert stats.current.duration == timedelta(minutes=5)
+    assert stats.active_duration == timedelta(minutes=5)
+
+
+def test_a_segment_has_its_own_rates() -> None:
+    tracker = on_site(CombatTracker())
+    tracker.handle(bond(10, 100_000))
+    current = stats_of(tracker.handle(bond(30, 200_000))).current
+    assert current is not None
+    assert (current.kills_per_hour, current.credits_per_hour) == (4.0, 600_000.0)
+
+
+def test_searching_for_targets_counts_however_long_it_takes() -> None:
+    tracker = on_site(CombatTracker())
+    tracker.handle(bounty(1))
+    assert stats_of(tracker.handle(bounty(31))).active_duration == timedelta(minutes=31)
+
+
+def test_leaving_the_site_closes_its_segment() -> None:
+    tracker = on_site(CombatTracker())
+    tracker.handle(bond(5))
+    stats = stats_of(tracker.handle(SiteLeft(at(12))))
+    assert stats.current is None
+    [segment] = stats.segments
+    assert (segment.site, segment.duration, segment.tally.kills) == (CZ, timedelta(minutes=12), 1)
+
+
+def test_time_between_sites_is_not_counted() -> None:
+    tracker = on_site(CombatTracker())
+    tracker.handle(bond(10))
+    tracker.handle(SiteLeft(at(12)))
+    arrive(tracker, 30)
+    assert stats_of(tracker.handle(bond(40))).active_duration == timedelta(minutes=22)
+
+
+def test_a_site_without_reward_is_not_counted() -> None:
+    tracker = on_site(CombatTracker())
+    tracker.handle(bond(10))
+    tracker.handle(SiteLeft(at(12)))
+    arrive(tracker, 20, RES)
+    assert tracker.handle(SiteLeft(at(25))) == []
+    assert tracker.session is not None
+    assert tracker.session.stats.active_duration == timedelta(minutes=12)
+
+
+def test_a_combat_site_visited_without_a_session_starts_nothing() -> None:
+    tracker = on_site(CombatTracker())
+    assert tracker.handle(SiteLeft(at(5))) == []
+    assert tracker.session is None
+
+
+def test_segments_of_a_site_type_are_averaged_by_time() -> None:
+    # The two high-intensity conflict zones of 3 October 2026 (game 4.4.1.1)
+    tracker = CombatTracker()
+    arrive(tracker, 0)
+    for minute in range(16):
+        tracker.handle(bond(1 + minute, 587_256 // 16 + (1 if minute < 587_256 % 16 else 0)))
+    tracker.handle(SiteLeft(T0 + timedelta(minutes=20, seconds=11)))
+    arrive(tracker, 21)
+    for minute in range(13):
+        tracker.handle(bond(22 + minute, 566_000 // 13 + (1 if minute < 566_000 % 13 else 0)))
+    stats = stats_of(tracker.handle(SiteLeft(T0 + timedelta(minutes=50, seconds=8))))
+    [average] = stats.by_site()
+    assert average.site is CZ
+    assert average.duration == timedelta(minutes=49, seconds=19)
+    assert (average.tally.kills, average.tally.credits) == (29, 1_153_256)
+    assert round(average.kills_per_hour, 1) == 35.3
+    assert round(average.credits_per_hour) == 1_403_083
+
+
+def test_site_types_are_averaged_apart_in_order_of_first_visit() -> None:
+    tracker = CombatTracker()
+    arrive(tracker, 0, RES)
+    tracker.handle(bounty(10))
+    tracker.handle(SiteLeft(at(10)))
+    arrive(tracker, 20, CZ)
+    tracker.handle(bond(50, 300_000))
+    stats = stats_of(tracker.handle(SiteLeft(at(50))))
+    res, cz = stats.by_site()
+    assert (res.site, cz.site) == (RES, CZ)
+    assert res.credits_per_hour == pytest.approx(600_000)
+    assert cz.credits_per_hour == pytest.approx(600_000)
+    assert stats.credits_per_hour == pytest.approx(400_000 / (40 / 60))
+
+
+def test_the_current_segment_counts_in_its_site_average() -> None:
+    tracker = on_site(CombatTracker())
+    [average] = stats_of(tracker.handle(bond(30, 100_000))).by_site()
+    assert average.credits_per_hour == pytest.approx(200_000)
 
 
 def test_kills_and_credits() -> None:
-    tracker = HuntingTracker()
+    tracker = on_site(CombatTracker())
     tracker.handle(bounty(0, (FED, 100_000), (SIRIUS, 20_000)))
     tracker.handle(bond(10, 50_000))
-    updated = tracker.handle(bond(20, 400_000, kill=False))[0]
-    assert isinstance(updated, HuntUpdated)
-    stats = updated.stats
+    stats = stats_of(tracker.handle(bond(20, 400_000, kill=False)))
     assert stats.kills == 2
     assert stats.bounty_credits == 120_000
     assert stats.bond_credits == 450_000
     assert stats.credits == 570_000
-    assert stats.active_duration == timedelta(minutes=20)
     assert stats.credits_per_hour == pytest.approx(1_710_000)
     assert stats.kills_per_hour == pytest.approx(6)
 
 
 def test_shared_kills_are_counted_apart() -> None:
-    tracker = HuntingTracker()
+    tracker = on_site(CombatTracker())
     tracker.handle(bounty(0))
-    updated = tracker.handle(bounty(1, shared=True))[0]
-    assert isinstance(updated, HuntUpdated)
-    assert (updated.stats.kills, updated.stats.shared_kills) == (2, 1)
+    stats = stats_of(tracker.handle(bounty(1, shared=True)))
+    assert (stats.kills, stats.shared_kills) == (2, 1)
 
 
-def active(notification: object) -> timedelta:
-    assert isinstance(notification, HuntUpdated | HuntEnded)
-    return notification.stats.active_duration
-
-
-def test_time_on_site_counts_from_the_arrival_before_the_first_reward() -> None:
-    tracker = HuntingTracker()
-    assert tracker.handle(SiteEntered(at(0))) == []
-    assert active(tracker.handle(bounty(5))[1]) == timedelta(minutes=5)
-
-
-def test_searching_for_targets_counts_however_long_it_takes() -> None:
-    tracker = HuntingTracker()
-    tracker.handle(SiteEntered(at(0)))
-    tracker.handle(bounty(1))
-    assert active(tracker.handle(bounty(31))[0]) == timedelta(minutes=31)
-
-
-def test_time_off_site_is_not_counted() -> None:
-    tracker = HuntingTracker()
-    tracker.handle(SiteEntered(at(0)))
-    tracker.handle(bounty(10))
-    [left] = tracker.handle(SiteLeft(at(12)))
-    assert active(left) == timedelta(minutes=12)
-    tracker.handle(SiteEntered(at(30)))
-    assert active(tracker.handle(bounty(40))[0]) == timedelta(minutes=22)
-
-
-def test_sites_without_a_session_notify_nothing() -> None:
-    tracker = HuntingTracker()
-    assert tracker.handle(SiteEntered(at(0))) == []
-    assert tracker.handle(SiteLeft(at(5))) == []
-
-
-def test_an_earlier_site_does_not_count_for_a_later_session() -> None:
-    tracker = HuntingTracker()
-    tracker.handle(SiteEntered(at(0)))
-    tracker.handle(SiteLeft(at(5)))
-    tracker.handle(SiteEntered(at(60)))
-    assert active(tracker.handle(bounty(70))[1]) == timedelta(minutes=10)
-
-
-def test_without_a_known_site_time_counts_from_the_first_reward() -> None:
-    tracker = HuntingTracker()
-    tracker.handle(bounty(0))
-    assert active(tracker.handle(bounty(10))[0]) == timedelta(minutes=10)
+def test_rates_are_zero_without_time() -> None:
+    tracker = CombatTracker()
+    stats = stats_of(tracker.handle(bounty(0)))
+    assert (stats.credits_per_hour, stats.kills_per_hour) == (0.0, 0.0)
+    [average] = stats.by_site()
+    assert (average.credits_per_hour, average.kills_per_hour) == (0.0, 0.0)
 
 
 @pytest.mark.parametrize("end", [GameClosed(at(20)), CommanderDied(at(20))])
-def test_the_end_of_a_session_closes_the_site(end: GameClosed | CommanderDied) -> None:
-    tracker = HuntingTracker()
-    tracker.handle(SiteEntered(at(0)))
+def test_the_end_of_a_session_closes_the_segment(end: GameClosed | CommanderDied) -> None:
+    tracker = on_site(CombatTracker())
     tracker.handle(bounty(5))
-    assert active(tracker.handle(end)[0]) == timedelta(minutes=20)
+    stats = stats_of(tracker.handle(end))
+    assert (stats.current, stats.active_duration) == (None, timedelta(minutes=20))
 
 
-def test_a_reset_closes_the_site() -> None:
-    tracker = HuntingTracker()
-    tracker.handle(SiteEntered(at(0)))
+def test_a_second_drop_while_on_site_does_not_move_the_segment() -> None:
+    tracker = on_site(CombatTracker())
     tracker.handle(bounty(5))
-    ended = tracker.reset(at(8))
-    assert ended is not None
-    assert ended.stats.active_duration == timedelta(minutes=8)
+    arrive(tracker, 7, RES)
+    stats = stats_of(tracker.handle(bounty(10)))
+    assert stats.current is not None
+    assert (stats.current.site, stats.active_duration) == (CZ, timedelta(minutes=10))
 
 
-def test_rates_are_zero_without_active_time() -> None:
-    tracker = HuntingTracker()
-    updated = tracker.handle(bounty(0))[1]
-    assert isinstance(updated, HuntUpdated)
-    assert (updated.stats.credits_per_hour, updated.stats.kills_per_hour) == (0.0, 0.0)
+# --- unknown site and miscellaneous -------------------------------------------------------
+
+
+def test_without_a_known_arrival_a_reward_opens_an_unknown_segment() -> None:
+    tracker = CombatTracker()  # EDMC started on the site
+    tracker.handle(bounty(5))
+    stats = stats_of(tracker.handle(bounty(15)))
+    assert stats.current is not None
+    assert stats.current.site is SiteType.UNKNOWN
+    assert stats.active_duration == timedelta(minutes=10)
+
+
+def test_game_loaded_in_space_is_an_unknown_site() -> None:
+    tracker = CombatTracker()
+    tracker.handle(GameLoaded(at(0), docked=False))
+    stats = stats_of(tracker.handle(bounty(5)))
+    assert stats.current is not None
+    assert stats.current.site is SiteType.UNKNOWN
+
+
+@pytest.mark.parametrize(
+    "facts",
+    [
+        # a ring, a planet, deep space: supercruise ends without a destination
+        [NormalSpaceEntered(at(0))],
+        # a station, a signal source: a destination that is not a combat site
+        [DestinationDropped(at(0), None), NormalSpaceEntered(at(0))],
+        # undocking, after loading the game docked
+        [GameLoaded(at(0), docked=True), NormalSpaceEntered(at(1))],
+        # EDMC started on a site where the commander mines
+        [MiningSeen(at(1))],
+        # supercruise, before any arrival
+        [SiteLeft(at(0))],
+    ],
+)
+def test_kills_off_combat_sites_are_miscellaneous(facts: list[object]) -> None:
+    tracker = CombatTracker()
+    for fact in facts:
+        tracker.handle(fact)  # type: ignore[arg-type]
+    stats = stats_of(tracker.handle(bounty(5)))
+    assert stats.segments == ()
+    assert stats.miscellaneous == Tally(kills=1, bounty_credits=100_000)
+    assert (stats.kills, stats.credits) == (1, 100_000)
+    assert (stats.active_duration, stats.credits_per_hour) == (timedelta(0), 0.0)
+
+
+def test_a_drop_counts_only_for_the_arrival_that_follows_it() -> None:
+    tracker = on_site(CombatTracker())
+    tracker.handle(SiteLeft(at(1)))
+    tracker.handle(NormalSpaceEntered(at(5)))  # a ring, no destination
+    assert stats_of(tracker.handle(bounty(6))).segments == ()
+
+
+def test_miscellaneous_kills_and_segments_add_up() -> None:
+    tracker = on_site(CombatTracker())
+    tracker.handle(bond(10, 200_000))
+    tracker.handle(SiteLeft(at(10)))
+    tracker.handle(NormalSpaceEntered(at(20)))
+    tracker.handle(MiningSeen(at(21)))
+    stats = stats_of(tracker.handle(bounty(30)))
+    assert (stats.kills, stats.credits) == (2, 300_000)
+    assert stats.credits_per_hour == pytest.approx(1_200_000)
+
+
+# --- crimes -------------------------------------------------------------------------------
+
+
+def test_crimes_are_counted_by_kind_during_a_session() -> None:
+    tracker = on_site(CombatTracker())
+    tracker.handle(bounty(1))
+    tracker.handle(CrimeCommitted(at(2), "recklessWeaponsDischarge", fine=100, bounty=0))
+    stats = stats_of(tracker.handle(CrimeCommitted(at(3), "assault", fine=0, bounty=400)))
+    crimes = stats.crimes
+    assert (crimes.count, crimes.fines, crimes.bounties) == (2, 100, 400)
+    assert crimes.by_kind == {"recklessWeaponsDischarge": 1, "assault": 1}
+    assert stats.credits == 100_000  # never deducted from what was earned
+
+
+def test_crimes_without_a_session_are_ignored() -> None:
+    tracker = CombatTracker()
+    assert tracker.handle(CrimeCommitted(at(0), "assault", fine=100, bounty=0)) == []
+    assert tracker.session is None
 
 
 # --- vouchers -----------------------------------------------------------------------------
 
 
 def test_vouchers_accumulate_per_faction() -> None:
-    tracker = HuntingTracker()
+    tracker = on_site(CombatTracker())
     tracker.handle(bounty(0, (FED, 100_000), (SIRIUS, 20_000)))
     tracker.handle(bounty(1, (FED, 50_000)))
     vouchers = tracker.handle(bond(2, 30_000))[-1]
@@ -226,7 +395,7 @@ def test_vouchers_accumulate_per_faction() -> None:
 
 
 def test_redeeming_removes_the_vouchers_paid() -> None:
-    tracker = HuntingTracker()
+    tracker = on_site(CombatTracker())
     tracker.handle(bounty(0, (FED, 100_000), (SIRIUS, 20_000)))
     tracker.handle(bond(1, 30_000))
     [updated] = tracker.handle(redeemed(5, VoucherKind.BOUNTY, (FED, 100_000)))
@@ -238,7 +407,7 @@ def test_redeeming_removes_the_vouchers_paid() -> None:
 
 
 def test_redeeming_vouchers_earned_before_edmc_started_never_goes_negative() -> None:
-    tracker = HuntingTracker()
+    tracker = on_site(CombatTracker())
     tracker.handle(bounty(0, (FED, 10_000)))
     [updated] = tracker.handle(redeemed(1, VoucherKind.BOUNTY, (FED, 90_000), (SIRIUS, 5_000)))
     assert isinstance(updated, VouchersUpdated)
@@ -246,24 +415,30 @@ def test_redeeming_vouchers_earned_before_edmc_started_never_goes_negative() -> 
 
 
 def test_redeeming_does_not_touch_the_session() -> None:
-    tracker = HuntingTracker()
+    tracker = on_site(CombatTracker())
     tracker.handle(bounty(0))
     tracker.handle(redeemed(1, VoucherKind.BOUNTY, (FED, 100_000)))
     assert tracker.session is not None
     assert tracker.session.stats.bounty_credits == 100_000
 
 
+def test_miscellaneous_kills_earn_vouchers_too() -> None:
+    tracker = CombatTracker()
+    tracker.handle(NormalSpaceEntered(at(0)))
+    assert tracker.handle(bounty(1))[-1] == VouchersUpdated(tracker.vouchers)
+    assert tracker.vouchers.total == 100_000
+
+
 def test_death_loses_the_unredeemed_vouchers() -> None:
-    tracker = HuntingTracker()
+    tracker = on_site(CombatTracker())
     tracker.handle(bounty(0))
     notifications = tracker.handle(CommanderDied(at(1)))
-    assert kinds(notifications) == [HuntEnded, VouchersUpdated]
+    assert kinds(notifications) == [CombatEnded, VouchersUpdated]
     assert tracker.vouchers.total == 0
 
 
 def test_death_without_vouchers_notifies_no_voucher_change() -> None:
-    tracker = HuntingTracker()
-    assert tracker.handle(CommanderDied(at(1))) == []
+    assert CombatTracker().handle(CommanderDied(at(1))) == []
 
 
 # --- community goals ----------------------------------------------------------------------
@@ -281,25 +456,7 @@ def test_community_goals_are_kept_and_notified() -> None:
         tier_reached="Tier 4",
         top_tier="Tier 8",
     )
-    tracker = HuntingTracker()
+    tracker = CombatTracker()
     assert tracker.handle(CommunityGoalsUpdated(at(0), (goal,))) == [CommunityGoalsChanged((goal,))]
     assert tracker.community_goals == (goal,)
     assert tracker.session is None
-
-
-def test_a_second_arrival_without_leaving_keeps_the_first() -> None:
-    tracker = HuntingTracker()
-    tracker.handle(SiteEntered(at(0)))
-    tracker.handle(bounty(5))
-    tracker.handle(SiteEntered(at(7)))
-    assert active(tracker.handle(bounty(10))[0]) == timedelta(minutes=10)
-
-
-def test_a_reward_off_site_restarts_the_site_clock() -> None:
-    # The journal did not tell the new site: time counts from that reward
-    tracker = HuntingTracker()
-    tracker.handle(SiteEntered(at(0)))
-    tracker.handle(bounty(5))
-    tracker.handle(SiteLeft(at(6)))
-    tracker.handle(bounty(10))
-    assert active(tracker.handle(bounty(12))[0]) == timedelta(minutes=8)

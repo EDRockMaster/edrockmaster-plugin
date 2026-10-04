@@ -7,4 +7,4 @@ from enum import Enum
 
 class Activity(Enum):
     MINING = "mining"
-    BOUNTY_HUNTING = "bounty_hunting"
+    COMBAT = "combat"

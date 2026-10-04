@@ -1,22 +1,26 @@
-"""Bounty hunting presenter: hunting notifications in, panel texts out."""
+"""Combat presenter: combat notifications in, panel texts out (ADR 0013)."""
 
 from __future__ import annotations
 
 from collections.abc import Iterable
 from typing import assert_never
 
-from edrockmaster.domain.bounty.hunting import (
+from edrockmaster.domain.combat.journal import CommunityGoal
+from edrockmaster.domain.combat.session import (
+    CombatEnded,
+    CombatEndReason,
+    CombatNotification,
+    CombatStarted,
+    CombatStats,
+    CombatUpdated,
     CommunityGoalsChanged,
-    HuntEnded,
-    HuntEndReason,
-    HuntingNotification,
-    HuntStarted,
-    HuntStats,
-    HuntUpdated,
+    SegmentStats,
+    SiteAverage,
+    Tally,
     Vouchers,
     VouchersUpdated,
 )
-from edrockmaster.domain.bounty.journal import CommunityGoal
+from edrockmaster.domain.combat.sites import SiteType
 from edrockmaster.ui.panel_model import (
     NumberFormat,
     PanelModel,
@@ -33,25 +37,36 @@ GOAL_TITLE_LENGTH = 32
 
 # English source strings, translated at render time
 _END_REASONS = {
-    HuntEndReason.GAME_CLOSED: "game closed",
-    HuntEndReason.DIED: "ship destroyed",
-    HuntEndReason.MANUAL: "reset",
+    CombatEndReason.GAME_CLOSED: "game closed",
+    CombatEndReason.DIED: "ship destroyed",
+    CombatEndReason.MANUAL: "reset",
+}
+SITE_NAMES = {
+    SiteType.CONFLICT_ZONE_LOW: "Conflict zone, low",
+    SiteType.CONFLICT_ZONE_MEDIUM: "Conflict zone, medium",
+    SiteType.CONFLICT_ZONE_HIGH: "Conflict zone, high",
+    SiteType.RES_LOW: "RES, low",
+    SiteType.RES: "RES",
+    SiteType.RES_HIGH: "RES, high",
+    SiteType.RES_HAZARDOUS: "RES, hazardous",
+    SiteType.NAV_BEACON: "Nav beacon",
+    SiteType.UNKNOWN: "Unknown site",
 }
 
 
-class HuntingPresenter:
+class CombatPresenter:
     def __init__(
         self, translate: Translate = identity, format_number: NumberFormat = default_number_format
     ) -> None:
         self._tl = translate
         self._number = format_number
         self._running = False
-        self._ended: HuntEndReason | None = None
-        self._stats: HuntStats | None = None
+        self._ended: CombatEndReason | None = None
+        self._stats: CombatStats | None = None
         self._vouchers: Vouchers | None = None
         self._goals: tuple[CommunityGoal, ...] = ()
 
-    def apply(self, notifications: Iterable[HuntingNotification]) -> PanelModel:
+    def apply(self, notifications: Iterable[CombatNotification]) -> PanelModel:
         for notification in notifications:
             self._apply(notification)
         return self.render()
@@ -65,13 +80,13 @@ class HuntingPresenter:
             status=self._status(), lines=tuple(lines), alert=None, can_reset=self._running
         )
 
-    def _apply(self, notification: HuntingNotification) -> None:
+    def _apply(self, notification: CombatNotification) -> None:
         match notification:
-            case HuntStarted():
+            case CombatStarted():
                 self._running, self._ended, self._stats = True, None, None
-            case HuntUpdated(stats=stats):
+            case CombatUpdated(stats=stats):
                 self._stats = stats
-            case HuntEnded(reason=reason, stats=stats):
+            case CombatEnded(reason=reason, stats=stats):
                 self._running, self._ended, self._stats = False, reason, stats
             case VouchersUpdated(vouchers=vouchers):
                 self._vouchers = vouchers
@@ -82,24 +97,17 @@ class HuntingPresenter:
 
     def _status(self) -> str:
         tl = self._tl
-        conflict_zone = self._is_conflict_zone()
         if self._running:
-            return tl("Conflict zone") if conflict_zone else tl("Bounty hunting")
+            current = self._stats.current if self._stats else None
+            return tl(SITE_NAMES[current.site]) if current else tl("Combat")
         if self._ended is not None:
-            ended = (
-                tl("Conflict zone ended: {reason}") if conflict_zone else tl("Hunt ended: {reason}")
-            )
-            return ended.format(reason=tl(_END_REASONS[self._ended]))
-        return tl("No hunting session")
+            return tl("Combat session ended: {reason}").format(reason=tl(_END_REASONS[self._ended]))
+        return tl("No combat session")
 
-    def _is_conflict_zone(self) -> bool:
-        """Only combat bonds and no bounty: the commander fights in a conflict zone."""
-        stats = self._stats
-        return stats is not None and bool(stats.bond_credits) and not stats.bounty_credits
-
-    def _session_lines(self, stats: HuntStats) -> Iterable[StatLine]:
+    def _session_lines(self, stats: CombatStats) -> Iterable[StatLine]:
         tl, number = self._tl, self._number
-        yield StatLine(tl("Active time"), format_duration(stats.active_duration, tl))
+        if stats.segments:
+            yield StatLine(tl("Active time"), format_duration(stats.active_duration, tl))
         kills = number(stats.kills, 0)
         if stats.shared_kills:
             kills = tl("{kills} ({shared} shared)").format(
@@ -111,8 +119,32 @@ class HuntingPresenter:
             yield StatLine(tl("Bounties"), self._credits(stats.bounty_credits))
         if stats.bond_credits:
             yield StatLine(tl("Combat bonds"), self._credits(stats.bond_credits))
-        yield StatLine(
-            tl("Rate"), tl("{credits}/h").format(credits=self._credits(stats.credits_per_hour))
+        if stats.current is not None:
+            yield StatLine(tl("This site"), self._segment_text(stats.current))
+        yield from (self._average_line(average) for average in stats.by_site())
+        if stats.miscellaneous != Tally():
+            yield StatLine(tl("Miscellaneous"), self._tally_text(stats.miscellaneous))
+        if stats.crimes.fines:
+            yield StatLine(tl("Fines"), self._credits(stats.crimes.fines))
+        if stats.crimes.bounties:
+            yield StatLine(tl("Bounty on you"), self._credits(stats.crimes.bounties))
+
+    def _segment_text(self, segment: SegmentStats) -> str:
+        return self._tl("{duration}, kills: {kills}").format(
+            duration=format_duration(segment.duration, self._tl),
+            kills=self._number(segment.tally.kills, 0),
+        )
+
+    def _average_line(self, average: SiteAverage) -> StatLine:
+        rates = self._tl("{kills} kills/h, {credits}/h").format(
+            kills=self._number(average.kills_per_hour, 1),
+            credits=self._credits(average.credits_per_hour),
+        )
+        return StatLine(self._tl(SITE_NAMES[average.site]), rates)
+
+    def _tally_text(self, tally: Tally) -> str:
+        return self._tl("kills: {kills}, {credits}").format(
+            kills=self._number(tally.kills, 0), credits=self._credits(tally.credits)
         )
 
     def _goal_text(self, goal: CommunityGoal) -> str:

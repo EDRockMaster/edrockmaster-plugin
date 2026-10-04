@@ -2,21 +2,26 @@ from datetime import UTC, datetime
 
 import pytest
 
-from edrockmaster.domain.bounty.journal import (
+from edrockmaster.domain.combat.journal import (
     BountyAwarded,
     CombatBondAwarded,
     CommanderDied,
     CommunityGoal,
     CommunityGoalsUpdated,
+    CrimeCommitted,
+    DestinationDropped,
     FactionReward,
     GameClosed,
-    SiteEntered,
+    GameLoaded,
+    MiningSeen,
+    NormalSpaceEntered,
     SiteLeft,
     VoucherKind,
     VouchersRedeemed,
     faction_name,
     parse_entry,
 )
+from edrockmaster.domain.combat.sites import SiteType
 
 TS = "2026-10-03T21:00:00Z"
 AT = datetime(2026, 10, 3, 21, 0, tzinfo=UTC)
@@ -245,44 +250,104 @@ def test_superpower_symbols_are_normalised(raw: str, name: str) -> None:
             "event": "CommunityGoal",
             "CurrentGoals": [{"CGID": 1, "Title": "x", "Expiry": "soon"}],
         },
-        {"timestamp": TS, "event": "MiningRefined", "Type": "painite"},
+        {"timestamp": TS, "event": "Music", "MusicTrack": "Combat_Dogfight"},
+        {"timestamp": TS, "event": "SupercruiseDestinationDrop"},
+        {"timestamp": TS, "event": "CommitCrime", "CrimeType": "assault", "Fine": "100"},
+        {"timestamp": TS, "event": "StartJump", "JumpType": "Supercruise"},
     ],
 )
 def test_irrelevant_or_malformed_entries_are_ignored(entry: dict[str, object]) -> None:
     assert parse_entry(entry) is None
 
 
-# --- combat sites -------------------------------------------------------------------------
+# --- places -------------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("body_type", ["Planet", "PlanetaryRing", "Star", "Null"])
-def test_dropping_out_of_supercruise_away_from_a_station_enters_a_site(body_type: str) -> None:
-    entry = {"timestamp": TS, "event": "SupercruiseExit", "Body": "X", "BodyType": body_type}
-    assert parse_entry(entry) == SiteEntered(AT)
+@pytest.mark.parametrize(
+    ("signal", "site"),
+    [
+        ("$Warzone_PointRace_High:#index=1;", SiteType.CONFLICT_ZONE_HIGH),
+        ("$MULTIPLAYER_SCENARIO79_TITLE;", SiteType.RES_HAZARDOUS),
+        ("Tan Depot", None),
+    ],
+)
+def test_supercruise_destination_drop_tells_the_site(signal: str, site: SiteType | None) -> None:
+    entry = {"timestamp": TS, "event": "SupercruiseDestinationDrop", "Type": signal, "Threat": 4}
+    assert parse_entry(entry) == DestinationDropped(AT, site)
 
 
-def test_dropping_at_a_station_is_not_a_site() -> None:
-    entry = {"timestamp": TS, "event": "SupercruiseExit", "Body": "X", "BodyType": "Station"}
-    assert parse_entry(entry) is None
+@pytest.mark.parametrize(
+    ("event", "body_type"),
+    [("SupercruiseExit", "PlanetaryRing"), ("SupercruiseExit", "Station"), ("Undocked", None)],
+)
+def test_arriving_in_normal_space(event: str, body_type: str | None) -> None:
+    entry = {"timestamp": TS, "event": event, "BodyType": body_type}
+    assert parse_entry(entry) == NormalSpaceEntered(AT)
 
 
-def test_game_loaded_in_normal_space_away_from_a_station_is_a_site() -> None:
-    entry = {"timestamp": TS, "event": "Location", "Docked": False, "BodyType": "Planet"}
-    assert parse_entry(entry) == SiteEntered(AT)
+@pytest.mark.parametrize(
+    ("event", "docked"),
+    [("Location", False), ("StartUp", False), ("Location", True), ("StartUp", True)],
+)
+def test_game_loaded_tells_whether_docked(event: str, docked: bool) -> None:
+    entry = {"timestamp": TS, "event": event, "Docked": docked, "BodyType": "Planet"}
+    assert parse_entry(entry) == GameLoaded(AT, docked=docked)
 
 
 @pytest.mark.parametrize(
     "entry",
     [
-        {"timestamp": TS, "event": "Location", "Docked": True, "BodyType": "Station"},
-        {"timestamp": TS, "event": "Location", "Docked": False, "BodyType": "Station"},
-        {"timestamp": TS, "event": "Location", "Docked": False},
+        {"timestamp": TS, "event": "SupercruiseEntry"},
+        {"timestamp": TS, "event": "Docked"},
+        {"timestamp": TS, "event": "FSDJump"},
+        {"timestamp": TS, "event": "StartJump", "JumpType": "Hyperspace"},
     ],
 )
-def test_other_locations_are_not_sites(entry: dict[str, object]) -> None:
-    assert parse_entry(entry) is None
+def test_leaving_normal_space_leaves_the_site(entry: dict[str, object]) -> None:
+    assert parse_entry(entry) == SiteLeft(AT)
 
 
-@pytest.mark.parametrize("event", ["SupercruiseEntry", "Docked", "FSDJump"])
-def test_leaving_normal_space_leaves_the_site(event: str) -> None:
-    assert parse_entry({"timestamp": TS, "event": event}) == SiteLeft(AT)
+@pytest.mark.parametrize(
+    "entry",
+    [
+        {"timestamp": TS, "event": "ProspectedAsteroid", "Materials": []},
+        {"timestamp": TS, "event": "MiningRefined", "Type": "$painite_name;"},
+        {"timestamp": TS, "event": "AsteroidCracked", "Body": "X"},
+        {"timestamp": TS, "event": "LaunchDrone", "Type": "Prospector"},
+        {"timestamp": TS, "event": "LaunchDrone", "Type": "Collection"},
+    ],
+)
+def test_mining_is_seen(entry: dict[str, object]) -> None:
+    assert parse_entry(entry) == MiningSeen(AT)
+
+
+def test_other_limpets_are_not_mining() -> None:
+    assert parse_entry({"timestamp": TS, "event": "LaunchDrone", "Type": "Repair"}) is None
+
+
+# --- crimes -------------------------------------------------------------------------------
+
+
+def test_fine_is_parsed() -> None:
+    entry = {
+        "timestamp": TS,
+        "event": "CommitCrime",
+        "CrimeType": "recklessWeaponsDischarge",
+        "Faction": "Iyakajauja Law Party",
+        "Fine": 100,
+    }
+    assert parse_entry(entry) == CrimeCommitted(
+        AT, kind="recklessWeaponsDischarge", fine=100, bounty=0
+    )
+
+
+def test_bounty_on_the_commander_is_parsed() -> None:
+    entry = {
+        "timestamp": TS,
+        "event": "CommitCrime",
+        "CrimeType": "murder",
+        "Faction": "Federation",
+        "Victim": "Somebody",
+        "Bounty": 2_000,
+    }
+    assert parse_entry(entry) == CrimeCommitted(AT, kind="murder", fine=0, bounty=2_000)

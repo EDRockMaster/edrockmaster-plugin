@@ -7,14 +7,14 @@ owns what they share: the settings and the journal recorder.
 from __future__ import annotations
 
 from edrockmaster.application.activity import Activity
-from edrockmaster.application.hunting_service import HuntingService
+from edrockmaster.application.combat_service import CombatService
 from edrockmaster.application.mining_service import MiningNotification, MiningService
 from edrockmaster.application.ports import Clock, JournalRecorder, Notifier, SettingsStore
 from edrockmaster.application.settings import PluginSettings
-from edrockmaster.domain.bounty.hunting import HuntingNotification
+from edrockmaster.domain.combat.session import CombatNotification
 from edrockmaster.domain.journal_reading import Entry
 
-type Notification = MiningNotification | HuntingNotification
+type Notification = MiningNotification | CombatNotification
 """What the presentation layer is told after each use case."""
 
 
@@ -32,7 +32,7 @@ class Companion:
         self._recorder = recorder
         self._settings = settings_store.load()
         self.mining = MiningService(self._settings, notifier, clock)
-        self.hunting = HuntingService(clock)
+        self.combat = CombatService(clock)
 
     @property
     def settings(self) -> PluginSettings:
@@ -43,14 +43,14 @@ class Companion:
             self._recorder.record(entry, is_beta)
         notifications: list[Notification] = []
         notifications += self.mining.handle_journal_entry(entry, is_beta)
-        notifications += self.hunting.handle_journal_entry(entry)
+        notifications += self.combat.handle_journal_entry(entry)
         return notifications
 
     def reset(self, activity: Activity) -> list[Notification]:
         """End the running session of one activity (the panel's reset button)."""
         if activity is Activity.MINING:
             return list(self.mining.reset_session())
-        return list(self.hunting.reset_session())
+        return list(self.combat.reset_session())
 
     def change_settings(self, settings: PluginSettings) -> None:
         if settings == self._settings:

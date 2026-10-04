@@ -1,1 +1,1 @@
-"""Bounty hunting: kills, bounties and combat bonds, vouchers, community goals."""
+"""Combat: kills, bounties and combat bonds by site segments, vouchers, crimes, community goals."""

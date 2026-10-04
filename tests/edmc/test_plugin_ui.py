@@ -116,10 +116,11 @@ BOUNTY: Entry = {
 }
 
 
-def test_a_kill_switches_the_panel_to_bounty_hunting(harness: Harness) -> None:
+def test_a_kill_switches_the_panel_to_combat(harness: Harness) -> None:
     harness.plugin.journal_entry("Cmdr", False, None, None, PROSPECTED, {})
     harness.plugin.journal_entry("Cmdr", False, None, None, BOUNTY, {})
-    assert harness.status() == "Bounty hunting"
+    # A pirate shot down while mining: a miscellaneous kill, on no combat site
+    assert harness.status() == "Combat"
 
 
 def test_reset_acts_on_the_activity_shown(harness: Harness) -> None:
@@ -128,7 +129,7 @@ def test_reset_acts_on_the_activity_shown(harness: Harness) -> None:
     panel = harness.plugin._panel
     assert panel is not None
     panel._reset.invoke()
-    assert harness.status() == "Hunt ended: reset"
+    assert harness.status() == "Combat session ended: reset"
     companion = harness.plugin.companion
     assert companion is not None
     assert companion.mining.current_stats is not None
