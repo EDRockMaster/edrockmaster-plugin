@@ -4,13 +4,7 @@
 
 Les changements notables du plugin EDRockMaster. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), et les versions suivent le [versionnage sémantique](https://semver.org/lang/fr/).
 
-## [Non publié]
-
-### Ajouté
-
-- **Réglages d'affichage** (préférences, *Affichage* ; décision de conception ADR 0013) : les activités que montre le panneau, et le mode, soit la **dernière activité active** (comme avant, par défaut), soit **toutes, empilées**, chacune avec son bouton *Réinitialiser*. Une activité masquée reste suivie, et elle est à jour quand on l'affiche de nouveau.
-
-## [0.3.0] - 2026-10-05
+## [0.3.0] - 2026-10-06
 
 ### Modifié
 
@@ -20,6 +14,7 @@ Les changements notables du plugin EDRockMaster. Le format suit [Keep a Changelo
 
 ### Ajouté
 
+- **Réglages d'affichage** (préférences, *Affichage* ; décision de conception ADR 0013) : les activités que montre le panneau, et le mode, soit la **dernière activité active** (comme avant, par défaut), soit **toutes, empilées**, chacune avec son bouton *Réinitialiser*. Une activité masquée reste suivie, et elle est à jour quand on l'affiche de nouveau.
 - Victimes **diverses** : une victime hors de tout site de combat (un pirate pendant le minage, près d'une station) compte dans les victimes, les crédits et les bons, mais dans aucun ratio. Le temps de minage n'est jamais du temps de combat, et le minage ne termine jamais une session de combat.
 - **Amendes** et **primes sur vous** pendant une session de combat, jamais retirées de ce qui a été gagné.
 - Types de sites de combat confirmés en jeu (4.4.1.1) : zones de conflit (faible, moyenne, forte), sites d'extraction de ressources (pauvre, normal, riche, dangereux), balise de navigation.
