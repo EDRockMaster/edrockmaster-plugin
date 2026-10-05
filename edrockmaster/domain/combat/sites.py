@@ -3,7 +3,8 @@
 ``SupercruiseDestinationDrop`` gives the type of the destination; the scan of
 a system (``FSSSignalDiscovered``) uses the same identifiers. Only identifiers
 confirmed on a real recording are listed: any other destination is not a
-combat site, and its kills go to miscellaneous.
+combat site, and its kills go to miscellaneous, unless a combat bond tells it
+is a conflict zone (ADR 0015).
 """
 
 from __future__ import annotations
@@ -20,6 +21,10 @@ class SiteType(Enum):
     RES_HIGH = "res_high"
     RES_HAZARDOUS = "res_hazardous"
     NAV_BEACON = "nav_beacon"
+    CONFLICT_ZONE_UNKNOWN = "conflict_zone_unknown"
+    """A combat bond after a drop the journal did not name (ADR 0015)."""
+    GROUND_CONFLICT_ZONE = "ground_conflict_zone"
+    """On foot, reached by the dropship or told by a combat bond; no intensity (ADR 0015)."""
     UNKNOWN = "unknown"
     """A reward on a site the plugin did not see the commander arrive at (EDMC started there)."""
 

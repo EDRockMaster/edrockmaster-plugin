@@ -11,11 +11,14 @@ from edrockmaster.domain.combat.journal import (
     CommunityGoalsUpdated,
     CrimeCommitted,
     DestinationDropped,
+    Embarked,
     FactionReward,
     GameClosed,
     GameLoaded,
     MiningSeen,
     NormalSpaceEntered,
+    OnFootArrived,
+    SettlementApproached,
     SiteLeft,
     VoucherKind,
     VouchersRedeemed,
@@ -38,6 +41,8 @@ FED = "Federation"
 SIRIUS = "Sirius Corporation"
 CZ = SiteType.CONFLICT_ZONE_HIGH
 RES = SiteType.RES_HAZARDOUS
+GROUND = SiteType.GROUND_CONFLICT_ZONE
+UNNAMED_CZ = SiteType.CONFLICT_ZONE_UNKNOWN
 
 
 def at(minutes: float) -> datetime:
@@ -358,6 +363,153 @@ def test_miscellaneous_kills_and_segments_add_up() -> None:
     stats = stats_of(tracker.handle(bounty(30)))
     assert (stats.kills, stats.credits) == (2, 300_000)
     assert stats.credits_per_hour == pytest.approx(1_200_000)
+
+
+# --- conflict zones the journal does not name, ground conflict zones (ADR 0015) ------------
+
+
+def test_a_bond_after_an_unnamed_drop_opens_a_conflict_zone_from_the_arrival() -> None:
+    tracker = CombatTracker()
+    tracker.handle(NormalSpaceEntered(at(0)))  # no SupercruiseDestinationDrop
+    stats = stats_of(tracker.handle(bond(2)))
+    assert stats.current is not None
+    assert (stats.current.site, stats.current.started_at) == (UNNAMED_CZ, at(0))
+    assert stats.miscellaneous == Tally()
+
+
+def test_a_conflict_zone_of_unknown_intensity_is_averaged_apart() -> None:
+    tracker = on_site(CombatTracker())
+    tracker.handle(bond(10))
+    tracker.handle(SiteLeft(at(10)))
+    tracker.handle(NormalSpaceEntered(at(20)))
+    tracker.handle(bond(30))
+    stats = stats_of(tracker.handle(SiteLeft(at(30))))
+    assert [average.site for average in stats.by_site()] == [CZ, UNNAMED_CZ]
+
+
+def test_a_bond_without_a_known_arrival_opens_a_conflict_zone_from_the_bond() -> None:
+    tracker = CombatTracker()  # EDMC started on the site
+    tracker.handle(bond(5))
+    stats = stats_of(tracker.handle(bond(15)))
+    assert stats.current is not None
+    assert (stats.current.site, stats.current.started_at) == (UNNAMED_CZ, at(5))
+
+
+def test_a_bond_while_mining_still_opens_a_conflict_zone() -> None:
+    tracker = CombatTracker()
+    tracker.handle(NormalSpaceEntered(at(0)))
+    tracker.handle(MiningSeen(at(1)))
+    assert stats_of(tracker.handle(bond(2))).miscellaneous == Tally()
+
+
+@pytest.mark.parametrize(
+    "facts",
+    [
+        # after an unnamed drop: a pirate can be shot down anywhere
+        [NormalSpaceEntered(at(0))],
+        # on foot, outside any conflict zone
+        [OnFootArrived(at(0), dropship=False)],
+    ],
+)
+def test_a_bounty_never_tells_the_place(facts: list[object]) -> None:
+    tracker = CombatTracker()
+    for fact in facts:
+        tracker.handle(fact)  # type: ignore[arg-type]
+    stats = stats_of(tracker.handle(bounty(5)))
+    assert (stats.segments, stats.miscellaneous.kills) == ((), 1)
+
+
+def test_a_capital_ship_bond_does_not_tell_the_place() -> None:
+    tracker = CombatTracker()
+    tracker.handle(NormalSpaceEntered(at(0)))
+    assert stats_of(tracker.handle(bond(5, kill=False))).segments == ()
+
+
+def test_the_dropship_opens_a_ground_conflict_zone_from_the_deploy() -> None:
+    tracker = CombatTracker()
+    tracker.handle(SettlementApproached(at(0), "Parra Prospecting Complex"))
+    tracker.handle(NormalSpaceEntered(at(0)))
+    tracker.handle(OnFootArrived(at(1), dropship=True))
+    stats = stats_of(tracker.handle(bond(5)))
+    assert stats.current is not None
+    assert (stats.current.site, stats.current.started_at) == (GROUND, at(1))
+    assert stats.current.settlement == "Parra Prospecting Complex"
+
+
+def test_a_redeploy_continues_the_ground_segment() -> None:
+    tracker = CombatTracker()
+    tracker.handle(OnFootArrived(at(0), dropship=True))
+    tracker.handle(bond(5))
+    tracker.handle(OnFootArrived(at(9), dropship=True))  # back after a defeat on foot
+    stats = stats_of(tracker.handle(bond(10)))
+    assert len(stats.segments) == 1
+    assert stats.active_duration == timedelta(minutes=10)
+
+
+@pytest.mark.parametrize(
+    "departure",
+    [SiteLeft(at(15)), Embarked(at(15), on_station=False), CommanderDied(at(15))],
+)
+def test_leaving_a_ground_conflict_zone_closes_its_segment(departure: object) -> None:
+    tracker = CombatTracker()
+    tracker.handle(OnFootArrived(at(0), dropship=True))
+    tracker.handle(bond(5))
+    stats = stats_of(tracker.handle(departure))  # type: ignore[arg-type]
+    assert stats.current is None
+    assert stats.active_duration == timedelta(minutes=15)
+
+
+def test_a_bond_on_foot_opens_a_ground_conflict_zone_from_the_disembark() -> None:
+    tracker = CombatTracker()
+    tracker.handle(SettlementApproached(at(0), "Pak's Habitat"))
+    tracker.handle(NormalSpaceEntered(at(0)))
+    tracker.handle(OnFootArrived(at(3), dropship=False))  # own ship, then on foot
+    stats = stats_of(tracker.handle(bond(8)))
+    assert stats.current is not None
+    assert (stats.current.site, stats.current.started_at) == (GROUND, at(3))
+    assert stats.current.settlement == "Pak's Habitat"
+
+
+def test_a_bond_on_foot_without_a_known_arrival_opens_a_ground_conflict_zone() -> None:
+    tracker = CombatTracker()
+    tracker.handle(GameLoaded(at(0), docked=False, on_foot=True))
+    stats = stats_of(tracker.handle(bond(5)))
+    assert stats.current is not None
+    assert (stats.current.site, stats.current.started_at) == (GROUND, at(5))
+
+
+def test_back_in_the_ship_on_a_planet_a_bond_opens_a_space_conflict_zone() -> None:
+    tracker = CombatTracker()
+    tracker.handle(OnFootArrived(at(0), dropship=False))
+    tracker.handle(Embarked(at(4), on_station=False))
+    stats = stats_of(tracker.handle(bond(6)))
+    assert stats.current is not None
+    assert (stats.current.site, stats.current.started_at) == (UNNAMED_CZ, at(4))
+
+
+def test_embarking_at_a_station_leaves_no_place_to_fight() -> None:
+    tracker = CombatTracker()
+    tracker.handle(Embarked(at(0), on_station=True))
+    assert stats_of(tracker.handle(bond(5))).segments == ()
+
+
+def test_only_ground_segments_carry_the_settlement() -> None:
+    tracker = CombatTracker()
+    tracker.handle(SettlementApproached(at(0), "Parra Prospecting Complex"))
+    tracker.handle(NormalSpaceEntered(at(0)))
+    stats = stats_of(tracker.handle(bond(2)))  # by ship, near the settlement
+    assert stats.current is not None
+    assert stats.current.settlement is None
+
+
+def test_the_settlement_is_forgotten_on_departure() -> None:
+    tracker = CombatTracker()
+    tracker.handle(SettlementApproached(at(0), "Parra Prospecting Complex"))
+    tracker.handle(SiteLeft(at(1)))
+    tracker.handle(OnFootArrived(at(5), dropship=True))
+    stats = stats_of(tracker.handle(bond(6)))
+    assert stats.current is not None
+    assert stats.current.settlement is None
 
 
 # --- crimes -------------------------------------------------------------------------------

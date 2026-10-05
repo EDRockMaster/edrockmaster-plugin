@@ -18,7 +18,7 @@ from edrockmaster.domain.combat.session import (
     VouchersUpdated,
 )
 from edrockmaster.domain.combat.sites import SiteType
-from edrockmaster.ui.combat_presenter import CombatPresenter
+from edrockmaster.ui.combat_presenter import SITE_NAMES, CombatPresenter
 from edrockmaster.ui.panel_model import PanelModel
 
 T0 = datetime(2026, 10, 3, 21, 0, tzinfo=UTC)
@@ -105,6 +105,21 @@ def test_on_a_combat_site(presenter: CombatPresenter) -> None:
     assert value(model, "Bounties") == "900,000 CR"
     assert value(model, "This site") == "30 min, kills: 6"
     assert value(model, "RES, hazardous") == "12.0 kills/h, 1,800,000 CR/h"
+
+
+def test_a_ground_conflict_zone_shows_its_settlement(presenter: CombatPresenter) -> None:
+    ground = SegmentStats(
+        SiteType.GROUND_CONFLICT_ZONE, T0, timedelta(minutes=15), Tally(kills=9), "Pak's Habitat"
+    )
+    model = presenter.apply([CombatStarted(T0), CombatUpdated(stats(ground))])
+    assert model.status == "Ground conflict zone: Pak's Habitat"
+    assert value(model, "Ground conflict zone") == "36.0 kills/h, 0 CR/h"
+
+
+@pytest.mark.parametrize("site", list(SiteType))
+def test_every_site_type_has_a_name(presenter: CombatPresenter, site: SiteType) -> None:
+    model = presenter.apply([CombatStarted(T0), CombatUpdated(stats(segment(site=site)))])
+    assert model.status == SITE_NAMES[site]
 
 
 def test_between_sites(presenter: CombatPresenter) -> None:

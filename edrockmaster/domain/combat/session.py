@@ -16,6 +16,12 @@ no time belongs to it. When EDMC starts on a site, the arrival was not seen:
 the first reward opens a segment of type ``UNKNOWN`` from that reward, unless
 the commander mines there.
 
+A combat bond only exists in a conflict zone (ADR 0015): outside any segment,
+it opens one from the commander's last arrival, or from the bond when no
+arrival was seen. By ship, it is a conflict zone of unknown intensity; on foot,
+a ground conflict zone. The dropship to a ground conflict zone is an arrival on
+that site, and its retreat a departure.
+
 Vouchers are only known from the moment EDMC started: the journal does not
 restate the vouchers earned before.
 """
@@ -38,12 +44,15 @@ from edrockmaster.domain.combat.journal import (
     CommunityGoalsUpdated,
     CrimeCommitted,
     DestinationDropped,
+    Embarked,
     Fact,
     FactionReward,
     GameClosed,
     GameLoaded,
     MiningSeen,
     NormalSpaceEntered,
+    OnFootArrived,
+    SettlementApproached,
     SiteLeft,
     VoucherKind,
     VouchersRedeemed,
@@ -101,6 +110,8 @@ class SegmentStats:
     started_at: datetime
     duration: timedelta
     tally: Tally
+    settlement: str | None = None
+    """The settlement of a ground conflict zone, when supercruise named it."""
 
     @property
     def kills_per_hour(self) -> float:
@@ -245,11 +256,16 @@ type CombatNotification = (
 class _OpenSegment:
     site: SiteType
     since: datetime
+    settlement: str | None = None
     tally: Tally = Tally()
 
     def stats(self, until: datetime) -> SegmentStats:
         return SegmentStats(
-            self.site, self.since, max(until - self.since, timedelta(0)), self.tally
+            self.site,
+            self.since,
+            max(until - self.since, timedelta(0)),
+            self.tally,
+            self.settlement,
         )
 
 
@@ -289,8 +305,8 @@ class CombatSession:
     def see(self, at: datetime) -> None:
         self._last_seen = max(self._last_seen, at)
 
-    def open_segment(self, site: SiteType, since: datetime) -> None:
-        self._open = _OpenSegment(site, since)
+    def open_segment(self, site: SiteType, since: datetime, settlement: str | None = None) -> None:
+        self._open = _OpenSegment(site, since, settlement)
 
     def close_segment(self, at: datetime) -> bool:
         """Close the current segment, if any; ``True`` when one was closed."""
@@ -325,6 +341,10 @@ class _Place(Enum):
     """In normal space, arrival not seen: EDMC or the game just started."""
 
 
+type _Segment = tuple[SiteType, datetime, str | None]
+"""What a reward opens: site type, start and settlement."""
+
+
 class CombatTracker:
     """Aggregate root: follows the commander's combat, vouchers, crimes and community goals."""
 
@@ -334,6 +354,8 @@ class CombatTracker:
         self._site: SiteType | None = None
         self._since: datetime | None = None
         self._dropped: SiteType | None = None
+        self._on_foot = False
+        self._settlement: str | None = None
         self._mining_here = False
         self._bounties: Counter[str] = Counter()
         self._bonds: Counter[str] = Counter()
@@ -358,7 +380,15 @@ class CombatTracker:
         match fact:
             case BountyAwarded() | CombatBondAwarded():
                 return self._on_reward(fact)
-            case DestinationDropped() | NormalSpaceEntered() | GameLoaded() | SiteLeft():
+            case (
+                DestinationDropped()
+                | NormalSpaceEntered()
+                | GameLoaded()
+                | SiteLeft()
+                | OnFootArrived()
+                | Embarked()
+                | SettlementApproached()
+            ):
                 return self._on_move(fact)
             case MiningSeen() | CrimeCommitted():
                 return self._on_conduct(fact)
@@ -374,12 +404,22 @@ class CombatTracker:
             self._since = at  # a later segment on this site starts now
         return self._end(at, CombatEndReason.MANUAL)
 
-    def _arrive(self, place: _Place, at: datetime | None, site: SiteType | None) -> None:
+    def _arrive(
+        self, place: _Place, at: datetime | None, site: SiteType | None, on_foot: bool = False
+    ) -> None:
         self._place, self._since, self._site = place, at, site
+        self._on_foot = on_foot
         self._mining_here = False
 
     def _on_move(
-        self, fact: DestinationDropped | NormalSpaceEntered | GameLoaded | SiteLeft
+        self,
+        fact: DestinationDropped
+        | NormalSpaceEntered
+        | GameLoaded
+        | SiteLeft
+        | OnFootArrived
+        | Embarked
+        | SettlementApproached,
     ) -> list[CombatNotification]:
         match fact:
             case DestinationDropped(site=site):
@@ -387,9 +427,22 @@ class CombatTracker:
             case NormalSpaceEntered(at=at):
                 site, self._dropped = self._dropped, None
                 self._arrive(_Place.COMBAT_SITE if site else _Place.OTHER, at, site)
-            case GameLoaded(docked=docked):
-                self._arrive(_Place.NOWHERE if docked else _Place.UNKNOWN, None, None)
+            case GameLoaded(docked=docked, on_foot=on_foot):
+                self._settlement = None
+                place = _Place.NOWHERE if docked else _Place.UNKNOWN
+                self._arrive(place, None, None, on_foot=on_foot)
+            case OnFootArrived(at=at, dropship=True):
+                if self._site is not SiteType.GROUND_CONFLICT_ZONE:  # else, a redeploy
+                    self._arrive(_Place.COMBAT_SITE, at, SiteType.GROUND_CONFLICT_ZONE, True)
+            case OnFootArrived(at=at):
+                self._arrive(_Place.OTHER, at, None, on_foot=True)
+            case Embarked(at=at, on_station=on_station):
+                self._arrive(_Place.NOWHERE if on_station else _Place.OTHER, at, None)
+                return self._close_segment(at)
+            case SettlementApproached(name=name):
+                self._settlement = name
             case SiteLeft(at=at):
+                self._settlement = None
                 self._arrive(_Place.NOWHERE, None, None)
                 return self._close_segment(at)
             case _:  # pragma: no cover - exhaustiveness checked by mypy
@@ -426,13 +479,26 @@ class CombatTracker:
             return []
         return [CombatUpdated(self._session.stats)]
 
-    def _segment_for(self, reward: Reward) -> tuple[SiteType, datetime] | None:
+    def _segment_for(self, reward: Reward) -> _Segment | None:
         """The segment a reward opens, if it falls on a combat site."""
         if self._place is _Place.COMBAT_SITE and self._site and self._since:
-            return self._site, self._since
+            return self._site, self._since, self._ground_settlement(self._site)
+        if isinstance(reward, CombatBondAwarded) and reward.kill:
+            return self._conflict_zone_for(reward)
         if self._place is _Place.UNKNOWN and not self._mining_here:
-            return SiteType.UNKNOWN, reward.at
+            return SiteType.UNKNOWN, reward.at, None
         return None
+
+    def _conflict_zone_for(self, bond: CombatBondAwarded) -> _Segment | None:
+        """A kill bond only exists in a conflict zone, even where no drop named one."""
+        if self._place is _Place.NOWHERE:
+            return None
+        site = SiteType.GROUND_CONFLICT_ZONE if self._on_foot else SiteType.CONFLICT_ZONE_UNKNOWN
+        since = self._since if self._place is _Place.OTHER and self._since else bond.at
+        return site, since, self._ground_settlement(site)
+
+    def _ground_settlement(self, site: SiteType) -> str | None:
+        return self._settlement if site is SiteType.GROUND_CONFLICT_ZONE else None
 
     def _on_reward(self, reward: Reward) -> list[CombatNotification]:
         notifications: list[CombatNotification] = []
@@ -450,6 +516,7 @@ class CombatTracker:
         return notifications
 
     def _on_death(self, at: datetime) -> list[CombatNotification]:
+        self._settlement = None
         self._arrive(_Place.NOWHERE, None, None)
         notifications = self._ended(at, CombatEndReason.DIED)
         if self.vouchers.total:

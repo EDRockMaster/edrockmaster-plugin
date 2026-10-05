@@ -2,7 +2,7 @@
 
 *[English](design.md) · Français*
 
-Conception du plugin EDMC d'EDRockMaster. Périmètre : **jalon 1, étape 1A** (plugin local, premier essai en jeu), plus l'activité de combat (décisions de conception ADR 0011 et ADR 0013, dans le dépôt d'architecture du projet). La liaison avec le serveur (étape 1B) est conçue ici pour ne pas avoir à reprendre 1A, mais elle n'est pas encore réalisée. Les contraintes viennent des [prérequis](prerequisites.fr.md) ; les règles d'ingénierie, de `edrockmaster-architecture`.
+Conception du plugin EDMC d'EDRockMaster. Périmètre : **jalon 1, étape 1A** (plugin local, premier essai en jeu), plus l'activité de combat (décisions de conception ADR 0011, ADR 0013 et ADR 0015, dans le dépôt d'architecture du projet). La liaison avec le serveur (étape 1B) est conçue ici pour ne pas avoir à reprendre 1A, mais elle n'est pas encore réalisée. Les contraintes viennent des [prérequis](prerequisites.fr.md) ; les règles d'ingénierie, de `edrockmaster-architecture`.
 
 ## Objectifs de l'étape 1A
 
@@ -107,7 +107,7 @@ Statistiques d'une session : durée active, tonnes par commodité, tonnes totale
 
 ## Combat
 
-Le combat couvre la chasse à la prime, les zones de conflit et toute victime ([ADR 0013](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0013-combat-segments-and-live-panel.fr.md)). Il se mesure en **segments** : un séjour sur un site de combat, de l'arrivée au départ.
+Le combat couvre la chasse à la prime, les zones de conflit et toute victime ([ADR 0013](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0013-combat-segments-and-live-panel.fr.md), [ADR 0015](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0015-unnamed-and-ground-conflict-zones.fr.md)). Il se mesure en **segments** : un séjour sur un site de combat, de l'arrivée (en vaisseau ou à pied) au départ.
 
 | Situation | Effet |
 | --- | --- |
@@ -116,10 +116,14 @@ Le combat couvre la chasse à la prime, les zones de conflit et toute victime ([
 | `CapShipBond` | Crédits et bon d'obligation de combat, sans victime |
 | Première récompense | La session de combat commence |
 | `SupercruiseDestinationDrop` puis `SupercruiseExit` | Arrivée à une destination. Un site de combat si son type est connu : zone de conflit (faible, moyenne, forte), site d'extraction de ressources (pauvre, normal, riche, dangereux), balise de navigation |
-| `SupercruiseExit` sans destination (anneau, planète, espace profond), `Undocked` | Arrivée ailleurs que sur un site de combat |
+| `SupercruiseExit` sans destination (anneau, planète, espace profond), `Undocked` | Arrivée quelque part que le journal ne nomme pas comme site de combat |
+| `ApproachSettlement` | La colonie est retenue jusqu'au prochain départ |
+| `DropshipDeploy` (Frontline Solutions) | Arrivée à pied dans une **zone de conflit au sol**, avec le nom de la colonie ; un redéploiement après une défaite prolonge le séjour |
+| `Disembark` à la surface d'une planète | Arrivée à pied, non nommée comme site de combat |
 | Première récompense sur un site de combat | Un segment s'ouvre, **depuis l'arrivée** : la recherche de cibles compte |
-| `SupercruiseEntry`, `Docked`, `FSDJump`, `StartJump` vers l'hyperespace | Départ : le segment se ferme ; la session continue. Un site quitté sans aucune récompense ne compte pas |
-| Récompense ailleurs (un pirate pendant le minage, près d'une station, après une interdiction) | **Divers** : comptée dans les victimes, les crédits et les bons, dans aucun ratio |
+| `SupercruiseEntry`, `Docked`, `FSDJump`, `StartJump` vers l'hyperespace, `BookDropship` en retraite, `Embark` | Départ : le segment se ferme ; la session continue. Un site quitté sans aucune récompense ne compte pas. `Embark` hors station est une nouvelle arrivée, en vaisseau |
+| `FactionKillBond` hors de tout segment | Une obligation de combat n'existe qu'en zone de conflit : un segment s'ouvre depuis la dernière arrivée (depuis l'obligation si aucune n'a été vue). En vaisseau : **zone de conflit, intensité inconnue** ; à pied : **zone de conflit au sol** |
+| Prime ailleurs (un pirate pendant le minage, près d'une station, après une interdiction) : une prime ne dit rien du lieu | **Divers** : comptée dans les victimes, les crédits et les bons, dans aucun ratio |
 | Récompense sans arrivée vue (EDMC ou le jeu a démarré sur le site : `StartUp`, `Location` hors station) | Un segment de type **inconnu**, depuis cette récompense ; divers si le commandant mine là (`ProspectedAsteroid`, `MiningRefined`, `AsteroidCracked`, drones de prospection ou de collecte) |
 | `CommitCrime` pendant une session | Compté par type de délit : amendes et primes sur le commandant, jamais retirées des crédits |
 | `Died` | La session se termine ; les bons non encaissés sont perdus |

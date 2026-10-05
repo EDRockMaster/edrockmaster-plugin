@@ -99,6 +99,31 @@ class GameLoaded:
 
     at: datetime
     docked: bool
+    on_foot: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class OnFootArrived:
+    """On foot on a planet: from the dropship to a conflict zone, or out of one's own ship."""
+
+    at: datetime
+    dropship: bool
+
+
+@dataclass(frozen=True, slots=True)
+class Embarked:
+    """Back in a ship (one's own, a taxi or the dropship) or an SRV."""
+
+    at: datetime
+    on_station: bool
+
+
+@dataclass(frozen=True, slots=True)
+class SettlementApproached:
+    """Supercruise brings the commander near a planetary settlement."""
+
+    at: datetime
+    name: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -155,6 +180,9 @@ type Fact = (
     | DestinationDropped
     | NormalSpaceEntered
     | GameLoaded
+    | OnFootArrived
+    | Embarked
+    | SettlementApproached
     | SiteLeft
     | MiningSeen
     | CrimeCommitted
@@ -257,7 +285,34 @@ def _normal_space(_entry: Entry, at: datetime) -> NormalSpaceEntered:
 
 
 def _loaded(entry: Entry, at: datetime) -> GameLoaded:
-    return GameLoaded(at, docked=bool(optional(entry, "Docked", bool)))
+    return GameLoaded(
+        at,
+        docked=bool(optional(entry, "Docked", bool)),
+        on_foot=bool(optional(entry, "OnFoot", bool)),
+    )
+
+
+def _deployed(_entry: Entry, at: datetime) -> OnFootArrived:
+    return OnFootArrived(at, dropship=True)
+
+
+def _disembarked(entry: Entry, at: datetime) -> OnFootArrived | None:
+    """On foot on a planet's surface; in a station or in space, there is nowhere to fight."""
+    on_planet = optional(entry, "OnPlanet", bool) and not optional(entry, "OnStation", bool)
+    return OnFootArrived(at, dropship=False) if on_planet else None
+
+
+def _embarked(entry: Entry, at: datetime) -> Embarked:
+    return Embarked(at, on_station=bool(optional(entry, "OnStation", bool)))
+
+
+def _dropship(entry: Entry, at: datetime) -> SiteLeft | None:
+    """A retreat leaves the conflict zone; a trip to one arrives with ``DropshipDeploy``."""
+    return SiteLeft(at) if optional(entry, "Retreat", bool) else None
+
+
+def _settlement(entry: Entry, at: datetime) -> SettlementApproached:
+    return SettlementApproached(at, localised(entry, "Name"))
 
 
 def _site_left(_entry: Entry, at: datetime) -> SiteLeft:
@@ -324,6 +379,11 @@ _PARSERS: dict[str, Parser[Fact | None]] = {
     "Undocked": _normal_space,
     "Location": _loaded,
     "StartUp": _loaded,
+    "DropshipDeploy": _deployed,
+    "Disembark": _disembarked,
+    "Embark": _embarked,
+    "BookDropship": _dropship,
+    "ApproachSettlement": _settlement,
     "SupercruiseEntry": _site_left,
     "Docked": _site_left,
     "FSDJump": _site_left,

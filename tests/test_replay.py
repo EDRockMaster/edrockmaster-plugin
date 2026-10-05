@@ -5,8 +5,9 @@ scripts/sanitise_recording.py; the expected figures were checked by hand
 against the raw journal.
 
 The two fixtures of 3 October 2026 were sanitised before the sanitiser kept
-``SupercruiseDestinationDrop``: the arrivals on combat sites are missing, so
-their kills are miscellaneous (ADR 0013), without any rate.
+``SupercruiseDestinationDrop``: the arrivals on combat sites are not named. Their
+conflict zones are told by the combat bonds, with an unknown intensity (ADR 0015);
+their bounties at a resource site are miscellaneous, without any rate.
 """
 
 import json
@@ -71,9 +72,14 @@ def test_conflict_zone_kills_and_combat_bonds(conflict_zone: Replay) -> None:
     assert stats is not None
     assert (stats.kills, stats.shared_kills) == (6, 0)
     assert (stats.bounty_credits, stats.bond_credits) == (0, 224_467)
-    # The arrival in the zone is not in this fixture: miscellaneous kills, no time on site
-    assert stats.miscellaneous == Tally(kills=6, bond_credits=224_467)
-    assert (stats.segments, stats.active_duration) == ((), timedelta(0))
+    # The drop in the zone is not named in this fixture: the bonds tell it, from the
+    # arrival at 11:38:45 to the supercruise at 12:04:53
+    assert stats.miscellaneous == Tally()
+    [zone] = stats.segments
+    assert (zone.site, zone.duration) == (
+        SiteType.CONFLICT_ZONE_UNKNOWN,
+        timedelta(minutes=26, seconds=8),
+    )
 
 
 def test_conflict_zone_redemption_includes_bonds_earned_before_edmc(
@@ -116,7 +122,7 @@ def test_conflict_zone_panel_shows_the_combat(conflict_zone: Replay) -> None:
     assert conflict_zone.presenter.render().status == "Combat"
     lines = conflict_zone.lines()
     assert ("Combat bonds", "224,467 CR") in lines
-    assert ("Miscellaneous", "kills: 6, 224,467 CR") in lines
+    assert ("Conflict zone, unknown intensity", "13.8 kills/h, 515,358 CR/h") in lines
     assert ("Éliminez les pilotes criminels…", "2,408,404, top 50 %") in lines
 
 
@@ -145,12 +151,18 @@ def test_each_game_exit_ends_its_session(zone_then_bounties: Replay) -> None:
 def test_conflict_zone_figures(zone_then_bounties: Replay) -> None:
     zone = ended_sessions(zone_then_bounties)[0]
     assert (zone.kills, zone.bounty_credits, zone.bond_credits) == (22, 0, 817_256)
-    assert zone.miscellaneous.kills == 22
+    # Two stays, from 12:53:59 and from 13:08:09, each ended by supercruise
+    assert [(segment.site, segment.tally.kills, segment.duration) for segment in zone.segments] == [
+        (SiteType.CONFLICT_ZONE_UNKNOWN, 8, timedelta(minutes=13, seconds=40)),
+        (SiteType.CONFLICT_ZONE_UNKNOWN, 14, timedelta(minutes=16, seconds=36)),
+    ]
+    assert zone.miscellaneous == Tally()
 
 
 def test_bounty_figures(zone_then_bounties: Replay) -> None:
     hunt = ended_sessions(zone_then_bounties)[1]
     assert (hunt.kills, hunt.bounty_credits, hunt.bond_credits) == (17, 6_110_097, 0)
+    # A bounty does not tell the place: the resource site is not named in this fixture
     assert hunt.miscellaneous.kills == 17
 
 
@@ -261,3 +273,55 @@ def test_panel_after_the_hazardous_res(zones_mining_res: Replay) -> None:
     assert ("Fines", "100 CR") in lines
     # The bonds were redeemed at 01:30: only the bounty of 05:25 is left
     assert ("Unredeemed", "370,130 CR") in lines
+
+
+@pytest.fixture(scope="module")
+def space_and_ground_zones() -> Replay:
+    """An evening at Redonesses (4.4.1.1): two named high-intensity conflict zones, one the
+    journal does not name (no ``SupercruiseDestinationDrop``), then two ground conflict zones
+    reached with the Frontline Solutions dropship (ADR 0015)."""
+    return Replay("redonesses-space-and-ground-conflict-zones-2026-10-04.jsonl")
+
+
+def test_every_conflict_zone_is_a_segment(space_and_ground_zones: Replay) -> None:
+    stats = combat(space_and_ground_zones)
+    segments = [
+        (segment.site, segment.duration, segment.tally.kills, segment.tally.bond_credits)
+        for segment in stats.segments
+    ]
+    assert segments == [
+        # 19:08:44 to 19:33:31, 20:14:49 to 20:38:58: SupercruiseDestinationDrop names them
+        (SiteType.CONFLICT_ZONE_HIGH, timedelta(minutes=24, seconds=47), 14, 466_790),
+        (SiteType.CONFLICT_ZONE_HIGH, timedelta(minutes=24, seconds=9), 18, 789_885),
+        # 21:03:11 to 21:18:21: SupercruiseExit near Redonesses A 1, then bonds
+        (SiteType.CONFLICT_ZONE_UNKNOWN, timedelta(minutes=15, seconds=10), 10, 480_293),
+        # DropshipDeploy at 21:50:10 (then three redeploys), retreat at 22:04:52
+        (SiteType.GROUND_CONFLICT_ZONE, timedelta(minutes=14, seconds=42), 9, 244_134),
+        # DropshipDeploy at 22:27:17, retreat at 22:43:25
+        (SiteType.GROUND_CONFLICT_ZONE, timedelta(minutes=16, seconds=8), 26, 428_711),
+    ]
+    assert [segment.settlement for segment in stats.segments] == [
+        None,
+        None,
+        None,
+        "Parra Prospecting Complex",
+        "Pak's Habitat",
+    ]
+
+
+def test_no_conflict_zone_kill_is_miscellaneous(space_and_ground_zones: Replay) -> None:
+    # Under ADR 0013 alone: 45 kills and 1,153,138 CR in miscellaneous
+    stats = combat(space_and_ground_zones)
+    assert stats.miscellaneous == Tally()
+    assert (stats.kills, stats.bond_credits) == (77, 2_409_813)
+    # 0.2.2 counted every minute in normal space: 2 h 46 min and 869,707 CR/h
+    assert stats.active_duration == timedelta(hours=1, minutes=34, seconds=56)
+    assert round(stats.credits_per_hour) == 1_523_056
+
+
+def test_panel_after_the_ground_conflict_zones(space_and_ground_zones: Replay) -> None:
+    lines = space_and_ground_zones.lines()
+    assert ("Conflict zone, high", "39.2 kills/h, 1,540,882 CR/h") in lines
+    assert ("Conflict zone, unknown intensity", "39.6 kills/h, 1,900,060 CR/h") in lines
+    assert ("Ground conflict zone", "68.1 kills/h, 1,309,320 CR/h") in lines
+    assert "Miscellaneous" not in dict(lines)
