@@ -2,7 +2,7 @@
 
 *English · [Français](design.fr.md)*
 
-Design of the EDRockMaster EDMC plugin. Scope: **milestone 1, step 1A** (local plugin, first in-game test), plus the combat activity (design decisions ADR 0011 and ADR 0013, in the project's architecture repository). The server link (step 1B) is designed here so that 1A does not have to be reworked, but it is not implemented yet. Constraints come from [prerequisites](prerequisites.md); engineering rules from `edrockmaster-architecture`.
+Design of the EDRockMaster EDMC plugin. Scope: **milestone 1, step 1A** (local plugin, first in-game test), plus the combat activity (design decisions ADR 0011, ADR 0013 and ADR 0015, in the project's architecture repository). The server link (step 1B) is designed here so that 1A does not have to be reworked, but it is not implemented yet. Constraints come from [prerequisites](prerequisites.md); engineering rules from `edrockmaster-architecture`.
 
 ## Goals of step 1A
 
@@ -107,7 +107,7 @@ Statistics of a session: active duration, tons per commodity, total tons, tons p
 
 ## Combat
 
-Combat covers bounty hunting, conflict zones and any kill ([ADR 0013](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0013-combat-segments-and-live-panel.md)). It is measured in **segments**: one stay on a combat site, from the arrival to the departure.
+Combat covers bounty hunting, conflict zones and any kill ([ADR 0013](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0013-combat-segments-and-live-panel.md), [ADR 0015](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0015-unnamed-and-ground-conflict-zones.md)). It is measured in **segments**: one stay on a combat site, from the arrival (by ship or on foot) to the departure.
 
 | Situation | Effect |
 | --- | --- |
@@ -116,10 +116,14 @@ Combat covers bounty hunting, conflict zones and any kill ([ADR 0013](https://gi
 | `CapShipBond` | Combat bond credits and voucher, no kill |
 | First reward | Combat session starts |
 | `SupercruiseDestinationDrop` then `SupercruiseExit` | Arrival at a destination. A combat site if its type is known: conflict zone (low, medium, high), resource extraction site (low, normal, high, hazardous), navigation beacon |
-| `SupercruiseExit` without a destination (ring, planet, deep space), `Undocked` | Arrival somewhere that is not a combat site |
+| `SupercruiseExit` without a destination (ring, planet, deep space), `Undocked` | Arrival somewhere the journal does not name as a combat site |
+| `ApproachSettlement` | The settlement is remembered until the next departure |
+| `DropshipDeploy` (Frontline Solutions) | Arrival on foot in a **ground conflict zone**, carrying the settlement's name; a redeploy after a defeat continues the stay |
+| `Disembark` on a planet's surface | Arrival on foot, not named as a combat site |
 | First reward on a combat site | A segment opens, **from the arrival**: the search for targets counts |
-| `SupercruiseEntry`, `Docked`, `FSDJump`, `StartJump` to hyperspace | Departure: the segment closes; the session goes on. A site left without any reward is not counted |
-| Reward elsewhere (a pirate while mining, near a station, after an interdiction) | **Miscellaneous**: counted in kills, credits and vouchers, in no rate |
+| `SupercruiseEntry`, `Docked`, `FSDJump`, `StartJump` to hyperspace, `BookDropship` retreat, `Embark` | Departure: the segment closes; the session goes on. A site left without any reward is not counted. `Embark` off a station is a new arrival, by ship |
+| `FactionKillBond` outside any segment | A combat bond only exists in a conflict zone: a segment opens from the last arrival (from the bond when none was seen). By ship: **conflict zone, unknown intensity**; on foot: **ground conflict zone** |
+| Bounty elsewhere (a pirate while mining, near a station, after an interdiction): a bounty does not tell the place | **Miscellaneous**: counted in kills, credits and vouchers, in no rate |
 | Reward with no arrival seen (EDMC or the game started on the site: `StartUp`, `Location` off station) | A segment of type **unknown**, from that reward; miscellaneous if the commander mines there (`ProspectedAsteroid`, `MiningRefined`, `AsteroidCracked`, prospector or collector limpets) |
 | `CommitCrime` during a session | Counted by kind of crime: fines and bounties on the commander, never deducted from the credits |
 | `Died` | Session ends; unredeemed vouchers are lost |

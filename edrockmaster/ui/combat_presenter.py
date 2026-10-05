@@ -50,6 +50,8 @@ SITE_NAMES = {
     SiteType.RES_HIGH: "RES, high",
     SiteType.RES_HAZARDOUS: "RES, hazardous",
     SiteType.NAV_BEACON: "Nav beacon",
+    SiteType.CONFLICT_ZONE_UNKNOWN: "Conflict zone, unknown intensity",
+    SiteType.GROUND_CONFLICT_ZONE: "Ground conflict zone",
     SiteType.UNKNOWN: "Unknown site",
 }
 
@@ -99,10 +101,16 @@ class CombatPresenter:
         tl = self._tl
         if self._running:
             current = self._stats.current if self._stats else None
-            return tl(SITE_NAMES[current.site]) if current else tl("Combat")
+            return self._site_status(current) if current else tl("Combat")
         if self._ended is not None:
             return tl("Combat session ended: {reason}").format(reason=tl(_END_REASONS[self._ended]))
         return tl("No combat session")
+
+    def _site_status(self, segment: SegmentStats) -> str:
+        site = self._tl(SITE_NAMES[segment.site])
+        if segment.settlement is None:
+            return site
+        return self._tl("{site}: {settlement}").format(site=site, settlement=segment.settlement)
 
     def _session_lines(self, stats: CombatStats) -> Iterable[StatLine]:
         tl, number = self._tl, self._number

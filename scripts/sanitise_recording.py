@@ -4,10 +4,10 @@ The plugin repository is public. A raw recording holds personal data: the
 commander's name and Frontier id, squadron, carrier, chat messages and other
 players' names. This script keeps only the events the plugin reads, plus a few
 harmless ones that prove unknown events are ignored, reduces ``LoadGame`` to
-the game version, drops the commander's reputation, targets' pilot names and
-crime victims, replaces every fleet carrier (name, callsign, id) with a neutral
-value, then refuses to write anything if the commander's name or id, or a
-carrier, is still present.
+the game version, drops the commander's reputation, targets' pilot names,
+crime victims and the commander's killers, replaces every fleet carrier (name,
+callsign, id) with a neutral value, then refuses to write anything if the
+commander's name or id, or a carrier, is still present.
 
 Usage: python3 scripts/sanitise_recording.py <recording.jsonl> <fixture.jsonl>
 """
@@ -49,6 +49,12 @@ READ_BY_THE_PLUGIN = {
     "Undocked",
     "StartJump",
     "CommitCrime",
+    # combat on foot, conflict zones the journal does not name (ADR 0015)
+    "ApproachSettlement",
+    "BookDropship",
+    "DropshipDeploy",
+    "Disembark",
+    "Embark",
 }
 HARMLESS = {
     "Music",
@@ -74,6 +80,8 @@ PERSONAL_FIELDS = {
     "Bounty": {"PilotName", "PilotName_Localised"},
     # the victim of a crime: may be another commander
     "CommitCrime": {"Victim", "Victim_Localised"},
+    # the killers of the commander: other commanders, in player versus player
+    "Died": {"KillerName", "KillerName_Localised", "KillerRank", "Killers"},
 }
 """Fields the plugin does not read that describe people, per event. Per event: the same
 name elsewhere may be needed (``RedeemVoucher.Factions`` is what was redeemed)."""

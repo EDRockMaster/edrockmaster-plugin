@@ -4,7 +4,7 @@
 
 [EDMarketConnector](https://github.com/EDCD/EDMarketConnector) (EDMC) plugin for **EDRockMaster — Elite Dangerous Rock Master Companion**.
 
-Works on its own, without any server: prospector alerts, cores and motherlodes, live session stats, limpets, cargo and sales. Also a combat counter, per site (conflict zones, resource extraction sites, navigation beacons): kills, bounties and combat bonds, kills and credits per hour by site type, miscellaneous kills, fines, unredeemed vouchers, community goals. A later version will add an optional link with EDRockMaster services (sign-in and uploads, opt-in).
+Works on its own, without any server: prospector alerts, cores and motherlodes, live session stats, limpets, cargo and sales. Also a combat counter, per site (conflict zones in space and on the ground, resource extraction sites, navigation beacons): kills, bounties and combat bonds, kills and credits per hour by site type, miscellaneous kills, fines, unredeemed vouchers, community goals. A later version will add an optional link with EDRockMaster services (sign-in and uploads, opt-in).
 
 User interface in English and French: the plugin follows the language selected in EDMC.
 

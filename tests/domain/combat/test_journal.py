@@ -10,11 +10,14 @@ from edrockmaster.domain.combat.journal import (
     CommunityGoalsUpdated,
     CrimeCommitted,
     DestinationDropped,
+    Embarked,
     FactionReward,
     GameClosed,
     GameLoaded,
     MiningSeen,
     NormalSpaceEntered,
+    OnFootArrived,
+    SettlementApproached,
     SiteLeft,
     VoucherKind,
     VouchersRedeemed,
@@ -294,6 +297,11 @@ def test_game_loaded_tells_whether_docked(event: str, docked: bool) -> None:
     assert parse_entry(entry) == GameLoaded(AT, docked=docked)
 
 
+def test_game_loaded_tells_whether_on_foot() -> None:
+    entry = {"timestamp": TS, "event": "Location", "Docked": False, "OnFoot": True}
+    assert parse_entry(entry) == GameLoaded(AT, docked=False, on_foot=True)
+
+
 @pytest.mark.parametrize(
     "entry",
     [
@@ -301,6 +309,7 @@ def test_game_loaded_tells_whether_docked(event: str, docked: bool) -> None:
         {"timestamp": TS, "event": "Docked"},
         {"timestamp": TS, "event": "FSDJump"},
         {"timestamp": TS, "event": "StartJump", "JumpType": "Hyperspace"},
+        {"timestamp": TS, "event": "BookDropship", "Retreat": True, "Cost": 0},
     ],
 )
 def test_leaving_normal_space_leaves_the_site(entry: dict[str, object]) -> None:
@@ -319,6 +328,49 @@ def test_leaving_normal_space_leaves_the_site(entry: dict[str, object]) -> None:
 )
 def test_mining_is_seen(entry: dict[str, object]) -> None:
     assert parse_entry(entry) == MiningSeen(AT)
+
+
+def test_dropship_to_a_conflict_zone_is_not_a_departure() -> None:
+    entry = {"timestamp": TS, "event": "BookDropship", "Retreat": False, "Cost": 0}
+    assert parse_entry(entry) is None
+
+
+def test_dropship_deploy_is_an_arrival_on_foot() -> None:
+    entry = {"timestamp": TS, "event": "DropshipDeploy", "OnPlanet": True, "OnStation": False}
+    assert parse_entry(entry) == OnFootArrived(AT, dropship=True)
+
+
+def test_disembarking_on_a_planet_is_an_arrival_on_foot() -> None:
+    entry = {"timestamp": TS, "event": "Disembark", "SRV": False, "OnPlanet": True}
+    assert parse_entry(entry) == OnFootArrived(AT, dropship=False)
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        {"timestamp": TS, "event": "Disembark", "OnStation": True, "OnPlanet": False},
+        {"timestamp": TS, "event": "Disembark", "OnStation": False, "OnPlanet": False},
+        {"timestamp": TS, "event": "Disembark", "OnStation": True, "OnPlanet": True},
+    ],
+)
+def test_disembarking_elsewhere_is_no_arrival(entry: dict[str, object]) -> None:
+    assert parse_entry(entry) is None
+
+
+@pytest.mark.parametrize("on_station", [True, False])
+def test_embarking_is_parsed(on_station: bool) -> None:
+    entry = {"timestamp": TS, "event": "Embark", "Taxi": True, "OnStation": on_station}
+    assert parse_entry(entry) == Embarked(AT, on_station=on_station)
+
+
+def test_settlement_approached_is_parsed() -> None:
+    entry = {
+        "timestamp": TS,
+        "event": "ApproachSettlement",
+        "Name": "$Ancient:#index=1;",
+        "Name_Localised": "Ancient Ruins",
+    }
+    assert parse_entry(entry) == SettlementApproached(AT, "Ancient Ruins")
 
 
 def test_other_limpets_are_not_mining() -> None:

@@ -18,6 +18,9 @@ Les changements notables du plugin EDRockMaster. Le format suit [Keep a Changelo
 - **Amendes** et **primes sur vous** pendant une session de combat, jamais retirées de ce qui a été gagné.
 - Types de sites de combat confirmés en jeu (4.4.1.1) : zones de conflit (faible, moyenne, forte), sites d'extraction de ressources (pauvre, normal, riche, dangereux), balise de navigation.
 - Le script de nettoyage des enregistrements garde les arrivées sur site et les délits, retire la réputation des sauts et les victimes des délits, et remplace les porte-vaisseaux (nom, indicatif, identifiant).
+- **Zones de conflit au sol** (Odyssey, décision de conception ADR 0015) : la navette de Frontline Solutions ouvre un segment, sa retraite le ferme, et le panneau affiche la colonie. Lors d'une vraie soirée à Redonesses, deux zones au sol ont donné 35 victimes, à 68,1 victimes/h et 1 309 320 CR/h.
+- **Zones de conflit que le journal ne nomme pas** : une obligation de combat n'existe qu'en zone de conflit, donc une obligation hors de tout site ouvre un segment depuis l'arrivée, d'intensité inconnue en vaisseau. Ce même soir, 45 victimes sur 77 n'auraient sinon eu aucun ratio.
+- Le script de nettoyage garde les déplacements à pied (colonies, navette, débarquement, embarquement) et retire les tueurs du commandant.
 
 ## [0.2.2] - 2026-10-03
 

@@ -60,7 +60,10 @@
 "RES, high" = "RES riche";
 "RES, hazardous" = "RES dangereux";
 "Nav beacon" = "Balise de navigation";
+"Conflict zone, unknown intensity" = "Zone de conflit, intensité inconnue";
+"Ground conflict zone" = "Zone de conflit au sol";
 "Unknown site" = "Site inconnu";
+"{site}: {settlement}" = "{site} : {settlement}";
 
 /* ui/combat_presenter.py: statistic labels and values */
 "Kills" = "Victimes";

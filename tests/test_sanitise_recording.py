@@ -76,6 +76,33 @@ def test_combat_sites_are_kept() -> None:
     assert entry["Type"] == "$Warzone_PointRace_High;"
 
 
+@pytest.mark.parametrize(
+    "entry",
+    [
+        {"event": "ApproachSettlement", "Name": "Pak's Habitat"},
+        {"event": "BookDropship", "Retreat": False, "DestinationLocation": "Pak's Habitat"},
+        {"event": "DropshipDeploy", "Body": "Redonesses A 1", "OnPlanet": True},
+        {"event": "Disembark", "OnPlanet": True, "OnStation": False},
+        {"event": "Embark", "Taxi": True, "OnStation": True},
+    ],
+)
+def test_moves_on_foot_are_kept(entry: dict[str, Any]) -> None:
+    assert kept(record(**entry)) == [{"timestamp": TS, **entry}]
+
+
+def test_killers_are_dropped_from_deaths() -> None:
+    [entry] = kept(
+        record(
+            event="Died",
+            KillerName="Cmdr Someone",
+            KillerShip="anaconda",
+            KillerRank="Elite",
+            Killers=[{"Name": "Cmdr Other", "Ship": "fdl", "Rank": "Elite"}],
+        )
+    )
+    assert entry == {"timestamp": TS, "event": "Died", "KillerShip": "anaconda"}
+
+
 CARRIER = record(
     event="CarrierStats", CarrierID=3700000000, Callsign="ABC-12Q", Name="[TAG] Somebody's Home"
 )
