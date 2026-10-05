@@ -30,7 +30,7 @@ Les changements de chaque version : [journal des modifications](CHANGELOG.fr.md)
 - `edrockmaster/` : le code du plugin, dans un paquet au nom unique (voir [prérequis](docs/prerequisites.fr.md)). La logique de domaine ne dépend ni d'EDMC ni de tkinter, et elle est testée par `pytest`.
 - `L10n/` : traductions (`fr.strings`).
 - `tests/fixtures/` : extraits de journaux réels.
-- `scripts/` : emballage (`package.sh`), notes de release (`release_notes.sh`), version (`version.sh`), release GitHub (`github_release.py`), enregistrement vers données de test (`sanitise_recording.py`).
+- `scripts/` : emballage (`package.sh`), notes de release (`release_notes.sh`), version (`version.sh`), canal de release (`release_plan.py`), release GitHub (`github_release.py`), enregistrement vers données de test (`sanitise_recording.py`).
 
 ## Documentation
 
@@ -49,10 +49,14 @@ Les tests des widgets utilisent un vrai Tk : ils tournent là où il y a un affi
 
 ## Publier une version
 
-1. Indiquer la nouvelle version dans `pyproject.toml` et `edrockmaster/__init__.py` (`VERSION`), selon SemVer.
-2. Ajouter son entrée à `CHANGELOG.md` et `CHANGELOG.fr.md`. Les tests vérifient que les versions concordent et que les deux entrées existent.
-3. Fusionner par une pull request, puis taguer le commit de fusion `vX.Y.Z` sur Gitea et pousser le tag.
-4. La CI vérifie le tag au regard de la version, construit le zip et publie la release, avec l'entrée du journal des modifications comme notes, sur Gitea et GitHub.
+Pas de production sans recette (ADR 0012, dans le dépôt d'architecture) :
+
+1. Indiquer la nouvelle version dans `pyproject.toml` et `edrockmaster/__init__.py` (`VERSION`), selon SemVer, et ajouter son entrée à `CHANGELOG.md` et `CHANGELOG.fr.md`. Les tests vérifient que les versions concordent et que les deux entrées existent. Fusionner par une pull request.
+2. **Candidate** : taguer le commit de fusion `vX.Y.Z-rc.1` et pousser le tag. La CI publie une **pré-release privée sur Gitea**.
+3. **Recette** : installer la candidate dans EDMC et jouer, enregistreur du journal activé, en suivant la liste de vérifications en jeu du jalon. En cas de problème : le corriger par une pull request, puis taguer `vX.Y.Z-rc.2` sur le nouveau commit de fusion.
+4. **Production** : taguer `vX.Y.Z` sur le **même commit** que la candidate validée et pousser. La CI refuse un tag de production sans candidate sur ce commit (`scripts/release_plan.py`), puis publie sur Gitea et GitHub, avec l'entrée du journal des modifications comme notes.
+
+Chaque passage de la CI garde aussi le zip en artefact (versions de dev, 14 jours).
 
 ## Licence
 

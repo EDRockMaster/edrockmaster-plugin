@@ -30,7 +30,7 @@ What changed in each version: [changelog](CHANGELOG.md).
 - `edrockmaster/`: the plugin code, in a uniquely named package (see [prerequisites](docs/prerequisites.md)). Domain logic depends neither on EDMC nor on tkinter, and is tested with `pytest`.
 - `L10n/`: translations (`fr.strings`).
 - `tests/fixtures/`: excerpts of real journals.
-- `scripts/`: packaging (`package.sh`), release notes (`release_notes.sh`), version (`version.sh`), GitHub release (`github_release.py`), recording to test fixture (`sanitise_recording.py`).
+- `scripts/`: packaging (`package.sh`), release notes (`release_notes.sh`), version (`version.sh`), release channel (`release_plan.py`), GitHub release (`github_release.py`), recording to test fixture (`sanitise_recording.py`).
 
 ## Documentation
 
@@ -49,10 +49,14 @@ Widget tests use a real Tk: they run where a display exists and are skipped else
 
 ## Releasing
 
-1. Set the new version in `pyproject.toml` and `edrockmaster/__init__.py` (`VERSION`), following SemVer.
-2. Add its entry to `CHANGELOG.md` and `CHANGELOG.fr.md`. Tests check that versions match and that both entries exist.
-3. Merge through a pull request, then tag the merge commit `vX.Y.Z` on Gitea and push the tag.
-4. The CI checks the tag against the version, builds the zip and publishes the release, with the changelog entry as notes, on Gitea and GitHub.
+No production without acceptance (ADR 0012, in the architecture repository):
+
+1. Set the new version in `pyproject.toml` and `edrockmaster/__init__.py` (`VERSION`), following SemVer, and add its entry to `CHANGELOG.md` and `CHANGELOG.fr.md`. Tests check that versions match and that both entries exist. Merge through a pull request.
+2. **Candidate**: tag the merge commit `vX.Y.Z-rc.1` and push the tag. The CI publishes a **private pre-release on Gitea**.
+3. **Acceptance**: install the candidate in EDMC and play, journal recorder on, following the milestone's in-game checklist. A problem: fix it through a pull request, then tag `vX.Y.Z-rc.2` on the new merge commit.
+4. **Production**: tag `vX.Y.Z` on the **same commit** as the accepted candidate and push. The CI refuses a production tag without a candidate on that commit (`scripts/release_plan.py`), then publishes on Gitea and GitHub, with the changelog entry as notes.
+
+Every CI run also keeps the zip as an artifact (dev builds, 14 days).
 
 ## License
 

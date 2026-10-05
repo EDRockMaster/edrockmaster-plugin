@@ -1,8 +1,11 @@
 # CI on Gitea Actions (the cluster's runner). The GitHub mirror runs nothing.
-# Every run also builds the installable zip, so that packaging is proven before a release.
-# On a v* tag, the zip is published as a release on Gitea and on GitHub (public repository,
-# where players look for it). The GitHub release needs the GH_RELEASE_TOKEN secret
-# (fine-grained token limited to EDRockMaster/edrockmaster-plugin, Contents: write).
+# Release channels (ADR 0012, no production without acceptance):
+# - dev: every run keeps the installable zip as an artifact;
+# - candidate: a vX.Y.Z-rc.N tag publishes a private pre-release on Gitea, for acceptance in game;
+# - production: a vX.Y.Z tag, refused unless a candidate is tagged on the same commit, publishes
+#   on Gitea and on GitHub (public repository, where players look for it). The GitHub release
+#   needs the GH_RELEASE_TOKEN secret (fine-grained token limited to
+#   EDRockMaster/edrockmaster-plugin, Contents: write).
 name: CI
 
 on:
@@ -27,6 +30,13 @@ jobs:
         run: scripts/package.sh "$(scripts/version.sh)"
       - name: Release notes
         run: scripts/release_notes.sh "$(scripts/version.sh)"
+      - name: Keep the dev build
+        # v4 refuses any server but github.com (it takes Gitea for GitHub Enterprise): v3 works
+        uses: actions/upload-artifact@v3
+        with:
+          name: EDRockMaster-dev-${{ gitea.sha }}
+          path: dist/*.zip
+          retention-days: 14
 
   release:
     needs: test
@@ -37,19 +47,24 @@ jobs:
       TAG: ${{ gitea.ref_name }}
     steps:
       - uses: actions/checkout@v4
-      - name: Check that the tag matches the version
+        with:
+          fetch-depth: 0  # the tags on this commit decide whether production is allowed
+      - name: Release plan
+        id: plan
         run: |
-          version="$(scripts/version.sh)"
-          if [ "$TAG" != "v$version" ]; then
-            echo "Tag $TAG does not match version $version (pyproject.toml, edrockmaster.VERSION)"
-            exit 1
-          fi
+          python3 scripts/release_plan.py "$TAG" "$(scripts/version.sh)" \
+            $(git tag --points-at HEAD) >> "$GITHUB_OUTPUT"
       - name: Package
         run: scripts/package.sh "${TAG#v}"
       - name: Release notes
         id: notes
         run: |
-          scripts/release_notes.sh "${TAG#v}" > dist/release-notes.md
+          {
+            if [ "${{ steps.plan.outputs.channel }}" = candidate ]; then
+              printf '**Release candidate**, for acceptance in game: not for players.\n\n'
+            fi
+            scripts/release_notes.sh "$(scripts/version.sh)"
+          } > dist/release-notes.md
           {
             echo "body<<EOF_NOTES"
             cat dist/release-notes.md
@@ -60,9 +75,10 @@ jobs:
         with:
           name: EDRockMaster ${{ gitea.ref_name }}
           body: ${{ steps.notes.outputs.body }}
+          prerelease: ${{ steps.plan.outputs.prerelease }}
           files: dist/*.zip
       - name: GitHub release
-        if: env.GH_RELEASE_TOKEN != ''
+        if: env.GH_RELEASE_TOKEN != '' && steps.plan.outputs.channel == 'production'
         # A script rather than a marketplace action: under Gitea Actions, GITHUB_API_URL points
         # at Gitea, and JavaScript actions keep that value even when the step overrides it
         run: python3 scripts/github_release.py "$TAG" "${{ gitea.sha }}" dist/release-notes.md dist/*.zip

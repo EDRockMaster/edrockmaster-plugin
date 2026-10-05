@@ -1,26 +1,14 @@
 """The recording sanitiser: what a public fixture may and may not contain."""
 
-import importlib.util
 import json
 from pathlib import Path
-from types import ModuleType
 from typing import Any
 
 import pytest
 
-SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "sanitise_recording.py"
+from tests.scripts import load_script
 
-
-def load_script() -> ModuleType:
-    spec = importlib.util.spec_from_file_location("sanitise_recording", SCRIPT)
-    assert spec is not None
-    assert spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-sanitiser = load_script()
+sanitiser = load_script("sanitise_recording")
 TS = "2026-10-03T12:00:00Z"
 
 
