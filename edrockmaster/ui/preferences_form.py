@@ -10,7 +10,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from edrockmaster.application.settings import PluginSettings
+from edrockmaster.application.activity import Activity
+from edrockmaster.application.settings import DisplayMode, DisplaySettings, PluginSettings
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.mining.journal import ContentLevel
 from edrockmaster.domain.mining.prospecting import AlertSettings
@@ -30,6 +31,9 @@ class PreferencesValues:
     alert_on_cores: bool
     sound_enabled: bool
     record_journal: bool
+    activities: dict[Activity, bool]
+    """Each activity, and whether the panel shows it."""
+    display_mode: DisplayMode
 
 
 class _InvalidEntryError(ValueError):
@@ -76,6 +80,8 @@ def values_from_settings(
         alert_on_cores=alerts.alert_on_cores,
         sound_enabled=settings.sound_enabled,
         record_journal=settings.record_journal,
+        activities={activity: activity in settings.display.activities for activity in Activity},
+        display_mode=settings.display.mode,
     )
 
 
@@ -102,6 +108,10 @@ def settings_from_values(
     except _InvalidEntryError:
         invalid.append(translate("Minimum remaining"))
         remaining = previous.alerts.minimum_remaining
+    shown = tuple(activity for activity, chosen in values.activities.items() if chosen)
+    if not shown:
+        invalid.append(translate("Activities shown"))
+        shown = previous.display.activities
     settings = PluginSettings(
         alerts=AlertSettings(
             thresholds=thresholds,
@@ -111,6 +121,7 @@ def settings_from_values(
         ),
         sound_enabled=values.sound_enabled,
         record_journal=values.record_journal,
+        display=DisplaySettings(shown, values.display_mode),
     )
     return settings, tuple(invalid)
 

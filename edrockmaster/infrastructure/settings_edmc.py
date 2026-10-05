@@ -12,7 +12,13 @@ import logging
 from collections.abc import Callable
 from typing import Protocol
 
-from edrockmaster.application.settings import DEFAULT_SETTINGS, PluginSettings
+from edrockmaster.application.activity import Activity
+from edrockmaster.application.settings import (
+    DEFAULT_SETTINGS,
+    DisplayMode,
+    DisplaySettings,
+    PluginSettings,
+)
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.mining.journal import ContentLevel
 from edrockmaster.domain.mining.prospecting import AlertSettings
@@ -26,6 +32,8 @@ KEY_MINIMUM_REMAINING = "edrockmaster.alert.minimum_remaining"
 KEY_CORES = "edrockmaster.alert.cores"
 KEY_SOUND = "edrockmaster.sound"
 KEY_RECORD_JOURNAL = "edrockmaster.record_journal"
+KEY_DISPLAY_ACTIVITIES = "edrockmaster.display.activities"
+KEY_DISPLAY_MODE = "edrockmaster.display.mode"
 
 _MINIMUM_CONTENTS = {
     level.value: level for level in ContentLevel if level is not ContentLevel.UNKNOWN
@@ -67,6 +75,12 @@ class EdmcSettingsStore:
             alerts=alerts,
             sound_enabled=self._read_bool(KEY_SOUND, defaults.sound_enabled),
             record_journal=self._read_bool(KEY_RECORD_JOURNAL, defaults.record_journal),
+            display=DisplaySettings(
+                activities=self._read(
+                    KEY_DISPLAY_ACTIVITIES, _parse_activities, defaults.display.activities
+                ),
+                mode=self._read(KEY_DISPLAY_MODE, _parse_mode, defaults.display.mode),
+            ),
         )
 
     def save(self, settings: PluginSettings) -> None:
@@ -80,6 +94,9 @@ class EdmcSettingsStore:
         self._config.set(KEY_CORES, alerts.alert_on_cores)
         self._config.set(KEY_SOUND, settings.sound_enabled)
         self._config.set(KEY_RECORD_JOURNAL, settings.record_journal)
+        activities = [activity.value for activity in settings.display.activities]
+        self._config.set(KEY_DISPLAY_ACTIVITIES, json.dumps(activities))
+        self._config.set(KEY_DISPLAY_MODE, settings.display.mode.value)
 
     def _read[T](self, key: str, parse: Callable[[str], T], default: T) -> T:
         try:
@@ -132,3 +149,23 @@ def _parse_remaining(raw: str) -> float | None:
         return _percent(float(raw))
     except ValueError as error:
         raise _InvalidValueError(f"minimum remaining: {error}") from error
+
+
+def _parse_activities(raw: str) -> tuple[Activity, ...]:
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as error:
+        raise _InvalidValueError("activities are not valid JSON") from error
+    if not isinstance(data, list) or not data:
+        raise _InvalidValueError("activities must be a non-empty JSON list")
+    try:
+        return tuple(Activity(value) for value in data)
+    except ValueError as error:
+        raise _InvalidValueError(f"activities: {error}") from error
+
+
+def _parse_mode(raw: str) -> DisplayMode:
+    try:
+        return DisplayMode(raw)
+    except ValueError as error:
+        raise _InvalidValueError(f"unknown display mode: {raw!r}") from error

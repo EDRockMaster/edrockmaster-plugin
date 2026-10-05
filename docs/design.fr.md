@@ -52,12 +52,12 @@ edrockmaster/
     host.py                     services d'EDMC (theme, plug.show_error, l10n.Locale), avec replis
   ui/
     panel_model.py              PanelModel (textes) et mise en forme commune, sans tkinter
-    presenter.py                ActivityPresenter : montre l'activité en cours
+    presenter.py                ActivityPresenter : les blocs à afficher, selon le mode
     mining_presenter.py         notifications du minage → PanelModel
     combat_presenter.py         notifications du combat → PanelModel
     preferences_form.py         réglages <-> champs des préférences, validation, sans tkinter
     commodity_names.py          noms des commodités minables connues avant que le journal ne les nomme
-    panel.py                    panneau de la fenêtre principale (tkinter, fil principal uniquement), recopie PanelModel
+    panel.py                    panneau de la fenêtre principale (tkinter, fil principal uniquement), un bloc par activité affichée
     preferences.py              onglet des préférences (myNotebook)
 L10n/fr.strings                 traductions françaises
 ```
@@ -134,7 +134,12 @@ Le combat couvre la chasse à la prime, les zones de conflit et toute victime ([
 
 Statistiques d'une session de combat : ses segments (type de site, durée, victimes, crédits, ratios), une moyenne **par type de site, pondérée par le temps** (total des victimes et des crédits sur la durée totale), le temps sur les sites de combat, les victimes (et victimes partagées), les crédits de primes et d'obligations de combat, les victimes diverses, les délits. Communs au panneau : les bons non encaissés (connus seulement depuis le lancement d'EDMC : le journal ne redonne pas les plus anciens) et les objectifs communautaires. Les superpuissances écrites `$faction_Federation;` sont ramenées à `Federation`. Une autre activité ne termine jamais une session de combat : un mineur peut riposter et continuer de miner.
 
-Le panneau affiche la dernière activité qui a **progressé** : pour le combat, une session ou un segment qui commence ou se termine, une récompense ou un délit ; quitter un site sans segment, les bons et les objectifs communautaires ne le font jamais basculer.
+Le panneau affiche les activités choisies par le joueur (préférences, **Affichage**), selon l'un de deux modes ([ADR 0013](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0013-combat-segments-and-live-panel.fr.md)) :
+
+- **dernière activité active** (par défaut) : un seul bloc, la dernière activité affichée qui a **progressé**. Pour le combat, une session ou un segment qui commence ou se termine, une récompense ou un délit ; quitter un site sans segment, les bons et les objectifs communautaires ne le font jamais basculer. Une activité masquée ne prend jamais le panneau ;
+- **toutes, empilées** : un bloc par activité affichée, le minage puis le combat, chacun avec son bouton **Réinitialiser**.
+
+Une activité masquée reste suivie : affichée de nouveau, elle est à jour.
 
 ## Alertes du prospecteur
 
@@ -148,7 +153,7 @@ Le panneau affiche la dernière activité qui a **progressé** : pour le combat,
 
 **Panneau** (fenêtre principale d'EDMC) : état (aucune session, minage dans un anneau, session terminée et pourquoi), la dernière alerte du prospecteur, mise en évidence jusqu'au prochain astéroïde prospecté, puis les statistiques : temps actif, tonnes raffinées, rendement, tonnes par commodité, astéroïdes prospectés et, dès qu'ils sont connus, cores, drones, soute et ventes. Les statistiques d'une session terminée restent affichées, et ses ventes s'y ajoutent. Un bouton **Réinitialiser** termine la session en cours. Les nombres suivent les réglages régionaux du système, comme ceux d'EDMC.
 
-**Onglet des préférences** : un champ de pourcentage par commodité minable (vide : pas d'alerte), teneur minimale, réserve minimale, alerte sur les cores, son, enregistreur du journal et un bouton qui ouvre le dossier des enregistrements. Les nombres se saisissent selon les réglages régionaux du système. À la fermeture de la fenêtre, une saisie invalide garde sa valeur précédente et est citée dans la barre d'état d'EDMC ; les saisies valides sont appliquées tout de suite.
+**Onglet des préférences** : un champ de pourcentage par commodité minable (vide : pas d'alerte), teneur minimale, réserve minimale, alerte sur les cores, son, enregistreur du journal les activités affichées et le mode d'affichage, et un bouton qui ouvre le dossier des enregistrements. Au moins une activité reste affichée. Les nombres se saisissent selon les réglages régionaux du système. À la fermeture de la fenêtre, une saisie invalide garde sa valeur précédente et est citée dans la barre d'état d'EDMC ; les saisies valides sont appliquées tout de suite.
 
 ## Réglages
 
@@ -163,6 +168,8 @@ Enregistrés avec le `config` d'EDMC (`config.set` / `config.get_*`), clés pré
 | `edrockmaster.alert.cores` | booléen | Alerte sur les cores |
 | `edrockmaster.sound` | booléen | Alertes sonores |
 | `edrockmaster.record_journal` | booléen | Enregistreur du journal |
+| `edrockmaster.display.activities` | texte | Liste JSON des activités affichées, au moins une (`["mining", "combat"]`) |
+| `edrockmaster.display.mode` | texte | `last_active` ou `stacked` |
 
 Les valeurs sont lues une à une : une valeur absente ou invalide reprend sa propre valeur par défaut (avec un avertissement dans le journal), les autres sont conservées.
 

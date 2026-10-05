@@ -2,10 +2,11 @@
 
 import tkinter as tk
 
-from edrockmaster.application.settings import DEFAULT_SETTINGS
+from edrockmaster.application.activity import Activity
+from edrockmaster.application.settings import DEFAULT_SETTINGS, DisplayMode
 from edrockmaster.domain.mining.journal import ContentLevel
 from edrockmaster.ui.panel import Panel
-from edrockmaster.ui.panel_model import PanelModel, StatLine
+from edrockmaster.ui.panel_model import ActivityBlock, PanelModel, StatLine
 from edrockmaster.ui.preferences import PreferencesTab
 from edrockmaster.ui.preferences_form import threshold_rows, values_from_settings
 
@@ -31,37 +32,58 @@ MODEL = PanelModel(
 
 
 def test_panel_copies_the_model(root: tk.Tk) -> None:
-    resets: list[None] = []
+    resets: list[Activity] = []
     themed: list[tk.Widget] = []
-    panel = Panel(root, lambda: resets.append(None), identity, themed.append)
-    panel.render(MODEL)
-    assert panel._status["text"] == MODEL.status
-    assert panel._alert["text"] == "Painite 41.0 %"
-    assert shown(panel._alert)
-    assert [(label["text"], value["text"]) for label, value in panel._rows] == [
+    panel = Panel(root, resets.append, identity, themed.append)
+    panel.render((ActivityBlock(Activity.MINING, MODEL),))
+    block = panel.block(Activity.MINING)
+    assert block._status["text"] == MODEL.status
+    assert block._alert["text"] == "Painite 41.0 %"
+    assert shown(block._alert)
+    assert [(label["text"], value["text"]) for label, value in block._rows] == [
         ("Refined", "12 t"),
         ("Rate", "30.0 t/h"),
     ]
-    assert len(themed) == 4  # rows created after plugin_app() are themed
-    panel._reset.invoke()
-    assert resets == [None]
+    # Created after plugin_app(), the block and its rows are themed
+    assert themed == [block.frame] + [widget for row in block._rows for widget in row]
+    block._reset.invoke()
+    assert resets == [Activity.MINING]
 
 
 def test_panel_hides_what_the_model_no_longer_has(root: tk.Tk) -> None:
-    panel = Panel(root, lambda: None, identity)
-    panel.render(MODEL)
-    panel.render(PanelModel(status="No mining session", lines=(), alert=None, can_reset=False))
-    assert not shown(panel._alert)
-    assert not any(shown(label) for label, _ in panel._rows)
-    assert str(panel._reset["state"]) == tk.DISABLED
+    panel = Panel(root, lambda _: None, identity)
+    panel.render((ActivityBlock(Activity.MINING, MODEL),))
+    empty = PanelModel(status="No mining session", lines=(), alert=None, can_reset=False)
+    panel.render((ActivityBlock(Activity.MINING, empty),))
+    block = panel.block(Activity.MINING)
+    assert not shown(block._alert)
+    assert not any(shown(label) for label, _ in block._rows)
+    assert str(block._reset["state"]) == tk.DISABLED
+
+
+def test_panel_stacks_one_block_per_activity_in_order(root: tk.Tk) -> None:
+    resets: list[Activity] = []
+    panel = Panel(root, resets.append, identity)
+    combat = PanelModel(status="Combat", lines=(), alert=None, can_reset=True)
+    panel.render((ActivityBlock(Activity.MINING, MODEL), ActivityBlock(Activity.COMBAT, combat)))
+    mining_block, combat_block = panel.block(Activity.MINING), panel.block(Activity.COMBAT)
+    assert shown(mining_block.frame)
+    assert shown(combat_block.frame)
+    assert mining_block.frame.grid_info()["row"] < combat_block.frame.grid_info()["row"]
+    combat_block._reset.invoke()
+    assert resets == [Activity.COMBAT]
+    panel.render((ActivityBlock(Activity.COMBAT, combat),))
+    assert not shown(mining_block.frame)
+    assert shown(combat_block.frame)
 
 
 def test_panel_retranslates_its_own_texts(root: tk.Tk) -> None:
     language = {"prefix": ""}
-    panel = Panel(root, lambda: None, lambda text: language["prefix"] + text)
+    panel = Panel(root, lambda _: None, lambda text: language["prefix"] + text)
+    panel.render((ActivityBlock(Activity.COMBAT, MODEL),))
     language["prefix"] = "fr:"
     panel.retranslate()
-    assert panel._reset["text"] == "fr:Reset"
+    assert panel.block(Activity.COMBAT)._reset["text"] == "fr:Reset"
 
 
 def test_preferences_tab_gives_back_what_it_shows(root: tk.Tk) -> None:
@@ -81,9 +103,13 @@ def test_preferences_tab_reads_the_edited_fields(root: tk.Tk) -> None:
     tab._remaining.set("50")
     tab._sound.set(False)
     tab._record.set(True)
+    tab._activities[Activity.MINING].set(False)
+    tab._display_mode.set(DisplayMode.STACKED.value)
     edited = tab.values()
     assert edited.thresholds["painite"] == "40"
     assert edited.minimum_content is ContentLevel.HIGH
     assert edited.minimum_remaining == "50"
     assert not edited.sound_enabled
     assert edited.record_journal
+    assert edited.activities == {Activity.MINING: False, Activity.COMBAT: True}
+    assert edited.display_mode is DisplayMode.STACKED

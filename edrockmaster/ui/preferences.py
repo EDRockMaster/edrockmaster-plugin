@@ -7,6 +7,8 @@ from collections.abc import Callable
 from tkinter import ttk
 from typing import Any
 
+from edrockmaster.application.activity import Activity
+from edrockmaster.application.settings import DisplayMode
 from edrockmaster.domain.mining.journal import ContentLevel
 from edrockmaster.ui.preferences_form import PreferencesValues
 
@@ -20,6 +22,11 @@ _CONTENT_LEVELS = {
     ContentLevel.LOW: "Low",
     ContentLevel.MEDIUM: "Medium",
     ContentLevel.HIGH: "High",
+}
+_ACTIVITY_NAMES = {Activity.MINING: "Show mining", Activity.COMBAT: "Show combat"}
+_DISPLAY_MODES = {
+    DisplayMode.LAST_ACTIVE: "Last active activity",
+    DisplayMode.STACKED: "All of them, stacked",
 }
 PAD = 10
 
@@ -44,6 +51,10 @@ class PreferencesTab:
         self._thresholds = {
             key: tk.StringVar(value=values.thresholds.get(key, "")) for key, _ in rows
         }
+        self._activities = {
+            activity: tk.BooleanVar(value=shown) for activity, shown in values.activities.items()
+        }
+        self._display_mode = tk.StringVar(value=values.display_mode.value)
 
         row = 0
         nb.Label(self.frame, text=tl("Prospector alerts")).grid(
@@ -93,6 +104,34 @@ class PreferencesTab:
             )
             row += 1
 
+        nb.Label(self.frame, text=tl("Display")).grid(
+            row=row,
+            column=0,
+            columnspan=2 * THRESHOLD_COLUMNS,
+            sticky=tk.W,
+            padx=PAD,
+            pady=(PAD, 0),
+        )
+        row += 1
+        nb.Label(self.frame, text=tl("Activities shown")).grid(
+            row=row, column=0, sticky=tk.W, padx=(PAD, 2)
+        )
+        shown = nb.Frame(self.frame)
+        shown.grid(row=row, column=1, columnspan=2 * THRESHOLD_COLUMNS - 1, sticky=tk.W)
+        for activity, variable in self._activities.items():
+            nb.Checkbutton(shown, text=tl(_ACTIVITY_NAMES[activity]), variable=variable).pack(
+                side=tk.LEFT, padx=(0, PAD)
+            )
+        row += 1
+        nb.Label(self.frame, text=tl("Mode")).grid(row=row, column=0, sticky=tk.W, padx=(PAD, 2))
+        modes = nb.Frame(self.frame)
+        modes.grid(row=row, column=1, columnspan=2 * THRESHOLD_COLUMNS - 1, sticky=tk.W)
+        for mode, name in _DISPLAY_MODES.items():
+            nb.Radiobutton(
+                modes, text=tl(name), variable=self._display_mode, value=mode.value
+            ).pack(side=tk.LEFT, padx=(0, PAD))
+        row += 1
+
         nb.Label(self.frame, text=tl("Debugging")).grid(
             row=row,
             column=0,
@@ -118,6 +157,10 @@ class PreferencesTab:
             alert_on_cores=self._cores.get(),
             sound_enabled=self._sound.get(),
             record_journal=self._record.get(),
+            activities={
+                activity: variable.get() for activity, variable in self._activities.items()
+            },
+            display_mode=DisplayMode(self._display_mode.get()),
         )
 
 

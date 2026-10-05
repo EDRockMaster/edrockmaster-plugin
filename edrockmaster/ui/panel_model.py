@@ -11,6 +11,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import timedelta
 
+from edrockmaster.application.activity import Activity
+
 type Translate = Callable[[str], str]
 
 type NumberFormat = Callable[[float, int], str]
@@ -37,6 +39,14 @@ class PanelModel:
     lines: tuple[StatLine, ...]
     alert: str | None
     can_reset: bool
+
+
+@dataclass(frozen=True, slots=True)
+class ActivityBlock:
+    """One activity's part of the panel: one block, or one per activity when stacked."""
+
+    activity: Activity
+    model: PanelModel
 
 
 def format_duration(duration: timedelta, translate: Translate) -> str:

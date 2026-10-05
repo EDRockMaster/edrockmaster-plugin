@@ -2,7 +2,13 @@ from dataclasses import replace
 
 import pytest
 
-from edrockmaster.application.settings import DEFAULT_SETTINGS, PluginSettings
+from edrockmaster.application.activity import Activity
+from edrockmaster.application.settings import (
+    DEFAULT_SETTINGS,
+    DisplayMode,
+    DisplaySettings,
+    PluginSettings,
+)
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.mining.journal import ContentLevel
 from edrockmaster.domain.mining.prospecting import AlertSettings
@@ -139,3 +145,28 @@ def test_unknown_commodities_of_the_settings_are_kept() -> None:
     previous = custom(weirdrock=10.0)
     settings, _ = to_settings(values_from_settings(previous, fmt), previous)
     assert settings.alerts.thresholds[WEIRD] == 10.0
+
+
+def test_values_show_the_display_settings() -> None:
+    values = values_from_settings(DEFAULT_SETTINGS, fmt)
+    assert values.activities == {Activity.MINING: True, Activity.COMBAT: True}
+    assert values.display_mode is DisplayMode.LAST_ACTIVE
+
+
+def test_edited_display_becomes_the_new_settings() -> None:
+    values = values_from_settings(DEFAULT_SETTINGS, fmt)
+    values.activities[Activity.MINING] = False
+    values.display_mode = DisplayMode.STACKED
+    settings, invalid = to_settings(values)
+    assert settings.display == DisplaySettings((Activity.COMBAT,), DisplayMode.STACKED)
+    assert invalid == ()
+
+
+def test_hiding_every_activity_keeps_the_previous_ones_and_is_reported() -> None:
+    previous = replace(DEFAULT_SETTINGS, display=DisplaySettings((Activity.COMBAT,)))
+    values = values_from_settings(previous, fmt)
+    values.activities[Activity.COMBAT] = False
+    values.display_mode = DisplayMode.STACKED
+    settings, invalid = to_settings(values, previous)
+    assert settings.display == DisplaySettings((Activity.COMBAT,), DisplayMode.STACKED)
+    assert invalid == ("Activities shown",)

@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from edrockmaster import VERSION
+from edrockmaster.application.activity import Activity
 from edrockmaster.application.companion import Companion, Notification
 from edrockmaster.application.ports import Clock
 from edrockmaster.edmc import host
@@ -111,9 +112,11 @@ class Plugin:
 
     def app(self, parent: tk.Misc) -> tk.Frame:
         """``plugin_app``: the panel in EDMC's main window."""
+        if self._companion is not None:
+            self._presenter.configure(self._companion.settings.display)
         panel = self._panel = Panel(parent, self.reset_session, tl, host.theme_update)
-        panel.render(self._presenter.render())
-        self.subscribe(lambda notifications: panel.render(self._presenter.apply(notifications)))
+        panel.render(self._presenter.blocks())
+        self.subscribe(self._refresh)
         self.attach_alert_sound(system_alert_sound(panel.frame))
         return panel.frame
 
@@ -140,18 +143,19 @@ class Plugin:
                 tab.values(), self._companion.settings, host.parse_number, tl
             )
             self._companion.change_settings(settings)
+            self._presenter.configure(settings.display)
             if invalid:
                 host.show_error(
                     tl("Invalid entries ignored: {fields}").format(fields=", ".join(invalid))
                 )
         if self._panel is not None:
             self._panel.retranslate()
-            self._panel.render(self._presenter.render())
+            self._panel.render(self._presenter.blocks())
 
-    def reset_session(self) -> None:
-        """The panel's reset button: ends the session of the activity shown."""
+    def reset_session(self, activity: Activity) -> None:
+        """A reset button of the panel: ends the session of its activity."""
         if self._companion is not None:
-            self._publish(self._companion.reset(self._presenter.current))
+            self._publish(self._companion.reset(activity))
 
     def open_recordings(self) -> None:
         folder = self._data_directory() / "recordings"
@@ -195,6 +199,11 @@ class Plugin:
                 logger.exception("A listener failed on %r", notifications)
                 error = _internal_error()
         return error
+
+    def _refresh(self, notifications: Sequence[Notification]) -> None:
+        self._presenter.apply(notifications)
+        if self._panel is not None:
+            self._panel.render(self._presenter.blocks())
 
     def _alert_sound(self) -> None:
         if self._play_alert is not None:

@@ -93,6 +93,13 @@
 "High" = "Élevée";
 "Alert on cores (motherlodes)" = "Alerte sur les cores (filons-mères)";
 "Play a sound on alerts" = "Jouer un son lors des alertes";
+"Display" = "Affichage";
+"Activities shown" = "Activités affichées";
+"Show mining" = "Afficher le minage";
+"Show combat" = "Afficher le combat";
+"Mode" = "Mode";
+"Last active activity" = "Dernière activité active";
+"All of them, stacked" = "Toutes, empilées";
 "Debugging" = "Débogage";
 "Record the journal (for bug reports)" = "Enregistrer le journal (pour signaler un bogue)";
 "Open recordings folder" = "Ouvrir le dossier des enregistrements";
