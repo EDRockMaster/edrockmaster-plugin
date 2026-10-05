@@ -2,7 +2,7 @@
 
 *[English](design.md) · Français*
 
-Conception du plugin EDMC d'EDRockMaster. Périmètre : **jalon 1, étape 1A** (plugin local, premier essai en jeu), plus l'activité de chasse à la prime (décision de conception ADR 0011, dans le dépôt d'architecture du projet). La liaison avec le serveur (étape 1B) est conçue ici pour ne pas avoir à reprendre 1A, mais elle n'est pas encore réalisée. Les contraintes viennent des [prérequis](prerequisites.fr.md) ; les règles d'ingénierie, de `edrockmaster-architecture`.
+Conception du plugin EDMC d'EDRockMaster. Périmètre : **jalon 1, étape 1A** (plugin local, premier essai en jeu), plus l'activité de combat (décisions de conception ADR 0011 et ADR 0013, dans le dépôt d'architecture du projet). La liaison avec le serveur (étape 1B) est conçue ici pour ne pas avoir à reprendre 1A, mais elle n'est pas encore réalisée. Les contraintes viennent des [prérequis](prerequisites.fr.md) ; les règles d'ingénierie, de `edrockmaster-architecture`.
 
 ## Objectifs de l'étape 1A
 
@@ -28,16 +28,17 @@ edrockmaster/
       journal.py                entrée du journal → fait du minage
       prospecting.py            astéroïde prospecté, politique d'alerte
       session.py                agrégat MiningTracker (cycle de vie, statistiques, ventes)
-    bounty/                     contexte de la chasse à la prime
-      journal.py                entrée du journal → fait de la chasse
-      hunting.py                agrégat HuntingTracker (sessions, bons, objectifs communautaires)
+    combat/                     contexte du combat
+      journal.py                entrée du journal → fait du combat
+      sites.py                  sites de combat, tels que le jeu les nomme à l'arrivée
+      session.py                agrégat CombatTracker (sessions par segments de site, bons, délits, objectifs communautaires)
   application/
-    activity.py                 les activités : minage, chasse à la prime
+    activity.py                 les activités : minage, combat
     companion.py                Companion : enregistre le journal une fois, passe chaque entrée à chaque activité, porte les réglages
     settings.py                 PluginSettings (alertes, son, enregistreur) et leurs valeurs par défaut
     ports.py                    Clock, SettingsStore, Notifier, JournalRecorder (et, en 1B, UploadQueue, Authenticator)
     mining_service.py           cas d'usage du minage : traiter une entrée du journal, réinitialiser la session, appliquer les réglages
-    hunting_service.py          cas d'usage de la chasse : traiter une entrée du journal, réinitialiser la session
+    combat_service.py           cas d'usage du combat : traiter une entrée du journal, réinitialiser la session
   infrastructure/
     settings_edmc.py            SettingsStore sur le config d'EDMC (clés préfixées « edrockmaster. »)
     recorder_jsonl.py           JournalRecorder : fichiers JSONL dans le dossier de données
@@ -53,7 +54,7 @@ edrockmaster/
     panel_model.py              PanelModel (textes) et mise en forme commune, sans tkinter
     presenter.py                ActivityPresenter : montre l'activité en cours
     mining_presenter.py         notifications du minage → PanelModel
-    hunting_presenter.py        notifications de la chasse → PanelModel
+    combat_presenter.py         notifications du combat → PanelModel
     preferences_form.py         réglages <-> champs des préférences, validation, sans tkinter
     commodity_names.py          noms des commodités minables connues avant que le journal ne les nomme
     panel.py                    panneau de la fenêtre principale (tkinter, fil principal uniquement), recopie PanelModel
@@ -104,23 +105,32 @@ Tout ceci n'est que du calcul sur de petits objets (bien moins d'une millisecond
 
 Statistiques d'une session : durée active, tonnes par commodité, tonnes totales, tonnes par heure, astéroïdes prospectés (par niveau de teneur), cores trouvés et fissurés, drones lancés (prospecteurs, collecteurs), raffinages par minute, tonnes vendues et crédits gagnés.
 
-## Chasse à la prime
+## Combat
+
+Le combat couvre la chasse à la prime, les zones de conflit et toute victime ([ADR 0013](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0013-combat-segments-and-live-panel.fr.md)). Il se mesure en **segments** : un séjour sur un site de combat, de l'arrivée au départ.
 
 | Situation | Effet |
 | --- | --- |
 | `Bounty` (format vaisseau avec `Rewards`, ou format simple pour les skimmers et à pied) | Une victime ; crédits de prime ; un bon de prime par faction payeuse |
 | `FactionKillBond` | Une victime ; crédits et bon d'obligation de combat |
 | `CapShipBond` | Crédits et bon d'obligation de combat, sans victime |
-| Première récompense | La session de chasse commence |
-| `SupercruiseExit` ailleurs qu'en station, `Location` en espace normal hors station | Arrivée sur un site : le compteur de temps sur site tourne (depuis cette arrivée si la première récompense suit) |
-| `SupercruiseEntry`, `Docked`, `FSDJump` | Départ du site : le compteur s'arrête ; la session continue (les chasseurs passent d'un site à l'autre et s'amarrent pour se réarmer) |
+| Première récompense | La session de combat commence |
+| `SupercruiseDestinationDrop` puis `SupercruiseExit` | Arrivée à une destination. Un site de combat si son type est connu : zone de conflit (faible, moyenne, forte), site d'extraction de ressources (pauvre, normal, riche, dangereux), balise de navigation |
+| `SupercruiseExit` sans destination (anneau, planète, espace profond), `Undocked` | Arrivée ailleurs que sur un site de combat |
+| Première récompense sur un site de combat | Un segment s'ouvre, **depuis l'arrivée** : la recherche de cibles compte |
+| `SupercruiseEntry`, `Docked`, `FSDJump`, `StartJump` vers l'hyperespace | Départ : le segment se ferme ; la session continue. Un site quitté sans aucune récompense ne compte pas |
+| Récompense ailleurs (un pirate pendant le minage, près d'une station, après une interdiction) | **Divers** : comptée dans les victimes, les crédits et les bons, dans aucun ratio |
+| Récompense sans arrivée vue (EDMC ou le jeu a démarré sur le site : `StartUp`, `Location` hors station) | Un segment de type **inconnu**, depuis cette récompense ; divers si le commandant mine là (`ProspectedAsteroid`, `MiningRefined`, `AsteroidCracked`, drones de prospection ou de collecte) |
+| `CommitCrime` pendant une session | Compté par type de délit : amendes et primes sur le commandant, jamais retirées des crédits |
 | `Died` | La session se termine ; les bons non encaissés sont perdus |
 | `Shutdown`, `ShutDown` | La session se termine |
 | `RedeemVoucher` (primes, obligations de combat) | Les bons payés sont retirés, par faction, jamais en dessous de zéro |
 | `CommunityGoal` | Les objectifs rejoints par le commandant : contribution, tranche de classement, palier atteint |
-| Réinitialisation manuelle (bouton du panneau, chasse affichée) | La session se termine, une nouvelle peut commencer |
+| Réinitialisation manuelle (bouton du panneau, combat affiché) | La session se termine, une nouvelle peut commencer ; toujours sur le site, le segment suivant commence à la réinitialisation |
 
-Statistiques d'une session de chasse : durée active, mesurée en **temps sur site** (en espace normal hors des stations, depuis l'arrivée sur le site de la première récompense ; la recherche de cibles compte, les trajets et l'amarrage non), victimes (et victimes partagées), crédits de primes et d'obligations de combat, crédits par heure. Communs au panneau : les bons non encaissés (connus seulement depuis le lancement d'EDMC : le journal ne redonne pas les plus anciens) et les objectifs communautaires. Les superpuissances écrites `$faction_Federation;` sont ramenées à `Federation`. Une session avec des obligations de combat et aucune prime s'affiche comme **Zone de conflit**, sans la ligne des primes, vide.
+Statistiques d'une session de combat : ses segments (type de site, durée, victimes, crédits, ratios), une moyenne **par type de site, pondérée par le temps** (total des victimes et des crédits sur la durée totale), le temps sur les sites de combat, les victimes (et victimes partagées), les crédits de primes et d'obligations de combat, les victimes diverses, les délits. Communs au panneau : les bons non encaissés (connus seulement depuis le lancement d'EDMC : le journal ne redonne pas les plus anciens) et les objectifs communautaires. Les superpuissances écrites `$faction_Federation;` sont ramenées à `Federation`. Une autre activité ne termine jamais une session de combat : un mineur peut riposter et continuer de miner.
+
+Le panneau affiche la dernière activité qui a **progressé** : pour le combat, une session ou un segment qui commence ou se termine, une récompense ou un délit ; quitter un site sans segment, les bons et les objectifs communautaires ne le font jamais basculer.
 
 ## Alertes du prospecteur
 
@@ -168,7 +178,7 @@ Contenu en 1A : `recordings/` (enregistrements du journal, JSONL, un fichier par
 - Écrit chaque entrée reçue par le plugin, sans modification, un objet JSON par ligne, avec l'indicateur `is_beta` : `{"is_beta": false, "entry": {…}}`. Fichier : `recordings/journal-<début, UTC, AAAAMMJJTHHMMSSZ>.jsonl`.
 - L'entrée est sérialisée dès sa réception (EDMC partage le même dict avec tous les plugins), puis écrite par le fil d'entrées-sorties.
 - C'est à partir de ces enregistrements que l'on constitue `tests/fixtures/` ; le joueur décide de ce qu'il partage.
-- Le dépôt est public, et un enregistrement brut contient des données personnelles (nom et identifiant Frontier du commandant, escadron, porte-vaisseaux, messages, noms d'autres joueurs, réputation). Un enregistrement ne devient donnée de test qu'à travers `scripts/sanitise_recording.py` : il garde les événements lus par le plugin et quelques événements anodins, réduit `LoadGame` à la version du jeu, retire la réputation (`Location.Factions`) et le nom du pilote des cibles (`Bounty.PilotName`), événement par événement, et refuse d'écrire si le nom ou l'identifiant du commandant subsiste. `tests/test_replay.py` rejoue chaque jeu de données, avec des chiffres vérifiés à la main sur le journal brut.
+- Le dépôt est public, et un enregistrement brut contient des données personnelles (nom et identifiant Frontier du commandant, escadron, porte-vaisseaux, messages, noms d'autres joueurs, réputation). Un enregistrement ne devient donnée de test qu'à travers `scripts/sanitise_recording.py` : il garde les événements lus par le plugin et quelques événements anodins, réduit `LoadGame` à la version du jeu, retire la réputation (`Factions` de `Location`, `FSDJump`, `StartUp`), le nom du pilote des cibles (`Bounty.PilotName`) et les victimes des délits (`CommitCrime.Victim`), événement par événement, remplace chaque porte-vaisseaux (nom, indicatif, identifiant) par une valeur neutre, et refuse d'écrire si le nom ou l'identifiant du commandant, ou un porte-vaisseaux, subsiste. `tests/test_replay.py` rejoue chaque jeu de données, avec des chiffres vérifiés à la main sur le journal brut.
 
 ## Internationalisation
 

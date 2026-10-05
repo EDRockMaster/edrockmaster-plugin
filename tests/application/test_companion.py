@@ -6,7 +6,7 @@ import pytest
 from edrockmaster.application.activity import Activity
 from edrockmaster.application.companion import Companion
 from edrockmaster.application.settings import DEFAULT_SETTINGS, PluginSettings
-from edrockmaster.domain.bounty.hunting import HuntEnded, HuntStarted, VouchersUpdated
+from edrockmaster.domain.combat.session import CombatEnded, CombatStarted, VouchersUpdated
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.mining.journal import ContentLevel
@@ -45,9 +45,9 @@ def harness() -> Harness:
 
 def test_each_activity_receives_the_entries(harness: Harness) -> None:
     assert isinstance(harness.entry(prospected_entry(0))[0], SessionStarted)
-    assert isinstance(harness.entry(bounty_entry(1))[0], HuntStarted)
+    assert isinstance(harness.entry(bounty_entry(1))[0], CombatStarted)
     assert harness.companion.mining.current_stats is not None
-    assert harness.companion.hunting.current_stats is not None
+    assert harness.companion.combat.current_stats is not None
 
 
 def test_irrelevant_entries_produce_nothing(harness: Harness) -> None:
@@ -58,8 +58,8 @@ def test_irrelevant_entries_produce_nothing(harness: Harness) -> None:
 def test_reset_acts_on_the_chosen_activity_only(harness: Harness) -> None:
     harness.entry(refined_entry(0))
     harness.entry(bounty_entry(1))
-    [ended] = harness.companion.reset(Activity.BOUNTY_HUNTING)
-    assert isinstance(ended, HuntEnded)
+    [ended] = harness.companion.reset(Activity.COMBAT)
+    assert isinstance(ended, CombatEnded)
     assert harness.companion.mining.current_stats is not None
     [ended] = harness.companion.reset(Activity.MINING)
     assert isinstance(ended, SessionEnded)

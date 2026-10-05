@@ -41,27 +41,42 @@
 "prospectors: {prospectors}, collectors: {collectors}" = "prospecteurs : {prospectors}, collecteurs : {collectors}";
 "{tons}, {credits}" = "{tons}, {credits}";
 "{credits} CR" = "{credits} CR";
-"{credits}/h" = "{credits}/h";
 
 /* ui/mining_presenter.py: prospector alert for a core (motherlode) */
 "Core: {commodity}" = "Core : {commodity}";
 
-/* ui/hunting_presenter.py: panel status */
-"No hunting session" = "Aucune session de chasse";
-"Bounty hunting" = "Chasse à la prime";
-"Hunt ended: {reason}" = "Chasse terminée : {reason}";
-"Conflict zone" = "Zone de conflit";
-"Conflict zone ended: {reason}" = "Zone de conflit terminée : {reason}";
+/* ui/combat_presenter.py: panel status */
+"No combat session" = "Aucune session de combat";
+"Combat" = "Combat";
+"Combat session ended: {reason}" = "Session de combat terminée : {reason}";
 "ship destroyed" = "vaisseau détruit";
 
-/* ui/hunting_presenter.py: statistic labels and values */
+/* ui/combat_presenter.py: combat sites (status, and the average of each site type) */
+"Conflict zone, low" = "Zone de conflit, faible";
+"Conflict zone, medium" = "Zone de conflit, moyenne";
+"Conflict zone, high" = "Zone de conflit, forte";
+"RES, low" = "RES pauvre";
+"RES" = "RES";
+"RES, high" = "RES riche";
+"RES, hazardous" = "RES dangereux";
+"Nav beacon" = "Balise de navigation";
+"Unknown site" = "Site inconnu";
+
+/* ui/combat_presenter.py: statistic labels and values */
 "Kills" = "Victimes";
 "{kills} ({shared} shared)" = "{kills} (dont {shared} partagées)";
 "Bounties" = "Primes";
 "Combat bonds" = "Obligations de combat";
+"This site" = "Ce site";
+"{duration}, kills: {kills}" = "{duration}, victimes : {kills}";
+"{kills} kills/h, {credits}/h" = "{kills} victimes/h, {credits}/h";
+"Miscellaneous" = "Divers";
+"kills: {kills}, {credits}" = "victimes : {kills}, {credits}";
+"Fines" = "Amendes";
+"Bounty on you" = "Prime sur vous";
 "Unredeemed" = "Non encaissé";
 
-/* ui/hunting_presenter.py: community goal: contribution, percentile band, tier */
+/* ui/combat_presenter.py: community goal: contribution, percentile band, tier */
 "top {band} %" = "top {band} %";
 "{goal} (complete)" = "{goal} (terminé)";
 

@@ -4,7 +4,7 @@
 
 Plugin [EDMarketConnector](https://github.com/EDCD/EDMarketConnector) (EDMC) de **EDRockMaster — Elite Dangerous Rock Master Companion**.
 
-Fonctionne seul, sans serveur : alertes du prospecteur, cores et filons-mères, statistiques de session en direct, drones, soute et ventes. Aussi un compteur de chasse à la prime : victimes, primes et obligations de combat, crédits par heure, bons non encaissés, objectifs communautaires. Une version ultérieure ajoutera une liaison facultative avec les services d'EDRockMaster (connexion et envois, sur option).
+Fonctionne seul, sans serveur : alertes du prospecteur, cores et filons-mères, statistiques de session en direct, drones, soute et ventes. Aussi un compteur de combat, par site (zones de conflit, sites d'extraction de ressources, balises de navigation) : victimes, primes et obligations de combat, victimes et crédits par heure selon le type de site, victimes diverses, amendes, bons non encaissés, objectifs communautaires. Une version ultérieure ajoutera une liaison facultative avec les services d'EDRockMaster (connexion et envois, sur option).
 
 Interface en français et en anglais : le plugin suit la langue choisie dans EDMC.
 
@@ -18,7 +18,7 @@ Demande EDMC 6.1 ou plus récent.
 
 ## Utilisation
 
-- **Panneau** (fenêtre principale d'EDMC) : l'activité en cours, minage ou chasse à la prime. Pour le minage : la dernière alerte du prospecteur et les statistiques de la session ; pour la chasse : victimes, crédits, bons non encaissés et objectifs communautaires. **Réinitialiser** termine la session affichée.
+- **Panneau** (fenêtre principale d'EDMC) : l'activité en cours, minage ou combat. Pour le minage : la dernière alerte du prospecteur et les statistiques de la session ; pour le combat : le site en cours, les ratios par type de site, victimes, crédits, amendes, bons non encaissés et objectifs communautaires. **Réinitialiser** termine la session affichée.
 - **Paramètres → EDRockMaster** : seuil d'alerte par commodité (vide : pas d'alerte), teneur minimale, réserve minimale, cores, son.
 - **Enregistreur du journal** (même onglet, désactivé par défaut) : enregistre les événements du journal reçus par le plugin dans des fichiers JSONL. *Ouvrir le dossier des enregistrements* les affiche ; en joindre un à un signalement de bogue.
 

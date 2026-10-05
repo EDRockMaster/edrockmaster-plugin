@@ -4,7 +4,7 @@ import ast
 import re
 from pathlib import Path
 
-from edrockmaster.ui import hunting_presenter, mining_presenter, preferences
+from edrockmaster.ui import combat_presenter, mining_presenter, preferences
 from edrockmaster.ui.commodity_names import MINEABLE
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -36,7 +36,8 @@ def source_strings() -> set[str]:
     # Texts translated through a variable: declared in tables
     strings |= {name for _, name in MINEABLE}
     strings |= set(mining_presenter._END_REASONS.values())
-    strings |= set(hunting_presenter._END_REASONS.values())
+    strings |= set(combat_presenter._END_REASONS.values())
+    strings |= set(combat_presenter.SITE_NAMES.values())
     strings |= set(preferences._CONTENT_LEVELS.values())
     return strings
 

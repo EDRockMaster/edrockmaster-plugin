@@ -1,7 +1,8 @@
-"""Translation of raw journal entries into facts of the bounty hunting domain.
+"""Translation of raw journal entries into facts of the combat domain.
 
-The bounty hunting context's anti-corruption layer for the game journal,
-built on the tolerant helpers of the shared kernel (``journal_reading``).
+The combat context's anti-corruption layer for the game journal, built on the
+tolerant helpers of the shared kernel (``journal_reading``). It reads a few
+mining events too, for its own rule: a kill while mining is miscellaneous.
 """
 
 from __future__ import annotations
@@ -10,6 +11,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 
+from edrockmaster.domain.combat.sites import SiteType, combat_site
 from edrockmaster.domain.journal_reading import (
     Entry,
     Parser,
@@ -77,15 +79,50 @@ class GameClosed:
 
 
 @dataclass(frozen=True, slots=True)
-class SiteEntered:
-    """In normal space away from any station: where targets are found (and searched for)."""
+class DestinationDropped:
+    """Supercruise ends at a chosen destination; ``site`` is ``None`` if not a combat site."""
+
+    at: datetime
+    site: SiteType | None
+
+
+@dataclass(frozen=True, slots=True)
+class NormalSpaceEntered:
+    """Out of supercruise or out of a station, in normal space."""
 
     at: datetime
 
 
 @dataclass(frozen=True, slots=True)
-class SiteLeft:
+class GameLoaded:
+    """The game (or EDMC) started: where the commander is, the journal does not say."""
+
     at: datetime
+    docked: bool
+
+
+@dataclass(frozen=True, slots=True)
+class SiteLeft:
+    """Supercruise, docking or a jump: the commander leaves the place."""
+
+    at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class MiningSeen:
+    """The commander mines here: a kill now is not combat time."""
+
+    at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class CrimeCommitted:
+    """A fine or a bounty on the commander's head (``kind`` as the game names the crime)."""
+
+    at: datetime
+    kind: str
+    fine: int
+    bounty: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,14 +152,18 @@ type Fact = (
     | VouchersRedeemed
     | CommanderDied
     | GameClosed
-    | SiteEntered
+    | DestinationDropped
+    | NormalSpaceEntered
+    | GameLoaded
     | SiteLeft
+    | MiningSeen
+    | CrimeCommitted
     | CommunityGoalsUpdated
 )
 
 
 def parse_entry(entry: Entry) -> Fact | None:
-    """Return the bounty hunting fact carried by a journal entry, or ``None`` if irrelevant."""
+    """Return the combat fact carried by a journal entry, or ``None`` if irrelevant."""
     return translate(entry, _PARSERS)
 
 
@@ -207,23 +248,45 @@ def _closed(_entry: Entry, at: datetime) -> GameClosed:
     return GameClosed(at)
 
 
-_STATION = "Station"
+def _destination(entry: Entry, at: datetime) -> DestinationDropped:
+    return DestinationDropped(at, combat_site(required(entry, "Type", str)))
 
 
-def _supercruise_exit(entry: Entry, at: datetime) -> SiteEntered | None:
-    return None if optional(entry, "BodyType", str) == _STATION else SiteEntered(at)
+def _normal_space(_entry: Entry, at: datetime) -> NormalSpaceEntered:
+    return NormalSpaceEntered(at)
 
 
-def _location(entry: Entry, at: datetime) -> SiteEntered | None:
-    """The game loaded, or the commander respawned: a site only in normal space, off station."""
-    body_type = optional(entry, "BodyType", str)
-    if optional(entry, "Docked", bool) or body_type in (None, _STATION):
-        return None
-    return SiteEntered(at)
+def _loaded(entry: Entry, at: datetime) -> GameLoaded:
+    return GameLoaded(at, docked=bool(optional(entry, "Docked", bool)))
 
 
 def _site_left(_entry: Entry, at: datetime) -> SiteLeft:
     return SiteLeft(at)
+
+
+def _jump(entry: Entry, at: datetime) -> SiteLeft | None:
+    """A hyperspace jump straight from normal space; a jump to supercruise ends in one."""
+    return SiteLeft(at) if required(entry, "JumpType", str) == "Hyperspace" else None
+
+
+def _mining(_entry: Entry, at: datetime) -> MiningSeen:
+    return MiningSeen(at)
+
+
+_MINING_LIMPETS = {"Prospector", "Collection"}
+
+
+def _limpet(entry: Entry, at: datetime) -> MiningSeen | None:
+    return MiningSeen(at) if required(entry, "Type", str) in _MINING_LIMPETS else None
+
+
+def _crime(entry: Entry, at: datetime) -> CrimeCommitted:
+    return CrimeCommitted(
+        at,
+        kind=required(entry, "CrimeType", str),
+        fine=optional(entry, "Fine", int) or 0,
+        bounty=optional(entry, "Bounty", int) or 0,
+    )
 
 
 def _goal(item: Entry) -> CommunityGoal:
@@ -256,9 +319,18 @@ _PARSERS: dict[str, Parser[Fact | None]] = {
     "Shutdown": _closed,
     "ShutDown": _closed,  # synthetic event from EDMC when the game crashed
     "CommunityGoal": _goals,
-    "SupercruiseExit": _supercruise_exit,
-    "Location": _location,
+    "SupercruiseDestinationDrop": _destination,
+    "SupercruiseExit": _normal_space,
+    "Undocked": _normal_space,
+    "Location": _loaded,
+    "StartUp": _loaded,
     "SupercruiseEntry": _site_left,
     "Docked": _site_left,
     "FSDJump": _site_left,
+    "StartJump": _jump,
+    "ProspectedAsteroid": _mining,
+    "MiningRefined": _mining,
+    "AsteroidCracked": _mining,
+    "LaunchDrone": _limpet,
+    "CommitCrime": _crime,
 }

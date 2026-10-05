@@ -3,6 +3,10 @@
 Each fixture was produced by the journal recorder, then by
 scripts/sanitise_recording.py; the expected figures were checked by hand
 against the raw journal.
+
+The two fixtures of 3 October 2026 were sanitised before the sanitiser kept
+``SupercruiseDestinationDrop``: the arrivals on combat sites are missing, so
+their kills are miscellaneous (ADR 0013), without any rate.
 """
 
 import json
@@ -14,13 +18,16 @@ import pytest
 from edrockmaster.application.activity import Activity
 from edrockmaster.application.companion import Companion, Notification
 from edrockmaster.application.settings import DEFAULT_SETTINGS
-from edrockmaster.domain.bounty.hunting import (
+from edrockmaster.domain.combat.session import (
+    CombatEnded,
+    CombatEndReason,
+    CombatStats,
     CommunityGoalsChanged,
-    HuntEnded,
-    HuntEndReason,
-    HuntStats,
+    Tally,
     VouchersUpdated,
 )
+from edrockmaster.domain.combat.sites import SiteType
+from edrockmaster.domain.mining.session import EndReason, SessionEnded
 from edrockmaster.ui.presenter import ActivityPresenter
 from tests.fakes import FakeNotifier, FakeRecorder, FakeSettingsStore, FixedClock
 
@@ -38,11 +45,18 @@ class Replay:
         )
         self.presenter = ActivityPresenter()
         self.notifications: list[Notification] = []
+        self.panel_switches: list[tuple[str, Activity]] = []
         for line in (FIXTURES / fixture).read_text(encoding="utf-8").splitlines():
             record = json.loads(line)
             produced = self.companion.handle_journal_entry(record["entry"], record["is_beta"])
+            shown = self.presenter.current
             self.presenter.apply(produced)
+            if self.presenter.current is not shown:
+                self.panel_switches.append((record["entry"]["timestamp"], self.presenter.current))
             self.notifications += produced
+
+    def lines(self) -> list[tuple[str, str]]:
+        return [(line.label, line.value) for line in self.presenter.render().lines]
 
 
 @pytest.fixture(scope="module")
@@ -53,23 +67,24 @@ def conflict_zone() -> Replay:
 
 
 def test_conflict_zone_kills_and_combat_bonds(conflict_zone: Replay) -> None:
-    stats = conflict_zone.companion.hunting.current_stats
+    stats = conflict_zone.companion.combat.current_stats
     assert stats is not None
     assert (stats.kills, stats.shared_kills) == (6, 0)
     assert (stats.bounty_credits, stats.bond_credits) == (0, 224_467)
-    # Time on site: from the drop at 11:38:45 to the departure, and back to the station
-    assert stats.active_duration == timedelta(minutes=26, seconds=8)
+    # The arrival in the zone is not in this fixture: miscellaneous kills, no time on site
+    assert stats.miscellaneous == Tally(kills=6, bond_credits=224_467)
+    assert (stats.segments, stats.active_duration) == ((), timedelta(0))
 
 
 def test_conflict_zone_redemption_includes_bonds_earned_before_edmc(
     conflict_zone: Replay,
 ) -> None:
     # 855,491 CR redeemed, more than the 224,467 CR seen: the rest predates EDMC's start
-    assert conflict_zone.companion.hunting.vouchers.total == 0
+    assert conflict_zone.companion.combat.vouchers.total == 0
 
 
 def test_conflict_zone_community_goal(conflict_zone: Replay) -> None:
-    [goal] = conflict_zone.companion.hunting.community_goals
+    [goal] = conflict_zone.companion.combat.community_goals
     assert (goal.cgid, goal.contribution, goal.percentile_band) == (860, 2_408_404, 50)
     # The game localises the tier names in the updates written from the station's tab
     # ("Tier 5" before, "Niveau 5" after): they are shown as the journal gives them
@@ -96,12 +111,12 @@ def test_conflict_zone_is_not_mining(conflict_zone: Replay) -> None:
     assert conflict_zone.notifier.notified == []
 
 
-def test_conflict_zone_panel_shows_the_hunt(conflict_zone: Replay) -> None:
-    assert conflict_zone.presenter.current is Activity.BOUNTY_HUNTING
-    model = conflict_zone.presenter.render()
-    assert model.status == "Conflict zone"
-    lines = [(line.label, line.value) for line in model.lines]
+def test_conflict_zone_panel_shows_the_combat(conflict_zone: Replay) -> None:
+    assert conflict_zone.presenter.current is Activity.COMBAT
+    assert conflict_zone.presenter.render().status == "Combat"
+    lines = conflict_zone.lines()
     assert ("Combat bonds", "224,467 CR") in lines
+    assert ("Miscellaneous", "kills: 6, 224,467 CR") in lines
     assert ("Éliminez les pilotes criminels…", "2,408,404, top 50 %") in lines
 
 
@@ -117,29 +132,26 @@ def zone_then_bounties() -> Replay:
     return Replay("redonesses-conflict-zone-then-bounties-2026-10-03.jsonl")
 
 
-def ended_hunts(replay: Replay) -> list[HuntStats]:
-    return [n.stats for n in replay.notifications if isinstance(n, HuntEnded)]
+def ended_sessions(replay: Replay) -> list[CombatStats]:
+    return [n.stats for n in replay.notifications if isinstance(n, CombatEnded)]
 
 
-def test_each_game_exit_ends_its_hunt(zone_then_bounties: Replay) -> None:
-    reasons = [n.reason for n in zone_then_bounties.notifications if isinstance(n, HuntEnded)]
-    assert reasons == [HuntEndReason.GAME_CLOSED, HuntEndReason.GAME_CLOSED]
-    assert zone_then_bounties.companion.hunting.current_stats is None
+def test_each_game_exit_ends_its_session(zone_then_bounties: Replay) -> None:
+    reasons = [n.reason for n in zone_then_bounties.notifications if isinstance(n, CombatEnded)]
+    assert reasons == [CombatEndReason.GAME_CLOSED, CombatEndReason.GAME_CLOSED]
+    assert zone_then_bounties.companion.combat.current_stats is None
 
 
-def test_conflict_zone_hunt_figures(zone_then_bounties: Replay) -> None:
-    zone = ended_hunts(zone_then_bounties)[0]
+def test_conflict_zone_figures(zone_then_bounties: Replay) -> None:
+    zone = ended_sessions(zone_then_bounties)[0]
     assert (zone.kills, zone.bounty_credits, zone.bond_credits) == (22, 0, 817_256)
-    assert zone.active_duration == timedelta(minutes=30, seconds=16)
+    assert zone.miscellaneous.kills == 22
 
 
-def test_bounty_hunt_figures(zone_then_bounties: Replay) -> None:
-    hunt = ended_hunts(zone_then_bounties)[1]
+def test_bounty_figures(zone_then_bounties: Replay) -> None:
+    hunt = ended_sessions(zone_then_bounties)[1]
     assert (hunt.kills, hunt.bounty_credits, hunt.bond_credits) == (17, 6_110_097, 0)
-    # 19 min 48 s of search between the first and the second bounty count: time on site
-    # (gaps between rewards gave 10 min 09 s and 36 M CR/h)
-    assert hunt.active_duration == timedelta(minutes=36, seconds=35)
-    assert round(hunt.credits_per_hour) == 10_021_116
+    assert hunt.miscellaneous.kills == 17
 
 
 def test_vouchers_peak_then_are_redeemed_exactly(zone_then_bounties: Replay) -> None:
@@ -165,10 +177,87 @@ def test_community_goal_grows_by_the_bonds_redeemed(zone_then_bounties: Replay) 
     assert goals[-1].tier_reached == "Niveau 1"
 
 
-def test_panel_after_the_bounty_hunt(zone_then_bounties: Replay) -> None:
+def test_panel_after_the_bounties(zone_then_bounties: Replay) -> None:
     model = zone_then_bounties.presenter.render()
-    assert model.status == "Hunt ended: game closed"
-    lines = [(line.label, line.value) for line in model.lines]
-    assert ("Bounties", "6,110,097 CR") in lines
-    assert ("Rate", "10,021,116 CR/h") in lines
+    assert model.status == "Combat session ended: game closed"
+    assert ("Bounties", "6,110,097 CR") in zone_then_bounties.lines()
     assert zone_then_bounties.companion.mining.current_stats is None
+
+
+@pytest.fixture(scope="module")
+def zones_mining_res() -> Replay:
+    """3 and 4 October (game 4.4.1.1): two high-intensity conflict zones at Capricorni Sector
+    XZ-Y b5, the bonds redeemed, 52 minutes of mining in Iyakajauja 13 B Ring, visits to two
+    resource extraction sites and a navigation beacon, then a bounty and a fine in a
+    hazardous RES."""
+    return Replay("capricorni-iyakajauja-zones-mining-res-2026-10-04.jsonl")
+
+
+def combat(replay: Replay) -> CombatStats:
+    stats = replay.companion.combat.current_stats
+    assert stats is not None
+    return stats
+
+
+def test_one_segment_per_combat_site_with_rewards(zones_mining_res: Replay) -> None:
+    segments = [(s.site, s.duration, s.tally) for s in combat(zones_mining_res).segments]
+    assert segments == [
+        # 00:26:32 to 00:46:43, then 00:47:58 to 01:17:06
+        (SiteType.CONFLICT_ZONE_HIGH, timedelta(minutes=20, seconds=11), Tally(16, 0, 0, 587_256)),
+        (SiteType.CONFLICT_ZONE_HIGH, timedelta(minutes=29, seconds=8), Tally(13, 0, 0, 566_000)),
+        # 05:22:40 to 05:28:01; the sites visited without a reward are not counted
+        (SiteType.RES_HAZARDOUS, timedelta(minutes=5, seconds=21), Tally(1, 0, 370_130, 0)),
+    ]
+
+
+def test_averages_per_site_type(zones_mining_res: Replay) -> None:
+    zones, res = combat(zones_mining_res).by_site()
+    assert (zones.site, zones.duration) == (
+        SiteType.CONFLICT_ZONE_HIGH,
+        timedelta(minutes=49, seconds=19),
+    )
+    assert (round(zones.kills_per_hour, 1), round(zones.credits_per_hour)) == (35.3, 1_403_083)
+    assert (res.site, round(res.credits_per_hour)) == (SiteType.RES_HAZARDOUS, 4_150_991)
+
+
+def test_mining_time_is_not_combat_time(zones_mining_res: Replay) -> None:
+    # 0.2.2 counted every minute in normal space: 1 h 44 min and 664,594 CR/h
+    stats = combat(zones_mining_res)
+    assert stats.active_duration == timedelta(minutes=54, seconds=40)
+    assert stats.miscellaneous == Tally()
+
+
+def test_the_mining_session_is_untouched(zones_mining_res: Replay) -> None:
+    [ended] = [n for n in zones_mining_res.notifications if isinstance(n, SessionEnded)]
+    assert ended.reason is EndReason.SUPERCRUISE
+    assert ended.stats.total_tons == 115
+    assert ended.stats.active_duration == timedelta(minutes=49, seconds=13)
+
+
+def test_the_panel_only_switches_on_progress(zones_mining_res: Replay) -> None:
+    # Leaving the ring no longer brings back the combat: only the next bounty does
+    assert zones_mining_res.panel_switches == [
+        ("2026-10-04T00:28:11Z", Activity.COMBAT),
+        ("2026-10-04T02:27:45Z", Activity.MINING),
+        ("2026-10-04T05:25:06Z", Activity.COMBAT),
+    ]
+
+
+def test_the_fine_is_counted_apart(zones_mining_res: Replay) -> None:
+    crimes = combat(zones_mining_res).crimes
+    assert (crimes.count, crimes.fines, dict(crimes.by_kind)) == (
+        1,
+        100,
+        {"recklessWeaponsDischarge": 1},
+    )
+    assert combat(zones_mining_res).credits == 1_153_256 + 370_130
+
+
+def test_panel_after_the_hazardous_res(zones_mining_res: Replay) -> None:
+    assert zones_mining_res.presenter.render().status == "Combat"
+    lines = zones_mining_res.lines()
+    assert ("Conflict zone, high", "35.3 kills/h, 1,403,083 CR/h") in lines
+    assert ("RES, hazardous", "11.2 kills/h, 4,150,991 CR/h") in lines
+    assert ("Fines", "100 CR") in lines
+    # The bonds were redeemed at 01:30: only the bounty of 05:25 is left
+    assert ("Unredeemed", "370,130 CR") in lines

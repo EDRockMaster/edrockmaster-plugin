@@ -4,6 +4,21 @@
 
 Les changements notables du plugin EDRockMaster. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), et les versions suivent le [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [Non publié]
+
+### Modifié
+
+- **La chasse à la prime devient le combat**, mesuré par site (décision de conception ADR 0013, dans le dépôt d'architecture du projet). Un **segment** est un séjour sur un site de combat (zone de conflit, site d'extraction de ressources, balise de navigation), de l'arrivée au départ ; il s'ouvre à la première récompense et compte la recherche depuis l'arrivée. Le panneau affiche le site en cours et, pour chaque type de site, les victimes et crédits par heure, pondérés par le temps. Un site quitté sans aucune récompense ne compte pas.
+- Le temps passé ailleurs en espace normal ne compte plus comme du combat : dans une vraie session, 52 minutes de minage après deux zones de conflit affichaient 1 h 44 min et 664 594 CR/h ; les zones seules font 49 min 19 s et 1 403 083 CR/h.
+- Le panneau ne bascule sur le combat que lorsqu'il progresse (une récompense, un segment qui commence ou se termine, un délit) : quitter un anneau après le minage ne ramène plus une session de combat terminée depuis des heures.
+
+### Ajouté
+
+- Victimes **diverses** : une victime hors de tout site de combat (un pirate pendant le minage, près d'une station) compte dans les victimes, les crédits et les bons, mais dans aucun ratio. Le temps de minage n'est jamais du temps de combat, et le minage ne termine jamais une session de combat.
+- **Amendes** et **primes sur vous** pendant une session de combat, jamais retirées de ce qui a été gagné.
+- Types de sites de combat confirmés en jeu (4.4.1.1) : zones de conflit (faible, moyenne, forte), sites d'extraction de ressources (pauvre, normal, riche, dangereux), balise de navigation.
+- Le script de nettoyage des enregistrements garde les arrivées sur site et les délits, retire la réputation des sauts et les victimes des délits, et remplace les porte-vaisseaux (nom, indicatif, identifiant).
+
 ## [0.2.2] - 2026-10-03
 
 ### Corrigé
