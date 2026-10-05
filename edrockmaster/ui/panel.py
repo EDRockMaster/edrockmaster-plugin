@@ -1,29 +1,36 @@
 """The plugin's panel in EDMC's main window (tkinter, main thread only).
 
-It only copies the texts of a ``PanelModel``: every decision is the presenter's.
+It only copies the texts of the presenter's blocks: every decision is the
+presenter's. Each activity has its own block (status, reset button, alert,
+statistics), created on first display and shown in the order given.
 """
 
 from __future__ import annotations
 
 import tkinter as tk
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
-from edrockmaster.ui.panel_model import PanelModel
+from edrockmaster.application.activity import Activity
+from edrockmaster.ui.panel_model import ActivityBlock, PanelModel
 
 ALERT_COLOUR = "#ff8c00"
+BLOCK_GAP = 6
+"""Vertical space above a stacked block, in pixels."""
 
 
 def _no_theme(_widget: tk.Widget) -> None:
     pass
 
 
-class Panel:
+class Block:
+    """One activity's widgets."""
+
     def __init__(
         self,
         parent: tk.Misc,
         on_reset: Callable[[], None],
         translate: Callable[[str], str],
-        theme_update: Callable[[tk.Widget], None] = _no_theme,
+        theme_update: Callable[[tk.Widget], None],
     ) -> None:
         self._tl = translate
         self._theme_update = theme_update
@@ -45,7 +52,6 @@ class Panel:
         self.retranslate()
 
     def retranslate(self) -> None:
-        """Refresh the texts that do not come from the model (language changed)."""
         self._reset["text"] = self._tl("Reset")
 
     def render(self, model: PanelModel) -> None:
@@ -78,3 +84,45 @@ class Panel:
             self._theme_update(label)
             self._theme_update(value)
             self._rows.append((label, value))
+
+
+class Panel:
+    def __init__(
+        self,
+        parent: tk.Misc,
+        on_reset: Callable[[Activity], None],
+        translate: Callable[[str], str],
+        theme_update: Callable[[tk.Widget], None] = _no_theme,
+    ) -> None:
+        self._on_reset = on_reset
+        self._tl = translate
+        self._theme_update = theme_update
+        self.frame = tk.Frame(parent)
+        self.frame.columnconfigure(0, weight=1)
+        self._blocks: dict[Activity, Block] = {}
+
+    def block(self, activity: Activity) -> Block:
+        """The block of an activity, created the first time it is needed."""
+        if activity not in self._blocks:
+            block = Block(
+                self.frame, lambda: self._on_reset(activity), self._tl, self._theme_update
+            )
+            # Created after plugin_app(): EDMC must be asked to theme the whole block
+            self._theme_update(block.frame)
+            self._blocks[activity] = block
+        return self._blocks[activity]
+
+    def retranslate(self) -> None:
+        """Refresh the texts that do not come from the model (language changed)."""
+        for block in self._blocks.values():
+            block.retranslate()
+
+    def render(self, blocks: Sequence[ActivityBlock]) -> None:
+        shown = {shown_block.activity for shown_block in blocks}
+        for row, shown_block in enumerate(blocks):
+            block = self.block(shown_block.activity)
+            block.render(shown_block.model)
+            block.frame.grid(row=row, column=0, sticky=tk.EW, pady=(BLOCK_GAP if row else 0, 0))
+        for activity, block in self._blocks.items():
+            if activity not in shown:
+                block.frame.grid_remove()

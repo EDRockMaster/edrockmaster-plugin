@@ -39,6 +39,8 @@ def source_strings() -> set[str]:
     strings |= set(combat_presenter._END_REASONS.values())
     strings |= set(combat_presenter.SITE_NAMES.values())
     strings |= set(preferences._CONTENT_LEVELS.values())
+    strings |= set(preferences._ACTIVITY_NAMES.values())
+    strings |= set(preferences._DISPLAY_MODES.values())
     return strings
 
 

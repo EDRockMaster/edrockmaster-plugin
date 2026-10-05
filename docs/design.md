@@ -52,12 +52,12 @@ edrockmaster/
     host.py                     EDMC services (theme, plug.show_error, l10n.Locale), with fallbacks
   ui/
     panel_model.py              PanelModel (texts) and shared formatting, no tkinter
-    presenter.py                ActivityPresenter: shows the activity in progress
+    presenter.py                ActivityPresenter: the blocks to show, by display mode
     mining_presenter.py         mining notifications → PanelModel
     combat_presenter.py         combat notifications → PanelModel
     preferences_form.py         settings <-> preferences fields, validation, no tkinter
     commodity_names.py          names of the mineable commodities known before the journal names them
-    panel.py                    main-window panel (tkinter, main thread only), copies PanelModel
+    panel.py                    main-window panel (tkinter, main thread only), one block per activity shown
     preferences.py              preferences tab (myNotebook)
 L10n/fr.strings                 French translations
 ```
@@ -134,7 +134,12 @@ Combat covers bounty hunting, conflict zones and any kill ([ADR 0013](https://gi
 
 Statistics of a combat session: its segments (site type, duration, kills, credits, rates), an average **per site type, weighted by time** (total kills and credits over total duration), time on combat sites, kills (and shared kills), bounty and combat bond credits, miscellaneous kills, crimes. Shared with the panel: unredeemed vouchers (known since EDMC started only: the journal does not restate older ones) and the community goals. Superpower factions written `$faction_Federation;` are normalised to `Federation`. Another activity never ends a combat session: a miner may fight back and keep mining.
 
-The panel shows the last activity to **progress**: for combat, a session or a segment that starts or ends, a reward or a crime; leaving a site without a segment, vouchers and community goals never switch it.
+The panel shows the activities the player chose (preferences, **Display**), in one of two modes ([ADR 0013](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0013-combat-segments-and-live-panel.md)):
+
+- **last active activity** (the default): one block, the last shown activity to **progress**. For combat, a session or a segment that starts or ends, a reward or a crime; leaving a site without a segment, vouchers and community goals never switch it. A hidden activity never takes the panel;
+- **all of them, stacked**: one block per activity shown, mining then combat, each with its own **Reset** button.
+
+A hidden activity is still followed: shown again, it is up to date.
 
 ## Prospector alerts
 
@@ -148,7 +153,7 @@ The panel shows the last activity to **progress**: for combat, a session or a se
 
 **Panel** (EDMC's main window): status (no session, mining in a ring, session ended and why), the last prospector alert, highlighted, until the next asteroid is prospected, then the statistics: active time, refined tons, rate, tons per commodity, asteroids prospected and, once known, cores, limpets, cargo and sales. The statistics of an ended session stay displayed, and its sales are added to them. A **Reset** button ends the running session. Numbers follow the system's locale, like EDMC's own.
 
-**Preferences tab**: a percentage field per mineable commodity (empty means no alert), minimum content, minimum remaining reserve, alert on cores, sound, journal recorder and a button opening the recordings folder. Numbers are typed in the system's locale. When the dialog closes, an invalid entry keeps its previous value and is named in EDMC's status bar; the valid ones are applied at once.
+**Preferences tab**: a percentage field per mineable commodity (empty means no alert), minimum content, minimum remaining reserve, alert on cores, sound, journal recorder the activities shown and the display mode, and a button opening the recordings folder. At least one activity stays shown. Numbers are typed in the system's locale. When the dialog closes, an invalid entry keeps its previous value and is named in EDMC's status bar; the valid ones are applied at once.
 
 ## Settings
 
@@ -163,6 +168,8 @@ Stored with EDMC's `config` (`config.set` / `config.get_*`), keys prefixed with 
 | `edrockmaster.alert.cores` | bool | Alert on cores |
 | `edrockmaster.sound` | bool | Audible alerts |
 | `edrockmaster.record_journal` | bool | Journal recorder |
+| `edrockmaster.display.activities` | text | JSON list of the activities shown, at least one (`["mining", "combat"]`) |
+| `edrockmaster.display.mode` | text | `last_active` or `stacked` |
 
 Values are read one by one: a missing or invalid value falls back to its own default (and is logged), the others are kept.
 

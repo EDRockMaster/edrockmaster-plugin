@@ -18,7 +18,7 @@ Demande EDMC 6.1 ou plus récent.
 
 ## Utilisation
 
-- **Panneau** (fenêtre principale d'EDMC) : l'activité en cours, minage ou combat. Pour le minage : la dernière alerte du prospecteur et les statistiques de la session ; pour le combat : le site en cours, les ratios par type de site, victimes, crédits, amendes, bons non encaissés et objectifs communautaires. **Réinitialiser** termine la session affichée.
+- **Panneau** (fenêtre principale d'EDMC) : l'activité en cours, minage ou combat. Pour le minage : la dernière alerte du prospecteur et les statistiques de la session ; pour le combat : le site en cours, les ratios par type de site, victimes, crédits, amendes, bons non encaissés et objectifs communautaires. **Réinitialiser** termine la session affichée. Dans les préférences, on choisit les activités affichées, et si le panneau montre la dernière active ou les empile toutes.
 - **Paramètres → EDRockMaster** : seuil d'alerte par commodité (vide : pas d'alerte), teneur minimale, réserve minimale, cores, son.
 - **Enregistreur du journal** (même onglet, désactivé par défaut) : enregistre les événements du journal reçus par le plugin dans des fichiers JSONL. *Ouvrir le dossier des enregistrements* les affiche ; en joindre un à un signalement de bogue.
 

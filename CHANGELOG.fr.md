@@ -4,6 +4,12 @@
 
 Les changements notables du plugin EDRockMaster. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), et les versions suivent le [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [Non publié]
+
+### Ajouté
+
+- **Réglages d'affichage** (préférences, *Affichage* ; décision de conception ADR 0013) : les activités que montre le panneau, et le mode, soit la **dernière activité active** (comme avant, par défaut), soit **toutes, empilées**, chacune avec son bouton *Réinitialiser*. Une activité masquée reste suivie, et elle est à jour quand on l'affiche de nouveau.
+
 ## [0.3.0] - 2026-10-05
 
 ### Modifié

@@ -7,9 +7,12 @@ from pathlib import Path
 
 import pytest
 
+from edrockmaster.application.activity import Activity
+from edrockmaster.application.settings import DisplayMode
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.edmc.plugin import Plugin
+from edrockmaster.ui.panel import Block
 from tests.fakes import FakeConfig
 
 PROSPECTED: Entry = {
@@ -31,10 +34,16 @@ class Harness:
         self.plugin.start(tmp_path)
         self.frame = self.plugin.app(root)
 
-    def status(self) -> str:
+    def block(self, activity: Activity | None = None) -> Block:
+        """The block of an activity; by default, the only one shown."""
         panel = self.plugin._panel
         assert panel is not None
-        return str(panel._status["text"])
+        if activity is None:
+            [activity] = [a for a in Activity if panel.block(a).frame.grid_info()]
+        return panel.block(activity)
+
+    def status(self, activity: Activity | None = None) -> str:
+        return str(self.block(activity)._status["text"])
 
 
 @pytest.fixture
@@ -52,17 +61,13 @@ def test_app_shows_the_panel_and_attaches_the_sound(harness: Harness) -> None:
 
 def test_journal_entries_refresh_the_panel(harness: Harness) -> None:
     harness.plugin.journal_entry("Cmdr", False, None, None, PROSPECTED, {})
-    panel = harness.plugin._panel
-    assert panel is not None
     assert harness.status() == "Mining"
-    assert panel._alert["text"] == "Painite 40.0 %"
+    assert harness.block()._alert["text"] == "Painite 40.0 %"
 
 
 def test_reset_button_ends_the_session(harness: Harness) -> None:
     harness.plugin.journal_entry("Cmdr", False, None, None, PROSPECTED, {})
-    panel = harness.plugin._panel
-    assert panel is not None
-    panel._reset.invoke()
+    harness.block()._reset.invoke()
     assert harness.status() == "Session ended: reset"
 
 
@@ -79,8 +84,7 @@ def test_preferences_are_applied_and_saved_when_the_dialog_closes(
     assert companion.settings.alerts.thresholds[Commodity.from_symbol("painite")] == 45.0
     assert '"painite": 45.0' in str(harness.config.values["edrockmaster.alert.thresholds"])
     harness.plugin.journal_entry("Cmdr", False, None, None, PROSPECTED, {})
-    assert harness.plugin._panel is not None
-    assert not harness.plugin._panel._alert.grid_info()  # 40 % is now below the threshold
+    assert not harness.block()._alert.grid_info()  # 40 % is now below the threshold
 
 
 def test_invalid_entries_are_reported(
@@ -126,10 +130,36 @@ def test_a_kill_switches_the_panel_to_combat(harness: Harness) -> None:
 def test_reset_acts_on_the_activity_shown(harness: Harness) -> None:
     harness.plugin.journal_entry("Cmdr", False, None, None, PROSPECTED, {})
     harness.plugin.journal_entry("Cmdr", False, None, None, BOUNTY, {})
-    panel = harness.plugin._panel
-    assert panel is not None
-    panel._reset.invoke()
+    harness.block()._reset.invoke()
     assert harness.status() == "Combat session ended: reset"
     companion = harness.plugin.companion
     assert companion is not None
     assert companion.mining.current_stats is not None
+
+
+def test_stacked_display_shows_both_activities_with_their_own_reset(
+    harness: Harness, root: tk.Tk
+) -> None:
+    harness.plugin.prefs(root)
+    tab = harness.plugin._tab
+    assert tab is not None
+    tab._display_mode.set(DisplayMode.STACKED.value)
+    harness.plugin.prefs_changed()
+    assert harness.config.values["edrockmaster.display.mode"] == "stacked"
+    harness.plugin.journal_entry("Cmdr", False, None, None, PROSPECTED, {})
+    harness.plugin.journal_entry("Cmdr", False, None, None, BOUNTY, {})
+    assert harness.status(Activity.MINING) == "Mining"
+    assert harness.status(Activity.COMBAT) == "Combat"
+    harness.block(Activity.MINING)._reset.invoke()
+    assert harness.status(Activity.MINING) == "Session ended: reset"
+    assert harness.status(Activity.COMBAT) == "Combat"
+
+
+def test_hiding_an_activity_hides_its_block(harness: Harness, root: tk.Tk) -> None:
+    harness.plugin.prefs(root)
+    tab = harness.plugin._tab
+    assert tab is not None
+    tab._activities[Activity.MINING].set(False)
+    harness.plugin.prefs_changed()
+    harness.plugin.journal_entry("Cmdr", False, None, None, PROSPECTED, {})
+    assert harness.status() == "No combat session"

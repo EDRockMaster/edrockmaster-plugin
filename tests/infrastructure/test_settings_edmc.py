@@ -4,7 +4,8 @@ from dataclasses import replace
 
 import pytest
 
-from edrockmaster.application.settings import DEFAULT_SETTINGS
+from edrockmaster.application.activity import Activity
+from edrockmaster.application.settings import DEFAULT_SETTINGS, DisplayMode, DisplaySettings
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.mining.journal import ContentLevel
 from edrockmaster.domain.mining.prospecting import AlertSettings
@@ -27,6 +28,7 @@ CUSTOM = replace(
     ),
     sound_enabled=False,
     record_journal=True,
+    display=DisplaySettings((Activity.COMBAT,), DisplayMode.STACKED),
 )
 
 
@@ -82,6 +84,11 @@ def test_invalid_thresholds_fall_back_to_the_defaults(
         ("edrockmaster.alert.minimum_remaining", "120"),
         ("edrockmaster.alert.cores", "yes"),
         ("edrockmaster.sound", 1),
+        ("edrockmaster.display.activities", "mining"),
+        ("edrockmaster.display.activities", "[]"),
+        ("edrockmaster.display.activities", '["fishing"]'),
+        ("edrockmaster.display.activities", '{"mining": true}'),
+        ("edrockmaster.display.mode", "sideways"),
     ],
 )
 def test_each_invalid_value_falls_back_to_its_own_default(key: str, value: object) -> None:
@@ -93,3 +100,10 @@ def test_each_invalid_value_falls_back_to_its_own_default(key: str, value: objec
     assert settings != CUSTOM
     assert settings.record_journal  # the other values are kept
     assert settings.alerts.thresholds == CUSTOM.alerts.thresholds
+
+
+def test_display_is_stored_as_text() -> None:
+    config = FakeConfig()
+    EdmcSettingsStore(config, logger).save(CUSTOM)
+    assert config.values["edrockmaster.display.activities"] == '["combat"]'
+    assert config.values["edrockmaster.display.mode"] == "stacked"
