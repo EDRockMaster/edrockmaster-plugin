@@ -4,7 +4,7 @@
 
 Les changements notables du plugin EDRockMaster. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), et les versions suivent le [versionnage sémantique](https://semver.org/lang/fr/).
 
-## [Non publié]
+## [0.3.0] - 2026-10-05
 
 ### Modifié
 
@@ -67,6 +67,7 @@ Première version, pour le premier essai en jeu. Le plugin fonctionne seul, sans
 - Pas de valeur estimée de la soute : elle demande les prix du serveur.
 - Pas encore vérifiés : le thème sombre d'EDMC, le son d'alerte sous Windows.
 
+[0.3.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.3.0
 [0.2.2]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.2
 [0.2.1]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.1
 [0.2.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.0
