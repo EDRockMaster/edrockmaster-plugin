@@ -22,6 +22,7 @@ Les changements notables du plugin EDRockMaster. Le format suit [Keep a Changelo
 - **Zones de conflit au sol** (Odyssey, décision de conception ADR 0015) : la navette de Frontline Solutions ouvre un segment, sa retraite le ferme, et le panneau affiche la colonie. Lors d'une vraie soirée à Redonesses, deux zones au sol ont donné 35 victimes, à 68,1 victimes/h et 1 309 320 CR/h.
 - **Zones de conflit que le journal ne nomme pas** : une obligation de combat n'existe qu'en zone de conflit, donc une obligation hors de tout site ouvre un segment depuis l'arrivée, d'intensité inconnue en vaisseau. Ce même soir, 45 victimes sur 77 n'auraient sinon eu aucun ratio.
 - Le script de nettoyage garde les déplacements à pied (colonies, navette, débarquement, embarquement) et retire les tueurs du commandant.
+- **Identité de build** (décision de conception ADR 0016) : chaque zip dit quel build il est, par exemple `0.3.0-rc.3`, dans le log d'EDMC au démarrage, en bas de l'onglet des préférences et dans le nom des enregistrements du journal. Les builds de la CI sont `0.3.0-dev+<commit>`.
 
 ## [0.2.2] - 2026-10-03
 

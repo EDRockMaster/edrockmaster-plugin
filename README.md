@@ -20,7 +20,7 @@ Requires EDMC 6.1 or later.
 
 - **Panel** (EDMC's main window): the activity in progress, mining or combat. For mining: the last prospector alert and the session statistics; for combat: the current site, rates per site type, kills, credits, fines, unredeemed vouchers and community goals. **Reset** ends the session shown. In the preferences, choose the activities shown, and whether the panel shows the last active one or stacks them all.
 - **Settings → EDRockMaster**: alert threshold per commodity (empty means no alert), minimum content, minimum remaining reserve, cores, sound.
-- **Journal recorder** (same tab, off by default): saves the journal events received by the plugin in JSONL files. *Open recordings folder* shows them; join one to a bug report.
+- **Journal recorder** (same tab, off by default): saves the journal events received by the plugin in JSONL files. *Open recordings folder* shows them; join one to a bug report. The tab ends with the full version of the plugin (for example `0.3.0-rc.2`): quote it too.
 
 What changed in each version: [changelog](CHANGELOG.md).
 
@@ -30,7 +30,7 @@ What changed in each version: [changelog](CHANGELOG.md).
 - `edrockmaster/`: the plugin code, in a uniquely named package (see [prerequisites](docs/prerequisites.md)). Domain logic depends neither on EDMC nor on tkinter, and is tested with `pytest`.
 - `L10n/`: translations (`fr.strings`).
 - `tests/fixtures/`: excerpts of real journals.
-- `scripts/`: packaging (`package.sh`), release notes (`release_notes.sh`), version (`version.sh`), release channel (`release_plan.py`), GitHub release (`github_release.py`), recording to test fixture (`sanitise_recording.py`).
+- `scripts/`: packaging (`package.sh`, with the build file from `build_file.py`), release notes (`release_notes.sh`), version (`version.sh`), release channel (`release_plan.py`), GitHub release (`github_release.py`), recording to test fixture (`sanitise_recording.py`).
 
 ## Documentation
 
@@ -55,6 +55,8 @@ No production without acceptance (ADR 0012, in the architecture repository):
 2. **Candidate**: tag the merge commit `vX.Y.Z-rc.1` and push the tag. The CI publishes a **private pre-release on Gitea**.
 3. **Acceptance**: install the candidate in EDMC and play, journal recorder on, following the milestone's in-game checklist. A problem: fix it through a pull request, then tag `vX.Y.Z-rc.2` on the new merge commit.
 4. **Production**: tag `vX.Y.Z` on the **same commit** as the accepted candidate and push. The CI refuses a production tag without a candidate on that commit (`scripts/release_plan.py`), then publishes on Gitea and GitHub, with the changelog entry as notes.
+
+The code keeps the version `X.Y.Z` from candidate to production; the packaging writes `edrockmaster/build.json` into each zip, with the full version, the commit and the channel (ADR 0016). A CI artifact is `X.Y.Z-dev+<commit>`, a clone runs as `X.Y.Z-dev`.
 
 Every CI run also keeps the zip as an artifact (dev builds, 14 days).
 

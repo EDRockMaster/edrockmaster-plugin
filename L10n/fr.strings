@@ -103,6 +103,8 @@
 "Debugging" = "Débogage";
 "Record the journal (for bug reports)" = "Enregistrer le journal (pour signaler un bogue)";
 "Open recordings folder" = "Ouvrir le dossier des enregistrements";
+/* ui/preferences.py: the full build version, e.g. 0.3.0-rc.2 */
+"Version {version}" = "Version {version}";
 
 /* ui/commodity_names.py: commodity names, as the game shows them in French */
 "Alexandrite" = "Alexandrite";

@@ -27,7 +27,8 @@ jobs:
       - run: uv run mypy --strict scripts
       - run: uv run pytest --cov
       - name: Package
-        run: scripts/package.sh "$(scripts/version.sh)"
+        # A dev build, named after its commit (ADR 0016)
+        run: scripts/package.sh "$(scripts/version.sh)-dev+$(git rev-parse --short=7 HEAD)" dev
       - name: Release notes
         run: scripts/release_notes.sh "$(scripts/version.sh)"
       - name: Keep the dev build
@@ -55,7 +56,7 @@ jobs:
           python3 scripts/release_plan.py "$TAG" "$(scripts/version.sh)" \
             $(git tag --points-at HEAD) >> "$GITHUB_OUTPUT"
       - name: Package
-        run: scripts/package.sh "${TAG#v}"
+        run: scripts/package.sh "${TAG#v}" "${{ steps.plan.outputs.channel }}"
       - name: Release notes
         id: notes
         run: |

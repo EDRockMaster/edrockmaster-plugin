@@ -34,6 +34,7 @@ edrockmaster/
       session.py                agrégat CombatTracker (sessions par segments de site, bons, délits, objectifs communautaires)
   application/
     activity.py                 les activités : minage, combat
+    build.py                    BuildInfo : version complète, commit et canal du build en cours (ADR 0016)
     companion.py                Companion : enregistre le journal une fois, passe chaque entrée à chaque activité, porte les réglages
     settings.py                 PluginSettings (alertes, son, enregistreur) et leurs valeurs par défaut
     ports.py                    Clock, SettingsStore, Notifier, JournalRecorder (et, en 1B, UploadQueue, Authenticator)
@@ -42,6 +43,7 @@ edrockmaster/
   infrastructure/
     settings_edmc.py            SettingsStore sur le config d'EDMC (clés préfixées « edrockmaster. »)
     recorder_jsonl.py           JournalRecorder : fichiers JSONL dans le dossier de données
+    build_file.py               lit edrockmaster/build.json, écrit par l'emballage
     sound.py                    Notifier : alertes sonores (winsound sous Windows, cloche Tk ailleurs)
     paths.py                    dossier de données selon le système
     worker.py                   l'unique fil d'entrées-sorties du plugin et sa file
@@ -153,7 +155,7 @@ Une activité masquée reste suivie : affichée de nouveau, elle est à jour.
 
 **Panneau** (fenêtre principale d'EDMC) : état (aucune session, minage dans un anneau, session terminée et pourquoi), la dernière alerte du prospecteur, mise en évidence jusqu'au prochain astéroïde prospecté, puis les statistiques : temps actif, tonnes raffinées, rendement, tonnes par commodité, astéroïdes prospectés et, dès qu'ils sont connus, cores, drones, soute et ventes. Les statistiques d'une session terminée restent affichées, et ses ventes s'y ajoutent. Un bouton **Réinitialiser** termine la session en cours. Les nombres suivent les réglages régionaux du système, comme ceux d'EDMC.
 
-**Onglet des préférences** : un champ de pourcentage par commodité minable (vide : pas d'alerte), teneur minimale, réserve minimale, alerte sur les cores, son, enregistreur du journal les activités affichées et le mode d'affichage, et un bouton qui ouvre le dossier des enregistrements. Au moins une activité reste affichée. Les nombres se saisissent selon les réglages régionaux du système. À la fermeture de la fenêtre, une saisie invalide garde sa valeur précédente et est citée dans la barre d'état d'EDMC ; les saisies valides sont appliquées tout de suite.
+**Onglet des préférences** : un champ de pourcentage par commodité minable (vide : pas d'alerte), teneur minimale, réserve minimale, alerte sur les cores, son, enregistreur du journal, les activités affichées et le mode d'affichage, et un bouton qui ouvre le dossier des enregistrements ; il se termine par la version complète du build. Au moins une activité reste affichée. Les nombres se saisissent selon les réglages régionaux du système. À la fermeture de la fenêtre, une saisie invalide garde sa valeur précédente et est citée dans la barre d'état d'EDMC ; les saisies valides sont appliquées tout de suite.
 
 ## Réglages
 
@@ -186,7 +188,7 @@ Contenu en 1A : `recordings/` (enregistrements du journal, JSONL, un fichier par
 ## Enregistreur de journal
 
 - Désactivé par défaut ; activé dans les préférences (« Enregistrer le journal pour le débogage »).
-- Écrit chaque entrée reçue par le plugin, sans modification, un objet JSON par ligne, avec l'indicateur `is_beta` : `{"is_beta": false, "entry": {…}}`. Fichier : `recordings/journal-<début, UTC, AAAAMMJJTHHMMSSZ>.jsonl`.
+- Écrit chaque entrée reçue par le plugin, sans modification, un objet JSON par ligne, avec l'indicateur `is_beta` : `{"is_beta": false, "entry": {…}}`. Fichier : `recordings/journal-<début, UTC, AAAAMMJJTHHMMSSZ>-<version du build>.jsonl`, pour qu'un enregistrement dise quel build l'a compté.
 - L'entrée est sérialisée dès sa réception (EDMC partage le même dict avec tous les plugins), puis écrite par le fil d'entrées-sorties.
 - C'est à partir de ces enregistrements que l'on constitue `tests/fixtures/` ; le joueur décide de ce qu'il partage.
 - Le dépôt est public, et un enregistrement brut contient des données personnelles (nom et identifiant Frontier du commandant, escadron, porte-vaisseaux, messages, noms d'autres joueurs, réputation). Un enregistrement ne devient donnée de test qu'à travers `scripts/sanitise_recording.py` : il garde les événements lus par le plugin et quelques événements anodins, réduit `LoadGame` à la version du jeu, retire la réputation (`Factions` de `Location`, `FSDJump`, `StartUp`), le nom du pilote des cibles (`Bounty.PilotName`) et les victimes des délits (`CommitCrime.Victim`), événement par événement, remplace chaque porte-vaisseaux (nom, indicatif, identifiant) par une valeur neutre, et refuse d'écrire si le nom ou l'identifiant du commandant, ou un porte-vaisseaux, subsiste. `tests/test_replay.py` rejoue chaque jeu de données, avec des chiffres vérifiés à la main sur le journal brut.
