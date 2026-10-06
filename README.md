@@ -4,7 +4,7 @@
 
 [EDMarketConnector](https://github.com/EDCD/EDMarketConnector) (EDMC) plugin for **EDRockMaster — Elite Dangerous Rock Master Companion**.
 
-Works on its own, without any server: prospector alerts, cores and motherlodes, live session stats, limpets, cargo and sales. Also a combat counter, per site (conflict zones in space and on the ground, resource extraction sites, navigation beacons): kills, bounties and combat bonds, kills and credits per hour by site type, miscellaneous kills, fines, unredeemed vouchers, community goals. A later version will add an optional link with EDRockMaster services (sign-in and uploads, opt-in).
+Works on its own, without any server: prospector alerts, cores and motherlodes, live session stats, limpets, cargo and sales. Also a combat counter, per site (conflict zones in space and on the ground, resource extraction sites, navigation beacons): kills, bounties and combat bonds, kills and credits per hour by site type, miscellaneous kills, fines, unredeemed vouchers, community goals. And a trade counter: profit, profit per hour of flight, routes, cargo bought, losses. A later version will add an optional link with EDRockMaster services (sign-in and uploads, opt-in).
 
 User interface in English and French: the plugin follows the language selected in EDMC.
 
@@ -18,7 +18,7 @@ Requires EDMC 6.1 or later.
 
 ## Usage
 
-- **Panel** (EDMC's main window): the activity in progress, mining or combat. For mining: the last prospector alert and the session statistics; for combat: the current site, rates per site type, kills, credits, fines, unredeemed vouchers and community goals. **Reset** ends the session shown. In the preferences, choose the activities shown, and whether the panel shows the last active one or stacks them all.
+- **Panel** (EDMC's main window): the activity in progress, mining, combat or trade. For mining: the last prospector alert and the session statistics; for combat: the current site, rates per site type, kills, credits, fines, unredeemed vouchers and community goals; for trade: flight time, profit, profit per hour, tons sold, cargo bought and one line per route. **Reset** ends the session shown. In the preferences, choose the activities shown, and whether the panel shows the last active one or stacks them all.
 - **Settings → EDRockMaster**: alert threshold per commodity (empty means no alert), minimum content, minimum remaining reserve, cores, sound.
 - **Journal recorder** (same tab, off by default): saves the journal events received by the plugin in JSONL files. *Open recordings folder* shows them; join one to a bug report. The tab ends with the full version of the plugin (for example `0.3.0-rc.2`): quote it too.
 

@@ -2,7 +2,7 @@
 
 *English · [Français](design.fr.md)*
 
-Design of the EDRockMaster EDMC plugin. Scope: **milestone 1, step 1A** (local plugin, first in-game test), plus the combat activity (design decisions ADR 0011, ADR 0013 and ADR 0015, in the project's architecture repository). The server link (step 1B) is designed here so that 1A does not have to be reworked, but it is not implemented yet. Constraints come from [prerequisites](prerequisites.md); engineering rules from `edrockmaster-architecture`.
+Design of the EDRockMaster EDMC plugin. Scope: **milestone 1, step 1A** (local plugin, first in-game test), plus the combat and trade activities (design decisions ADR 0011, ADR 0013, ADR 0014 and ADR 0015, in the project's architecture repository). The server link (step 1B) is designed here so that 1A does not have to be reworked, but it is not implemented yet. Constraints come from [prerequisites](prerequisites.md); engineering rules from `edrockmaster-architecture`.
 
 ## Goals of step 1A
 
@@ -23,7 +23,7 @@ edrockmaster/
   __init__.py                   VERSION
   domain/                       pure Python: no EDMC, no tkinter, no I/O
     journal_reading.py          shared kernel: tolerant reading of journal entries (ADR 0011)
-    commodities.py              shared kernel: commodity names, normalisation
+    commodities.py              shared kernel: commodity names, normalisation, commodities a refinery produces
     mining/                     mining context
       journal.py                journal entry → mining fact
       prospecting.py            prospected asteroid, alert policy
@@ -32,14 +32,18 @@ edrockmaster/
       journal.py                journal entry → combat fact
       sites.py                  combat sites, as the game names them on arrival
       session.py                CombatTracker aggregate (sessions by site segments, vouchers, crimes, community goals)
+    trade/                      trade context
+      journal.py                journal entry → trade fact
+      session.py                TradeTracker aggregate (sessions, routes, flight time, cargo bought, losses)
   application/
-    activity.py                 the activities: mining, combat
+    activity.py                 the activities: mining, combat, trade
     build.py                    BuildInfo: full version, commit and channel of the running build (ADR 0016)
     companion.py                Companion: records the journal once, hands each entry to every activity, owns the settings
     settings.py                 PluginSettings (alerts, sound, recorder) and their defaults
     ports.py                    Clock, SettingsStore, Notifier, JournalRecorder (and, in 1B, UploadQueue, Authenticator)
     mining_service.py           mining use cases: handle a journal entry, reset the session, apply settings
     combat_service.py           combat use cases: handle a journal entry, reset the session
+    trade_service.py            trade use cases: handle a journal entry, reset the session
   infrastructure/
     settings_edmc.py            SettingsStore on EDMC's config (keys prefixed "edrockmaster.")
     recorder_jsonl.py           JournalRecorder: JSONL files in the data directory
@@ -57,6 +61,7 @@ edrockmaster/
     presenter.py                ActivityPresenter: the blocks to show, by display mode
     mining_presenter.py         mining notifications → PanelModel
     combat_presenter.py         combat notifications → PanelModel
+    trade_presenter.py          trade notifications → PanelModel
     preferences_form.py         settings <-> preferences fields, validation, no tkinter
     commodity_names.py          names of the mineable commodities known before the journal names them
     panel.py                    main-window panel (tkinter, main thread only), one block per activity shown
@@ -138,10 +143,30 @@ Statistics of a combat session: its segments (site type, duration, kills, credit
 
 The panel shows the activities the player chose (preferences, **Display**), in one of two modes ([ADR 0013](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0013-combat-segments-and-live-panel.md)):
 
-- **last active activity** (the default): one block, the last shown activity to **progress**. For combat, a session or a segment that starts or ends, a reward or a crime; leaving a site without a segment, vouchers and community goals never switch it. A hidden activity never takes the panel;
-- **all of them, stacked**: one block per activity shown, mining then combat, each with its own **Reset** button.
+- **last active activity** (the default): one block, the last shown activity to **progress**. For combat, a session or a segment that starts or ends, a reward or a crime; leaving a site without a segment, vouchers and community goals never switch it. For trade, a session that starts or ends, a purchase, a sale or a loss. A hidden activity never takes the panel;
+- **all of them, stacked**: one block per activity shown, mining, combat then trade, each with its own **Reset** button.
 
 A hidden activity is still followed: shown again, it is up to date.
+
+## Trade
+
+Trade follows purchases and sales of goods on markets ([ADR 0014](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0014-plugin-trade-activity.md)). Its active time is the **flight time**: a **leg** runs from undocking to the next docking, and counts once a trade follows it in the session.
+
+| Situation | Effect |
+| --- | --- |
+| First `MarketBuy`, or first `MarketSell` of bought goods (`AvgPricePaid` above 0) | Trade session starts. The flight to that market does not count |
+| `MarketBuy` | The goods are on board at their cost; the market is the origin of their route (the last purchase wins) |
+| `MarketSell` of bought goods | Profit `(SellPrice - AvgPricePaid) × Count`, the game's own, even for goods bought before EDMC started (origin unknown). Counted on the route: commodity, market of purchase, market of sale |
+| `MarketSell` with `AvgPricePaid` 0 | Not bought: **refined commodities** if a refinery produces them (their profit belongs to mining), **other goods** otherwise. In no profit and no rate; no session started |
+| `Undocked`, then `Docked` | A leg. It counts once a purchase or a sale of bought goods follows it in the session: a stop without trade is part of the flight, a flight after the last trade does not count. Time docked never counts |
+| `Location` or `StartUp` off station | In flight since an unknown time: the leg counts from there |
+| `EjectCargo` of bought goods | Loss at the price paid, deducted from the profit |
+| `Cargo` | Bought goods that left without a sale (a mission, a fleet carrier) are no longer on board: never more than the ship carries |
+| `Died` | The bought cargo is lost (a loss), the session ends |
+| `Shutdown`, `ShutDown` | Session ends; the cargo stays known |
+| Manual reset (panel button, trade shown) | Session ends, a new one can start |
+
+Statistics of a trade session: flight time, profit (sales minus losses), profit and tons per hour of flight, tons sold, losses, the cost of the bought goods on board, one line per route (tons, profit, profit per ton, sales), refined commodities and other goods. On the panel, a route too long for EDMC's window names its destination only. Out of scope: fleet carrier trade, smuggling, missions. Trade is not uploaded.
 
 ## Prospector alerts
 
@@ -171,6 +196,7 @@ Stored with EDMC's `config` (`config.set` / `config.get_*`), keys prefixed with 
 | `edrockmaster.sound` | bool | Audible alerts |
 | `edrockmaster.record_journal` | bool | Journal recorder |
 | `edrockmaster.display.activities` | text | JSON list of the activities shown, at least one (`["mining", "combat"]`) |
+| `edrockmaster.display.offered` | text | JSON list of the activities the tab offered when saved (`["mining", "combat", "trade"]`). An activity a later version adds is shown until the player hides it; absent (saved by 0.3.0): mining and combat |
 | `edrockmaster.display.mode` | text | `last_active` or `stacked` |
 
 Values are read one by one: a missing or invalid value falls back to its own default (and is logged), the others are kept.
@@ -216,7 +242,7 @@ Ports defined in 1A, implemented in 1B:
 
 - **Domain and application: test-driven**, with plain `pytest`, no EDMC needed.
 - **Fixtures**: real journal excerpts (`tests/fixtures/*.jsonl`), recorded with the recorder.
-- **Replay tests**: a whole recorded session is replayed through `MiningService`, and the final statistics are asserted.
+- **Replay tests**: a whole recorded session is replayed through `Companion` and the panel's presenter, and the final statistics, checked by hand against the raw journal, are asserted.
 - **EDMC adapters**: tested with fake `config`, `l10n` and `theme` modules injected by `tests/conftest.py`.
 - **UI**: the presenter and the preferences form are pure and fully tested. The tkinter widgets are kept thin; their tests use a real Tk and are skipped where no display exists (CI), so they run on developers' machines. Checked in game during test 1A.
 - CI: `ruff`, `mypy --strict`, `pytest` with coverage on `domain/` and `application/`.

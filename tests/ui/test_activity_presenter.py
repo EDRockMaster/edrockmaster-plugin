@@ -16,6 +16,13 @@ from edrockmaster.domain.combat.session import (
 )
 from edrockmaster.domain.combat.sites import SiteType
 from edrockmaster.domain.mining.session import SessionStarted
+from edrockmaster.domain.trade.session import (
+    GoodsTally,
+    TradeEnded,
+    TradeEndReason,
+    TradeStarted,
+    TradeStats,
+)
 from edrockmaster.ui.presenter import ActivityPresenter
 
 COMBAT_ONLY = DisplaySettings(activities=(Activity.COMBAT,))
@@ -26,6 +33,7 @@ SEGMENT = SegmentStats(
     SiteType.RES_HAZARDOUS, T0, timedelta(minutes=10), Tally(kills=1, bounty_credits=100_000)
 )
 STATS = CombatStats(T0, (SEGMENT,), SEGMENT, Tally(), Crimes())
+STATS_TRADE = TradeStats(T0, timedelta(0), (), 0, GoodsTally(), GoodsTally(), GoodsTally())
 VOUCHERS = Vouchers(bounties=MappingProxyType({"Federation": 100_000}), combat_bonds={})
 
 
@@ -87,6 +95,7 @@ def test_stacked_mode_shows_a_block_per_activity_in_display_order() -> None:
     assert statuses(presenter) == [
         (Activity.MINING, "Mining"),
         (Activity.COMBAT, "Combat"),
+        (Activity.TRADE, "No trade session"),
     ]
 
 
@@ -117,3 +126,14 @@ def test_a_hidden_activity_keeps_up_to_date_for_when_it_is_shown_again() -> None
     presenter.apply([SessionStarted(T0, None, "Col 285 2 A Ring")])
     presenter.configure(STACKED)
     assert statuses(presenter)[0] == (Activity.MINING, "Mining: Col 285 2 A Ring")
+
+
+def test_trade_takes_the_panel_when_it_progresses() -> None:
+    presenter = ActivityPresenter()
+    presenter.apply([SessionStarted(T0, None, None)])
+    presenter.apply([TradeStarted(T0)])
+    assert presenter.current is Activity.TRADE
+    assert presenter.render().status == "Trade"
+    presenter.apply([CombatStarted(T0)])
+    presenter.apply([TradeEnded(T0, TradeEndReason.MANUAL, STATS_TRADE)])
+    assert presenter.current is Activity.TRADE

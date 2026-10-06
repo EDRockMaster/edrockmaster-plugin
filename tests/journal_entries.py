@@ -96,3 +96,17 @@ def community_goal_entry(minutes: float, contribution: int = 25_000_000) -> Entr
             }
         ],
     }
+
+
+def market_buy_entry(
+    minutes: float, commodity: str = "palladium", count: int = 100, price: int = 5_000
+) -> Entry:
+    return {
+        "timestamp": timestamp(minutes),
+        "event": "MarketBuy",
+        "MarketID": 4300769795,
+        "Type": commodity,
+        "Count": count,
+        "BuyPrice": price,
+        "TotalCost": count * price,
+    }

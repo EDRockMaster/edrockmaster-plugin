@@ -6,15 +6,19 @@ owns what they share: the settings and the journal recorder.
 
 from __future__ import annotations
 
+from typing import assert_never
+
 from edrockmaster.application.activity import Activity
 from edrockmaster.application.combat_service import CombatService
 from edrockmaster.application.mining_service import MiningNotification, MiningService
 from edrockmaster.application.ports import Clock, JournalRecorder, Notifier, SettingsStore
 from edrockmaster.application.settings import PluginSettings
+from edrockmaster.application.trade_service import TradeService
 from edrockmaster.domain.combat.session import CombatNotification
 from edrockmaster.domain.journal_reading import Entry
+from edrockmaster.domain.trade.session import TradeNotification
 
-type Notification = MiningNotification | CombatNotification
+type Notification = MiningNotification | CombatNotification | TradeNotification
 """What the presentation layer is told after each use case."""
 
 
@@ -33,6 +37,7 @@ class Companion:
         self._settings = settings_store.load()
         self.mining = MiningService(self._settings, notifier, clock)
         self.combat = CombatService(clock)
+        self.trade = TradeService(clock)
 
     @property
     def settings(self) -> PluginSettings:
@@ -44,13 +49,20 @@ class Companion:
         notifications: list[Notification] = []
         notifications += self.mining.handle_journal_entry(entry, is_beta)
         notifications += self.combat.handle_journal_entry(entry)
+        notifications += self.trade.handle_journal_entry(entry)
         return notifications
 
     def reset(self, activity: Activity) -> list[Notification]:
         """End the running session of one activity (the panel's reset button)."""
-        if activity is Activity.MINING:
-            return list(self.mining.reset_session())
-        return list(self.combat.reset_session())
+        match activity:
+            case Activity.MINING:
+                return list(self.mining.reset_session())
+            case Activity.COMBAT:
+                return list(self.combat.reset_session())
+            case Activity.TRADE:
+                return list(self.trade.reset_session())
+            case _:  # pragma: no cover - exhaustiveness checked by mypy
+                assert_never(activity)
 
     def change_settings(self, settings: PluginSettings) -> None:
         if settings == self._settings:

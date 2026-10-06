@@ -83,6 +83,27 @@
 "top {band} %" = "top {band} %";
 "{goal} (complete)" = "{goal} (terminé)";
 
+/* ui/trade_presenter.py: panel status */
+"No trade session" = "Aucune session de commerce";
+"Trade" = "Commerce";
+"Trade session ended: {reason}" = "Session de commerce terminée : {reason}";
+
+/* ui/trade_presenter.py: statistic labels and values */
+"Flight time" = "Temps de vol";
+"Profit" = "Bénéfice";
+"Profit per hour" = "Bénéfice par heure";
+"{tons}, {rate} t/h" = "{tons}, {rate} t/h";
+"Losses" = "Pertes";
+"Cargo bought" = "Cargaison achetée";
+"Refined commodities" = "Commodités raffinées";
+"Other goods" = "Autres marchandises";
+
+/* ui/trade_presenter.py: one line per route: commodity, market of purchase, market of sale */
+"{commodity}: {origin} to {destination}" = "{commodity} : {origin} vers {destination}";
+"{commodity} to {destination}" = "{commodity} vers {destination}";
+"market {id}" = "marché {id}";
+"{tons}, {profit}, {per_ton}/t" = "{tons}, {profit}, {per_ton}/t";
+
 /* ui/preferences.py: settings tab */
 "Prospector alerts" = "Alertes du prospecteur";
 "Alert when an asteroid holds at least this percentage. Leave empty for no alert." = "Alerte quand un astéroïde contient au moins ce pourcentage. Laisser vide pour ne pas être alerté.";
@@ -97,6 +118,7 @@
 "Activities shown" = "Activités affichées";
 "Show mining" = "Afficher le minage";
 "Show combat" = "Afficher le combat";
+"Show trade" = "Afficher le commerce";
 "Mode" = "Mode";
 "Last active activity" = "Dernière activité active";
 "All of them, stacked" = "Toutes, empilées";

@@ -29,6 +29,8 @@ from edrockmaster.domain.combat.session import (
 )
 from edrockmaster.domain.combat.sites import SiteType
 from edrockmaster.domain.mining.session import EndReason, SessionEnded
+from edrockmaster.domain.trade.journal import Market
+from edrockmaster.domain.trade.session import GoodsTally, TradeStats
 from edrockmaster.ui.presenter import ActivityPresenter
 from tests.fakes import FakeNotifier, FakeRecorder, FakeSettingsStore, FixedClock
 
@@ -325,3 +327,62 @@ def test_panel_after_the_ground_conflict_zones(space_and_ground_zones: Replay) -
     assert ("Conflict zone, unknown intensity", "39.6 kills/h, 1,900,060 CR/h") in lines
     assert ("Ground conflict zone", "68.1 kills/h, 1,309,320 CR/h") in lines
     assert "Miscellaneous" not in dict(lines)
+
+
+@pytest.fixture(scope="module")
+def trade_round_trips() -> Replay:
+    """Three round trips with a 1,040-ton ship between Amano Terminal and Verne Venture,
+    palladium one way, CMM composite the other (4 October 2026, 4.4.1.1, ADR 0014)."""
+    return Replay("amano-verne-trade-2026-10-04.jsonl")
+
+
+def trade(replay: Replay) -> TradeStats:
+    stats = replay.companion.trade.current_stats
+    assert stats is not None
+    return stats
+
+
+def test_trade_profit_is_the_game_s_own(trade_round_trips: Replay) -> None:
+    stats = trade(trade_round_trips)
+    # The sum of (SellPrice - AvgPricePaid) x Count over the six sales
+    assert stats.profit == 164_316_218
+    assert stats.tons_sold == 5_549
+    assert stats.started_at == datetime(2026, 10, 4, 14, 24, 33, tzinfo=UTC)
+    assert (stats.losses, stats.cargo) == (0, GoodsTally())
+    assert (stats.refined, stats.other) == (GoodsTally(), GoodsTally())
+
+
+def test_trade_routes(trade_round_trips: Replay) -> None:
+    routes = [
+        (route.commodity.key, route.origin, route.destination, route.tons, route.profit)
+        for route in trade(trade_round_trips).routes
+    ]
+    assert routes == [
+        ("palladium", Market(4300769795), Market(4356317443), 2_429, 119_227_018),
+        ("cmmcomposite", Market(4356317443), Market(4300769795), 3_120, 45_089_200),
+    ]
+    origin = trade(trade_round_trips).routes[0].origin
+    assert origin is not None
+    assert origin.station == "Amano Terminal"
+
+
+def test_trade_flight_time(trade_round_trips: Replay) -> None:
+    stats = trade(trade_round_trips)
+    # Six legs, from 14:27:30 to 16:54:54; not the flight to the first market, nor the
+    # flight to the carrier after the last sale
+    assert stats.flight_time == timedelta(hours=1, minutes=21, seconds=50)
+    assert round(stats.profit_per_hour) == 120_476_249
+
+
+def test_trade_takes_the_panel_at_the_first_purchase(trade_round_trips: Replay) -> None:
+    assert trade_round_trips.panel_switches == [("2026-10-04T14:24:33Z", Activity.TRADE)]
+    lines = dict(trade_round_trips.lines())
+    assert lines["Profit"] == "164,316,218 CR"
+    assert lines["Profit per hour"] == "120,476,249 CR"
+    assert lines["Palladium to Verne Venture"] == "2,429 t, 119,227,018 CR, 49,085 CR/t"
+    assert lines["Composite MMC to Amano Terminal"] == "3,120 t, 45,089,200 CR, 14,452 CR/t"
+
+
+def test_trade_is_neither_mining_nor_combat(trade_round_trips: Replay) -> None:
+    assert trade_round_trips.companion.mining.current_stats is None
+    assert trade_round_trips.companion.combat.current_stats is None

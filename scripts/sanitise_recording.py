@@ -55,6 +55,8 @@ READ_BY_THE_PLUGIN = {
     "DropshipDeploy",
     "Disembark",
     "Embark",
+    # trade (ADR 0014)
+    "MarketBuy",
 }
 HARMLESS = {
     "Music",

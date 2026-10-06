@@ -3,6 +3,9 @@
 Every key is prefixed with ``edrockmaster.``. Values are read one by one: an
 invalid value falls back to its own default and is logged, the others are kept.
 Numbers are stored as text, which every EDMC config back-end supports.
+
+The activities shown are stored with the activities the tab offered: one that
+a later version adds is shown until the player hides it.
 """
 
 from __future__ import annotations
@@ -34,6 +37,10 @@ KEY_SOUND = "edrockmaster.sound"
 KEY_RECORD_JOURNAL = "edrockmaster.record_journal"
 KEY_DISPLAY_ACTIVITIES = "edrockmaster.display.activities"
 KEY_DISPLAY_MODE = "edrockmaster.display.mode"
+KEY_DISPLAY_OFFERED = "edrockmaster.display.offered"
+
+OFFERED_BEFORE_TRADE: tuple[Activity, ...] = (Activity.MINING, Activity.COMBAT)
+"""What the tab offered when the settings were saved without ``KEY_DISPLAY_OFFERED`` (0.3.0)."""
 
 _MINIMUM_CONTENTS = {
     level.value: level for level in ContentLevel if level is not ContentLevel.UNKNOWN
@@ -76,12 +83,17 @@ class EdmcSettingsStore:
             sound_enabled=self._read_bool(KEY_SOUND, defaults.sound_enabled),
             record_journal=self._read_bool(KEY_RECORD_JOURNAL, defaults.record_journal),
             display=DisplaySettings(
-                activities=self._read(
-                    KEY_DISPLAY_ACTIVITIES, _parse_activities, defaults.display.activities
-                ),
+                activities=self._read_activities(defaults.display.activities),
                 mode=self._read(KEY_DISPLAY_MODE, _parse_mode, defaults.display.mode),
             ),
         )
+
+    def _read_activities(self, default: tuple[Activity, ...]) -> tuple[Activity, ...]:
+        shown = self._read(KEY_DISPLAY_ACTIVITIES, _parse_activities, None)
+        if shown is None:
+            return default
+        offered = self._read(KEY_DISPLAY_OFFERED, _parse_activities, OFFERED_BEFORE_TRADE)
+        return (*shown, *(activity for activity in Activity if activity not in offered))
 
     def save(self, settings: PluginSettings) -> None:
         alerts = settings.alerts
@@ -96,6 +108,7 @@ class EdmcSettingsStore:
         self._config.set(KEY_RECORD_JOURNAL, settings.record_journal)
         activities = [activity.value for activity in settings.display.activities]
         self._config.set(KEY_DISPLAY_ACTIVITIES, json.dumps(activities))
+        self._config.set(KEY_DISPLAY_OFFERED, json.dumps([activity.value for activity in Activity]))
         self._config.set(KEY_DISPLAY_MODE, settings.display.mode.value)
 
     def _read[T](self, key: str, parse: Callable[[str], T], default: T) -> T:

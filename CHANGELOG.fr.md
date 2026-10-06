@@ -4,6 +4,15 @@
 
 Les changements notables du plugin EDRockMaster. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), et les versions suivent le [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [Non publié]
+
+### Ajouté
+
+- **Le commerce** (décision de conception ADR 0014) : une nouvelle activité, avec son propre bloc sur le panneau. Une session de commerce commence au premier achat. Son bénéfice est celui du jeu, `(SellPrice - AvgPricePaid) × Count`, même pour des marchandises achetées avant le lancement d'EDMC ; ses ratios ne comptent que le **temps de vol**, du décollage à l'amarrage suivant, quand un échange le suit. Le panneau affiche le bénéfice, le bénéfice par heure, les tonnes vendues, le coût de la cargaison achetée et une ligne par route (marchandise, marché d'achat, marché de vente). Sur une vraie session de trois allers-retours entre Amano Terminal et Verne Venture : 164 316 218 CR en 1 h 21 min 50 s de vol, 120,5 M CR/h.
+- Les marchandises vendues sans avoir été achetées sont comptées à part : **commodités raffinées** (leur bénéfice reste au minage) et **autres marchandises**. Les marchandises achetées larguées ou perdues avec le vaisseau sont une perte.
+- Le commerce est affiché par défaut, y compris pour les joueurs qui avaient déjà choisi les activités affichées : le plugin retient désormais les activités que l'onglet des préférences proposait.
+- Le script de nettoyage des enregistrements conserve les achats.
+
 ## [0.3.0] - 2026-10-06
 
 ### Modifié

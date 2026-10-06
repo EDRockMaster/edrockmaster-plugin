@@ -1,6 +1,6 @@
 import pytest
 
-from edrockmaster.domain.commodities import Commodity
+from edrockmaster.domain.commodities import REFINED_COMMODITIES, Commodity
 
 
 @pytest.mark.parametrize(
@@ -34,3 +34,13 @@ def test_display_name_falls_back_to_the_key() -> None:
 def test_empty_symbol_is_rejected() -> None:
     with pytest.raises(ValueError, match="empty"):
         Commodity.from_symbol("  ")
+
+
+@pytest.mark.parametrize("symbol", ["$tritium_name;", "Painite", "lowtemperaturediamond", "opal"])
+def test_refined_commodities(symbol: str) -> None:
+    assert Commodity.from_symbol(symbol) in REFINED_COMMODITIES
+
+
+@pytest.mark.parametrize("symbol", ["cmmcomposite", "drones", "$wreckagecomponents_name;"])
+def test_commodities_no_refinery_produces(symbol: str) -> None:
+    assert Commodity.from_symbol(symbol) not in REFINED_COMMODITIES

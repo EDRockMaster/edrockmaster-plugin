@@ -121,7 +121,11 @@ def test_preferences_tab_reads_the_edited_fields(root: tk.Tk) -> None:
     assert edited.minimum_remaining == "50"
     assert not edited.sound_enabled
     assert edited.record_journal
-    assert edited.activities == {Activity.MINING: False, Activity.COMBAT: True}
+    assert edited.activities == {
+        Activity.MINING: False,
+        Activity.COMBAT: True,
+        Activity.TRADE: True,
+    }
     assert edited.display_mode is DisplayMode.STACKED
 
 
