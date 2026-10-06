@@ -24,6 +24,10 @@ Les changements notables du plugin EDRockMaster. Le format suit [Keep a Changelo
 - Le script de nettoyage garde les déplacements à pied (colonies, navette, débarquement, embarquement) et retire les tueurs du commandant.
 - **Identité de build** (décision de conception ADR 0016) : chaque zip dit quel build il est, par exemple `0.3.0-rc.3`, dans le log d'EDMC au démarrage, en bas de l'onglet des préférences et dans le nom des enregistrements du journal. Les builds de la CI sont `0.3.0-dev+<commit>`.
 
+### Corrigé
+
+- L'onglet des préférences ne s'affichait plus dans EDMC depuis la 0.3.0-rc.2 : les réglages d'affichage mélangeaient deux placements Tk dans un même cadre, ce que refusent les cadres d'EDMC.
+
 ## [0.2.2] - 2026-10-03
 
 ### Corrigé

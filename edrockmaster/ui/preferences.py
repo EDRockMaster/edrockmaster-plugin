@@ -118,7 +118,7 @@ class PreferencesTab:
         nb.Label(self.frame, text=tl("Activities shown")).grid(
             row=row, column=0, sticky=tk.W, padx=(PAD, 2)
         )
-        shown = nb.Frame(self.frame)
+        shown = _inline_frame(self.frame)
         shown.grid(row=row, column=1, columnspan=2 * THRESHOLD_COLUMNS - 1, sticky=tk.W)
         for activity, variable in self._activities.items():
             nb.Checkbutton(shown, text=tl(_ACTIVITY_NAMES[activity]), variable=variable).pack(
@@ -126,7 +126,7 @@ class PreferencesTab:
             )
         row += 1
         nb.Label(self.frame, text=tl("Mode")).grid(row=row, column=0, sticky=tk.W, padx=(PAD, 2))
-        modes = nb.Frame(self.frame)
+        modes = _inline_frame(self.frame)
         modes.grid(row=row, column=1, columnspan=2 * THRESHOLD_COLUMNS - 1, sticky=tk.W)
         for mode, name in _DISPLAY_MODES.items():
             nb.Radiobutton(
@@ -169,6 +169,15 @@ class PreferencesTab:
             },
             display_mode=DisplayMode(self._display_mode.get()),
         )
+
+
+def _inline_frame(parent: Any) -> Any:
+    """A frame for a row of options, packed side by side.
+
+    Not ``nb.Frame``: EDMC's grids a spacer in itself, and Tk refuses ``pack`` next to
+    ``grid`` in one frame. Same style as the tab, for its background on Windows.
+    """
+    return ttk.Frame(parent, style=parent.cget("style"))
 
 
 def _entry(parent: Any, variable: tk.StringVar) -> Any:

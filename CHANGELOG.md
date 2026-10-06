@@ -24,6 +24,10 @@ All notable changes to the EDRockMaster plugin. The format follows [Keep a Chang
 - The recording sanitiser keeps the moves on foot (settlements, dropship, disembark, embark) and drops the commander's killers.
 - **Build identity** (design decision ADR 0016): each zip says which build it is, for example `0.3.0-rc.3`, in the EDMC log at start-up, at the bottom of the preferences tab, and in the name of journal recordings. CI builds are `0.3.0-dev+<commit>`.
 
+### Fixed
+
+- The preferences tab did not show in EDMC since 0.3.0-rc.2: the display settings mixed two Tk layouts in one frame, which EDMC's frames refuse.
+
 ## [0.2.2] - 2026-10-03
 
 ### Fixed
