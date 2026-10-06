@@ -32,13 +32,15 @@ PAD = 10
 
 
 class PreferencesTab:
-    def __init__(
+    def __init__(  # noqa: PLR0913 - one widget tree, built from everything it shows
         self,
         parent: tk.Misc,
         values: PreferencesValues,
         rows: list[tuple[str, str]],
         translate: Callable[[str], str],
         open_recordings: Callable[[], None],
+        *,
+        build_version: str,
     ) -> None:
         tl = self._tl = translate
         self.frame: Any = nb.Frame(parent)
@@ -146,6 +148,11 @@ class PreferencesTab:
         ).grid(row=row, column=0, columnspan=4, sticky=tk.W, padx=PAD)
         nb.Button(self.frame, text=tl("Open recordings folder"), command=open_recordings).grid(
             row=row, column=4, columnspan=2, sticky=tk.E, padx=PAD
+        )
+        row += 1
+        # The full build version (ADR 0016), for bug reports
+        nb.Label(self.frame, text=tl("Version {version}").format(version=build_version)).grid(
+            row=row, column=0, columnspan=4, sticky=tk.W, padx=PAD, pady=(0, PAD)
         )
 
     def values(self) -> PreferencesValues:

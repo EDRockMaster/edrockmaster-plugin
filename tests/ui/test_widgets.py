@@ -89,14 +89,19 @@ def test_panel_retranslates_its_own_texts(root: tk.Tk) -> None:
 def test_preferences_tab_gives_back_what_it_shows(root: tk.Tk) -> None:
     values = values_from_settings(DEFAULT_SETTINGS, fmt)
     rows = threshold_rows(DEFAULT_SETTINGS, identity)
-    tab = PreferencesTab(root, values, rows, identity, lambda: None)
+    tab = PreferencesTab(root, values, rows, identity, lambda: None, build_version="0.3.0-dev")
     assert tab.values() == values
 
 
 def test_preferences_tab_reads_the_edited_fields(root: tk.Tk) -> None:
     values = values_from_settings(DEFAULT_SETTINGS, fmt)
     tab = PreferencesTab(
-        root, values, threshold_rows(DEFAULT_SETTINGS, identity), identity, lambda: None
+        root,
+        values,
+        threshold_rows(DEFAULT_SETTINGS, identity),
+        identity,
+        lambda: None,
+        build_version="0.3.0-dev",
     )
     tab._thresholds["painite"].set("40")
     tab._content.set("High")

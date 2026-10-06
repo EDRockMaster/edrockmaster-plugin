@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from edrockmaster.application.build import BuildInfo, Channel
 from edrockmaster.application.companion import Notification
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.mining.prospecting import ProspectorAlertRaised
@@ -54,6 +55,38 @@ def test_plugin_dir_may_be_a_path(tmp_path: Path) -> None:
     plugin = Plugin(FakeConfig(), data_directory=lambda: tmp_path)
     assert plugin.start(tmp_path) == PLUGIN_NAME
     plugin.stop()
+
+
+COMMIT = "2606b47c3f1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d"
+
+
+def write_build_file(plugin_dir: Path) -> None:
+    (plugin_dir / "edrockmaster").mkdir(parents=True)
+    (plugin_dir / "edrockmaster" / "build.json").write_text(
+        json.dumps({"version": "0.3.0-rc.2", "commit": COMMIT, "channel": "candidate"}),
+        encoding="utf-8",
+    )
+
+
+def test_the_build_comes_from_the_build_file_of_the_package(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    plugin_dir = tmp_path / "plugins" / "EDRockMaster"
+    write_build_file(plugin_dir)
+    plugin = Plugin(FakeConfig({"edrockmaster.record_journal": True}), lambda: tmp_path / "data")
+    with caplog.at_level(logging.INFO):
+        plugin.start(plugin_dir)
+    plugin.journal_entry("Cmdr", False, "Sol", None, PROSPECTED, {})
+    plugin.stop()
+    assert plugin.build == BuildInfo("0.3.0-rc.2", Channel.CANDIDATE, COMMIT)
+    assert "EDRockMaster 0.3.0-rc.2 (candidate, commit 2606b47) started" in caplog.text
+    [recording] = (tmp_path / "data" / "recordings").glob("journal-*.jsonl")
+    assert recording.name.endswith("-0.3.0-rc.2.jsonl")
+
+
+def test_a_clone_is_a_development_build(started: Started) -> None:
+    assert started.plugin.build.channel is Channel.DEV
+    assert started.plugin.build.version.endswith("-dev")
 
 
 def test_stop_ends_the_io_thread(started: Started) -> None:

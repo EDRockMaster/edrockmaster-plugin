@@ -15,13 +15,21 @@ from edrockmaster.infrastructure.worker import Job
 
 
 class JsonlJournalRecorder:
-    """One file per EDMC run; each line is ``{"is_beta": …, "entry": {…}}``."""
+    """One file per EDMC run; each line is ``{"is_beta": …, "entry": {…}}``.
+
+    The file is named after the start of the run and the build that recorded it (ADR 0016).
+    """
 
     def __init__(
-        self, directory: Path, submit: Callable[[Job], None], started_at: datetime
+        self,
+        directory: Path,
+        submit: Callable[[Job], None],
+        started_at: datetime,
+        build_version: str,
     ) -> None:
         self._submit = submit
-        self.path = directory / f"journal-{started_at.astimezone(UTC):%Y%m%dT%H%M%SZ}.jsonl"
+        started = f"{started_at.astimezone(UTC):%Y%m%dT%H%M%SZ}"
+        self.path = directory / f"journal-{started}-{build_version}.jsonl"
 
     def record(self, entry: Entry, is_beta: bool) -> None:
         # Serialise now: EDMC hands the same dict to every plugin, it may change later

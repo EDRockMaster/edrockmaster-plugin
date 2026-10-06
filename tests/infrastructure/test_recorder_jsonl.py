@@ -25,7 +25,7 @@ class DeferredJobs:
 
 
 def make_recorder(tmp_path: Path, jobs: DeferredJobs) -> JsonlJournalRecorder:
-    return JsonlJournalRecorder(tmp_path / "recordings", jobs.submit, STARTED)
+    return JsonlJournalRecorder(tmp_path / "recordings", jobs.submit, STARTED, "0.3.0-rc.2")
 
 
 def read_lines(path: Path) -> list[object]:
@@ -46,9 +46,9 @@ def test_entries_are_appended_as_json_lines_with_the_beta_flag(tmp_path: Path) -
     ]
 
 
-def test_one_file_per_run_named_after_its_start(tmp_path: Path) -> None:
+def test_one_file_per_run_named_after_its_start_and_the_build(tmp_path: Path) -> None:
     recorder = make_recorder(tmp_path, DeferredJobs())
-    assert recorder.path == tmp_path / "recordings" / "journal-20261003T140509Z.jsonl"
+    assert recorder.path == tmp_path / "recordings" / "journal-20261003T140509Z-0.3.0-rc.2.jsonl"
 
 
 def test_writing_happens_on_the_io_thread_only(tmp_path: Path) -> None:

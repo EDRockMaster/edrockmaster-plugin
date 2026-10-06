@@ -17,10 +17,12 @@ from typing import Any
 
 from edrockmaster import VERSION
 from edrockmaster.application.activity import Activity
+from edrockmaster.application.build import BuildInfo, development_build
 from edrockmaster.application.companion import Companion, Notification
 from edrockmaster.application.ports import Clock
 from edrockmaster.edmc import host
 from edrockmaster.edmc.i18n import tl
+from edrockmaster.infrastructure.build_file import load_build
 from edrockmaster.infrastructure.clock import SystemClock
 from edrockmaster.infrastructure.paths import data_directory as default_data_directory
 from edrockmaster.infrastructure.recorder_jsonl import JsonlJournalRecorder
@@ -87,16 +89,32 @@ class Plugin:
         self._companion: Companion | None = None
         self._listeners: list[Listener] = []
         self._play_alert: Callable[[], None] | None = None
+        self._build = development_build(VERSION)
+
+    @property
+    def build(self) -> BuildInfo:
+        """Which build is running (ADR 0016); known once started."""
+        return self._build
 
     @property
     def companion(self) -> Companion | None:
         return self._companion
 
     def start(self, plugin_dir: str | os.PathLike[str]) -> str:
-        logger.info("EDRockMaster %s started from %s", VERSION, plugin_dir)
+        build = self._build = load_build(Path(plugin_dir) / "edrockmaster", VERSION, logger)
+        logger.info(
+            "EDRockMaster %s (%s, commit %s) started from %s",
+            build.version,
+            build.channel.value,
+            build.short_commit or "unknown",
+            plugin_dir,
+        )
         self._worker.start()
         recorder = JsonlJournalRecorder(
-            self._data_directory() / "recordings", self._worker.submit, self._clock.now()
+            self._data_directory() / "recordings",
+            self._worker.submit,
+            self._clock.now(),
+            build.version,
         )
         self._companion = Companion(
             settings_store=EdmcSettingsStore(self._config, logger),
@@ -131,6 +149,7 @@ class Plugin:
             threshold_rows(settings, tl),
             tl,
             self.open_recordings,
+            build_version=self._build.version,
         )
         frame: tk.Widget = self._tab.frame
         return frame

@@ -34,6 +34,7 @@ edrockmaster/
       session.py                CombatTracker aggregate (sessions by site segments, vouchers, crimes, community goals)
   application/
     activity.py                 the activities: mining, combat
+    build.py                    BuildInfo: full version, commit and channel of the running build (ADR 0016)
     companion.py                Companion: records the journal once, hands each entry to every activity, owns the settings
     settings.py                 PluginSettings (alerts, sound, recorder) and their defaults
     ports.py                    Clock, SettingsStore, Notifier, JournalRecorder (and, in 1B, UploadQueue, Authenticator)
@@ -42,6 +43,7 @@ edrockmaster/
   infrastructure/
     settings_edmc.py            SettingsStore on EDMC's config (keys prefixed "edrockmaster.")
     recorder_jsonl.py           JournalRecorder: JSONL files in the data directory
+    build_file.py               reads edrockmaster/build.json, written by the packaging
     sound.py                    Notifier: sound alerts (winsound on Windows, Tk bell elsewhere)
     paths.py                    data directory per platform
     worker.py                   the plugin's single I/O thread and its queue
@@ -153,7 +155,7 @@ A hidden activity is still followed: shown again, it is up to date.
 
 **Panel** (EDMC's main window): status (no session, mining in a ring, session ended and why), the last prospector alert, highlighted, until the next asteroid is prospected, then the statistics: active time, refined tons, rate, tons per commodity, asteroids prospected and, once known, cores, limpets, cargo and sales. The statistics of an ended session stay displayed, and its sales are added to them. A **Reset** button ends the running session. Numbers follow the system's locale, like EDMC's own.
 
-**Preferences tab**: a percentage field per mineable commodity (empty means no alert), minimum content, minimum remaining reserve, alert on cores, sound, journal recorder the activities shown and the display mode, and a button opening the recordings folder. At least one activity stays shown. Numbers are typed in the system's locale. When the dialog closes, an invalid entry keeps its previous value and is named in EDMC's status bar; the valid ones are applied at once.
+**Preferences tab**: a percentage field per mineable commodity (empty means no alert), minimum content, minimum remaining reserve, alert on cores, sound, journal recorder, the activities shown and the display mode, and a button opening the recordings folder; it ends with the full build version. At least one activity stays shown. Numbers are typed in the system's locale. When the dialog closes, an invalid entry keeps its previous value and is named in EDMC's status bar; the valid ones are applied at once.
 
 ## Settings
 
@@ -186,7 +188,7 @@ Contents in 1A: `recordings/` (journal recordings, JSONL, one file per EDMC run)
 ## Journal recorder
 
 - Off by default; enabled in preferences ("Record journal for debugging").
-- Writes every entry received by the plugin, unmodified, one JSON object per line, with the `is_beta` flag: `{"is_beta": false, "entry": {…}}`. File: `recordings/journal-<start, UTC, YYYYMMDDTHHMMSSZ>.jsonl`.
+- Writes every entry received by the plugin, unmodified, one JSON object per line, with the `is_beta` flag: `{"is_beta": false, "entry": {…}}`. File: `recordings/journal-<start, UTC, YYYYMMDDTHHMMSSZ>-<build version>.jsonl`, so a recording says which build counted it.
 - The entry is serialised when received (EDMC shares the same dict with every plugin) and written by the I/O thread.
 - Recordings are what we turn into `tests/fixtures/`; the player decides what to share.
 - The repository is public, and a raw recording holds personal data (commander name and Frontier id, squadron, carrier, chat messages, other players' names, reputation). A recording becomes a fixture only through `scripts/sanitise_recording.py`: it keeps the events the plugin reads and a few harmless ones, reduces `LoadGame` to the game version, drops the reputation (`Factions` of `Location`, `FSDJump`, `StartUp`), the targets' pilot names (`Bounty.PilotName`) and crime victims (`CommitCrime.Victim`), per event, replaces every fleet carrier (name, callsign, id) with a neutral value, and refuses to write if the commander's name or id, or a carrier, remains. `tests/test_replay.py` replays each fixture, with figures checked by hand against the raw journal.

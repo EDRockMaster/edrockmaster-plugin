@@ -20,7 +20,7 @@ Demande EDMC 6.1 ou plus récent.
 
 - **Panneau** (fenêtre principale d'EDMC) : l'activité en cours, minage ou combat. Pour le minage : la dernière alerte du prospecteur et les statistiques de la session ; pour le combat : le site en cours, les ratios par type de site, victimes, crédits, amendes, bons non encaissés et objectifs communautaires. **Réinitialiser** termine la session affichée. Dans les préférences, on choisit les activités affichées, et si le panneau montre la dernière active ou les empile toutes.
 - **Paramètres → EDRockMaster** : seuil d'alerte par commodité (vide : pas d'alerte), teneur minimale, réserve minimale, cores, son.
-- **Enregistreur du journal** (même onglet, désactivé par défaut) : enregistre les événements du journal reçus par le plugin dans des fichiers JSONL. *Ouvrir le dossier des enregistrements* les affiche ; en joindre un à un signalement de bogue.
+- **Enregistreur du journal** (même onglet, désactivé par défaut) : enregistre les événements du journal reçus par le plugin dans des fichiers JSONL. *Ouvrir le dossier des enregistrements* les affiche ; en joindre un à un signalement de bogue. L'onglet se termine par la version complète du plugin (par exemple `0.3.0-rc.2`) : la citer aussi.
 
 Les changements de chaque version : [journal des modifications](CHANGELOG.fr.md).
 
@@ -30,7 +30,7 @@ Les changements de chaque version : [journal des modifications](CHANGELOG.fr.md)
 - `edrockmaster/` : le code du plugin, dans un paquet au nom unique (voir [prérequis](docs/prerequisites.fr.md)). La logique de domaine ne dépend ni d'EDMC ni de tkinter, et elle est testée par `pytest`.
 - `L10n/` : traductions (`fr.strings`).
 - `tests/fixtures/` : extraits de journaux réels.
-- `scripts/` : emballage (`package.sh`), notes de release (`release_notes.sh`), version (`version.sh`), canal de release (`release_plan.py`), release GitHub (`github_release.py`), enregistrement vers données de test (`sanitise_recording.py`).
+- `scripts/` : emballage (`package.sh`, avec le fichier de build de `build_file.py`), notes de release (`release_notes.sh`), version (`version.sh`), canal de release (`release_plan.py`), release GitHub (`github_release.py`), enregistrement vers données de test (`sanitise_recording.py`).
 
 ## Documentation
 
@@ -55,6 +55,8 @@ Pas de production sans recette (ADR 0012, dans le dépôt d'architecture) :
 2. **Candidate** : taguer le commit de fusion `vX.Y.Z-rc.1` et pousser le tag. La CI publie une **pré-release privée sur Gitea**.
 3. **Recette** : installer la candidate dans EDMC et jouer, enregistreur du journal activé, en suivant la liste de vérifications en jeu du jalon. En cas de problème : le corriger par une pull request, puis taguer `vX.Y.Z-rc.2` sur le nouveau commit de fusion.
 4. **Production** : taguer `vX.Y.Z` sur le **même commit** que la candidate validée et pousser. La CI refuse un tag de production sans candidate sur ce commit (`scripts/release_plan.py`), puis publie sur Gitea et GitHub, avec l'entrée du journal des modifications comme notes.
+
+Le code garde la version `X.Y.Z` de la candidate à la production ; l'emballage écrit `edrockmaster/build.json` dans chaque zip, avec la version complète, le commit et le canal (ADR 0016). Un artefact de CI est `X.Y.Z-dev+<commit>`, un clone tourne en `X.Y.Z-dev`.
 
 Chaque passage de la CI garde aussi le zip en artefact (versions de dev, 14 jours).
 
