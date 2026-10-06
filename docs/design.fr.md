@@ -2,7 +2,7 @@
 
 *[English](design.md) · Français*
 
-Conception du plugin EDMC d'EDRockMaster. Périmètre : **jalon 1, étape 1A** (plugin local, premier essai en jeu), plus l'activité de combat (décisions de conception ADR 0011, ADR 0013 et ADR 0015, dans le dépôt d'architecture du projet). La liaison avec le serveur (étape 1B) est conçue ici pour ne pas avoir à reprendre 1A, mais elle n'est pas encore réalisée. Les contraintes viennent des [prérequis](prerequisites.fr.md) ; les règles d'ingénierie, de `edrockmaster-architecture`.
+Conception du plugin EDMC d'EDRockMaster. Périmètre : **jalon 1, étape 1A** (plugin local, premier essai en jeu), plus les activités de combat et de commerce (décisions de conception ADR 0011, ADR 0013, ADR 0014 et ADR 0015, dans le dépôt d'architecture du projet). La liaison avec le serveur (étape 1B) est conçue ici pour ne pas avoir à reprendre 1A, mais elle n'est pas encore réalisée. Les contraintes viennent des [prérequis](prerequisites.fr.md) ; les règles d'ingénierie, de `edrockmaster-architecture`.
 
 ## Objectifs de l'étape 1A
 
@@ -23,7 +23,7 @@ edrockmaster/
   __init__.py                   VERSION
   domain/                       Python pur : ni EDMC, ni tkinter, ni entrées-sorties
     journal_reading.py          noyau partagé : lecture tolérante des entrées du journal (ADR 0011)
-    commodities.py              noyau partagé : noms des commodités, normalisation
+    commodities.py              noyau partagé : noms des commodités, normalisation, commodités issues du raffinage
     mining/                     contexte du minage
       journal.py                entrée du journal → fait du minage
       prospecting.py            astéroïde prospecté, politique d'alerte
@@ -32,14 +32,18 @@ edrockmaster/
       journal.py                entrée du journal → fait du combat
       sites.py                  sites de combat, tels que le jeu les nomme à l'arrivée
       session.py                agrégat CombatTracker (sessions par segments de site, bons, délits, objectifs communautaires)
+    trade/                      contexte du commerce
+      journal.py                entrée du journal → fait du commerce
+      session.py                agrégat TradeTracker (sessions, routes, temps de vol, cargaison achetée, pertes)
   application/
-    activity.py                 les activités : minage, combat
+    activity.py                 les activités : minage, combat, commerce
     build.py                    BuildInfo : version complète, commit et canal du build en cours (ADR 0016)
     companion.py                Companion : enregistre le journal une fois, passe chaque entrée à chaque activité, porte les réglages
     settings.py                 PluginSettings (alertes, son, enregistreur) et leurs valeurs par défaut
     ports.py                    Clock, SettingsStore, Notifier, JournalRecorder (et, en 1B, UploadQueue, Authenticator)
     mining_service.py           cas d'usage du minage : traiter une entrée du journal, réinitialiser la session, appliquer les réglages
     combat_service.py           cas d'usage du combat : traiter une entrée du journal, réinitialiser la session
+    trade_service.py            cas d'usage du commerce : traiter une entrée du journal, réinitialiser la session
   infrastructure/
     settings_edmc.py            SettingsStore sur le config d'EDMC (clés préfixées « edrockmaster. »)
     recorder_jsonl.py           JournalRecorder : fichiers JSONL dans le dossier de données
@@ -57,6 +61,7 @@ edrockmaster/
     presenter.py                ActivityPresenter : les blocs à afficher, selon le mode
     mining_presenter.py         notifications du minage → PanelModel
     combat_presenter.py         notifications du combat → PanelModel
+    trade_presenter.py          notifications du commerce → PanelModel
     preferences_form.py         réglages <-> champs des préférences, validation, sans tkinter
     commodity_names.py          noms des commodités minables connues avant que le journal ne les nomme
     panel.py                    panneau de la fenêtre principale (tkinter, fil principal uniquement), un bloc par activité affichée
@@ -138,10 +143,30 @@ Statistiques d'une session de combat : ses segments (type de site, durée, victi
 
 Le panneau affiche les activités choisies par le joueur (préférences, **Affichage**), selon l'un de deux modes ([ADR 0013](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0013-combat-segments-and-live-panel.fr.md)) :
 
-- **dernière activité active** (par défaut) : un seul bloc, la dernière activité affichée qui a **progressé**. Pour le combat, une session ou un segment qui commence ou se termine, une récompense ou un délit ; quitter un site sans segment, les bons et les objectifs communautaires ne le font jamais basculer. Une activité masquée ne prend jamais le panneau ;
-- **toutes, empilées** : un bloc par activité affichée, le minage puis le combat, chacun avec son bouton **Réinitialiser**.
+- **dernière activité active** (par défaut) : un seul bloc, la dernière activité affichée qui a **progressé**. Pour le combat, une session ou un segment qui commence ou se termine, une récompense ou un délit ; quitter un site sans segment, les bons et les objectifs communautaires ne le font jamais basculer. Pour le commerce, une session qui commence ou se termine, un achat, une vente ou une perte. Une activité masquée ne prend jamais le panneau ;
+- **toutes, empilées** : un bloc par activité affichée, le minage, le combat puis le commerce, chacun avec son bouton **Réinitialiser**.
 
 Une activité masquée reste suivie : affichée de nouveau, elle est à jour.
+
+## Commerce
+
+Le commerce suit les achats et les ventes de marchandises sur les marchés ([ADR 0014](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0014-plugin-trade-activity.fr.md)). Son temps actif est le **temps de vol** : un **trajet** va du décollage à l'amarrage suivant, et compte dès qu'un échange le suit dans la session.
+
+| Situation | Effet |
+| --- | --- |
+| Premier `MarketBuy`, ou premier `MarketSell` de marchandises achetées (`AvgPricePaid` supérieur à 0) | La session de commerce commence. Le vol jusqu'à ce marché ne compte pas |
+| `MarketBuy` | Les marchandises sont à bord à leur coût ; le marché est l'origine de leur route (le dernier achat l'emporte) |
+| `MarketSell` de marchandises achetées | Bénéfice `(SellPrice - AvgPricePaid) × Count`, celui du jeu, même pour des marchandises achetées avant le lancement d'EDMC (origine inconnue). Compté sur la route : marchandise, marché d'achat, marché de vente |
+| `MarketSell` avec `AvgPricePaid` à 0 | Non achetées : **commodités raffinées** si une raffinerie les produit (leur bénéfice revient au minage), **autres marchandises** sinon. Ni dans le bénéfice ni dans les ratios ; aucune session ne commence |
+| `Undocked`, puis `Docked` | Un trajet. Il compte dès qu'un achat ou une vente de marchandises achetées le suit dans la session : une escale sans échange fait partie du vol, un vol après le dernier échange ne compte pas. Le temps à quai ne compte jamais |
+| `Location` ou `StartUp` hors station | En vol depuis un moment inconnu : le trajet compte à partir de là |
+| `EjectCargo` de marchandises achetées | Perte au prix payé, déduite du bénéfice |
+| `Cargo` | Les marchandises achetées parties sans vente (une mission, un porte-vaisseaux) ne sont plus à bord : jamais plus que ce que le vaisseau transporte |
+| `Died` | La cargaison achetée est perdue (une perte), la session se termine |
+| `Shutdown`, `ShutDown` | La session se termine ; la cargaison reste connue |
+| Réinitialisation manuelle (bouton du panneau, commerce affiché) | La session se termine, une nouvelle peut commencer |
+
+Statistiques d'une session de commerce : temps de vol, bénéfice (ventes moins pertes), bénéfice et tonnes par heure de vol, tonnes vendues, pertes, coût des marchandises achetées à bord, une ligne par route (tonnes, bénéfice, bénéfice par tonne, ventes), commodités raffinées et autres marchandises. Sur le panneau, une route trop longue pour la fenêtre d'EDMC ne nomme que sa destination. Hors périmètre : le commerce avec un porte-vaisseaux, la contrebande, les missions. Le commerce n'est pas envoyé au serveur.
 
 ## Alertes du prospecteur
 
@@ -171,6 +196,7 @@ Enregistrés avec le `config` d'EDMC (`config.set` / `config.get_*`), clés pré
 | `edrockmaster.sound` | booléen | Alertes sonores |
 | `edrockmaster.record_journal` | booléen | Enregistreur du journal |
 | `edrockmaster.display.activities` | texte | Liste JSON des activités affichées, au moins une (`["mining", "combat"]`) |
+| `edrockmaster.display.offered` | texte | Liste JSON des activités que l'onglet proposait à l'enregistrement (`["mining", "combat", "trade"]`). Une activité ajoutée par une version ultérieure est affichée jusqu'à ce que le joueur la masque ; absente (enregistré par la 0.3.0) : minage et combat |
 | `edrockmaster.display.mode` | texte | `last_active` ou `stacked` |
 
 Les valeurs sont lues une à une : une valeur absente ou invalide reprend sa propre valeur par défaut (avec un avertissement dans le journal), les autres sont conservées.
@@ -216,7 +242,7 @@ Ports définis en 1A, réalisés en 1B :
 
 - **Domaine et application : en TDD**, avec `pytest` seul, sans EDMC.
 - **Jeux de données** : extraits de vrais journaux (`tests/fixtures/*.jsonl`), enregistrés avec l'enregistreur.
-- **Tests de rejeu** : une session enregistrée complète est rejouée dans `MiningService`, et les statistiques finales sont vérifiées.
+- **Tests de rejeu** : une session enregistrée complète est rejouée dans `Companion` et le présentateur du panneau, et les statistiques finales, vérifiées à la main sur le journal brut, sont contrôlées.
 - **Adaptateurs EDMC** : testés avec de faux modules `config`, `l10n` et `theme` injectés par `tests/conftest.py`.
 - **Interface** : le présentateur et le formulaire des préférences sont purs et entièrement testés. Les widgets tkinter restent minces ; leurs tests utilisent un vrai Tk et sont sautés là où il n'y a pas d'affichage (CI), ils tournent donc sur les postes des développeurs. Vérifiée en jeu pendant le test 1A.
 - CI : `ruff`, `mypy --strict`, `pytest` avec couverture sur `domain/` et `application/`.

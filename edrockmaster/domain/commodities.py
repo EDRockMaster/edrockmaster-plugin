@@ -36,3 +36,67 @@ class Commodity:
 
 
 LIMPET = Commodity.from_symbol("drones")
+
+REFINED_COMMODITIES = frozenset(
+    Commodity(key)
+    for key in (
+        # metals
+        "aluminium",
+        "beryllium",
+        "bismuth",
+        "cobalt",
+        "copper",
+        "gallium",
+        "gold",
+        "indium",
+        "lanthanum",
+        "lithium",
+        "osmium",
+        "palladium",
+        "platinum",
+        "praseodymium",
+        "samarium",
+        "silver",
+        "tantalum",
+        "thallium",
+        "thorium",
+        "titanium",
+        "uranium",
+        # minerals
+        "alexandrite",
+        "bauxite",
+        "benitoite",
+        "bertrandite",
+        "bromellite",
+        "coltan",
+        "cryolite",
+        "gallite",
+        "goslarite",
+        "grandidierite",
+        "indite",
+        "jadeite",
+        "lepidolite",
+        "lithiumhydroxide",
+        "lowtemperaturediamond",
+        "methaneclathrate",
+        "methanolmonohydratecrystals",
+        "moissanite",
+        "monazite",
+        "musgravite",
+        "opal",
+        "painite",
+        "pyrophyllite",
+        "rhodplumsite",
+        "rutile",
+        "serendibite",
+        "taaffeite",
+        "uraninite",
+        # chemicals
+        "hydrogenperoxide",
+        "liquidoxygen",
+        "tritium",
+        "water",
+    )
+)
+"""Commodities a mining refinery produces. Many are traded too: what tells a mined
+ton from a bought one is the price paid, not the commodity."""

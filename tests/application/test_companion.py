@@ -12,8 +12,16 @@ from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.mining.journal import ContentLevel
 from edrockmaster.domain.mining.prospecting import AlertSettings, ProspectorAlertRaised
 from edrockmaster.domain.mining.session import SessionEnded, SessionStarted
+from edrockmaster.domain.trade.session import TradeEnded, TradeStarted
 from tests.fakes import FakeNotifier, FakeRecorder, FakeSettingsStore, FixedClock
-from tests.journal_entries import T0, bounty_entry, prospected_entry, refined_entry, timestamp
+from tests.journal_entries import (
+    T0,
+    bounty_entry,
+    market_buy_entry,
+    prospected_entry,
+    refined_entry,
+    timestamp,
+)
 
 PAINITE = Commodity.from_symbol("painite")
 
@@ -46,8 +54,10 @@ def harness() -> Harness:
 def test_each_activity_receives_the_entries(harness: Harness) -> None:
     assert isinstance(harness.entry(prospected_entry(0))[0], SessionStarted)
     assert isinstance(harness.entry(bounty_entry(1))[0], CombatStarted)
+    assert isinstance(harness.entry(market_buy_entry(2))[0], TradeStarted)
     assert harness.companion.mining.current_stats is not None
     assert harness.companion.combat.current_stats is not None
+    assert harness.companion.trade.current_stats is not None
 
 
 def test_irrelevant_entries_produce_nothing(harness: Harness) -> None:
@@ -58,8 +68,12 @@ def test_irrelevant_entries_produce_nothing(harness: Harness) -> None:
 def test_reset_acts_on_the_chosen_activity_only(harness: Harness) -> None:
     harness.entry(refined_entry(0))
     harness.entry(bounty_entry(1))
+    harness.entry(market_buy_entry(2))
     [ended] = harness.companion.reset(Activity.COMBAT)
     assert isinstance(ended, CombatEnded)
+    assert harness.companion.mining.current_stats is not None
+    [ended] = harness.companion.reset(Activity.TRADE)
+    assert isinstance(ended, TradeEnded)
     assert harness.companion.mining.current_stats is not None
     [ended] = harness.companion.reset(Activity.MINING)
     assert isinstance(ended, SessionEnded)

@@ -23,7 +23,11 @@ _CONTENT_LEVELS = {
     ContentLevel.MEDIUM: "Medium",
     ContentLevel.HIGH: "High",
 }
-_ACTIVITY_NAMES = {Activity.MINING: "Show mining", Activity.COMBAT: "Show combat"}
+_ACTIVITY_NAMES = {
+    Activity.MINING: "Show mining",
+    Activity.COMBAT: "Show combat",
+    Activity.TRADE: "Show trade",
+}
 _DISPLAY_MODES = {
     DisplayMode.LAST_ACTIVE: "Last active activity",
     DisplayMode.STACKED: "All of them, stacked",

@@ -149,7 +149,11 @@ def test_unknown_commodities_of_the_settings_are_kept() -> None:
 
 def test_values_show_the_display_settings() -> None:
     values = values_from_settings(DEFAULT_SETTINGS, fmt)
-    assert values.activities == {Activity.MINING: True, Activity.COMBAT: True}
+    assert values.activities == {
+        Activity.MINING: True,
+        Activity.COMBAT: True,
+        Activity.TRADE: True,
+    }
     assert values.display_mode is DisplayMode.LAST_ACTIVE
 
 
@@ -158,7 +162,9 @@ def test_edited_display_becomes_the_new_settings() -> None:
     values.activities[Activity.MINING] = False
     values.display_mode = DisplayMode.STACKED
     settings, invalid = to_settings(values)
-    assert settings.display == DisplaySettings((Activity.COMBAT,), DisplayMode.STACKED)
+    assert settings.display == DisplaySettings(
+        (Activity.COMBAT, Activity.TRADE), DisplayMode.STACKED
+    )
     assert invalid == ()
 
 

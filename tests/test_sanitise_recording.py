@@ -90,6 +90,23 @@ def test_moves_on_foot_are_kept(entry: dict[str, Any]) -> None:
     assert kept(record(**entry)) == [{"timestamp": TS, **entry}]
 
 
+def test_trades_are_kept() -> None:
+    purchase = {"event": "MarketBuy", "MarketID": 42, "Type": "palladium", "Count": 1}
+    sale = {"event": "MarketSell", "MarketID": 42, "Type": "palladium", "AvgPricePaid": 4853}
+    assert kept(record(**purchase), record(**sale)) == [
+        {"timestamp": TS, **purchase},
+        {"timestamp": TS, **sale},
+    ]
+
+
+def test_trades_at_a_fleet_carrier_are_anonymised() -> None:
+    [_, purchase] = kept(
+        record(event="Docked", StationName="TZF-66Z", StationType="FleetCarrier", MarketID=37),
+        record(event="MarketBuy", MarketID=37, Type="tritium", Count=1),
+    )
+    assert purchase["MarketID"] == 0
+
+
 def test_killers_are_dropped_from_deaths() -> None:
     [entry] = kept(
         record(
