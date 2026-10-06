@@ -23,6 +23,10 @@ All notable changes to the EDRockMaster plugin. The format follows [Keep a Chang
 - **Conflict zones the journal does not name**: a combat bond only exists in a conflict zone, so a bond outside any site opens a segment from the arrival, of unknown intensity by ship. On that same evening, 45 of 77 kills would otherwise have had no rate.
 - The recording sanitiser keeps the moves on foot (settlements, dropship, disembark, embark) and drops the commander's killers.
 
+### Fixed
+
+- The preferences tab did not show in EDMC since 0.3.0-rc.2: the display settings mixed two Tk layouts in one frame, which EDMC's frames refuse.
+
 ## [0.2.2] - 2026-10-03
 
 ### Fixed

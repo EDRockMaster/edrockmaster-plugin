@@ -23,6 +23,10 @@ Les changements notables du plugin EDRockMaster. Le format suit [Keep a Changelo
 - **Zones de conflit que le journal ne nomme pas** : une obligation de combat n'existe qu'en zone de conflit, donc une obligation hors de tout site ouvre un segment depuis l'arrivée, d'intensité inconnue en vaisseau. Ce même soir, 45 victimes sur 77 n'auraient sinon eu aucun ratio.
 - Le script de nettoyage garde les déplacements à pied (colonies, navette, débarquement, embarquement) et retire les tueurs du commandant.
 
+### Corrigé
+
+- L'onglet des préférences ne s'affichait plus dans EDMC depuis la 0.3.0-rc.2 : les réglages d'affichage mélangeaient deux placements Tk dans un même cadre, ce que refusent les cadres d'EDMC.
+
 ## [0.2.2] - 2026-10-03
 
 ### Corrigé

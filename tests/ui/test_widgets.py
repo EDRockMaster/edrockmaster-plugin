@@ -1,10 +1,15 @@
 """Widget tests: real tkinter, skipped where no display is available (e.g. CI)."""
 
 import tkinter as tk
+from tkinter import ttk
+from types import SimpleNamespace
+
+import pytest
 
 from edrockmaster.application.activity import Activity
 from edrockmaster.application.settings import DEFAULT_SETTINGS, DisplayMode
 from edrockmaster.domain.mining.journal import ContentLevel
+from edrockmaster.ui import preferences
 from edrockmaster.ui.panel import Panel
 from edrockmaster.ui.panel_model import ActivityBlock, PanelModel, StatLine
 from edrockmaster.ui.preferences import PreferencesTab
@@ -113,3 +118,25 @@ def test_preferences_tab_reads_the_edited_fields(root: tk.Tk) -> None:
     assert edited.record_journal
     assert edited.activities == {Activity.MINING: False, Activity.COMBAT: True}
     assert edited.display_mode is DisplayMode.STACKED
+
+
+class EdmcFrame(ttk.Frame):
+    """Like EDMC's ``myNotebook.Frame``: it grids a top spacer in itself."""
+
+    def __init__(self, master: tk.Misc | None = None, **kw: object) -> None:
+        super().__init__(master, **kw)  # type: ignore[arg-type]
+        ttk.Frame(self).grid(pady=5)
+
+
+def test_preferences_tab_builds_with_edmc_frames(
+    root: tk.Tk, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Regression: in EDMC 0.3.0-rc.2 the tab failed, "pack" inside a frame managed by grid
+    edmc_notebook = SimpleNamespace(**{name: getattr(ttk, name) for name in dir(ttk)})
+    edmc_notebook.Frame = EdmcFrame
+    monkeypatch.setattr(preferences, "nb", edmc_notebook)
+    values = values_from_settings(DEFAULT_SETTINGS, fmt)
+    tab = PreferencesTab(
+        root, values, threshold_rows(DEFAULT_SETTINGS, identity), identity, lambda: None
+    )
+    assert tab.values() == values
