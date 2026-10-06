@@ -142,6 +142,11 @@ def test_preferences_tab_builds_with_edmc_frames(
     monkeypatch.setattr(preferences, "nb", edmc_notebook)
     values = values_from_settings(DEFAULT_SETTINGS, fmt)
     tab = PreferencesTab(
-        root, values, threshold_rows(DEFAULT_SETTINGS, identity), identity, lambda: None
+        root,
+        values,
+        threshold_rows(DEFAULT_SETTINGS, identity),
+        identity,
+        lambda: None,
+        build_version="0.3.0-dev",
     )
     assert tab.values() == values
