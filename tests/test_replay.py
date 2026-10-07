@@ -28,9 +28,17 @@ from edrockmaster.domain.combat.session import (
     VouchersUpdated,
 )
 from edrockmaster.domain.combat.sites import SiteType
+from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.mining.session import EndReason, SessionEnded
 from edrockmaster.domain.trade.journal import Market
-from edrockmaster.domain.trade.session import GoodsTally, TradeStats
+from edrockmaster.domain.trade.session import (
+    GoodsTally,
+    TradeEnded,
+    TradeEndReason,
+    TradeStats,
+    TransferKind,
+    TransferStats,
+)
 from edrockmaster.ui.presenter import ActivityPresenter
 from tests.fakes import FakeNotifier, FakeRecorder, FakeSettingsStore, FixedClock
 
@@ -386,3 +394,49 @@ def test_trade_takes_the_panel_at_the_first_purchase(trade_round_trips: Replay) 
 def test_trade_is_neither_mining_nor_combat(trade_round_trips: Replay) -> None:
     assert trade_round_trips.companion.mining.current_stats is None
     assert trade_round_trips.companion.combat.current_stats is None
+
+
+@pytest.fixture(scope="module")
+def gold_to_carrier() -> Replay:
+    """Gold bought at Abraham Site and moved to the player's fleet carrier, in two loads
+    (6 October 2026, from the game journal, ADR 0019). A stop at the carrier from 23:30:46
+    to 23:32:05 made no transfer: the known game bug, the gold left again on board."""
+    return Replay("abraham-site-gold-to-carrier-2026-10-06.jsonl")
+
+
+def trade_sessions(replay: Replay) -> list[TradeEnded]:
+    return [n for n in replay.notifications if isinstance(n, TradeEnded)]
+
+
+def test_each_deposit_is_counted_once(gold_to_carrier: Replay) -> None:
+    gold = Commodity("gold")
+    first, second = trade_sessions(gold_to_carrier)
+    # 22:47:24, then 00:04:37: two transfers to the carrier, not three
+    assert first.stats.transfers == (TransferStats(gold, TransferKind.DEPOSIT, 1_040, 1),)
+    assert second.stats.transfers == (TransferStats(gold, TransferKind.DEPOSIT, 1_040, 1),)
+
+
+def test_gold_deposited_is_not_lost_with_the_ship(gold_to_carrier: Replay) -> None:
+    first, _ = trade_sessions(gold_to_carrier)
+    # Destroyed at 23:06:45, after the deposit: nothing bought was on board
+    assert (first.reason, first.at) == (
+        TradeEndReason.DIED,
+        datetime(2026, 10, 6, 23, 6, 45, tzinfo=UTC),
+    )
+    assert (first.stats.losses, first.stats.cargo) == (0, GoodsTally())
+
+
+def test_flight_time_to_the_carrier(gold_to_carrier: Replay) -> None:
+    first, second = trade_sessions(gold_to_carrier)
+    # From Abraham Site, 22:33:15 to 22:40:37
+    assert first.stats.flight_time == timedelta(minutes=7, seconds=22)
+    # Three legs before the deposit of 00:04:37, the stop without transfer included:
+    # 23:18:56-23:30:46, 23:32:05-23:42:26, 23:52:49-00:02:42
+    assert second.stats.flight_time == timedelta(minutes=32, seconds=4)
+    assert second.reason is TradeEndReason.GAME_CLOSED
+    assert (second.stats.profit, second.stats.tons_sold) == (0, 0)
+
+
+def test_panel_after_the_deposit(gold_to_carrier: Replay) -> None:
+    lines = dict(gold_to_carrier.lines())
+    assert lines["Deposited: Or"] == "1,040 t (1 transfer)"

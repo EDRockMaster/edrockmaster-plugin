@@ -57,6 +57,8 @@ READ_BY_THE_PLUGIN = {
     "Embark",
     # trade (ADR 0014)
     "MarketBuy",
+    # fleet carrier transfers (ADR 0019)
+    "CargoTransfer",
 }
 HARMLESS = {
     "Music",

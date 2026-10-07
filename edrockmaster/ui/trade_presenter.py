@@ -15,6 +15,8 @@ from edrockmaster.domain.trade.session import (
     TradeStarted,
     TradeStats,
     TradeUpdated,
+    TransferKind,
+    TransferStats,
 )
 from edrockmaster.ui.commodity_names import commodity_name
 from edrockmaster.ui.panel_model import (
@@ -33,6 +35,10 @@ ROUTE_LABEL_LENGTH = 32
 too long names its destination only, then is cut."""
 
 # English source strings, translated at render time
+_TRANSFER_LABELS = {
+    TransferKind.DEPOSIT: "Deposited: {commodity}",
+    TransferKind.WITHDRAWAL: "Withdrawn: {commodity}",
+}
 _END_REASONS = {
     TradeEndReason.GAME_CLOSED: "game closed",
     TradeEndReason.DIED: "ship destroyed",
@@ -82,6 +88,21 @@ class TradePresenter:
         tl = self._tl
         yield StatLine(tl("Flight time"), format_duration(stats.flight_time, tl))
         yield StatLine(tl("Profit"), self._credits(stats.profit))
+        if stats.tons_sold:  # hauling to a carrier sells nothing: no empty rates
+            yield from self._sales_lines(stats)
+        if stats.losses:
+            yield StatLine(tl("Losses"), self._credits(stats.losses))
+        if stats.cargo.tons:
+            yield StatLine(tl("Cargo bought"), self._tally(stats.cargo))
+        yield from (self._route_line(route) for route in stats.routes)
+        yield from (self._transfer_line(moved) for moved in stats.transfers)
+        if stats.refined.tons:
+            yield StatLine(tl("Refined commodities"), self._tally(stats.refined))
+        if stats.other.tons:
+            yield StatLine(tl("Other goods"), self._tally(stats.other))
+
+    def _sales_lines(self, stats: TradeStats) -> Iterable[StatLine]:
+        tl = self._tl
         if stats.flight_time:
             yield StatLine(tl("Profit per hour"), self._credits(stats.profit_per_hour))
         sold = self._tons(stats.tons_sold)
@@ -90,15 +111,6 @@ class TradePresenter:
                 tons=sold, rate=self._number(stats.tons_per_hour, 0)
             )
         yield StatLine(tl("Sold"), sold)
-        if stats.losses:
-            yield StatLine(tl("Losses"), self._credits(stats.losses))
-        if stats.cargo.tons:
-            yield StatLine(tl("Cargo bought"), self._tally(stats.cargo))
-        yield from (self._route_line(route) for route in stats.routes)
-        if stats.refined.tons:
-            yield StatLine(tl("Refined commodities"), self._tally(stats.refined))
-        if stats.other.tons:
-            yield StatLine(tl("Other goods"), self._tally(stats.other))
 
     def _route_line(self, route: RouteStats) -> StatLine:
         commodity = commodity_name(route.commodity, self._tl)
@@ -116,6 +128,18 @@ class TradePresenter:
             per_ton=self._credits(route.profit_per_ton),
         )
         return StatLine(_shorten(label), value)
+
+    def _transfer_line(self, moved: TransferStats) -> StatLine:
+        """What moved to or from fleet carriers, and in how many transfers (ADR 0019)."""
+        tl = self._tl
+        label = tl(_TRANSFER_LABELS[moved.kind]).format(
+            commodity=commodity_name(moved.commodity, tl)
+        )
+        tons = self._tons(moved.tons)
+        if moved.transfers == 1:
+            return StatLine(label, tl("{tons} (1 transfer)").format(tons=tons))
+        value = tl("{tons} ({count} transfers)").format(tons=tons, count=moved.transfers)
+        return StatLine(label, value)
 
     def _market(self, market: Market | None) -> str:
         if market is None:

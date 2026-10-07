@@ -104,6 +104,12 @@
 "market {id}" = "marché {id}";
 "{tons}, {profit}, {per_ton}/t" = "{tons}, {profit}, {per_ton}/t";
 
+/* ui/trade_presenter.py: cargo moved to or from fleet carriers, and the number of transfers */
+"Deposited: {commodity}" = "Déposé : {commodity}";
+"Withdrawn: {commodity}" = "Retiré : {commodity}";
+"{tons} (1 transfer)" = "{tons} (1 transfert)";
+"{tons} ({count} transfers)" = "{tons} ({count} transferts)";
+
 /* ui/preferences.py: settings tab */
 "Prospector alerts" = "Alertes du prospecteur";
 "Alert when an asteroid holds at least this percentage. Leave empty for no alert." = "Alerte quand un astéroïde contient au moins ce pourcentage. Laisser vide pour ne pas être alerté.";

@@ -6,6 +6,7 @@ from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.trade.journal import (
     CargoEjected,
     CargoInventory,
+    CargoTransferred,
     CommanderDied,
     Docked,
     GameClosed,
@@ -13,6 +14,8 @@ from edrockmaster.domain.trade.journal import (
     GoodsBought,
     GoodsSold,
     Market,
+    Transfer,
+    TransferDirection,
     Undocked,
     parse_entry,
 )
@@ -185,3 +188,84 @@ def test_death_and_game_closed() -> None:
 )
 def test_malformed_or_irrelevant_entries_are_ignored(entry: dict[str, object]) -> None:
     assert parse_entry({"timestamp": TS, **entry}) is None
+
+
+def test_a_fleet_carrier_is_known_by_its_station_type() -> None:
+    fact = parse_entry(
+        {
+            "timestamp": TS,
+            "event": "Docked",
+            "StationName": "TZF-66Z",
+            "StationType": "FleetCarrier",
+            "MarketID": 3711717120,
+        }
+    )
+    assert isinstance(fact, Docked)
+    assert fact.market.fleet_carrier
+    assert not Market(AMANO, "Amano Terminal").fleet_carrier
+
+
+def test_game_loaded_at_a_fleet_carrier() -> None:
+    fact = parse_entry(
+        {
+            "timestamp": TS,
+            "event": "Location",
+            "Docked": True,
+            "StationName": "TZF-66Z",
+            "StationType": "FleetCarrier",
+            "MarketID": 3711717120,
+        }
+    )
+    assert isinstance(fact, GameLoaded)
+    assert fact.market is not None
+    assert fact.market.fleet_carrier
+
+
+def test_cargo_transfers_are_parsed() -> None:
+    fact = parse_entry(
+        {
+            "timestamp": TS,
+            "event": "CargoTransfer",
+            "Transfers": [
+                {"Type": "gold", "Type_Localised": "Or", "Count": 1040, "Direction": "tocarrier"},
+                {"Type": "tritium", "Count": 10, "Direction": "toship"},
+                {"Type": "water", "Count": 1, "Direction": "tosrv"},
+            ],
+        }
+    )
+    assert fact == CargoTransferred(
+        AT,
+        (
+            Transfer(Commodity("gold"), 1040, TransferDirection.TO_CARRIER),
+            Transfer(Commodity("tritium"), 10, TransferDirection.TO_SHIP),
+            Transfer(Commodity("water"), 1, TransferDirection.TO_SRV),
+        ),
+    )
+
+
+def test_a_transfer_in_an_unknown_direction_is_ignored() -> None:
+    fact = parse_entry(
+        {
+            "timestamp": TS,
+            "event": "CargoTransfer",
+            "Transfers": [
+                {"Type": "gold", "Count": 1, "Direction": "tospace"},
+                {"Type": "gold", "Count": 2, "Direction": "tocarrier"},
+            ],
+        }
+    )
+    assert fact == CargoTransferred(
+        AT, (Transfer(Commodity("gold"), 2, TransferDirection.TO_CARRIER),)
+    )
+
+
+@pytest.mark.parametrize(
+    "transfers",
+    [
+        "gold",
+        [{"Type": "gold", "Count": 0, "Direction": "tocarrier"}],
+        [{"Type": "gold", "Count": 1}],
+    ],
+)
+def test_malformed_transfers_are_ignored(transfers: object) -> None:
+    assert parse_entry({"timestamp": TS, "event": "CargoTransfer", "Transfers": transfers}) is None

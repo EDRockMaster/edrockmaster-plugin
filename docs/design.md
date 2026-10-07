@@ -161,12 +161,13 @@ Trade follows purchases and sales of goods on markets ([ADR 0014](https://git.ne
 | `Undocked`, then `Docked` | A leg. It counts once a purchase or a sale of bought goods follows it in the session: a stop without trade is part of the flight, a flight after the last trade does not count. Time docked never counts |
 | `Location` or `StartUp` off station | In flight since an unknown time: the leg counts from there |
 | `EjectCargo` of bought goods | Loss at the price paid, deducted from the profit |
-| `Cargo` | Bought goods that left without a sale (a mission, a fleet carrier) are no longer on board: never more than the ship carries |
+| `CargoTransfer` to a fleet carrier, or to the ship while docked at one ([ADR 0019](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0019-fleet-carrier-transfers.md)) | A **deposit** or a **withdrawal**: counted per commodity and direction, with the number of transfers. Starts the session and counts the legs it follows, like a purchase; earns nothing. The goods keep their cost and origin at the carrier, and come back with them. Transfers with an SRV are ignored |
+| `Cargo` | Bought goods that left without a sale (a mission) are no longer on board: never more than the ship carries |
 | `Died` | The bought cargo is lost (a loss), the session ends |
 | `Shutdown`, `ShutDown` | Session ends; the cargo stays known |
 | Manual reset (panel button, trade shown) | Session ends, a new one can start |
 
-Statistics of a trade session: flight time, profit (sales minus losses), profit and tons per hour of flight, tons sold, losses, the cost of the bought goods on board, one line per route (tons, profit, profit per ton, sales), refined commodities and other goods. On the panel, a route too long for EDMC's window names its destination only. Out of scope: fleet carrier trade, smuggling, missions. Trade is not uploaded.
+Statistics of a trade session: flight time, profit (sales minus losses), profit and tons per hour of flight, tons sold, losses, the cost of the bought goods on board, one line per route (tons, profit, profit per ton, sales), the transfers with fleet carriers, refined commodities and other goods. On the panel, a route too long for EDMC's window names its destination only. Out of scope: the fleet carrier's market and stock, smuggling, missions. Trade is not uploaded.
 
 ## Prospector alerts
 

@@ -6,6 +6,7 @@ from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.trade.journal import (
     CargoEjected,
     CargoInventory,
+    CargoTransferred,
     CommanderDied,
     Docked,
     Fact,
@@ -14,6 +15,8 @@ from edrockmaster.domain.trade.journal import (
     GoodsBought,
     GoodsSold,
     Market,
+    Transfer,
+    TransferDirection,
     Undocked,
 )
 from edrockmaster.domain.trade.session import (
@@ -26,6 +29,8 @@ from edrockmaster.domain.trade.session import (
     TradeStats,
     TradeTracker,
     TradeUpdated,
+    TransferKind,
+    TransferStats,
 )
 
 T0 = datetime(2026, 10, 4, 14, 0, tzinfo=UTC)
@@ -411,3 +416,125 @@ def test_the_route_keeps_the_name_the_purchase_gave() -> None:
     )
     [route] = stats_of(tracker).routes
     assert route.commodity.display_name == "Composite MMC"
+
+
+CARRIER = Market(9, "TZF-66Z", fleet_carrier=True)
+GOLD = Commodity("gold")
+
+
+def transfer(minutes: float, *moves: tuple[Commodity, int, TransferDirection]) -> CargoTransferred:
+    return CargoTransferred(
+        at(minutes), tuple(Transfer(commodity, count, way) for commodity, count, way in moves)
+    )
+
+
+def deposit(minutes: float, commodity: Commodity, count: int) -> CargoTransferred:
+    return transfer(minutes, (commodity, count, TransferDirection.TO_CARRIER))
+
+
+def withdraw(minutes: float, commodity: Commodity, count: int) -> CargoTransferred:
+    return transfer(minutes, (commodity, count, TransferDirection.TO_SHIP))
+
+
+def haul_gold(tracker: TradeTracker) -> list[TradeNotification]:
+    """Gold bought at Tan Depot, 10 minutes of flight, deposited at the carrier."""
+    return feed(
+        tracker,
+        dock(0, DEPOT),
+        buy(1, DEPOT, GOLD, 100, 5_000),
+        undock(2),
+        dock(12, CARRIER),
+        deposit(13, GOLD, 100),
+    )
+
+
+def test_a_deposit_is_counted_with_its_transfers() -> None:
+    tracker = TradeTracker()
+    haul_gold(tracker)
+    notifications = feed(tracker, buy(14, CARRIER, GOLD, 1, 5_000), deposit(15, GOLD, 1))
+    assert isinstance(notifications[-1], TradeUpdated)
+    stats = stats_of(tracker)
+    assert stats.transfers == (TransferStats(GOLD, TransferKind.DEPOSIT, 101, 2),)
+    assert stats.cargo == GoodsTally()
+    assert (stats.profit, stats.tons_sold) == (0, 0)
+
+
+def test_the_leg_before_a_deposit_counts() -> None:
+    tracker = TradeTracker()
+    haul_gold(tracker)
+    assert stats_of(tracker).flight_time == timedelta(minutes=10)
+
+
+def test_a_transfer_starts_the_session() -> None:
+    tracker = TradeTracker()
+    notifications = feed(tracker, dock(0, CARRIER), withdraw(1, GOLD, 50))
+    assert isinstance(notifications[0], TradeStarted)
+    assert stats_of(tracker).transfers == (TransferStats(GOLD, TransferKind.WITHDRAWAL, 50, 1),)
+
+
+def test_deposited_goods_are_not_lost_with_the_ship() -> None:
+    tracker = TradeTracker()
+    haul_gold(tracker)
+    feed(tracker, undock(14))
+    ended = tracker.handle(CommanderDied(at(20)))[-1]
+    assert isinstance(ended, TradeEnded)
+    assert ended.stats.losses == 0
+
+
+def test_a_withdrawal_brings_back_the_cost_and_the_origin() -> None:
+    tracker = TradeTracker()
+    haul_gold(tracker)
+    feed(tracker, withdraw(30, GOLD, 40), undock(31), dock(41, VERNE))
+    assert stats_of(tracker).cargo == GoodsTally(40, 200_000)
+    feed(tracker, sell(42, VERNE, GOLD, 40, 9_000, paid=5_000))
+    [route] = stats_of(tracker).routes
+    assert route.origin == DEPOT
+    assert stats_of(tracker).flight_time == timedelta(minutes=20)
+
+
+def test_goods_of_unknown_cost_move_without_cost() -> None:
+    tracker = TradeTracker()
+    feed(tracker, dock(0, CARRIER), withdraw(1, GOLD, 50))
+    assert stats_of(tracker).cargo == GoodsTally()
+    feed(tracker, buy(2, CARRIER, GOLD, 10, 5_000), deposit(3, GOLD, 60))
+    feed(tracker, withdraw(4, GOLD, 60))
+    # Only the ten tons bought are known: they come back at their cost
+    assert stats_of(tracker).cargo == GoodsTally(10, 50_000)
+
+
+def test_transfers_with_an_srv_are_ignored() -> None:
+    tracker = TradeTracker()
+    feed(tracker, dock(0, AMANO), buy(1, AMANO, GOLD, 10, 5_000), undock(2))
+    assert tracker.handle(transfer(3, (GOLD, 4, TransferDirection.TO_SRV))) == []
+    # Back from the SRV: not docked at a carrier
+    assert tracker.handle(withdraw(4, GOLD, 4)) == []
+    feed(tracker, dock(10, VERNE))
+    assert tracker.handle(withdraw(11, GOLD, 4)) == []  # docked, but not at a carrier
+    assert stats_of(tracker).transfers == ()
+
+
+def test_a_deposit_away_from_a_known_carrier_is_still_a_deposit() -> None:
+    tracker = TradeTracker()
+    feed(tracker, buy(1, AMANO, GOLD, 10, 5_000), deposit(2, GOLD, 10))
+    stats = stats_of(tracker)
+    assert stats.transfers == (TransferStats(GOLD, TransferKind.DEPOSIT, 10, 1),)
+    assert stats.cargo == GoodsTally()
+
+
+def test_one_transfer_entry_may_move_several_commodities() -> None:
+    tracker = TradeTracker()
+    feed(
+        tracker,
+        dock(0, CARRIER),
+        transfer(
+            1,
+            (GOLD, 10, TransferDirection.TO_CARRIER),
+            (CMM, 5, TransferDirection.TO_CARRIER),
+            (PALLADIUM, 3, TransferDirection.TO_SHIP),
+        ),
+    )
+    assert stats_of(tracker).transfers == (
+        TransferStats(GOLD, TransferKind.DEPOSIT, 10, 1),
+        TransferStats(CMM, TransferKind.DEPOSIT, 5, 1),
+        TransferStats(PALLADIUM, TransferKind.WITHDRAWAL, 3, 1),
+    )

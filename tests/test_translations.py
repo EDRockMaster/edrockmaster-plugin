@@ -4,7 +4,7 @@ import ast
 import re
 from pathlib import Path
 
-from edrockmaster.ui import combat_presenter, mining_presenter, preferences
+from edrockmaster.ui import combat_presenter, mining_presenter, preferences, trade_presenter
 from edrockmaster.ui.commodity_names import MINEABLE
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -38,6 +38,8 @@ def source_strings() -> set[str]:
     strings |= set(mining_presenter._END_REASONS.values())
     strings |= set(combat_presenter._END_REASONS.values())
     strings |= set(combat_presenter.SITE_NAMES.values())
+    strings |= set(trade_presenter._END_REASONS.values())
+    strings |= set(trade_presenter._TRANSFER_LABELS.values())
     strings |= set(preferences._CONTENT_LEVELS.values())
     strings |= set(preferences._ACTIVITY_NAMES.values())
     strings |= set(preferences._DISPLAY_MODES.values())

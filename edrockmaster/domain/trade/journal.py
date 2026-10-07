@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.journal_reading import (
@@ -29,6 +30,7 @@ class Market:
     market_id: int
     station: str | None = field(default=None, compare=False)
     system: str | None = field(default=None, compare=False)
+    fleet_carrier: bool = field(default=False, compare=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,6 +98,28 @@ class CargoInventory:
     tons: tuple[tuple[Commodity, int], ...]
 
 
+class TransferDirection(Enum):
+    TO_CARRIER = "tocarrier"
+    TO_SHIP = "toship"
+    """From a fleet carrier, or from an SRV: the journal does not say which."""
+    TO_SRV = "tosrv"
+
+
+@dataclass(frozen=True, slots=True)
+class Transfer:
+    commodity: Commodity
+    count: int
+    direction: TransferDirection
+
+
+@dataclass(frozen=True, slots=True)
+class CargoTransferred:
+    """Cargo moved between the ship and a fleet carrier or an SRV (ADR 0019)."""
+
+    at: datetime
+    transfers: tuple[Transfer, ...]
+
+
 @dataclass(frozen=True, slots=True)
 class CommanderDied:
     at: datetime
@@ -114,9 +138,13 @@ type Fact = (
     | GameLoaded
     | CargoEjected
     | CargoInventory
+    | CargoTransferred
     | CommanderDied
     | GameClosed
 )
+
+
+_FLEET_CARRIER = "FleetCarrier"
 
 
 def parse_entry(entry: Entry) -> Fact | None:
@@ -159,6 +187,7 @@ def _market(entry: Entry) -> Market:
         market_id=required(entry, "MarketID", int),
         station=required(entry, "StationName", str),
         system=optional(entry, "StarSystem", str),
+        fleet_carrier=entry.get("StationType") == _FLEET_CARRIER,
     )
 
 
@@ -191,6 +220,19 @@ def _cargo(entry: Entry, at: datetime) -> CargoInventory | None:
     )
 
 
+def _transfer(item: Entry) -> Transfer | None:
+    try:
+        direction = TransferDirection(required(item, "Direction", str))
+    except ValueError:
+        return None
+    return Transfer(commodity(item, "Type"), _count(item), direction)
+
+
+def _transferred(entry: Entry, at: datetime) -> CargoTransferred:
+    transfers = (_transfer(item) for item in items(entry, "Transfers"))
+    return CargoTransferred(at, tuple(transfer for transfer in transfers if transfer))
+
+
 def _died(_entry: Entry, at: datetime) -> CommanderDied:
     return CommanderDied(at)
 
@@ -208,6 +250,7 @@ _PARSERS: dict[str, Parser[Fact | None]] = {
     "StartUp": _loaded,  # synthetic event from EDMC when started with the game running
     "EjectCargo": _ejected,
     "Cargo": _cargo,
+    "CargoTransfer": _transferred,
     "Died": _died,
     "Shutdown": _closed,
     "ShutDown": _closed,  # synthetic event from EDMC when the game crashed
