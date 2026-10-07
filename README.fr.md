@@ -4,7 +4,7 @@
 
 Plugin [EDMarketConnector](https://github.com/EDCD/EDMarketConnector) (EDMC) de **EDRockMaster — Elite Dangerous Rock Master Companion**.
 
-Fonctionne seul, sans serveur : alertes du prospecteur, cores et filons-mères, statistiques de session en direct, drones, soute et ventes. Aussi un compteur de combat, par site (zones de conflit dans l'espace et au sol, sites d'extraction de ressources, balises de navigation) : victimes, primes et obligations de combat, victimes et crédits par heure selon le type de site, victimes diverses, amendes, bons non encaissés, objectifs communautaires. Et un compteur de commerce : bénéfice, bénéfice par heure de vol, routes, cargaison achetée, pertes. Une version ultérieure ajoutera une liaison facultative avec les services d'EDRockMaster (connexion et envois, sur option).
+Fonctionne seul, sans serveur : alertes du prospecteur, cores et filons-mères, statistiques de session en direct, drones, soute et ventes. Aussi un compteur de combat, par site (zones de conflit dans l'espace et au sol, sites d'extraction de ressources, balises de navigation) : victimes, primes et obligations de combat, victimes et crédits par heure selon le type de site, victimes diverses, amendes, bons non encaissés, objectifs communautaires. Et un compteur de commerce : bénéfice, bénéfice par heure de vol, routes, cargaison achetée, pertes, transferts avec les porte-vaisseaux. Une version ultérieure ajoutera une liaison facultative avec les services d'EDRockMaster (connexion et envois, sur option).
 
 Interface en français et en anglais : le plugin suit la langue choisie dans EDMC.
 

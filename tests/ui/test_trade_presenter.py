@@ -12,6 +12,8 @@ from edrockmaster.domain.trade.session import (
     TradeStarted,
     TradeStats,
     TradeUpdated,
+    TransferKind,
+    TransferStats,
 )
 from edrockmaster.ui.trade_presenter import ROUTE_LABEL_LENGTH, TradePresenter
 
@@ -40,8 +42,9 @@ def stats(
     refined: GoodsTally = NONE,
     other: GoodsTally = NONE,
     cargo: GoodsTally = NONE,
+    transfers: tuple[TransferStats, ...] = (),
 ) -> TradeStats:
-    return TradeStats(T0, flight, routes, losses, refined, other, cargo)
+    return TradeStats(T0, flight, routes, losses, refined, other, cargo, transfers)
 
 
 def lines(presenter: TradePresenter) -> dict[str, str]:
@@ -150,3 +153,24 @@ def test_texts_are_translated() -> None:
     model = presenter.apply([TradeStarted(T0), TradeUpdated(stats(route()))])
     assert model.status == "fr:Trade"
     assert model.lines[0].label == "fr:Flight time"
+
+
+def test_transfers_with_fleet_carriers() -> None:
+    gold = Commodity("gold", "Or")
+    presenter = TradePresenter()
+    moved = (
+        TransferStats(gold, TransferKind.DEPOSIT, 2_080, 2),
+        TransferStats(PALLADIUM, TransferKind.WITHDRAWAL, 50, 1),
+    )
+    presenter.apply([TradeStarted(T0), TradeUpdated(stats(route(), transfers=moved))])
+    shown = lines(presenter)
+    assert shown["Deposited: Or"] == "2,080 t (2 transfers)"
+    assert shown["Withdrawn: Palladium"] == "50 t (1 transfer)"
+    assert list(shown).index("Deposited: Or") > list(shown).index("Palladium to Verne Venture")
+
+
+def test_no_sales_lines_while_nothing_is_sold() -> None:
+    presenter = TradePresenter()
+    moved = (TransferStats(PALLADIUM, TransferKind.DEPOSIT, 1_040, 1),)
+    presenter.apply([TradeStarted(T0), TradeUpdated(stats(transfers=moved))])
+    assert list(lines(presenter)) == ["Flight time", "Profit", "Deposited: Palladium"]

@@ -11,7 +11,8 @@ All notable changes to the EDRockMaster plugin. The format follows [Keep a Chang
 - **Trade** (design decision ADR 0014): a new activity, with its own block on the panel. A trade session starts with the first purchase. Its profit is the game's own, `(SellPrice - AvgPricePaid) × Count`, even for goods bought before EDMC started; its rates count the **flight time** only, from undocking to the next docking, when a trade follows. The panel shows the profit, the profit per hour, the tons sold, the cost of the cargo bought, and one line per route (commodity, market of purchase, market of sale). On a real session of three round trips between Amano Terminal and Verne Venture: 164,316,218 CR in 1 h 21 min 50 s of flight, 120.5 M CR/h.
 - Goods sold that were not bought are kept apart: **refined commodities** (their profit stays with mining) and **other goods**. Bought goods ejected or lost with the ship are a loss.
 - Trade is shown by default, even to players who had already chosen the activities shown: the plugin now remembers which activities the preferences tab offered.
-- The recording sanitiser keeps purchases.
+- **Fleet carrier transfers** (design decision ADR 0019): deposits and withdrawals per commodity, with the number of transfers, so that a deposit the game did not take (a known game bug) shows at once. A transfer starts a trade session and counts its flight; goods deposited are not counted as lost if the ship is destroyed afterwards.
+- The recording sanitiser keeps purchases and cargo transfers.
 
 ## [0.3.0] - 2026-10-06
 

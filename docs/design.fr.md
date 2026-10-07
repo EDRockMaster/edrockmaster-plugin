@@ -161,12 +161,13 @@ Le commerce suit les achats et les ventes de marchandises sur les marchés ([ADR
 | `Undocked`, puis `Docked` | Un trajet. Il compte dès qu'un achat ou une vente de marchandises achetées le suit dans la session : une escale sans échange fait partie du vol, un vol après le dernier échange ne compte pas. Le temps à quai ne compte jamais |
 | `Location` ou `StartUp` hors station | En vol depuis un moment inconnu : le trajet compte à partir de là |
 | `EjectCargo` de marchandises achetées | Perte au prix payé, déduite du bénéfice |
-| `Cargo` | Les marchandises achetées parties sans vente (une mission, un porte-vaisseaux) ne sont plus à bord : jamais plus que ce que le vaisseau transporte |
+| `CargoTransfer` vers un porte-vaisseaux, ou vers le vaisseau amarré à l'un d'eux ([ADR 0019](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0019-fleet-carrier-transfers.fr.md)) | Un **dépôt** ou un **retrait** : compté par marchandise et par direction, avec le nombre de transferts. Démarre la session et fait compter les trajets qui le précèdent, comme un achat ; ne rapporte rien. Les marchandises gardent leur coût et leur origine au porte-vaisseaux, et reviennent avec. Les transferts avec un SRV sont ignorés |
+| `Cargo` | Les marchandises achetées parties sans vente (une mission) ne sont plus à bord : jamais plus que ce que le vaisseau transporte |
 | `Died` | La cargaison achetée est perdue (une perte), la session se termine |
 | `Shutdown`, `ShutDown` | La session se termine ; la cargaison reste connue |
 | Réinitialisation manuelle (bouton du panneau, commerce affiché) | La session se termine, une nouvelle peut commencer |
 
-Statistiques d'une session de commerce : temps de vol, bénéfice (ventes moins pertes), bénéfice et tonnes par heure de vol, tonnes vendues, pertes, coût des marchandises achetées à bord, une ligne par route (tonnes, bénéfice, bénéfice par tonne, ventes), commodités raffinées et autres marchandises. Sur le panneau, une route trop longue pour la fenêtre d'EDMC ne nomme que sa destination. Hors périmètre : le commerce avec un porte-vaisseaux, la contrebande, les missions. Le commerce n'est pas envoyé au serveur.
+Statistiques d'une session de commerce : temps de vol, bénéfice (ventes moins pertes), bénéfice et tonnes par heure de vol, tonnes vendues, pertes, coût des marchandises achetées à bord, une ligne par route (tonnes, bénéfice, bénéfice par tonne, ventes), les transferts avec les porte-vaisseaux, commodités raffinées et autres marchandises. Sur le panneau, une route trop longue pour la fenêtre d'EDMC ne nomme que sa destination. Hors périmètre : le marché et le stock du porte-vaisseaux, la contrebande, les missions. Le commerce n'est pas envoyé au serveur.
 
 ## Alertes du prospecteur
 
