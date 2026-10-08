@@ -3,17 +3,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App.svelte";
 import ActivityBlock from "../src/components/ActivityBlock.svelte";
 import type { CoreApi } from "../src/lib/bridge";
+import { fakeCore } from "./core";
 import type { LiveView } from "../src/lib/live-view";
 import { block, view } from "./views";
 import { flushSync } from "svelte";
 
 function withCore(): CoreApi {
-  const api: CoreApi = {
-    ready: vi.fn(async () => {}),
-    reset: vi.fn(async () => {}),
-    dismiss_notice: vi.fn(async () => {}),
-    shown: vi.fn(async () => {}),
-  };
+  const api = fakeCore();
   window.pywebview = { api };
   return api;
 }

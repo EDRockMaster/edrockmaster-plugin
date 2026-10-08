@@ -34,6 +34,7 @@ export interface LiveView {
     file: string | null;
   };
   situation: Situation;
+  engineering: Engineering;
 }
 export interface Block {
   activity: Activity;
@@ -71,4 +72,53 @@ export interface Situation {
    */
   wing: string[];
   gameRunning: boolean;
+}
+/**
+ * Inventory, ship engineers, goals and shopping list (ADR 0017). Names in the player's language.
+ */
+export interface Engineering {
+  /**
+   * False until the game or EDMC states the inventory.
+   */
+  inventoryKnown: boolean;
+  materials: {
+    symbol: string;
+    name: string;
+    category: "raw" | "manufactured" | "encoded" | null;
+    grade: number | null;
+    count: number;
+    cap: number | null;
+  }[];
+  engineers: {
+    id: number;
+    name: string;
+    status: "known" | "invited" | "acquainted" | "unlocked" | "barred" | null;
+    rank: number | null;
+  }[];
+  goals: {
+    id: string;
+    kind: "blueprint" | "effect";
+    title: string;
+    module: string;
+    grade: number | null;
+    count: number;
+    known: boolean;
+    ready: boolean;
+    /**
+     * What the inventory lacks for the goal; null while the inventory is unknown.
+     */
+    missing: null | Ingredient[];
+    /**
+     * Unlocked engineers offering it.
+     */
+    engineers: string[];
+  }[];
+  shoppingList: Ingredient[];
+  catalogueDate: string;
+}
+export interface Ingredient {
+  symbol: string;
+  name: string;
+  count: number;
+  held: number;
 }

@@ -1,14 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { connect, core, type CoreApi } from "../src/lib/bridge";
+import { fakeCore } from "./core";
 import { view } from "./views";
 
 function api(): CoreApi {
-  return {
-    ready: vi.fn(async () => {}),
-    reset: vi.fn(async () => {}),
-    dismiss_notice: vi.fn(async () => {}),
-    shown: vi.fn(async () => {}),
-  };
+  return fakeCore();
 }
 
 describe("connect", () => {

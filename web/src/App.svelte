@@ -1,5 +1,6 @@
 <script lang="ts">
   import ActivityBlock from "./components/ActivityBlock.svelte";
+  import EngineeringView from "./components/EngineeringView.svelte";
   import SituationBanner from "./components/SituationBanner.svelte";
   import { connect, core } from "./lib/bridge";
   import { t, type Language } from "./lib/i18n";
@@ -7,6 +8,9 @@
 
   let view = $state<LiveView | null>(null);
   const language: Language = $derived(view?.language ?? "en");
+  type Tab = "activities" | "engineering";
+  const TABS: Tab[] = ["activities", "engineering"];
+  let tab = $state<Tab>("activities");
 
   connect((next) => {
     // Optional call: a missing method must never keep the view from showing
@@ -36,15 +40,35 @@
     {/if}
     <SituationBanner situation={view.situation} {language} />
     <p class="journal">{journalText(view.journal)}</p>
-    <div class="activities">
-      {#each view.activities as block (block.activity)}
-        <ActivityBlock
-          {block}
-          {language}
-          current={block.activity === view.current}
-          onreset={(activity) => core()?.reset(activity)}
-        />
+    <div class="tabs" role="tablist" aria-label={t(language, "tab.label")}>
+      {#each TABS as name (name)}
+        <button
+          type="button"
+          role="tab"
+          id="tab-{name}"
+          aria-selected={tab === name}
+          aria-controls="panel-{name}"
+          onclick={() => (tab = name)}
+        >
+          {t(language, `tab.${name}`)}
+        </button>
       {/each}
+    </div>
+    <div role="tabpanel" id="panel-{tab}" aria-labelledby="tab-{tab}">
+      {#if tab === "activities"}
+        <div class="activities">
+          {#each view.activities as block (block.activity)}
+            <ActivityBlock
+              {block}
+              {language}
+              current={block.activity === view.current}
+              onreset={(activity) => core()?.reset(activity)}
+            />
+          {/each}
+        </div>
+      {:else}
+        <EngineeringView engineering={view.engineering} {language} />
+      {/if}
     </div>
   {/if}
 </main>
@@ -73,6 +97,24 @@
   .journal {
     color: var(--colour-text-muted);
     font-size: 0.9rem;
+  }
+  .tabs {
+    display: flex;
+    gap: var(--space-1);
+    margin-bottom: var(--space-3);
+    border-bottom: 1px solid var(--colour-border);
+  }
+  .tabs button {
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: none;
+    padding: var(--space-2) var(--space-3);
+    color: var(--colour-text-muted);
+  }
+  .tabs button[aria-selected="true"] {
+    color: var(--colour-text);
+    border-bottom-color: var(--colour-accent);
   }
   .activities {
     display: grid;

@@ -54,7 +54,7 @@ jobs:
           node-version-file: web/.nvmrc
       - run: corepack pnpm install --frozen-lockfile
       - name: Bridge types match the schema
-        run: corepack pnpm types && git diff --exit-code src/lib/live-view.d.ts
+        run: corepack pnpm types && git diff --exit-code src/lib/
       - run: corepack pnpm lint
       - run: corepack pnpm check
       - run: corepack pnpm test
