@@ -35,18 +35,23 @@ edrockmaster/
     trade/                      contexte du commerce
       journal.py                entrée du journal → fait du commerce
       session.py                agrégat TradeTracker (sessions, routes, temps de vol, cargaison achetée, pertes)
+    engineering/                contexte de l'ingénierie (ADR 0017), en construction
+      goals.py                  objectifs de blueprint et d'effet expérimental
   application/
     activity.py                 les activités : minage, combat, commerce
     build.py                    BuildInfo : version complète, commit et canal du build en cours (ADR 0016)
     companion.py                Companion : enregistre le journal une fois, passe chaque entrée à chaque activité, porte les réglages
     settings.py                 PluginSettings (alertes, son, enregistreur) et leurs valeurs par défaut
-    ports.py                    Clock, SettingsStore, Notifier, JournalRecorder (et, en 1B, UploadQueue, Authenticator)
+    ports.py                    Clock, SettingsStore, Notifier, JournalRecorder, GoalRepository (et, en 1B, UploadQueue, Authenticator)
     mining_service.py           cas d'usage du minage : traiter une entrée du journal, réinitialiser la session, appliquer les réglages
     combat_service.py           cas d'usage du combat : traiter une entrée du journal, réinitialiser la session
     trade_service.py            cas d'usage du commerce : traiter une entrée du journal, réinitialiser la session
   infrastructure/
     settings_edmc.py            SettingsStore sur le config d'EDMC (clés préfixées « edrockmaster. »)
     recorder_jsonl.py           JournalRecorder : fichiers JSONL dans le dossier de données
+    database.py                 la base SQLite locale : ouverture, migrations, copie, mise de côté (ADR 0018)
+    migrations.py               le schéma de la base, une migration par version
+    goal_repository.py          GoalRepository sur la base locale
     build_file.py               lit edrockmaster/build.json, écrit par l'emballage
     sound.py                    Notifier : alertes sonores (winsound sous Windows, cloche Tk ailleurs)
     paths.py                    dossier de données selon le système
@@ -56,8 +61,9 @@ edrockmaster/
     plugin.py                   assemblage : construit le graphe d'objets, implémente les hooks
     i18n.py                     tl() relié au l10n d'EDMC, avec un repli pour les tests
     host.py                     services d'EDMC (theme, plug.show_error, l10n.Locale), avec replis
+    main_thread.py              résultats du fil d'entrées-sorties exécutés sur le fil principal
   ui/
-    panel_model.py              PanelModel (textes) et mise en forme commune, sans tkinter
+    panel_model.py              PanelModel (textes), avis sur les données locales et mise en forme commune, sans tkinter
     presenter.py                ActivityPresenter : les blocs à afficher, selon le mode
     mining_presenter.py         notifications du minage → PanelModel
     combat_presenter.py         notifications du combat → PanelModel
@@ -88,8 +94,9 @@ Tout ceci n'est que du calcul sur de petits objets (bien moins d'une millisecond
 ## Fils d'exécution
 
 - **Fil principal** : hooks, domaine, interface.
-- **Un fil d'entrées-sorties** (`infrastructure/worker.py`) : fil démon alimenté par une `queue.Queue` de tâches (ajout au fichier d'enregistrement en 1A ; envois et authentification en 1B). Il ne touche jamais à tkinter. En 1A, il n'a rien à signaler à l'interface. À partir de 1B (état des envois), il déposera un message dans une file de résultats et appellera `event_generate("<<EDRockMasterUpdate>>")` sur le panneau, sauf si `config.shutting_down` est vrai.
-- `plugin_stop()` dépose une tâche d'arrêt, attend la fin du fil avec un délai maximal, et vide l'enregistreur.
+- **Un fil d'entrées-sorties** (`infrastructure/worker.py`) : fil démon alimenté par une `queue.Queue` de tâches (ajout au fichier d'enregistrement, base locale ; en 1B, envois et authentification). Il ne touche jamais à tkinter.
+- **Retour des résultats au fil principal** (`edmc/main_thread.py`) : le fil d'entrées-sorties dépose une fonction dans une file, et le fil principal l'exécute en relevant la file toutes les 100 ms avec `after()` sur le panneau. Réveiller le fil principal par `event_generate()` depuis le fil d'entrées-sorties, comme EDMC le fait pour ses propres fils, demande que la boucle principale de Tk tourne, or EDMC appelle `plugin_app` avant de la lancer : la relève ne fait aucun appel à Tk depuis le fil d'entrées-sorties. Les fonctions déposées avant que le panneau existe l'attendent.
+- `plugin_stop()` ferme la base locale, dépose une tâche d'arrêt, attend la fin du fil avec un délai maximal, et vide l'enregistreur.
 
 ## Cycle de vie d'une session de minage
 
@@ -210,7 +217,22 @@ Dossier de données, hors du dossier du plugin pour survivre aux mises à jour d
 - Linux : `$XDG_DATA_HOME/EDRockMaster`, ou `~/.local/share/EDRockMaster`
 - macOS : `~/Library/Application Support/EDRockMaster`
 
-Contenu en 1A : `recordings/` (enregistrements du journal, JSONL, un fichier par lancement d'EDMC). En 1B : la file d'envoi (SQLite).
+Contenu :
+
+- `recordings/` : enregistrements du journal, JSONL, un fichier par lancement d'EDMC ;
+- `edrockmaster.sqlite3` : la base locale (ci-dessous), avec ses fichiers `-wal` et `-shm` pendant qu'EDMC tourne ;
+- `edrockmaster.sqlite3.v<N>.bak` : copie de la base faite avant sa dernière migration, depuis la version de schéma N ;
+- `edrockmaster.sqlite3.unreadable-<date>` : une base que le plugin n'a pas pu lire, mise de côté.
+
+## Base locale
+
+Un fichier SQLite pour l'**état** durable du plugin, qui n'est ni un réglage (le `config` d'EDMC) ni un enregistrement (décision de conception ADR 0018). Chaque besoin a ses tables et son port de dépôt : d'abord les objectifs d'ingénierie (`GoalRepository`, ADR 0017), la file d'envoi en 1B (ADR 0005). Rien de ce qu'elle contient n'est envoyé au serveur, sauf si un ADR le prévoit.
+
+- **Le fil d'entrées-sorties seulement.** La base s'ouvre dans une tâche du fil d'entrées-sorties à `plugin_start3`, et se ferme dans une autre à `plugin_stop`. `LocalDatabase.connection()` refuse tout autre fil. Les dépôts font de chaque appel une tâche ; ce qu'ils lisent parvient au fil principal par `edmc/main_thread.py`.
+- **Schéma versionné.** `PRAGMA user_version` donne la version du schéma ; `infrastructure/migrations.py` liste les migrations, appliquées dans l'ordre à l'ouverture, chacune dans sa transaction, toujours vers l'avant. Une migration publiée ne change plus. Avant de migrer une base de version N > 0, le fichier est copié (API de sauvegarde de SQLite) dans `edrockmaster.sqlite3.v<N>.bak`, et les copies plus anciennes sont supprimées. Journal en mode WAL.
+- **Fichier illisible.** Un fichier corrompu (SQLite dit que ce n'est pas une base, ou la vérification d'intégrité échoue) ou écrit par une version plus récente du plugin (retour à une version antérieure) est mis de côté sous le nom `edrockmaster.sqlite3.unreadable-<date UTC>`, et une base neuve est créée. Le journal d'EDMC dit pourquoi, et le panneau affiche un avis jusqu'à ce que le joueur l'ignore.
+- **Base indisponible.** Tout autre échec (un autre EDMC tient le fichier, le disque le refuse, une migration échoue et est annulée) laisse le fichier tel quel ; rien n'est enregistré jusqu'au redémarrage d'EDMC, le journal dit pourquoi et le panneau le signale. Le plugin n'échoue jamais à cause de sa base.
+- **Tests.** Chaque version du schéma a sa donnée de test, `tests/fixtures/database/schema-v<N>.sql`, gardée telle que publiée ; les tests migrent chacune jusqu'à la dernière version, et vérifient que la donnée de test la plus récente a le schéma que créent les migrations. Une nouvelle migration arrive donc avec sa donnée de test.
 
 ## Enregistreur de journal
 
@@ -233,7 +255,7 @@ Contenu en 1A : `recordings/` (enregistrements du journal, JSONL, un fichier par
 
 Ports définis en 1A, réalisés en 1B :
 
-- `UploadQueue` : file SQLite dans le dossier de données ; chaque fait envoyable reçoit un identifiant client (`uuid4`).
+- `UploadQueue` : ses propres tables dans la base locale (ADR 0018) ; chaque fait envoyable reçoit un identifiant client (`uuid4`).
 - `Authenticator` : device flow Keycloak ; refresh token stocké avec `config`.
 - `Uploader` : lots (gzip) vers `edrockmaster-ingest`, sur le fil d'entrées-sorties, avec reprise progressive.
 - Killswitch : module `killswitch` d'EDMC, relu toutes les 10 minutes depuis notre serveur.

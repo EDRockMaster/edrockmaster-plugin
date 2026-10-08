@@ -154,3 +154,25 @@ def test_preferences_tab_builds_with_edmc_frames(
         build_version="0.3.0-dev",
     )
     assert tab.values() == values
+
+
+def test_a_notice_shows_above_the_blocks_until_dismissed(root: tk.Tk) -> None:
+    dismissed: list[None] = []
+    panel = Panel(root, lambda _: None, identity)
+    panel.render((ActivityBlock(Activity.MINING, MODEL),))
+    panel.show_notice("Local data was reset", lambda: dismissed.append(None))
+    assert panel._notice.grid_info()["row"] == 0
+    assert panel.block(Activity.MINING).frame.grid_info()["row"] == 1
+    assert panel._notice_text["text"] == "Local data was reset"
+    panel._dismiss.invoke()
+    assert dismissed == [None]
+    assert not panel._notice.grid_info()
+
+
+def test_hiding_a_notice_does_not_count_as_dismissed(root: tk.Tk) -> None:
+    dismissed: list[None] = []
+    panel = Panel(root, lambda _: None, identity)
+    panel.show_notice("Local data was reset", lambda: dismissed.append(None))
+    panel.hide_notice()
+    assert dismissed == []
+    assert not panel._notice.grid_info()

@@ -10,6 +10,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import timedelta
+from enum import Enum
+from typing import assert_never
 
 from edrockmaster.application.activity import Activity
 
@@ -47,6 +49,25 @@ class ActivityBlock:
 
     activity: Activity
     model: PanelModel
+
+
+class LocalDataNotice(Enum):
+    """Why the panel warns about the plugin's local data (ADR 0018)."""
+
+    RESET = "reset"
+    """The database could not be read: it was moved aside and a new one created."""
+    UNAVAILABLE = "unavailable"
+    """The database could not be opened: nothing is stored until EDMC restarts."""
+
+
+def notice_text(notice: LocalDataNotice, translate: Translate) -> str:
+    match notice:
+        case LocalDataNotice.RESET:
+            return translate("Local data could not be read and was reset, see the EDMC log")
+        case LocalDataNotice.UNAVAILABLE:
+            return translate("Local data is unavailable until EDMC restarts, see the EDMC log")
+        case _:  # pragma: no cover - exhaustiveness checked by mypy
+            assert_never(notice)
 
 
 def format_duration(duration: timedelta, translate: Translate) -> str:

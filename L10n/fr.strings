@@ -9,6 +9,13 @@
 /* ui/panel.py: button ending the current mining session */
 "Reset" = "Réinitialiser";
 
+/* ui/panel.py: button hiding a notice about the plugin's local data */
+"Dismiss" = "Ignorer";
+
+/* ui/panel_model.py: notice when the local database could not be read or opened (ADR 0018) */
+"Local data could not be read and was reset, see the EDMC log" = "Les données locales étaient illisibles et ont été réinitialisées, voir le journal d'EDMC";
+"Local data is unavailable until EDMC restarts, see the EDMC log" = "Les données locales sont indisponibles jusqu'au redémarrage d'EDMC, voir le journal d'EDMC";
+
 /* ui/mining_presenter.py: panel status */
 "No mining session" = "Aucune session de minage";
 "Mining" = "Minage en cours";
