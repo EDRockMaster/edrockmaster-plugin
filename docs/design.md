@@ -35,6 +35,7 @@ edrockmaster/
     trade/                      trade context
       journal.py                journal entry → trade fact
       session.py                TradeTracker aggregate (sessions, routes, flight time, cargo bought, losses)
+    situation/                  the commander's situation (ADR 0023): who, ship, where, game mode, wing
     engineering/                engineering context (ADR 0017)
       journal.py                journal entry → engineering fact
       session.py                EngineeringTracker aggregate (inventory, caps, collection, goals, engineers)
@@ -313,6 +314,8 @@ Being built (design decision ADR 0020): the plugin's core in an application of i
 - `lint-imports` also checks that `desktop/` and `infrastructure/` import neither EDMC nor Tk.
 - **Interface** (`web/`): Svelte 5 and TypeScript, built by Vite into one HTML file; its own texts in `src/locales/*.json`, with a test that every key is translated and used; Vitest and Testing Library; a dark theme from design tokens. Node 22 and pnpm (through corepack) are build tools only.
 - **Run it** (development): `cd web && corepack pnpm install && corepack pnpm build`, then `uv run python -m edrockmaster.desktop` (`--debug` opens the web inspector). On Linux, pywebview needs GTK and WebKit2GTK with their Python binding (PyGObject), usually from the system's Python; `EDROCKMASTER_JOURNAL_DIR` points to a journal folder, a recording written back as journal files for instance.
+
+**The commander's situation** (ADR 0023): `domain/situation/` reads `Commander`, `LoadGame`, `Location`, the jumps and supercruise, `Docked`, `Undocked`, `Loadout`, `ShipyardSwap`, `SetUserShipName`, `Embark`, `Disembark` and the wing events, into the commander's name, the ship (its type in the game's language, the player's name and registration), on foot or not, the system, the station, the game mode with the private group's name, and the wing members. `Shutdown` keeps the last situation and says the game is closed. It is in memory only: never stored, never uploaded; the plugin ignores it (EDMC shows it), the desktop application shows it in a banner, through the live view's `situation`. Wing members are other players: the recording sanitiser names them `Wingmate 1`, `Wingmate 2`…
 
 **Packaging for Windows** (ADR 0022): the Microsoft Store distributes the application as an MSIX package, which it signs.
 
