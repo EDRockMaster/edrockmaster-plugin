@@ -1,7 +1,9 @@
-"""The plugin's single I/O thread.
+"""The plugin's single I/O thread, and the desktop application's core thread.
 
 Hooks run on EDMC's tkinter main thread and must never wait on a file or the
-network: such work is submitted here as a job. Jobs never touch tkinter.
+network: such work is submitted here as a job. Jobs never touch tkinter. The
+desktop application runs its core the same way, on a worker of its own
+(ADR 0020).
 """
 
 from __future__ import annotations
@@ -19,8 +21,9 @@ THREAD_NAME = "EDRockMaster I/O"
 class IoWorker:
     """Runs submitted jobs one at a time, in order, on a daemon thread."""
 
-    def __init__(self, logger: logging.Logger) -> None:
+    def __init__(self, logger: logging.Logger, name: str = THREAD_NAME) -> None:
         self._logger = logger
+        self._name = name
         self._queue: queue.Queue[Job | None] = queue.Queue()
         self._thread: threading.Thread | None = None
         self._stopping = False
@@ -36,12 +39,12 @@ class IoWorker:
     def start(self) -> None:
         if self._thread is not None:
             raise RuntimeError("the I/O worker can only be started once")
-        self._thread = threading.Thread(target=self._run, name=THREAD_NAME, daemon=True)
+        self._thread = threading.Thread(target=self._run, name=self._name, daemon=True)
         self._thread.start()
 
     def submit(self, job: Job) -> None:
         if not self.is_running:
-            self._logger.warning("I/O job dropped: the worker is not running")
+            self._logger.warning("Job dropped: %s is not running", self._name)
             return
         self._queue.put(job)
 
@@ -54,7 +57,7 @@ class IoWorker:
             self._queue.put(None)
         self._thread.join(timeout)
         if self._thread.is_alive():
-            self._logger.warning("I/O worker still busy after %.1f s", timeout)
+            self._logger.warning("%s still busy after %.1f s", self._name, timeout)
             return False
         return True
 
@@ -63,4 +66,4 @@ class IoWorker:
             try:
                 job()
             except Exception:
-                self._logger.exception("I/O job failed")
+                self._logger.exception("A job of %s failed", self._name)

@@ -120,10 +120,13 @@ class ActivityPresenter:
     def blocks(self) -> tuple[ActivityBlock, ...]:
         """What the panel shows, in the player's display mode."""
         if self._display.mode is DisplayMode.STACKED:
-            shown = self._display.activities
-        else:
-            shown = (self.current,)
-        return tuple(ActivityBlock(activity, self._model(activity)) for activity in shown)
+            return self.blocks_of(self._display.activities)
+        return self.blocks_of((self.current,))
+
+    def blocks_of(self, activities: Iterable[Activity]) -> tuple[ActivityBlock, ...]:
+        """The blocks of these activities, whatever the display mode (ADR 0020: the desktop
+        application has room for all of them)."""
+        return tuple(ActivityBlock(activity, self._model(activity)) for activity in activities)
 
     def _progressed(self, activity: Activity) -> None:
         if activity in self._display.activities:
