@@ -4,7 +4,7 @@
   "activity.trade": "Commerce",
   "activity.engineering": "Ingénierie",
   "activity.reset": "Réinitialiser",
-  "activity.current": "En cours",
+  "activity.running": "Session en cours",
   "app.loading": "Démarrage…",
   "journal.missing": "Aucun dossier de journal trouvé. Indiquez dans EDROCKMASTER_JOURNAL_DIR le dossier où le jeu écrit son journal.",
   "journal.waiting": "En attente du journal du jeu dans {folder}",
