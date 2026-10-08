@@ -12,6 +12,7 @@ function withCore(): CoreApi {
     ready: vi.fn(async () => {}),
     reset: vi.fn(async () => {}),
     dismiss_notice: vi.fn(async () => {}),
+    shown: vi.fn(async () => {}),
   };
   window.pywebview = { api };
   return api;
@@ -33,10 +34,14 @@ describe("App", () => {
     expect(screen.getByText("Starting…")).toBeInTheDocument();
     expect(api.ready).toHaveBeenCalledOnce();
     push(view());
+    expect(api.shown).toHaveBeenCalledOnce();
+    push(view());
+    expect(api.shown).toHaveBeenCalledOnce();
     expect(screen.getByRole("heading", { name: "Mining" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Trade" })).toBeInTheDocument();
     expect(screen.getByText("Reading Journal.2026-10-08T014139.01.log")).toBeInTheDocument();
-    expect(screen.getByText("Active now")).toBeInTheDocument();
+    // Mining runs, trade does not
+    expect(screen.getAllByText("Session running")).toHaveLength(1);
   });
 
   it("speaks the language of the live view", () => {
@@ -71,8 +76,9 @@ describe("App", () => {
     const api = withCore();
     render(App);
     push(view());
-    const [mining, trade] = screen.getAllByRole("button", { name: "Reset" });
-    expect(trade).toBeDisabled();
+    // Only a running session can be reset: trade has no button
+    const [mining, ...others] = screen.getAllByRole("button", { name: "Reset" });
+    expect(others).toEqual([]);
     await fireEvent.click(mining as HTMLElement);
     expect(api.reset).toHaveBeenCalledWith("mining");
   });
@@ -90,7 +96,7 @@ describe("ActivityBlock", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Painite 42 %");
     expect(screen.getByText("Refined")).toBeInTheDocument();
     expect(screen.getByText("12 t")).toBeInTheDocument();
-    expect(screen.queryByText("Active now")).not.toBeInTheDocument();
+    expect(screen.getByText("Session running")).toBeInTheDocument();
   });
 
   it("shows no list without statistics", () => {
@@ -101,5 +107,18 @@ describe("ActivityBlock", () => {
       onreset: vi.fn(),
     });
     expect(document.querySelector("dl")).toBeNull();
+  });
+});
+
+describe("ActivityBlock of an ended session", () => {
+  it("has neither badge nor reset button", () => {
+    render(ActivityBlock, {
+      block: block({ status: "Session ended: game closed", canReset: false }),
+      language: "fr",
+      current: true,
+      onreset: vi.fn(),
+    });
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.queryByText("Session en cours")).toBeNull();
   });
 });

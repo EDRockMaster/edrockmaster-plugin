@@ -1,5 +1,6 @@
 <script lang="ts">
   import ActivityBlock from "./components/ActivityBlock.svelte";
+  import SituationBanner from "./components/SituationBanner.svelte";
   import { connect, core } from "./lib/bridge";
   import { t, type Language } from "./lib/i18n";
   import type { LiveView } from "./lib/live-view";
@@ -8,6 +9,8 @@
   const language: Language = $derived(view?.language ?? "en");
 
   connect((next) => {
+    // Optional call: a missing method must never keep the view from showing
+    if (view === null) void core()?.shown?.();
     view = next;
   });
 
@@ -31,6 +34,7 @@
         </button>
       </div>
     {/if}
+    <SituationBanner situation={view.situation} {language} />
     <p class="journal">{journalText(view.journal)}</p>
     <div class="activities">
       {#each view.activities as block (block.activity)}

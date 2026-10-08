@@ -33,6 +33,7 @@ export interface LiveView {
      */
     file: string | null;
   };
+  situation: Situation;
 }
 export interface Block {
   activity: Activity;
@@ -43,4 +44,31 @@ export interface Block {
   }[];
   alert: string | null;
   canReset: boolean;
+}
+/**
+ * The commander's situation (ADR 0023): unknown parts are null. Kept nowhere.
+ */
+export interface Situation {
+  commander: string | null;
+  ship: null | {
+    /**
+     * The ship's type, in the game's language when the journal gives it, else its symbol.
+     */
+    type: string;
+    name: string | null;
+    ident: string | null;
+  };
+  onFoot: boolean;
+  system: string | null;
+  station: string | null;
+  mode: "open" | "solo" | "group" | null;
+  /**
+   * The private group's name.
+   */
+  group: string | null;
+  /**
+   * The other members of the wing.
+   */
+  wing: string[];
+  gameRunning: boolean;
 }

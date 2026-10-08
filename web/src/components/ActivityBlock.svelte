@@ -14,12 +14,14 @@
 <section class="block" class:current aria-labelledby="title-{block.activity}">
   <header>
     <h2 id="title-{block.activity}">{t(language, `activity.${block.activity}`)}</h2>
-    {#if current}
-      <span class="badge">{t(language, "activity.current")}</span>
+    <!-- A session runs: the badge says so, and only then can it be reset. The last activity
+         that progressed has the accent border, running or not. -->
+    {#if block.canReset}
+      <span class="badge">{t(language, "activity.running")}</span>
+      <button type="button" onclick={() => onreset(block.activity)}>
+        {t(language, "activity.reset")}
+      </button>
     {/if}
-    <button type="button" disabled={!block.canReset} onclick={() => onreset(block.activity)}>
-      {t(language, "activity.reset")}
-    </button>
   </header>
   <p class="status">{block.status}</p>
   {#if block.alert}
@@ -48,8 +50,9 @@
   }
   header {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-2);
+    gap: var(--space-1) var(--space-2);
   }
   h2 {
     margin: 0;
@@ -61,6 +64,7 @@
   .badge {
     color: var(--colour-accent);
     font-size: 0.85rem;
+    white-space: nowrap;
   }
   .status {
     color: var(--colour-text-muted);

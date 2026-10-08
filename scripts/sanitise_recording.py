@@ -4,9 +4,10 @@ The plugin repository is public. A raw recording holds personal data: the
 commander's name and Frontier id, squadron, carrier, chat messages and other
 players' names. This script keeps only the events the plugin reads, plus a few
 harmless ones that prove unknown events are ignored, reduces ``LoadGame`` to
-the game version and ``MissionCompleted`` to its materials reward, drops the
-commander's reputation, targets' pilot names, crime victims and the
-commander's killers, replaces every fleet carrier (name,
+the game version, ship type and game mode and ``MissionCompleted`` to its
+materials reward, drops the commander's reputation, targets' pilot names, crime
+victims and the commander's killers, names the other members of a wing
+``Wingmate 1``, ``Wingmate 2``…, replaces every fleet carrier (name,
 callsign, id) with a neutral value, then refuses to write anything if the
 commander's name or id, or a carrier, is still present.
 
@@ -72,6 +73,13 @@ READ_BY_THE_PLUGIN = {
     "MissionCompleted",
     "EngineerCraft",
     "EngineerProgress",
+    # the commander's situation (ADR 0023)
+    "Loadout",
+    "ShipyardSwap",
+    "CarrierJump",
+    "WingJoin",
+    "WingAdd",
+    "WingLeave",
 }
 HARMLESS = {
     "Music",
@@ -88,7 +96,20 @@ HARMLESS = {
     "ReservoirReplenished",
 }
 REDUCED = {
-    "LoadGame": {"timestamp", "event", "gameversion", "build", "Horizons", "Odyssey"},
+    # the game version, the ship's type and the game mode; not the private group's name, nor
+    # the name and registration the player gave the ship
+    "LoadGame": {
+        "timestamp",
+        "event",
+        "gameversion",
+        "build",
+        "Horizons",
+        "Odyssey",
+        "Ship",
+        "Ship_Localised",
+        "GameMode",
+    },
+    "Loadout": {"timestamp", "event", "Ship"},
     # a mission names factions, targets, passengers: only its materials matter
     "MissionCompleted": {"timestamp", "event", "MaterialsReward"},
 }
@@ -157,8 +178,45 @@ def anonymise(value: Any, names: set[str], ids: set[int]) -> Any:
     return value
 
 
+def wingmates(records: list[dict[str, Any]]) -> dict[str, str]:
+    """The other members of the commander's wings, each with a neutral name, in order of
+    appearance: they are other players."""
+    found: dict[str, str] = {}
+    for record in records:
+        entry = record["entry"]
+        if entry.get("event") == "WingJoin":
+            others = entry.get("Others", [])
+            names = [o.get("Name") if isinstance(o, dict) else o for o in others]
+        elif entry.get("event") == "WingAdd":
+            names = [entry.get("Name")]
+        else:
+            continue
+        for name in names:
+            if isinstance(name, str) and name and name not in found:
+                found[name] = f"Wingmate {len(found) + 1}"
+    return found
+
+
+def _rename_wingmates(entry: dict[str, Any], names: dict[str, str]) -> dict[str, Any]:
+    def rename(value: Any) -> Any:
+        return names.get(value, value) if isinstance(value, str) else value
+
+    if entry.get("event") == "WingJoin":
+        others = [
+            {**other, "Name": rename(other.get("Name"))}
+            if isinstance(other, dict)
+            else rename(other)
+            for other in entry.get("Others", [])
+        ]
+        return {**entry, "Others": others}
+    if entry.get("event") == "WingAdd":
+        return {**entry, "Name": rename(entry.get("Name"))}
+    return entry
+
+
 def sanitise(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     names, ids = carriers(records)
+    wing = wingmates(records)
     kept = []
     for record in records:
         entry = record["entry"]
@@ -169,6 +227,7 @@ def sanitise(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
             entry = {key: value for key, value in entry.items() if key in REDUCED[event]}
         personal = PERSONAL_FIELDS.get(event, set())
         entry = {key: value for key, value in entry.items() if key not in personal}
+        entry = _rename_wingmates(entry, wing)
         entry = anonymise(entry, names, ids)
         kept.append({"is_beta": record["is_beta"], "entry": entry})
     return kept
@@ -184,7 +243,12 @@ def main(arguments: list[str]) -> int:
     kept = sanitise(records)
     output = "".join(json.dumps(record, ensure_ascii=False) + "\n" for record in kept)
     names, ids = carriers(records)
-    personal = identities(records) | names | {str(carrier_id) for carrier_id in ids}
+    personal = (
+        identities(records)
+        | names
+        | {str(carrier_id) for carrier_id in ids}
+        | set(wingmates(records))
+    )
     leaks = sorted(identity for identity in personal if identity in output)
     if leaks:
         print(f"refused: {len(leaks)} personal identifier(s) still present", file=sys.stderr)

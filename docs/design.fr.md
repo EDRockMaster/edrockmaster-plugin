@@ -35,6 +35,7 @@ edrockmaster/
     trade/                      contexte du commerce
       journal.py                entrée du journal → fait du commerce
       session.py                agrégat TradeTracker (sessions, routes, temps de vol, cargaison achetée, pertes)
+    situation/                  la situation du commandant (ADR 0023) : qui, vaisseau, où, mode de jeu, escadrille
     engineering/                contexte de l'ingénierie (ADR 0017)
       journal.py                entrée du journal → fait de l'ingénierie
       session.py                agrégat EngineeringTracker (inventaire, plafonds, collecte, objectifs, ingénieurs)
@@ -313,6 +314,8 @@ En construction (décision de conception ADR 0020) : le cœur du plugin dans une
 - `lint-imports` vérifie aussi que `desktop/` et `infrastructure/` n'importent ni EDMC ni Tk.
 - **Interface** (`web/`) : Svelte 5 et TypeScript, construite par Vite en un seul fichier HTML ; ses propres textes dans `src/locales/*.json`, avec un test qui vérifie que chaque clé est traduite et utilisée ; Vitest et Testing Library ; un thème sombre tiré de jetons de conception. Node 22 et pnpm (par corepack) ne sont que des outils de construction.
 - **La lancer** (développement) : `cd web && corepack pnpm install && corepack pnpm build`, puis `uv run python -m edrockmaster.desktop` (`--debug` ouvre l'inspecteur web). Sous Linux, pywebview a besoin de GTK et de WebKit2GTK avec leur liaison Python (PyGObject), en général celle de la Python du système ; `EDROCKMASTER_JOURNAL_DIR` désigne un dossier de journal, par exemple un enregistrement réécrit en fichiers de journal.
+
+**La situation du commandant** (ADR 0023) : `domain/situation/` lit `Commander`, `LoadGame`, `Location`, les sauts et le supercruise, `Docked`, `Undocked`, `Loadout`, `ShipyardSwap`, `SetUserShipName`, `Embark`, `Disembark` et les événements d'escadrille, pour en tirer le nom du commandant, le vaisseau (son type dans la langue du jeu, le nom et l'immatriculation donnés par le joueur), à pied ou non, le système, la station, le mode de jeu avec le nom du groupe privé, et les membres de l'escadrille. `Shutdown` garde la dernière situation et indique que le jeu est fermé. Elle vit en mémoire seulement : jamais enregistrée, jamais envoyée ; le plugin l'ignore (EDMC l'affiche), l'application de bureau l'affiche dans un bandeau, par le champ `situation` de la vue en direct. Les membres de l'escadrille sont d'autres joueurs : le script de nettoyage des enregistrements les nomme `Wingmate 1`, `Wingmate 2`…
 
 **Emballage pour Windows** (ADR 0022) : le Microsoft Store distribue l'application en paquet MSIX, qu'il signe.
 

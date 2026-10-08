@@ -20,15 +20,21 @@ from edrockmaster.application.ports import (
     SettingsStore,
 )
 from edrockmaster.application.settings import PluginSettings
+from edrockmaster.application.situation_service import SituationService
 from edrockmaster.application.trade_service import TradeService
 from edrockmaster.domain.combat.session import CombatNotification
 from edrockmaster.domain.engineering.catalogue import Catalogue
 from edrockmaster.domain.engineering.session import EngineeringNotification
 from edrockmaster.domain.journal_reading import Entry
+from edrockmaster.domain.situation.situation import SituationChanged
 from edrockmaster.domain.trade.session import TradeNotification
 
 type Notification = (
-    MiningNotification | CombatNotification | TradeNotification | EngineeringNotification
+    MiningNotification
+    | CombatNotification
+    | TradeNotification
+    | EngineeringNotification
+    | SituationChanged
 )
 """What the presentation layer is told after each use case."""
 
@@ -53,6 +59,7 @@ class Companion:
         self.combat = CombatService(clock)
         self.trade = TradeService(clock)
         self.engineering = EngineeringService(catalogue, goals, clock)
+        self.situation = SituationService()
 
     @property
     def settings(self) -> PluginSettings:
@@ -66,6 +73,7 @@ class Companion:
         notifications += self.combat.handle_journal_entry(entry)
         notifications += self.trade.handle_journal_entry(entry)
         notifications += self.engineering.handle_journal_entry(entry)
+        notifications += self.situation.handle_journal_entry(entry)
         return notifications
 
     def reset(self, activity: Activity) -> list[Notification]:
