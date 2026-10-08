@@ -13,6 +13,7 @@ Les changements notables du plugin EDRockMaster. Le format suit [Keep a Changelo
 - Le commerce est affiché par défaut, y compris pour les joueurs qui avaient déjà choisi les activités affichées : le plugin retient désormais les activités que l'onglet des préférences proposait.
 - **Transferts avec un porte-vaisseaux** (décision de conception ADR 0019) : dépôts et retraits par marchandise, avec le nombre de transferts, pour voir tout de suite un dépôt que le jeu n'a pas pris en compte (un bug connu du jeu). Un transfert démarre une session de commerce et fait compter son vol ; les marchandises déposées ne sont pas comptées comme perdues si le vaisseau est détruit ensuite.
 - Le script de nettoyage des enregistrements conserve les achats et les transferts de cargaison.
+- **Base locale** (décision de conception ADR 0018) : `edrockmaster.sqlite3` dans le dossier de données du plugin, pour ce que le plugin doit garder d'un lancement à l'autre, à commencer par les futurs objectifs d'ingénierie (ADR 0017). Seul le fil d'entrées-sorties du plugin s'en sert, et son schéma est migré au lancement d'EDMC, après une copie du fichier. Un fichier que le plugin ne peut pas lire, parce qu'il est abîmé ou écrit par une version plus récente du plugin, est mis de côté sous le nom `edrockmaster.sqlite3.unreadable-<date>`, une base neuve est créée, et le panneau le signale jusqu'à ce qu'on l'ignore. Revenir à une version antérieure du plugin réinitialise donc ce qu'une version plus récente avait enregistré.
 
 ## [0.3.0] - 2026-10-06
 

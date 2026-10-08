@@ -1,8 +1,8 @@
 """Wiring between EDMC's hooks and the plugin's application layer.
 
 ``Plugin`` is the composition root: it builds the adapters, the application
-service (the ``Companion`` of the activities) and the I/O thread, and turns
-EDMC's hooks into use cases.
+service (the ``Companion`` of the activities), the I/O thread and the local
+database, and turns EDMC's hooks into use cases.
 """
 
 from __future__ import annotations
@@ -19,17 +19,22 @@ from edrockmaster import VERSION
 from edrockmaster.application.activity import Activity
 from edrockmaster.application.build import BuildInfo, development_build
 from edrockmaster.application.companion import Companion, Notification
-from edrockmaster.application.ports import Clock
+from edrockmaster.application.ports import Clock, GoalRepository
 from edrockmaster.edmc import host
 from edrockmaster.edmc.i18n import tl
+from edrockmaster.edmc.main_thread import MainThreadDispatcher
 from edrockmaster.infrastructure.build_file import load_build
 from edrockmaster.infrastructure.clock import SystemClock
+from edrockmaster.infrastructure.database import FILE_NAME as DATABASE_FILE_NAME
+from edrockmaster.infrastructure.database import LocalDatabase, Opening
+from edrockmaster.infrastructure.goal_repository import SqliteGoalRepository
 from edrockmaster.infrastructure.paths import data_directory as default_data_directory
 from edrockmaster.infrastructure.recorder_jsonl import JsonlJournalRecorder
 from edrockmaster.infrastructure.settings_edmc import EdmcConfig, EdmcSettingsStore
 from edrockmaster.infrastructure.sound import SoundNotifier, system_alert_sound
 from edrockmaster.infrastructure.worker import IoWorker
 from edrockmaster.ui.panel import Panel
+from edrockmaster.ui.panel_model import LocalDataNotice, notice_text
 from edrockmaster.ui.preferences import PreferencesTab
 from edrockmaster.ui.preferences_form import (
     settings_from_values,
@@ -86,6 +91,10 @@ class Plugin:
         self._panel: Panel | None = None
         self._tab: PreferencesTab | None = None
         self._worker = IoWorker(logger)
+        self._main_thread = MainThreadDispatcher(logger)
+        self._database: LocalDatabase | None = None
+        self._goals: GoalRepository | None = None
+        self._notice: LocalDataNotice | None = None
         self._companion: Companion | None = None
         self._listeners: list[Listener] = []
         self._play_alert: Callable[[], None] | None = None
@@ -100,6 +109,21 @@ class Plugin:
     def companion(self) -> Companion | None:
         return self._companion
 
+    @property
+    def database(self) -> LocalDatabase | None:
+        """The local database (ADR 0018), opened on the I/O thread once started."""
+        return self._database
+
+    @property
+    def goals(self) -> GoalRepository | None:
+        """The engineering goals (ADR 0017), stored in the local database."""
+        return self._goals
+
+    @property
+    def notice(self) -> LocalDataNotice | None:
+        """What the panel says about the local data, until the player dismisses it."""
+        return self._notice
+
     def start(self, plugin_dir: str | os.PathLike[str]) -> str:
         build = self._build = load_build(Path(plugin_dir) / "edrockmaster", VERSION, logger)
         logger.info(
@@ -110,6 +134,13 @@ class Plugin:
             plugin_dir,
         )
         self._worker.start()
+        database = self._database = LocalDatabase(
+            self._data_directory() / DATABASE_FILE_NAME, logger
+        )
+        self._worker.submit(lambda: self._opened(database.open()))
+        self._goals = SqliteGoalRepository(
+            database, self._worker.submit, self._main_thread.dispatch, logger
+        )
         recorder = JsonlJournalRecorder(
             self._data_directory() / "recordings",
             self._worker.submit,
@@ -125,6 +156,8 @@ class Plugin:
         return PLUGIN_NAME
 
     def stop(self) -> None:
+        if self._database is not None:
+            self._worker.submit(self._database.close)
         self._worker.stop()
         logger.info("EDRockMaster stopped")
 
@@ -134,8 +167,11 @@ class Plugin:
             self._presenter.configure(self._companion.settings.display)
         panel = self._panel = Panel(parent, self.reset_session, tl, host.theme_update)
         panel.render(self._presenter.blocks())
+        self._show_notice()
         self.subscribe(self._refresh)
         self.attach_alert_sound(system_alert_sound(panel.frame))
+        # Results of the I/O thread wait for the panel, and run in EDMC's main loop from now on
+        self._main_thread.attach(panel.frame)
         return panel.frame
 
     def prefs(self, parent: tk.Misc) -> tk.Widget:
@@ -170,6 +206,7 @@ class Plugin:
         if self._panel is not None:
             self._panel.retranslate()
             self._panel.render(self._presenter.blocks())
+            self._show_notice()
 
     def reset_session(self, activity: Activity) -> None:
         """A reset button of the panel: ends the session of its activity."""
@@ -223,6 +260,28 @@ class Plugin:
         self._presenter.apply(notifications)
         if self._panel is not None:
             self._panel.render(self._presenter.blocks())
+
+    def _opened(self, opening: Opening) -> None:
+        """On the I/O thread: tell the main thread how the local database opened."""
+        if opening.moved_aside is not None:
+            notice = LocalDataNotice.RESET
+        elif not opening.available:
+            notice = LocalDataNotice.UNAVAILABLE
+        else:
+            return
+        self._main_thread.dispatch(lambda: self._set_notice(notice))
+
+    def _set_notice(self, notice: LocalDataNotice | None) -> None:
+        self._notice = notice
+        self._show_notice()
+
+    def _show_notice(self) -> None:
+        if self._panel is None:
+            return
+        if self._notice is None:
+            self._panel.hide_notice()
+        else:
+            self._panel.show_notice(notice_text(self._notice, tl), lambda: self._set_notice(None))
 
     def _alert_sound(self) -> None:
         if self._play_alert is not None:

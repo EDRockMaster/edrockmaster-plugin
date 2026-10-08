@@ -8,11 +8,13 @@ import pytest
 
 from edrockmaster.application.build import BuildInfo, Channel
 from edrockmaster.application.companion import Notification
+from edrockmaster.domain.engineering.goals import BlueprintGoal, Goal, GoalId
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.mining.prospecting import ProspectorAlertRaised
 from edrockmaster.domain.mining.session import SessionStarted
 from edrockmaster.edmc.i18n import tl
 from edrockmaster.edmc.plugin import PLUGIN_NAME, Plugin, plugin_logger_name
+from edrockmaster.infrastructure.database import WrongThreadError
 from edrockmaster.infrastructure.worker import THREAD_NAME
 from tests.fakes import FakeConfig
 
@@ -171,3 +173,48 @@ def test_a_failing_use_case_is_logged_and_reported(
 def test_logger_is_named_after_the_plugin_folder_as_edmc_expects() -> None:
     module = Path("/edmc/plugins/EDRockMaster/edrockmaster/edmc/plugin.py")
     assert plugin_logger_name("EDMarketConnector", module) == "EDMarketConnector.EDRockMaster"
+
+
+# Local database (ADR 0018)
+
+
+def flush_io(plugin: Plugin) -> None:
+    done = threading.Event()
+    plugin._worker.submit(done.set)
+    assert done.wait(timeout=2)
+
+
+def test_the_local_database_opens_on_the_io_thread_only(started: Started) -> None:
+    flush_io(started.plugin)
+    database = started.plugin.database
+    assert database is not None
+    assert database.path == started.data_dir / "edrockmaster.sqlite3"
+    assert database.is_open
+    assert database.owner == THREAD_NAME
+    with pytest.raises(WrongThreadError):
+        database.connection()
+
+
+def test_the_local_database_is_closed_when_the_plugin_stops(started: Started) -> None:
+    started.plugin.stop()
+    database = started.plugin.database
+    assert database is not None
+    assert not database.is_open
+
+
+def test_goals_are_stored_in_the_local_database(tmp_path: Path) -> None:
+    goal = BlueprintGoal(GoalId.new(), "FSD_LongRange", "fsd", grade=5)
+    first = Started(tmp_path)
+    assert first.plugin.goals is not None
+    first.plugin.goals.add(goal)
+    first.plugin.stop()
+    second = Started(tmp_path)
+    try:
+        assert second.plugin.goals is not None
+        loaded: list[tuple[Goal, ...]] = []
+        second.plugin.goals.load(loaded.append)
+        flush_io(second.plugin)
+        second.plugin._main_thread._run_pending()  # the panel's main loop, without a display
+        assert loaded == [(goal,)]
+    finally:
+        second.plugin.stop()

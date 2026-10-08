@@ -2,7 +2,8 @@
 
 It only copies the texts of the presenter's blocks: every decision is the
 presenter's. Each activity has its own block (status, reset button, alert,
-statistics), created on first display and shown in the order given.
+statistics), created on first display and shown in the order given. A notice
+about the plugin itself (its local data) can show above them, until dismissed.
 """
 
 from __future__ import annotations
@@ -99,7 +100,17 @@ class Panel:
         self._theme_update = theme_update
         self.frame = tk.Frame(parent)
         self.frame.columnconfigure(0, weight=1)
+        self._notice = tk.Frame(self.frame)
+        self._notice.columnconfigure(0, weight=1)
+        self._notice_text = tk.Label(
+            self._notice, anchor=tk.W, justify=tk.LEFT, foreground=ALERT_COLOUR, wraplength=250
+        )
+        self._notice_text.grid(row=0, column=0, sticky=tk.W)
+        self._dismiss = tk.Button(self._notice, command=self._dismissed)
+        self._dismiss.grid(row=0, column=1, sticky=tk.NE)
+        self._on_dismiss: Callable[[], None] | None = None
         self._blocks: dict[Activity, Block] = {}
+        self.retranslate()
 
     def block(self, activity: Activity) -> Block:
         """The block of an activity, created the first time it is needed."""
@@ -114,15 +125,34 @@ class Panel:
 
     def retranslate(self) -> None:
         """Refresh the texts that do not come from the model (language changed)."""
+        self._dismiss["text"] = self._tl("Dismiss")
         for block in self._blocks.values():
             block.retranslate()
 
+    def show_notice(self, text: str, on_dismiss: Callable[[], None]) -> None:
+        self._notice_text["text"] = text
+        self._on_dismiss = on_dismiss
+        self._notice.grid(row=0, column=0, sticky=tk.EW, pady=(0, BLOCK_GAP))
+
+    def hide_notice(self) -> None:
+        self._notice.grid_remove()
+        self._on_dismiss = None
+
+    def _dismissed(self) -> None:
+        on_dismiss = self._on_dismiss
+        self.hide_notice()
+        if on_dismiss is not None:
+            on_dismiss()
+
     def render(self, blocks: Sequence[ActivityBlock]) -> None:
         shown = {shown_block.activity for shown_block in blocks}
-        for row, shown_block in enumerate(blocks):
+        for index, shown_block in enumerate(blocks):
             block = self.block(shown_block.activity)
             block.render(shown_block.model)
-            block.frame.grid(row=row, column=0, sticky=tk.EW, pady=(BLOCK_GAP if row else 0, 0))
+            # Row 0 is the notice's
+            block.frame.grid(
+                row=index + 1, column=0, sticky=tk.EW, pady=(BLOCK_GAP if index else 0, 0)
+            )
         for activity, block in self._blocks.items():
             if activity not in shown:
                 block.frame.grid_remove()

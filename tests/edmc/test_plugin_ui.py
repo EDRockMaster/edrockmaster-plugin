@@ -1,6 +1,7 @@
 """EDMC's UI hooks wired to the panel and the preferences tab (needs a display)."""
 
 import logging
+import time
 import tkinter as tk
 from collections.abc import Iterator
 from pathlib import Path
@@ -13,6 +14,7 @@ from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.edmc.plugin import Plugin
 from edrockmaster.ui.panel import Block
+from edrockmaster.ui.panel_model import LocalDataNotice
 from tests.fakes import FakeConfig
 
 PROSPECTED: Entry = {
@@ -163,3 +165,42 @@ def test_hiding_an_activity_hides_its_block(harness: Harness, root: tk.Tk) -> No
     harness.plugin.prefs_changed()
     harness.plugin.journal_entry("Cmdr", False, None, None, PROSPECTED, {})
     assert harness.status() == "No combat session"
+
+
+# Local data notice (ADR 0018)
+
+
+def wait_for_notice(harness: Harness, root: tk.Tk) -> None:
+    deadline = time.monotonic() + 2
+    while harness.plugin.notice is None and time.monotonic() < deadline:
+        root.update()
+        time.sleep(0.01)
+
+
+def test_an_unreadable_database_is_reset_and_the_panel_says_so(root: tk.Tk, tmp_path: Path) -> None:
+    data = tmp_path / "data"
+    data.mkdir()
+    (data / "edrockmaster.sqlite3").write_bytes(b"not a database" * 100)
+    harness = Harness(root, tmp_path)
+    try:
+        wait_for_notice(harness, root)
+        assert harness.plugin.notice is LocalDataNotice.RESET
+        panel = harness.plugin._panel
+        assert panel is not None
+        assert panel._notice.grid_info()
+        assert str(panel._notice_text["text"]).startswith("Local data could not be read")
+        panel._dismiss.invoke()
+        assert harness.plugin.notice is None
+        assert not panel._notice.grid_info()
+        assert list(data.glob("edrockmaster.sqlite3.unreadable-*"))
+    finally:
+        harness.plugin.stop()
+
+
+def test_no_notice_when_the_database_opens(harness: Harness, root: tk.Tk) -> None:
+    harness.plugin.stop()
+    root.update()
+    panel = harness.plugin._panel
+    assert panel is not None
+    assert harness.plugin.notice is None
+    assert not panel._notice.grid_info()

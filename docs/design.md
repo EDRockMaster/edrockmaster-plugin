@@ -35,18 +35,23 @@ edrockmaster/
     trade/                      trade context
       journal.py                journal entry → trade fact
       session.py                TradeTracker aggregate (sessions, routes, flight time, cargo bought, losses)
+    engineering/                engineering context (ADR 0017), being built
+      goals.py                  blueprint and experimental effect goals
   application/
     activity.py                 the activities: mining, combat, trade
     build.py                    BuildInfo: full version, commit and channel of the running build (ADR 0016)
     companion.py                Companion: records the journal once, hands each entry to every activity, owns the settings
     settings.py                 PluginSettings (alerts, sound, recorder) and their defaults
-    ports.py                    Clock, SettingsStore, Notifier, JournalRecorder (and, in 1B, UploadQueue, Authenticator)
+    ports.py                    Clock, SettingsStore, Notifier, JournalRecorder, GoalRepository (and, in 1B, UploadQueue, Authenticator)
     mining_service.py           mining use cases: handle a journal entry, reset the session, apply settings
     combat_service.py           combat use cases: handle a journal entry, reset the session
     trade_service.py            trade use cases: handle a journal entry, reset the session
   infrastructure/
     settings_edmc.py            SettingsStore on EDMC's config (keys prefixed "edrockmaster.")
     recorder_jsonl.py           JournalRecorder: JSONL files in the data directory
+    database.py                 the local SQLite database: opening, migrations, copy, moving aside (ADR 0018)
+    migrations.py               the database schema, one migration per version
+    goal_repository.py          GoalRepository on the local database
     build_file.py               reads edrockmaster/build.json, written by the packaging
     sound.py                    Notifier: sound alerts (winsound on Windows, Tk bell elsewhere)
     paths.py                    data directory per platform
@@ -56,8 +61,9 @@ edrockmaster/
     plugin.py                   wiring: builds the object graph, implements the hooks
     i18n.py                     tl() bound to EDMC's l10n, with a fallback for tests
     host.py                     EDMC services (theme, plug.show_error, l10n.Locale), with fallbacks
+    main_thread.py              results of the I/O thread run on the main thread
   ui/
-    panel_model.py              PanelModel (texts) and shared formatting, no tkinter
+    panel_model.py              PanelModel (texts), local data notices and shared formatting, no tkinter
     presenter.py                ActivityPresenter: the blocks to show, by display mode
     mining_presenter.py         mining notifications → PanelModel
     combat_presenter.py         combat notifications → PanelModel
@@ -88,8 +94,9 @@ All of this is pure computation on small objects (well under a millisecond per e
 ## Threads
 
 - **Main thread**: hooks, domain, UI.
-- **One I/O thread** (`infrastructure/worker.py`): a daemon thread fed by a `queue.Queue` of jobs (append to the recording file in 1A; uploads and authentication in 1B). It never touches tkinter. In 1A it has nothing to tell the UI. From 1B (upload status), it will post a message on a result queue and call `event_generate("<<EDRockMasterUpdate>>")` on the panel, unless `config.shutting_down` is set.
-- `plugin_stop()` posts a stop job, joins the thread with a timeout, and flushes the recorder.
+- **One I/O thread** (`infrastructure/worker.py`): a daemon thread fed by a `queue.Queue` of jobs (append to the recording file, the local database; in 1B, uploads and authentication). It never touches tkinter.
+- **Results back to the main thread** (`edmc/main_thread.py`): the I/O thread puts a callback in a queue, and the main thread runs it, polling the queue every 100 ms with `after()` on the panel. Waking the main thread with `event_generate()` from the I/O thread, as EDMC does for its own threads, needs Tk's main loop to run, and EDMC calls `plugin_app` before starting it: polling makes no Tk call from the I/O thread at all. Callbacks queued before the panel exists wait for it.
+- `plugin_stop()` closes the local database, posts a stop job, joins the thread with a timeout, and flushes the recorder.
 
 ## Mining session lifecycle
 
@@ -210,7 +217,22 @@ Data directory, outside the plugin folder so that it survives plugin updates:
 - Linux: `$XDG_DATA_HOME/EDRockMaster`, or `~/.local/share/EDRockMaster`
 - macOS: `~/Library/Application Support/EDRockMaster`
 
-Contents in 1A: `recordings/` (journal recordings, JSONL, one file per EDMC run). In 1B: the upload queue (SQLite).
+Contents:
+
+- `recordings/`: journal recordings, JSONL, one file per EDMC run;
+- `edrockmaster.sqlite3`: the local database (below), with its `-wal` and `-shm` files while EDMC runs;
+- `edrockmaster.sqlite3.v<N>.bak`: a copy of the database made before its last migration, from schema version N;
+- `edrockmaster.sqlite3.unreadable-<date>`: a database the plugin could not read, moved aside.
+
+## Local database
+
+One SQLite file for the plugin's durable **state**, which is neither a setting (EDMC's `config`) nor a recording (design decision ADR 0018). Each need has its own tables and its own repository port: the engineering goals first (`GoalRepository`, ADR 0017), the upload queue in 1B (ADR 0005). Nothing in it is sent to the server unless an ADR says so.
+
+- **The I/O thread only.** The database opens in a job of the I/O thread at `plugin_start3`, and closes in one at `plugin_stop`. `LocalDatabase.connection()` refuses any other thread. Repositories turn each call into a job; what they read reaches the main thread through `edmc/main_thread.py`.
+- **Versioned schema.** `PRAGMA user_version` is the schema version; `infrastructure/migrations.py` lists the migrations, applied in order at opening, each in its own transaction, forward only. A released migration never changes. Before migrating a database of version N > 0, the file is copied (SQLite's backup API) to `edrockmaster.sqlite3.v<N>.bak`, and older copies are removed. WAL journal mode.
+- **Unreadable file.** A corrupt file (SQLite says it is not a database, or the integrity check fails) or a file written by a newer version of the plugin (a downgrade) is moved aside as `edrockmaster.sqlite3.unreadable-<UTC date>`, and a new database is created. The log says why, and the panel shows a notice until the player dismisses it.
+- **Unavailable database.** Any other failure (another EDMC holds the file, the disk refuses it, a migration fails and is rolled back) leaves the file as it is; nothing is stored until EDMC restarts, the log says why and the panel says so. The plugin never fails because of its database.
+- **Tests.** Every schema version has a fixture, `tests/fixtures/database/schema-v<N>.sql`, kept as released; the tests migrate each one to the latest version, and check that the latest fixture has the schema the migrations create. A new migration therefore comes with its fixture.
 
 ## Journal recorder
 
@@ -233,7 +255,7 @@ Contents in 1A: `recordings/` (journal recordings, JSONL, one file per EDMC run)
 
 Ports defined in 1A, implemented in 1B:
 
-- `UploadQueue`: SQLite queue in the data directory; every uploadable fact gets a client id (`uuid4`).
+- `UploadQueue`: its own tables in the local database (ADR 0018); every uploadable fact gets a client id (`uuid4`).
 - `Authenticator`: Keycloak device flow; refresh token stored with `config`.
 - `Uploader`: batches (gzip) to `edrockmaster-ingest`, on the I/O thread, with backoff.
 - Kill switch: EDMC's `killswitch` module, fetched every 10 minutes from our server.
