@@ -97,3 +97,12 @@ def test_start_twice_is_refused(worker: IoWorker) -> None:
 
 def test_stopping_a_worker_that_never_started_is_harmless() -> None:
     assert IoWorker(logger).stop()
+
+
+def test_a_worker_may_have_its_own_thread_name() -> None:
+    names: list[str] = []
+    worker = IoWorker(logger, "EDRockMaster core")
+    worker.start()
+    worker.submit(lambda: names.append(threading.current_thread().name))
+    worker.stop()
+    assert names == ["EDRockMaster core"]

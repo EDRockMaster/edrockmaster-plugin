@@ -1,0 +1,15 @@
+{
+  "activity.mining": "Mining",
+  "activity.combat": "Combat",
+  "activity.trade": "Trade",
+  "activity.engineering": "Engineering",
+  "activity.reset": "Reset",
+  "activity.current": "Active now",
+  "app.loading": "Starting…",
+  "journal.missing": "No journal folder found. Set EDROCKMASTER_JOURNAL_DIR to the folder where the game writes its journal.",
+  "journal.waiting": "Waiting for the game's journal in {folder}",
+  "journal.reading": "Reading {file}",
+  "notice.reset": "Local data could not be read and was reset, see the log.",
+  "notice.unavailable": "Local data is unavailable until the application restarts, see the log.",
+  "notice.dismiss": "Dismiss"
+}

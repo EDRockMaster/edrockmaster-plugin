@@ -7,7 +7,9 @@ and ``l10n.Locale``.
 from __future__ import annotations
 
 import logging
+import sys
 import tkinter as tk
+from collections.abc import Callable
 
 from edrockmaster.ui.panel_model import default_number_format
 
@@ -18,7 +20,17 @@ try:  # pragma: no cover - only available inside EDMC
 except ImportError:  # pragma: no cover - outside EDMC
     plug = Locale = theme = None
 
+if sys.platform == "win32":  # pragma: no cover
+    import winsound
+
 _logger = logging.getLogger(__name__)
+
+
+def system_alert_sound(widget: tk.Misc) -> Callable[[], None]:  # pragma: no cover
+    """Return a non-blocking way to play the system alert sound on this platform."""
+    if sys.platform == "win32":
+        return lambda: winsound.MessageBeep(winsound.MB_ICONEXCLAMATION)
+    return widget.bell
 
 
 def format_number(number: float, decimals: int) -> str:

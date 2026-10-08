@@ -27,7 +27,7 @@ Les changements de chaque version : [journal des modifications](CHANGELOG.fr.md)
 ## Structure
 
 - `load.py` : points d'entrée EDMC (`plugin_start3`, `plugin_app`, `journal_entry`…), aussi fin que possible.
-- `edrockmaster/` : le code du plugin, dans un paquet au nom unique (voir [prérequis](docs/prerequisites.fr.md)). La logique de domaine ne dépend ni d'EDMC ni de tkinter, et elle est testée par `pytest` ; `lint-imports` le vérifie. `edrockmaster/desktop/` est le début de l'application de bureau qui remplacera le plugin (ADR 0020).
+- `edrockmaster/` : le code du plugin, dans un paquet au nom unique (voir [prérequis](docs/prerequisites.fr.md)). La logique de domaine ne dépend ni d'EDMC ni de tkinter, et elle est testée par `pytest` ; `lint-imports` le vérifie. `edrockmaster/desktop/` est le début de l'application de bureau qui remplacera le plugin (ADR 0020) ; son interface est dans `web/` (Svelte, ADR 0021). Comment la lancer : [conception](docs/design.fr.md#application-de-bureau).
 - `L10n/` : traductions (`fr.strings`).
 - `tests/fixtures/` : extraits de journaux réels.
 - `scripts/` : emballage (`package.sh`, avec le fichier de build de `build_file.py`), notes de release (`release_notes.sh`), version (`version.sh`), canal de release (`release_plan.py`), release GitHub (`github_release.py`), enregistrement vers données de test (`sanitise_recording.py`), données du jeu pour l'ingénierie (`import_engineering_data.py`, ADR 0017).

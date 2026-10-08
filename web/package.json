@@ -1,0 +1,45 @@
+{
+  "name": "@edrockmaster/desktop-interface",
+  "private": true,
+  "version": "0.0.0",
+  "description": "The interface of the EDRockMaster desktop application (ADR 0020, ADR 0021)",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "check": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "test": "vitest run --coverage",
+    "types": "json2ts --input ../edrockmaster/desktop/schemas/live_view.schema.json --output src/lib/live-view.d.ts --bannerComment \"/* Generated from edrockmaster/desktop/schemas/live_view.schema.json by 'pnpm types': do not edit. */\""
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/svelte": "^5.4.2",
+    "@types/node": "^22.20.5",
+    "@vitest/coverage-v8": "^5.0.3",
+    "eslint": "^10.12.0",
+    "eslint-plugin-svelte": "^3.23.0",
+    "globals": "^17.13.0",
+    "jsdom": "^30.1.2",
+    "json-schema-to-typescript": "^16.0.0",
+    "prettier": "^3.9.9",
+    "prettier-plugin-svelte": "^4.1.1",
+    "svelte-check": "^4.7.6",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.1",
+    "vite": "^8.3.3",
+    "vite-plugin-singlefile": "^2.3.3",
+    "vitest": "^5.0.3"
+  },
+  "packageManager": "pnpm@12.10.1",
+  "dependencies": {
+    "svelte": "^5.57.2"
+  }
+}

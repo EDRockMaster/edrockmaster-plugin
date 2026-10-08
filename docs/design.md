@@ -66,6 +66,9 @@ edrockmaster/
   desktop/                      the desktop application (ADR 0020), being built: it reads the journal without EDMC
     journal_folder.py           where the game writes its journal; journal files in order
     journal_reader.py           JournalFollower (follows the journal as the game writes it), JournalWatcher (its thread)
+    core.py                     DesktopCore: the composition root, the core thread, the live view pushed
+    live_view.py                the live view, as schemas/live_view.schema.json describes it
+    window.py                   the pywebview window, InterfaceApi, the entry point (python -m edrockmaster.desktop)
   edmc/
     plugin.py                   wiring: builds the object graph, implements the hooks
     i18n.py                     tl() bound to EDMC's l10n, with a fallback for tests
@@ -300,6 +303,16 @@ Being built (design decision ADR 0020): the plugin's core in an application of i
 - **Thread**: `JournalWatcher` polls every second on its own thread (`EDRockMaster journal`), as often as EDMC polls a running game.
 - **Parity**: `tests/desktop/test_parity.py` writes every fixture back as journal files, reads them with the reader, and checks that the core gives exactly the notifications of the replay through EDMC, also for a session split in parts written while the reader follows. Reading 20,000 entries at start takes about 0.1 s, 0.3 s with the core.
 - **Boundaries**: `lint-imports` (in the CI) checks that `domain/` and `application/` import no adapter, no host and no interface toolkit (`infrastructure`, `edmc`, `desktop`, `ui`, `tkinter`, `webview`, `sqlite3`), and that the domain imports nothing else of the plugin.
+
+**Step 2, the application shell** (ADR 0020, ADR 0021):
+
+- `desktop/core.py`, `DesktopCore`: the composition root of the desktop application, as `edmc/plugin.py` is the plugin's. The same core (companion, local database, goals, catalogue), fed by the journal reader. Every call to the companion and the presenter happens on the **core thread** (`EDRockMaster core`, an `IoWorker` of its own); the journal reader's thread and the interface's calls only queue jobs. After each change, the core pushes the **live view** to the interface.
+- `desktop/live_view.py`, `desktop/schemas/live_view.schema.json`: the live view, described by a JSON Schema: the activities shown and their blocks (texts from the plugin's presenters, already in the player's language), the current activity, the local data notice, the journal read. The tests validate every view pushed against the schema; the interface's TypeScript types are generated from it (`pnpm types`), and the CI checks that they are up to date.
+- `desktop/window.py`: pywebview shows the interface, one self-contained HTML file (`desktop/interface/index.html`, built from `web/`, not in git), given as a page: no server, no port. The interface calls the core through `InterfaceApi` (`window.pywebview.api`: `ready`, `reset`, `dismiss_notice`); the core pushes with `run_js`, in ASCII JSON (pywebview on GTK gives WebKit the length of a script in characters, not bytes). pywebview creates `window.pywebview` before adding the core's calls to it: the interface waits for `pywebviewready`.
+- Settings in `settings.json` of the data directory, read and checked as the plugin's (same keys); a rotating log in `logs/`; the language of the system's interface (Windows) or of the locale variables, English otherwise; the presenters' texts translated from `L10n/*.strings`, numbers written as the language writes them.
+- `lint-imports` also checks that `desktop/` and `infrastructure/` import neither EDMC nor Tk.
+- **Interface** (`web/`): Svelte 5 and TypeScript, built by Vite into one HTML file; its own texts in `src/locales/*.json`, with a test that every key is translated and used; Vitest and Testing Library; a dark theme from design tokens. Node 22 and pnpm (through corepack) are build tools only.
+- **Run it** (development): `cd web && corepack pnpm install && corepack pnpm build`, then `uv run python -m edrockmaster.desktop` (`--debug` opens the web inspector). On Linux, pywebview needs GTK and WebKit2GTK with their Python binding (PyGObject), usually from the system's Python; `EDROCKMASTER_JOURNAL_DIR` points to a journal folder, a recording written back as journal files for instance.
 
 ## Testing
 

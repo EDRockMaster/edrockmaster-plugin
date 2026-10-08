@@ -40,6 +40,27 @@ jobs:
           path: dist/*.zip
           retention-days: 14
 
+  interface:
+    # The desktop application's interface (ADR 0021): Node is a build tool, nothing of it ships
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: web/.nvmrc
+      - run: corepack pnpm install --frozen-lockfile
+      - name: Bridge types match the schema
+        run: corepack pnpm types && git diff --exit-code src/lib/live-view.d.ts
+      - run: corepack pnpm lint
+      - run: corepack pnpm check
+      - run: corepack pnpm test
+      - run: corepack pnpm build
+      - name: Licences of what the interface ships
+        run: corepack pnpm licenses list --prod
+
   release:
     needs: test
     if: startsWith(gitea.ref, 'refs/tags/v')

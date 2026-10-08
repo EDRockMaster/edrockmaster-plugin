@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://edrm.space/schemas/desktop/live_view.schema.json",
+  "title": "LiveView",
+  "description": "What the core shows of the activities, pushed to the interface after each change (ADR 0020, ADR 0021). Texts of the blocks are already in the player's language.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "language", "current", "activities", "notice", "journal"],
+  "properties": {
+    "version": {"const": 1},
+    "language": {"enum": ["en", "fr"], "description": "The language of the texts, and of the interface's own catalogue."},
+    "current": {"$ref": "#/$defs/activity", "description": "The last activity that progressed."},
+    "activities": {
+      "type": "array",
+      "description": "The activities the player shows, in display order.",
+      "items": {"$ref": "#/$defs/block"}
+    },
+    "notice": {
+      "description": "Local data reset or unavailable (ADR 0018), until dismissed.",
+      "enum": ["reset", "unavailable", null]
+    },
+    "journal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["folder", "file"],
+      "properties": {
+        "folder": {"type": ["string", "null"], "description": "The journal folder; null when none was found."},
+        "file": {"type": ["string", "null"], "description": "The journal file being read."}
+      }
+    }
+  },
+  "$defs": {
+    "activity": {"enum": ["mining", "combat", "trade", "engineering"]},
+    "block": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["activity", "status", "lines", "alert", "canReset"],
+      "properties": {
+        "activity": {"$ref": "#/$defs/activity"},
+        "status": {"type": "string"},
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label", "value"],
+            "properties": {"label": {"type": "string"}, "value": {"type": "string"}}
+          }
+        },
+        "alert": {"type": ["string", "null"]},
+        "canReset": {"type": "boolean"}
+      }
+    }
+  }
+}
