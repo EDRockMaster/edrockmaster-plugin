@@ -11,7 +11,7 @@ channel="$2"
 dist="${3:-dist}"
 rm -rf "$dist"
 mkdir -p "$dist/EDRockMaster"
-cp -r load.py edrockmaster L10n LICENSE README.md README.fr.md CHANGELOG.md CHANGELOG.fr.md \
+cp -r load.py edrockmaster L10n LICENSE NOTICE README.md README.fr.md CHANGELOG.md CHANGELOG.fr.md \
     "$dist/EDRockMaster/"
 find "$dist" -name __pycache__ -type d -prune -exec rm -rf {} +
 find "$dist" -name .gitkeep -delete

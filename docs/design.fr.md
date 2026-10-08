@@ -36,6 +36,8 @@ edrockmaster/
       journal.py                entrée du journal → fait du commerce
       session.py                agrégat TradeTracker (sessions, routes, temps de vol, cargaison achetée, pertes)
     engineering/                contexte de l'ingénierie (ADR 0017), en construction
+      catalogue.py              données du jeu : matériaux (grade, plafond), blueprints, effets, types de modules, ingénieurs
+      catalogue.json            ces données, écrites par scripts/import_engineering_data.py (propriété de Frontier, voir NOTICE)
       goals.py                  objectifs de blueprint et d'effet expérimental
   application/
     activity.py                 les activités : minage, combat, commerce
@@ -52,6 +54,7 @@ edrockmaster/
     database.py                 la base SQLite locale : ouverture, migrations, copie, mise de côté (ADR 0018)
     migrations.py               le schéma de la base, une migration par version
     goal_repository.py          GoalRepository sur la base locale
+    catalogue_file.py           lit le catalogue d'ingénierie livré avec le plugin
     build_file.py               lit edrockmaster/build.json, écrit par l'emballage
     sound.py                    Notifier : alertes sonores (winsound sous Windows, cloche Tk ailleurs)
     paths.py                    dossier de données selon le système
@@ -175,6 +178,14 @@ Le commerce suit les achats et les ventes de marchandises sur les marchés ([ADR
 | Réinitialisation manuelle (bouton du panneau, commerce affiché) | La session se termine, une nouvelle peut commencer |
 
 Statistiques d'une session de commerce : temps de vol, bénéfice (ventes moins pertes), bénéfice et tonnes par heure de vol, tonnes vendues, pertes, coût des marchandises achetées à bord, une ligne par route (tonnes, bénéfice, bénéfice par tonne, ventes), les transferts avec les porte-vaisseaux, commodités raffinées et autres marchandises. Sur le panneau, une route trop longue pour la fenêtre d'EDMC ne nomme que sa destination. Hors périmètre : le marché et le stock du porte-vaisseaux, la contrebande, les missions. Le commerce n'est pas envoyé au serveur.
+
+## Ingénierie
+
+En construction (décision de conception ADR 0017) : matériaux, ingénieurs et objectifs de blueprints, l'ingénierie des vaisseaux d'abord.
+
+**Données du jeu.** Le journal nomme les matériaux (`chemicalmanipulators`), les blueprints (`FSD_LongRange`) et les effets expérimentaux (`special_fsd_heavy`), mais ne donne ni le grade d'un matériau, ni les ingrédients d'un blueprint, ni l'ingénieur qui le propose sur tel module. `scripts/import_engineering_data.py` les lit dans EDCD/FDevIDs et EDCD/coriolis-data à des commits épinglés et écrit `domain/engineering/catalogue.json`, une entrée par ligne pour des diffs lisibles ; `Catalogue.from_data` le vérifie à la lecture. Le script refuse un nom qu'il ne sait pas faire correspondre ; ses quelques corrections sont listées dans le script, chacune avec sa raison (une espace finale dans FDevIDs, des fautes de frappe dans coriolis-data). Il garde les types de modules qui ont des blueprints, les ingénieurs qui les proposent, et les effets qu'un ingénieur applique encore (les effets anciens n'ont pas d'ingrédients). Pour suivre une mise à jour du jeu : changer les commits épinglés, lancer le script, relire le diff du catalogue.
+
+Les données appartiennent à Frontier et ne relèvent pas de la licence du plugin : `NOTICE`, livré dans le zip, le dit. Les noms sont en anglais dans le catalogue et traduits par `L10n/fr.strings` ; `tests/test_translations.py` vérifie que chaque nom a sa traduction.
 
 ## Alertes du prospecteur
 

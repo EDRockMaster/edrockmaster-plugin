@@ -36,6 +36,8 @@ edrockmaster/
       journal.py                journal entry → trade fact
       session.py                TradeTracker aggregate (sessions, routes, flight time, cargo bought, losses)
     engineering/                engineering context (ADR 0017), being built
+      catalogue.py              game data: materials (grade, cap), blueprints, effects, module types, engineers
+      catalogue.json            that data, written by scripts/import_engineering_data.py (Frontier's, see NOTICE)
       goals.py                  blueprint and experimental effect goals
   application/
     activity.py                 the activities: mining, combat, trade
@@ -52,6 +54,7 @@ edrockmaster/
     database.py                 the local SQLite database: opening, migrations, copy, moving aside (ADR 0018)
     migrations.py               the database schema, one migration per version
     goal_repository.py          GoalRepository on the local database
+    catalogue_file.py           reads the engineering catalogue shipped with the plugin
     build_file.py               reads edrockmaster/build.json, written by the packaging
     sound.py                    Notifier: sound alerts (winsound on Windows, Tk bell elsewhere)
     paths.py                    data directory per platform
@@ -175,6 +178,14 @@ Trade follows purchases and sales of goods on markets ([ADR 0014](https://git.ne
 | Manual reset (panel button, trade shown) | Session ends, a new one can start |
 
 Statistics of a trade session: flight time, profit (sales minus losses), profit and tons per hour of flight, tons sold, losses, the cost of the bought goods on board, one line per route (tons, profit, profit per ton, sales), the transfers with fleet carriers, refined commodities and other goods. On the panel, a route too long for EDMC's window names its destination only. Out of scope: the fleet carrier's market and stock, smuggling, missions. Trade is not uploaded.
+
+## Engineering
+
+Being built (design decision ADR 0017): materials, engineers and blueprint goals, ship engineering first.
+
+**Game data.** The journal names materials (`chemicalmanipulators`), blueprints (`FSD_LongRange`) and experimental effects (`special_fsd_heavy`), but gives neither a material's grade nor the ingredients of a blueprint, nor which engineer offers it on which module. `scripts/import_engineering_data.py` reads them from EDCD/FDevIDs and EDCD/coriolis-data at pinned commits and writes `domain/engineering/catalogue.json`, one entry per line for readable diffs; `Catalogue.from_data` checks it when read. The script refuses a name it cannot map; the few fixes it makes are listed in it, each with its reason (a trailing space in FDevIDs, misspellings in coriolis-data). It keeps the module types that have blueprints, the engineers who offer them, and the effects an engineer still applies (legacy effects have no ingredients). To follow a game update: change the pinned commits, run the script, review the diff of the catalogue.
+
+The data is Frontier's, not under the plugin's licence: `NOTICE`, shipped in the zip, says so. Names are in English in the catalogue and translated by `L10n/fr.strings`; `tests/test_translations.py` checks that every name has its translation.
 
 ## Prospector alerts
 

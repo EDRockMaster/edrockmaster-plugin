@@ -1,0 +1,21 @@
+EDRockMaster plugin
+Copyright (C) 2026 DamScan and contributors, GPL-3.0-or-later (see LICENSE).
+
+Elite Dangerous game data
+-------------------------
+
+edrockmaster/domain/engineering/catalogue.json holds game data of Elite Dangerous:
+materials and their grades, engineers, blueprints and their ingredients, experimental
+effects. This data is the intellectual property and copyright of Frontier Developments plc,
+subject to its terms and conditions (https://www.frontierstore.net/terms-and-conditions/).
+It is not covered by the plugin's licence.
+
+The file is written by scripts/import_engineering_data.py from community sources, at the
+commits it records:
+
+- EDCD/FDevIDs (https://github.com/EDCD/FDevIDs): material.csv, engineers.csv.
+- EDCD/coriolis-data (https://github.com/EDCD/coriolis-data): modifications/blueprints.json,
+  modifications/modules.json, modifications/specials.json.
+
+Elite Dangerous is a trademark of Frontier Developments plc. EDRockMaster is not endorsed by
+or affiliated with Frontier Developments plc.

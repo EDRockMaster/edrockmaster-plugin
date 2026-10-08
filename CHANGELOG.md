@@ -14,6 +14,7 @@ All notable changes to the EDRockMaster plugin. The format follows [Keep a Chang
 - **Fleet carrier transfers** (design decision ADR 0019): deposits and withdrawals per commodity, with the number of transfers, so that a deposit the game did not take (a known game bug) shows at once. A transfer starts a trade session and counts its flight; goods deposited are not counted as lost if the ship is destroyed afterwards.
 - The recording sanitiser keeps purchases and cargo transfers.
 - **Local database** (design decision ADR 0018): `edrockmaster.sqlite3` in the plugin's data directory, for what the plugin must keep across restarts, starting with the engineering goals to come (ADR 0017). Only the plugin's I/O thread uses it, and its schema is migrated when EDMC starts, after a copy of the file. A file the plugin cannot read, because it is damaged or written by a newer version of the plugin, is kept aside as `edrockmaster.sqlite3.unreadable-<date>`, a new one is created, and the panel says so until dismissed. Going back to an older version of the plugin therefore resets what a newer one stored.
+- **Engineering catalogue** (design decision ADR 0017), for the engineering to come: the game data of ship engineering (137 materials with their grade and cap, 81 blueprints, 86 experimental effects, 44 module types, 25 engineers), imported from EDCD/FDevIDs and EDCD/coriolis-data, with the names translated into French. This data belongs to Frontier Developments: the new `NOTICE` file says so.
 
 ## [0.3.0] - 2026-10-06
 
