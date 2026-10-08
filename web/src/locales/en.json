@@ -4,7 +4,7 @@
   "activity.trade": "Trade",
   "activity.engineering": "Engineering",
   "activity.reset": "Reset",
-  "activity.current": "Active now",
+  "activity.running": "Session running",
   "app.loading": "Starting…",
   "journal.missing": "No journal folder found. Set EDROCKMASTER_JOURNAL_DIR to the folder where the game writes its journal.",
   "journal.waiting": "Waiting for the game's journal in {folder}",
