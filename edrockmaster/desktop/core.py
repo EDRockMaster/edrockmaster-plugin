@@ -154,6 +154,7 @@ class DesktopCore:
 
     def ready(self) -> None:
         """The interface is loaded: it wants the current view."""
+        self._logger.info("The interface is ready")
         self._core.submit(self._send)
 
     def reset(self, activity: str) -> None:

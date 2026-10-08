@@ -120,6 +120,10 @@ def main(
     core.start()
     try:
         gui.start(private_mode=True, debug="--debug" in argv)
+    except Exception:
+        # No console in the packaged application: the log is the only place to say it
+        logger.exception("The window could not run")
+        return 1
     finally:
         core.stop()
     return 0

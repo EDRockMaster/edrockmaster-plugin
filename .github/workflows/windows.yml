@@ -24,11 +24,11 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # the tags on this commit decide whether production is allowed
-      - uses: astral-sh/setup-uv@v5
-      - uses: actions/setup-node@v4
+      - uses: astral-sh/setup-uv@v10
+      - uses: actions/setup-node@v7
         with:
           node-version-file: web/.nvmrc
 
@@ -69,8 +69,30 @@ jobs:
           "${{ steps.plan.outputs.msix_version }}"
           dist-desktop
 
+      - name: Smoke test
+        # The packaged application starts, shows its interface (WebView2, the page, the bridge)
+        # and reads a recorded journal, with no error in its log
+        run: |
+          journal="$RUNNER_TEMP/journal"
+          mkdir -p "$journal"
+          uv run python scripts/fixture_to_journal.py \
+            tests/fixtures/engineering-power-distributor-2026-10-08.jsonl "$journal"
+          export EDROCKMASTER_JOURNAL_DIR="$(cygpath -w "$journal")"
+          ./dist-desktop/pyinstaller/EDRockMaster/EDRockMaster.exe &
+          log="$(cygpath -u "$LOCALAPPDATA")/EDRockMaster/logs/edrockmaster.log"
+          for _ in $(seq 1 60); do
+            grep -q "The interface is ready" "$log" 2>/dev/null && break
+            sleep 1
+          done
+          sleep 3
+          taskkill //F //IM EDRockMaster.exe || true
+          cat "$log"
+          grep -q "Reading the journal from Journal.2026-10-08T014139.01.log" "$log"
+          grep -q "The interface is ready" "$log"
+          ! grep -E "ERROR|Traceback" "$log"
+
       - name: Keep the packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: EDRockMaster-windows-${{ steps.plan.outputs.build_version }}
           path: |

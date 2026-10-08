@@ -136,3 +136,17 @@ def test_no_log_file_and_no_console(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     blocked = tmp_path / "blocked"
     blocked.write_text("a file, not a folder")
     assert configure_logging(blocked).handlers == []
+
+
+def test_a_window_that_cannot_run_is_logged(
+    tmp_path: Path, interface: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    gui = FakeGui()
+
+    def broken(**_options: Any) -> None:
+        raise OSError("WebView2 is not installed")
+
+    gui.start = broken  # type: ignore[method-assign]
+    with caplog.at_level(logging.ERROR):
+        assert main([], {}, gui, tmp_path / "data") == 1  # type: ignore[arg-type]
+    assert "WebView2 is not installed" in caplog.text
