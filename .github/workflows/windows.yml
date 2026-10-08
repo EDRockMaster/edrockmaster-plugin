@@ -1,0 +1,102 @@
+# Windows build of the desktop application (ADR 0022). PyInstaller does not cross-compile, and
+# makeappx comes with the Windows SDK: this runs on GitHub Actions (windows-latest), on the public
+# GitHub mirror only. Gitea reads .gitea/workflows, which runs the checks and gates merging, and
+# ignores this folder. Building uses no secret; the package identity is in repository variables.
+#
+# - every push: the portable zip and an MSIX to check the packaging, kept 14 days;
+# - a tag vX.Y.Z-rc.N or vX.Y.Z: the MSIX to submit to the Store (package flight, then all),
+#   refused by the release plan as on Gitea (no production without a candidate on the commit).
+name: Windows build
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the tags on this commit decide whether production is allowed
+      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: web/.nvmrc
+
+      - name: Interface
+        working-directory: web
+        run: |
+          corepack pnpm install --frozen-lockfile
+          corepack pnpm build
+
+      - run: uv sync --locked
+      - name: Tests on Windows
+        run: uv run pytest
+
+      - name: Release plan
+        id: plan
+        run: |
+          version="$(scripts/version.sh)"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            uv run python scripts/release_plan.py "$GITHUB_REF_NAME" "$version" \
+              $(git tag --points-at HEAD) >> "$GITHUB_OUTPUT"
+            echo "build_version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "channel=dev" >> "$GITHUB_OUTPUT"
+            echo "build_version=$version-dev+$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
+            uv run python -c "import sys; sys.path.insert(0, 'scripts'); import release_plan; \
+              print('msix_version=' + release_plan.msix_version('$version', 'dev'))" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Package
+        env:
+          EDROCKMASTER_MSIX_NAME: ${{ vars.EDROCKMASTER_MSIX_NAME }}
+          EDROCKMASTER_MSIX_PUBLISHER: ${{ vars.EDROCKMASTER_MSIX_PUBLISHER }}
+          EDROCKMASTER_MSIX_PUBLISHER_NAME: ${{ vars.EDROCKMASTER_MSIX_PUBLISHER_NAME }}
+        run: >
+          uv run python scripts/package_desktop.py
+          "${{ steps.plan.outputs.build_version }}"
+          "${{ steps.plan.outputs.channel }}"
+          "${{ steps.plan.outputs.msix_version }}"
+          dist-desktop
+
+      - name: Smoke test
+        # The packaged application starts, shows its interface (WebView2, the page, the bridge)
+        # and reads a recorded journal, with no error in its log
+        run: |
+          journal="$RUNNER_TEMP/journal"
+          mkdir -p "$journal"
+          uv run python scripts/fixture_to_journal.py \
+            tests/fixtures/engineering-power-distributor-2026-10-08.jsonl "$journal"
+          export EDROCKMASTER_JOURNAL_DIR="$(cygpath -w "$journal")"
+          ./dist-desktop/pyinstaller/EDRockMaster/EDRockMaster.exe &
+          log="$(cygpath -u "$LOCALAPPDATA")/EDRockMaster/logs/edrockmaster.log"
+          for _ in $(seq 1 60); do
+            grep -q "The interface is ready" "$log" 2>/dev/null && break
+            sleep 1
+          done
+          sleep 3
+          taskkill //F //IM EDRockMaster.exe || true
+          cat "$log"
+          grep -q "Reading the journal from Journal.2026-10-08T014139.01.log" "$log"
+          grep -q "The interface is ready" "$log"
+          ! grep -E "ERROR|Traceback" "$log"
+
+      - name: Keep the packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: EDRockMaster-windows-${{ steps.plan.outputs.build_version }}
+          path: |
+            dist-desktop/*.zip
+            dist-desktop/*.msix
+          retention-days: 14
+          if-no-files-found: error

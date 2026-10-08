@@ -81,6 +81,7 @@ def blocks(view: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 
 def test_the_journal_read_gives_the_plugin_s_figures(desktop: Desktop, journal: Path) -> None:
+    desktop.core.ready()
     write_journal(journal, TRADE, chunk=10_000)
     [expected] = Replay(TRADE).presenter.blocks_of((Activity.TRADE,))
     wanted = [(line.label, line.value) for line in expected.model.lines]
@@ -112,6 +113,7 @@ def test_the_interface_gets_the_current_view_when_ready(tmp_path: Path) -> None:
 
 
 def test_reset_ends_the_session_of_an_activity(desktop: Desktop, journal: Path) -> None:
+    desktop.core.ready()
     write_journal(journal, TRADE, chunk=10_000)
     desktop.views.wait_for(lambda v: blocks(v)["trade"]["canReset"] or v["current"] == "trade")
     desktop.core.reset("trade")
@@ -167,6 +169,7 @@ def test_local_data_reset_shows_a_notice_until_dismissed(tmp_path: Path) -> None
     (data / "edrockmaster.sqlite3").write_bytes(b"not a database" * 100)
     desktop = Desktop(tmp_path, None)
     desktop.core.start()
+    desktop.core.ready()
     try:
         desktop.views.wait_for(lambda v: v["notice"] == "reset")
         desktop.core.dismiss_notice()
@@ -223,6 +226,7 @@ def test_unavailable_local_data_shows_a_notice(tmp_path: Path) -> None:
     desktop = Desktop(tmp_path, None)
     (tmp_path / "data").write_text("a file where the data directory should be")
     desktop.core.start()
+    desktop.core.ready()
     try:
         desktop.views.wait_for(lambda v: v["notice"] == "unavailable")
     finally:
@@ -231,3 +235,14 @@ def test_unavailable_local_data_shows_a_notice(tmp_path: Path) -> None:
 
 def test_stopping_before_starting_is_harmless(tmp_path: Path) -> None:
     Desktop(tmp_path, None).core.stop()
+
+
+def test_nothing_is_pushed_before_the_interface_is_ready(desktop: Desktop, journal: Path) -> None:
+    write_journal(journal, TRADE, chunk=10_000)
+    deadline = time.monotonic() + 1
+    while time.monotonic() < deadline:
+        time.sleep(0.05)
+    assert desktop.views.received == []
+    desktop.core.ready()
+    view = desktop.views.wait_for(lambda v: v["current"] == "trade")
+    assert view["journal"]["file"] == "Journal.2026-10-08T014139.01.log"

@@ -2,6 +2,7 @@
 
 import json
 import logging
+import sys
 import time
 from pathlib import Path
 from types import SimpleNamespace
@@ -117,3 +118,48 @@ def fresh_logger() -> Any:
 
 def test_a_view_before_the_window_exists_is_dropped() -> None:
     window_module._Window().push({"version": 1})  # no window yet: nothing to do
+
+
+def test_no_console_logging_without_a_console(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(sys, "stderr", None)
+    logger = configure_logging(tmp_path)
+    assert all(
+        not isinstance(h, logging.StreamHandler) or isinstance(h, logging.FileHandler)
+        for h in logger.handlers
+    )
+
+
+def test_no_log_file_and_no_console(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(sys, "stderr", None)
+    blocked = tmp_path / "blocked"
+    blocked.write_text("a file, not a folder")
+    assert configure_logging(blocked).handlers == []
+
+
+def test_a_window_that_cannot_run_is_logged(
+    tmp_path: Path, interface: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    gui = FakeGui()
+
+    def broken(**_options: Any) -> None:
+        raise OSError("WebView2 is not installed")
+
+    gui.start = broken  # type: ignore[method-assign]
+    told: list[str] = []
+    with caplog.at_level(logging.ERROR):
+        assert main([], {}, gui, tmp_path / "data", told.append) == 1  # type: ignore[arg-type]
+    assert "WebView2 is not installed" in caplog.text
+    [message] = told
+    assert "could not open its window" in message
+
+
+def test_the_player_is_told_why_the_window_failed(tmp_path: Path) -> None:
+    log = tmp_path / "logs" / "edrockmaster.log"
+    message = window_module.failure_message(OSError("WebView2 is not installed"), log)
+    assert "WebView2 is not installed" in message
+    assert str(log) in message
+    assert "Unblock" not in message
+    blocked = RuntimeError("Failed to resolve Python.Runtime.Loader.Initialize from U:\\x.dll")
+    assert "Unblock" in window_module.failure_message(blocked, log)

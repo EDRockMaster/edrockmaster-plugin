@@ -11,3 +11,4 @@ build/
 .coverage
 edrockmaster/build.json
 edrockmaster/desktop/interface/
+dist-desktop/

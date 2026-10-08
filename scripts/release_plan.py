@@ -7,8 +7,12 @@
 
 The tag must match the version of the code (``pyproject.toml``, ``VERSION``).
 
+The desktop application's MSIX package (ADR 0022) needs a version of four numbers,
+the last 0, higher at each Store submission: ``X.Y.(Z*100+N).0`` for candidate N,
+``X.Y.(Z*100+99).0`` for production, ``X.Y.(Z*100).0`` for a development build.
+
 Usage: python3 scripts/release_plan.py <tag> <version> <tags on the commit>...
-Prints ``channel=…`` and ``prerelease=…`` lines, for ``$GITHUB_OUTPUT``.
+Prints ``channel=…``, ``prerelease=…`` and ``msix_version=…`` lines, for ``$GITHUB_OUTPUT``.
 """
 
 from __future__ import annotations
@@ -18,11 +22,30 @@ import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+PRODUCTION_BUILD = 99
+"""The third number of a production package: above every candidate's (ADR 0022)."""
+
 _TAG = re.compile(r"^v(?P<version>\d+\.\d+\.\d+)(?:-rc\.(?P<candidate>[1-9]\d*))?$")
 
 
 class ReleaseError(Exception):
     pass
+
+
+def msix_version(version: str, channel: str, candidate: int | None = None) -> str:
+    """The MSIX package version of a build of ``version`` (ADR 0022)."""
+    major, minor, patch = (int(part) for part in version.split("."))
+    if channel == "production":
+        build = PRODUCTION_BUILD
+    elif channel == "candidate":
+        if candidate is None or not 1 <= candidate < PRODUCTION_BUILD:
+            raise ReleaseError(f"a candidate number is from 1 to {PRODUCTION_BUILD - 1}")
+        build = candidate
+    elif channel == "dev":
+        build = 0
+    else:
+        raise ReleaseError(f"unknown channel {channel!r}")
+    return f"{major}.{minor}.{patch * 100 + build}.0"
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +88,11 @@ def main(arguments: list[str]) -> int:
         return 1
     print(f"channel={decided.channel}")
     print(f"prerelease={'true' if decided.channel == 'candidate' else 'false'}")
+    try:
+        print(f"msix_version={msix_version(version, decided.channel, decided.candidate)}")
+    except ReleaseError as error:
+        print(f"refused: {error}", file=sys.stderr)
+        return 1
     return 0
 
 
