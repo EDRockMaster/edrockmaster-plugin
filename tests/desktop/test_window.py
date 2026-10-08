@@ -147,9 +147,12 @@ def test_a_window_that_cannot_run_is_logged(
         raise OSError("WebView2 is not installed")
 
     gui.start = broken  # type: ignore[method-assign]
+    told: list[str] = []
     with caplog.at_level(logging.ERROR):
-        assert main([], {}, gui, tmp_path / "data") == 1  # type: ignore[arg-type]
+        assert main([], {}, gui, tmp_path / "data", told.append) == 1  # type: ignore[arg-type]
     assert "WebView2 is not installed" in caplog.text
+    [message] = told
+    assert "could not open its window" in message
 
 
 def test_the_player_is_told_why_the_window_failed(tmp_path: Path) -> None:

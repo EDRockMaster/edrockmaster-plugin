@@ -16,7 +16,7 @@ import logging
 import logging.handlers
 import os
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -98,7 +98,9 @@ def main(
     environ: Mapping[str, str] = os.environ,
     gui: ModuleType = webview,
     data: Path | None = None,
+    alert: Callable[[str], None] | None = None,
 ) -> int:
+    """Run the application; ``alert`` tells the player of a failure (a message box)."""
     directory = data if data is not None else data_directory()
     logger = configure_logging(directory)
     if not INTERFACE.is_file():
@@ -123,7 +125,7 @@ def main(
     except Exception as error:
         # No console in the packaged application: the log and a message box say it
         logger.exception("The window could not run")
-        show_error(failure_message(error, directory / "logs" / "edrockmaster.log"))
+        (alert or show_error)(failure_message(error, directory / "logs" / "edrockmaster.log"))
         return 1
     finally:
         core.stop()
