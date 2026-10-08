@@ -63,6 +63,9 @@ edrockmaster/
     paths.py                    dossier de données selon le système
     worker.py                   l'unique fil d'entrées-sorties du plugin et sa file
     clock.py                    Clock : heure système, en UTC
+  desktop/                      l'application de bureau (ADR 0020), en construction : elle lit le journal sans EDMC
+    journal_folder.py           où le jeu écrit son journal ; les fichiers du journal dans l'ordre
+    journal_reader.py           JournalFollower (suit le journal au fil de l'écriture du jeu), JournalWatcher (son fil)
   edmc/
     plugin.py                   assemblage : construit le graphe d'objets, implémente les hooks
     i18n.py                     tl() relié au l10n d'EDMC, avec un repli pour les tests
@@ -286,6 +289,17 @@ Ports définis en 1A, réalisés en 1B :
 - `Uploader` : lots (gzip) vers `edrockmaster-ingest`, sur le fil d'entrées-sorties, avec reprise progressive.
 - Killswitch : module `killswitch` d'EDMC, relu toutes les 10 minutes depuis notre serveur.
 - Galaxie au `StartUp` : il n'y a pas de `LoadGame` dans ce cas, la version du jeu doit donc être lue dans `state["GameVersion"]` pour distinguer Live et Legacy.
+
+## Application de bureau
+
+En construction (décision de conception ADR 0020) : le cœur du plugin dans une application à lui, qui lit le journal sans EDMC et affiche une interface web dans une fenêtre native. L'étape 1, le **lecteur de journal**, est dans `desktop/` :
+
+- **Dossier** : sous Windows, le dossier connu « Parties enregistrées » (Saved Games) du profil du joueur (où qu'il ait été déplacé), sinon `%USERPROFILE%\Saved Games`, puis `Frontier Developments\Elite Dangerous` ; sous Linux, le préfixe Proton du jeu (application Steam 359320) dans les dossiers Steam habituels. `EDROCKMASTER_JOURNAL_DIR` le fixe à la main.
+- **Fichiers** : `Journal.<début>.<partie>.log` (et `JournalBeta.…`), triés par l'heure de début inscrite dans leur nom (deux formats, avant et depuis 2022), puis par partie.
+- **Lecture** : la première relève lit le fichier courant **depuis son début** et transmet au cœur chaque entrée : contrairement à EDMC, qui garde les entrées passées pour son propre état et ne transmet aux plugins que les nouvelles, l'application arrive aux mêmes chiffres que si elle tournait depuis le lancement du jeu (son état n'a alors besoin d'aucun `state` d'un hôte). Ensuite, chaque relève lit ce qui a été ajouté ; une ligne incomplète attend la suite ; un fichier plus récent (nouvelle session, ou partie suivante d'une longue session) est suivi une fois le courant terminé. Une ligne qui n'est pas une entrée est journalisée et ignorée. Une bêta se reconnaît à son nom de fichier ou à sa version du jeu (`Fileheader`, `LoadGame`), comme EDMC la lit.
+- **Fil** : `JournalWatcher` relève toutes les secondes sur son propre fil (`EDRockMaster journal`), aussi souvent qu'EDMC le fait quand le jeu tourne.
+- **Parité** : `tests/desktop/test_parity.py` réécrit chaque donnée de test en fichiers de journal, les lit avec le lecteur, et vérifie que le cœur produit exactement les notifications du rejeu par EDMC, y compris pour une session découpée en parties écrites pendant que le lecteur suit. Lire 20 000 entrées au démarrage prend environ 0,1 s, 0,3 s avec le cœur.
+- **Frontières** : `lint-imports` (dans la CI) vérifie que `domain/` et `application/` n'importent aucun adaptateur, aucun hôte ni aucune boîte à outils d'interface (`infrastructure`, `edmc`, `desktop`, `ui`, `tkinter`, `webview`, `sqlite3`), et que le domaine n'importe rien d'autre du plugin.
 
 ## Tests
 

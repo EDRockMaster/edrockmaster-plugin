@@ -8,7 +8,13 @@ requires-python = ">=3.13"
 dependencies = []
 
 [dependency-groups]
-dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.6", "mypy>=1.11"]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=5",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "import-linter>=2.15",
+]
 
 [tool.uv]
 package = false
@@ -38,7 +44,12 @@ pythonpath = ["."]
 addopts = "--strict-markers"
 
 [tool.coverage.run]
-source = ["edrockmaster/domain", "edrockmaster/application", "edrockmaster/ui"]
+source = [
+    "edrockmaster/domain",
+    "edrockmaster/application",
+    "edrockmaster/ui",
+    "edrockmaster/desktop",
+]
 # tkinter widgets: tested only where a display exists (not in CI), kept thin
 omit = ["edrockmaster/ui/panel.py", "edrockmaster/ui/preferences.py"]
 branch = true
@@ -46,3 +57,27 @@ branch = true
 [tool.coverage.report]
 fail_under = 90
 show_missing = true
+
+[tool.importlinter]
+root_package = "edrockmaster"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "The core depends on no adapter, no host and no interface toolkit (ADR 0020)"
+type = "forbidden"
+source_modules = ["edrockmaster.domain", "edrockmaster.application"]
+forbidden_modules = [
+    "edrockmaster.infrastructure",
+    "edrockmaster.edmc",
+    "edrockmaster.desktop",
+    "edrockmaster.ui",
+    "tkinter",
+    "webview",
+    "sqlite3",
+]
+
+[[tool.importlinter.contracts]]
+name = "The domain depends on nothing else of the plugin"
+type = "forbidden"
+source_modules = ["edrockmaster.domain"]
+forbidden_modules = ["edrockmaster.application"]

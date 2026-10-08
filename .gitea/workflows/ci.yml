@@ -25,6 +25,7 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run mypy
       - run: uv run mypy --strict scripts
+      - run: uv run lint-imports
       - run: uv run pytest --cov
       - name: Package
         # A dev build, named after its commit (ADR 0016)
