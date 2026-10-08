@@ -7,6 +7,8 @@ export interface CoreApi {
   ready(): Promise<void>;
   reset(activity: string): Promise<void>;
   dismiss_notice(): Promise<void>;
+  /** The first live view is shown: the core logs that its pushes reach the page. */
+  shown(): Promise<void>;
 }
 
 declare global {

@@ -172,7 +172,20 @@ class DesktopCore:
         except ValueError:
             self._logger.warning("Reset of an unknown activity %r", activity)
             return
-        self._core.submit(lambda: self._apply(self._require_companion().reset(chosen)))
+
+        def reset() -> None:
+            notifications = self._require_companion().reset(chosen)
+            # Logged: what the player pressed, and whether a session was running
+            self._logger.info(
+                "Reset of %s: %s", chosen.value, "session ended" if notifications else "no session"
+            )
+            self._apply(notifications)
+
+        self._core.submit(reset)
+
+    def shown(self) -> None:
+        """The interface shows its first live view: the core's pushes reach the page."""
+        self._logger.info("The interface shows the live view")
 
     def dismiss_notice(self) -> None:
         self._core.submit(lambda: self._set_notice(None))

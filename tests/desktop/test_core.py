@@ -246,3 +246,19 @@ def test_nothing_is_pushed_before_the_interface_is_ready(desktop: Desktop, journ
     desktop.core.ready()
     view = desktop.views.wait_for(lambda v: v["current"] == "trade")
     assert view["journal"]["file"] == "Journal.2026-10-08T014139.01.log"
+
+
+def test_resets_and_the_first_view_shown_are_logged(
+    desktop: Desktop, journal: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    desktop.core.ready()
+    with caplog.at_level(logging.INFO):
+        desktop.core.reset("mining")
+        desktop.core.shown()
+        write_journal(journal, TRADE, chunk=10_000)
+        desktop.views.wait_for(lambda v: blocks(v)["trade"]["canReset"])
+        desktop.core.reset("trade")
+        desktop.views.wait_for(lambda v: "reset" in blocks(v)["trade"]["status"])
+    assert "Reset of mining: no session" in caplog.text
+    assert "Reset of trade: session ended" in caplog.text
+    assert "The interface shows the live view" in caplog.text

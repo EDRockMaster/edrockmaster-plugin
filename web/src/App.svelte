@@ -8,6 +8,7 @@
   const language: Language = $derived(view?.language ?? "en");
 
   connect((next) => {
+    if (view === null) void core()?.shown();
     view = next;
   });
 

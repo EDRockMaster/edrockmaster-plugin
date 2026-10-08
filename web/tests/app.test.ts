@@ -12,6 +12,7 @@ function withCore(): CoreApi {
     ready: vi.fn(async () => {}),
     reset: vi.fn(async () => {}),
     dismiss_notice: vi.fn(async () => {}),
+    shown: vi.fn(async () => {}),
   };
   window.pywebview = { api };
   return api;
@@ -33,6 +34,9 @@ describe("App", () => {
     expect(screen.getByText("Starting…")).toBeInTheDocument();
     expect(api.ready).toHaveBeenCalledOnce();
     push(view());
+    expect(api.shown).toHaveBeenCalledOnce();
+    push(view());
+    expect(api.shown).toHaveBeenCalledOnce();
     expect(screen.getByRole("heading", { name: "Mining" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Trade" })).toBeInTheDocument();
     expect(screen.getByText("Reading Journal.2026-10-08T014139.01.log")).toBeInTheDocument();
