@@ -7,6 +7,7 @@ function api(): CoreApi {
     ready: vi.fn(async () => {}),
     reset: vi.fn(async () => {}),
     dismiss_notice: vi.fn(async () => {}),
+    shown: vi.fn(async () => {}),
   };
 }
 

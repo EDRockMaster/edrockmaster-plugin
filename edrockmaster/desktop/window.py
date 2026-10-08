@@ -51,6 +51,9 @@ class InterfaceApi:
     def dismiss_notice(self) -> None:
         self._core.dismiss_notice()
 
+    def shown(self) -> None:
+        self._core.shown()
+
 
 class _Window:
     """The pywebview window, known once created: the core's pushes go to it."""

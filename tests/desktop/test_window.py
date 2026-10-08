@@ -44,6 +44,7 @@ class FakeGui:
             time.sleep(0.01)
         api.reset("mining")
         api.dismiss_notice()
+        api.shown()
 
 
 @pytest.fixture

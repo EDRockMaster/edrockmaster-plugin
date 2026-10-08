@@ -257,3 +257,19 @@ def test_the_live_view_carries_the_situation(desktop: Desktop, journal: Path) ->
     )
     assert view["situation"]["system"] == "Sirius"
     assert view["situation"]["station"] == "Qwent Research Base"
+
+
+def test_resets_and_the_first_view_shown_are_logged(
+    desktop: Desktop, journal: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    desktop.core.ready()
+    with caplog.at_level(logging.INFO):
+        desktop.core.reset("mining")
+        desktop.core.shown()
+        write_journal(journal, TRADE, chunk=10_000)
+        desktop.views.wait_for(lambda v: blocks(v)["trade"]["canReset"])
+        desktop.core.reset("trade")
+        desktop.views.wait_for(lambda v: "reset" in blocks(v)["trade"]["status"])
+    assert "Reset of mining: no session" in caplog.text
+    assert "Reset of trade: session ended" in caplog.text
+    assert "The interface shows the live view" in caplog.text
