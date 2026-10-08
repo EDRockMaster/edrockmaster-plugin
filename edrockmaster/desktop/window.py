@@ -83,10 +83,13 @@ def configure_logging(directory: Path) -> logging.Logger:
         to_file.setFormatter(formatter)
         logger.addHandler(to_file)
     except OSError as error:
-        print(f"EDRockMaster: no log file in {directory}: {error}", file=sys.stderr)
-    to_console = logging.StreamHandler()
-    to_console.setFormatter(formatter)
-    logger.addHandler(to_console)
+        if sys.stderr is not None:
+            print(f"EDRockMaster: no log file in {directory}: {error}", file=sys.stderr)
+    # The packaged application has no console: no standard error to write to
+    if sys.stderr is not None:
+        to_console = logging.StreamHandler()
+        to_console.setFormatter(formatter)
+        logger.addHandler(to_console)
     return logger
 
 

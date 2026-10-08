@@ -48,7 +48,11 @@ def test_malformed_tags_are_refused(tag: str) -> None:
 
 def test_cli_writes_the_plan_for_the_workflow(capsys: pytest.CaptureFixture[str]) -> None:
     assert release_plan.main(["v0.3.0-rc.2", "0.3.0", "v0.3.0-rc.2"]) == 0
-    assert capsys.readouterr().out.splitlines() == ["channel=candidate", "prerelease=true"]
+    assert capsys.readouterr().out.splitlines() == [
+        "channel=candidate",
+        "prerelease=true",
+        "msix_version=0.3.2.0",
+    ]
 
 
 def test_cli_explains_a_refusal(capsys: pytest.CaptureFixture[str]) -> None:
@@ -59,3 +63,53 @@ def test_cli_explains_a_refusal(capsys: pytest.CaptureFixture[str]) -> None:
 def test_cli_usage(capsys: pytest.CaptureFixture[str]) -> None:
     assert release_plan.main([]) == 2
     assert "Usage" in capsys.readouterr().err
+
+
+# MSIX package versions of the desktop application (ADR 0022)
+
+msix_version = release_plan.msix_version
+
+
+@pytest.mark.parametrize(
+    ("channel", "candidate", "expected"),
+    [
+        ("candidate", 1, "0.4.1.0"),
+        ("candidate", 3, "0.4.3.0"),
+        ("production", None, "0.4.99.0"),
+        ("dev", None, "0.4.0.0"),
+    ],
+)
+def test_msix_versions(channel: str, candidate: int | None, expected: str) -> None:
+    assert msix_version("0.4.0", channel, candidate) == expected
+
+
+def test_each_submission_is_higher_than_the_previous() -> None:
+    submissions = [
+        msix_version("0.4.0", "candidate", 1),
+        msix_version("0.4.0", "candidate", 2),
+        msix_version("0.4.0", "production"),
+        msix_version("0.4.1", "candidate", 1),
+        msix_version("0.4.1", "production"),
+        msix_version("0.5.0", "candidate", 1),
+    ]
+    as_numbers = [tuple(int(part) for part in version.split(".")) for version in submissions]
+    assert as_numbers == sorted(as_numbers)
+    assert len(set(as_numbers)) == len(as_numbers)
+
+
+@pytest.mark.parametrize(
+    ("channel", "candidate"), [("candidate", 99), ("candidate", None), ("beta", None)]
+)
+def test_msix_versions_refused(channel: str, candidate: int | None) -> None:
+    with pytest.raises(ReleaseError):
+        msix_version("0.4.0", channel, candidate)
+
+
+def test_cli_gives_the_msix_version(capsys: pytest.CaptureFixture[str]) -> None:
+    assert release_plan.main(["v0.3.0-rc.2", "0.3.0", "v0.3.0-rc.2"]) == 0
+    assert "msix_version=0.3.2.0" in capsys.readouterr().out
+
+
+def test_cli_refuses_a_candidate_number_too_high(capsys: pytest.CaptureFixture[str]) -> None:
+    assert release_plan.main(["v0.3.0-rc.99", "0.3.0", "v0.3.0-rc.99"]) == 1
+    assert "refused" in capsys.readouterr().err

@@ -2,6 +2,7 @@
 
 import json
 import logging
+import sys
 import time
 from pathlib import Path
 from types import SimpleNamespace
@@ -117,3 +118,21 @@ def fresh_logger() -> Any:
 
 def test_a_view_before_the_window_exists_is_dropped() -> None:
     window_module._Window().push({"version": 1})  # no window yet: nothing to do
+
+
+def test_no_console_logging_without_a_console(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(sys, "stderr", None)
+    logger = configure_logging(tmp_path)
+    assert all(
+        not isinstance(h, logging.StreamHandler) or isinstance(h, logging.FileHandler)
+        for h in logger.handlers
+    )
+
+
+def test_no_log_file_and_no_console(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(sys, "stderr", None)
+    blocked = tmp_path / "blocked"
+    blocked.write_text("a file, not a folder")
+    assert configure_logging(blocked).handlers == []
