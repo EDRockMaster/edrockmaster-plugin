@@ -35,7 +35,9 @@ edrockmaster/
     trade/                      trade context
       journal.py                journal entry → trade fact
       session.py                TradeTracker aggregate (sessions, routes, flight time, cargo bought, losses)
-    engineering/                engineering context (ADR 0017), being built
+    engineering/                engineering context (ADR 0017)
+      journal.py                journal entry → engineering fact
+      session.py                EngineeringTracker aggregate (inventory, caps, collection, goals, engineers)
       catalogue.py              game data: materials (grade, cap), blueprints, effects, module types, engineers
       catalogue.json            that data, written by scripts/import_engineering_data.py (Frontier's, see NOTICE)
       goals.py                  blueprint and experimental effect goals
@@ -48,6 +50,7 @@ edrockmaster/
     mining_service.py           mining use cases: handle a journal entry, reset the session, apply settings
     combat_service.py           combat use cases: handle a journal entry, reset the session
     trade_service.py            trade use cases: handle a journal entry, reset the session
+    engineering_service.py      engineering use cases: journal, goals and their storage, reset
   infrastructure/
     settings_edmc.py            SettingsStore on EDMC's config (keys prefixed "edrockmaster.")
     recorder_jsonl.py           JournalRecorder: JSONL files in the data directory
@@ -65,12 +68,15 @@ edrockmaster/
     i18n.py                     tl() bound to EDMC's l10n, with a fallback for tests
     host.py                     EDMC services (theme, plug.show_error, l10n.Locale), with fallbacks
     main_thread.py              results of the I/O thread run on the main thread
+    state.py                    inventory and engineers from EDMC's state, when the plugin starts after the game
   ui/
     panel_model.py              PanelModel (texts), local data notices and shared formatting, no tkinter
     presenter.py                ActivityPresenter: the blocks to show, by display mode
     mining_presenter.py         mining notifications → PanelModel
     combat_presenter.py         combat notifications → PanelModel
     trade_presenter.py          trade notifications → PanelModel
+    engineering_presenter.py    engineering notifications → PanelModel
+    engineering_names.py        names of materials, blueprints, effects, module types and goals
     preferences_form.py         settings <-> preferences fields, validation, no tkinter
     commodity_names.py          names of the mineable commodities known before the journal names them
     panel.py                    main-window panel (tkinter, main thread only), one block per activity shown
@@ -185,7 +191,16 @@ Being built (design decision ADR 0017): materials, engineers and blueprint goals
 
 **Game data.** The journal names materials (`chemicalmanipulators`), blueprints (`FSD_LongRange`) and experimental effects (`special_fsd_heavy`), but gives neither a material's grade nor the ingredients of a blueprint, nor which engineer offers it on which module. `scripts/import_engineering_data.py` reads them from EDCD/FDevIDs and EDCD/coriolis-data at pinned commits and writes `domain/engineering/catalogue.json`, one entry per line for readable diffs; `Catalogue.from_data` checks it when read. The script refuses a name it cannot map; the few fixes it makes are listed in it, each with its reason (a trailing space in FDevIDs, misspellings in coriolis-data). It keeps the module types that have blueprints, the engineers who offer them, and the effects an engineer still applies (legacy effects have no ingredients). To follow a game update: change the pinned commits, run the script, review the diff of the catalogue.
 
-The data is Frontier's, not under the plugin's licence: `NOTICE`, shipped in the zip, says so. Names are in English in the catalogue and translated by `L10n/fr.strings`; `tests/test_translations.py` checks that every name has its translation.
+The data is Frontier's, not under the plugin's licence: `NOTICE`, shipped in the zip, says so. Names are in English in the catalogue and translated by `L10n/fr.strings`; `tests/test_translations.py` checks that every name has its translation. Material names in French are the game's own, taken from a recorded journal, where known.
+
+**The context.** `domain/engineering/journal.py` reads the ship materials events: `Materials` (the whole inventory, at load), `MaterialCollected`, `MaterialDiscarded`, `MaterialTrade`, `Synthesis`, `TechnologyBroker`, `EngineerContribution` (materials only), `ScientificResearch`, `MissionCompleted` (`MaterialsReward`), `EngineerCraft`, `EngineerProgress` (all engineers at load, then one at a time) and `Shutdown`. `EngineeringTracker` (`session.py`) is the aggregate:
+
+- **Inventory**: unknown until `Materials` or EDMC's state gives it (`edmc/state.py`: when the plugin starts after the game, EDMC hands it no past event; its `state` is read after each entry while the inventory is unknown, and already includes that entry). Each change applies to it, never below 0, never above the material's **cap** (300 at grade 1 down to 100 at grade 5): reaching it is an alert, as what is collected beyond it is lost. A material the catalogue does not know (the game adds some before the community data) is counted, without cap. Never stored.
+- **Collection**: from the first change of materials to `Shutdown` or reset; death does not end it. It counts the materials collected or rewarded per category, those used (rolls, effects, synthesis, brokers, contributions, research; a trade only converts), and those that reached their cap.
+- **Goals**: a blueprint at a grade for a module type, with a number of rolls, or an experimental effect, with a number of applications. What a goal misses is its ingredients, times its rolls, minus the inventory; it is **ready** when it misses nothing. The **shopping list** adds up every goal. The engineers of a goal are the unlocked ones offering its grade on its module type. An `EngineerCraft` takes one roll (or application, with `ApplyExperimentalEffect`) off the first goal with the same blueprint and grade on the same module type, which `Catalogue.module_of` finds from the item (`int_powerdistributor_size7_class5`; armour by its name); a goal with nothing left is done and removed. The tracker reports these changes, and `EngineeringService` stores them through `GoalRepository` (local database, ADR 0018); the stored goals are loaded at start.
+- **Engineers**: status and rank, from `EngineerProgress` or EDMC's state (which names them: the catalogue gives their ids).
+
+**Panel.** The engineering block shows the materials gained per category, used, at their cap, and the goals ready out of all goals (or that the inventory is unknown). Its alert is the last material at its cap, goal ready or goal done. It progresses on a change of materials in game, a cap or a goal ready; the game's statement at load is no progress. Material names are the game's own when the journal gave them, else the catalogue's, translated. The separate window (inventory, engineers, goals) comes next.
 
 ## Prospector alerts
 

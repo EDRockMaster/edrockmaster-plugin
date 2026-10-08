@@ -4,8 +4,9 @@ The plugin repository is public. A raw recording holds personal data: the
 commander's name and Frontier id, squadron, carrier, chat messages and other
 players' names. This script keeps only the events the plugin reads, plus a few
 harmless ones that prove unknown events are ignored, reduces ``LoadGame`` to
-the game version, drops the commander's reputation, targets' pilot names,
-crime victims and the commander's killers, replaces every fleet carrier (name,
+the game version and ``MissionCompleted`` to its materials reward, drops the
+commander's reputation, targets' pilot names, crime victims and the
+commander's killers, replaces every fleet carrier (name,
 callsign, id) with a neutral value, then refuses to write anything if the
 commander's name or id, or a carrier, is still present.
 
@@ -59,6 +60,18 @@ READ_BY_THE_PLUGIN = {
     "MarketBuy",
     # fleet carrier transfers (ADR 0019)
     "CargoTransfer",
+    # engineering (ADR 0017)
+    "Materials",
+    "MaterialCollected",
+    "MaterialDiscarded",
+    "MaterialTrade",
+    "Synthesis",
+    "TechnologyBroker",
+    "EngineerContribution",
+    "ScientificResearch",
+    "MissionCompleted",
+    "EngineerCraft",
+    "EngineerProgress",
 }
 HARMLESS = {
     "Music",
@@ -74,7 +87,11 @@ HARMLESS = {
     "BuyAmmo",
     "ReservoirReplenished",
 }
-LOAD_GAME_FIELDS = {"timestamp", "event", "gameversion", "build", "Horizons", "Odyssey"}
+REDUCED = {
+    "LoadGame": {"timestamp", "event", "gameversion", "build", "Horizons", "Odyssey"},
+    # a mission names factions, targets, passengers: only its materials matter
+    "MissionCompleted": {"timestamp", "event", "MaterialsReward"},
+}
 PERSONAL_FIELDS = {
     # the commander's reputation with each faction of the system
     "Location": {"Factions"},
@@ -148,8 +165,8 @@ def sanitise(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
         event = entry.get("event")
         if event not in READ_BY_THE_PLUGIN | HARMLESS:
             continue
-        if event == "LoadGame":
-            entry = {key: value for key, value in entry.items() if key in LOAD_GAME_FIELDS}
+        if event in REDUCED:
+            entry = {key: value for key, value in entry.items() if key in REDUCED[event]}
         personal = PERSONAL_FIELDS.get(event, set())
         entry = {key: value for key, value in entry.items() if key not in personal}
         entry = anonymise(entry, names, ids)
