@@ -10,6 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from edrockmaster.domain.situation.situation import Situation
 from edrockmaster.ui.panel_model import ActivityBlock, LocalDataNotice
 
 VERSION = 1
@@ -24,6 +25,7 @@ def live_view(  # noqa: PLR0913 - one argument per part of the view
     notice: LocalDataNotice | None,
     journal_folder: Path | None,
     journal_file: Path | None,
+    situation: Situation,
 ) -> dict[str, Any]:
     return {
         "version": VERSION,
@@ -44,4 +46,22 @@ def live_view(  # noqa: PLR0913 - one argument per part of the view
             "folder": str(journal_folder) if journal_folder else None,
             "file": journal_file.name if journal_file else None,
         },
+        "situation": _situation(situation),
+    }
+
+
+def _situation(situation: Situation) -> dict[str, Any]:
+    ship = situation.ship
+    return {
+        "commander": situation.commander,
+        "ship": None
+        if ship is None
+        else {"type": ship.type_name or ship.symbol, "name": ship.name, "ident": ship.ident},
+        "onFoot": situation.on_foot,
+        "system": situation.system,
+        "station": situation.station,
+        "mode": situation.mode.value if situation.mode else None,
+        "group": situation.group,
+        "wing": list(situation.wing),
+        "gameRunning": situation.game_running,
     }

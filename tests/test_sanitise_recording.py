@@ -219,3 +219,59 @@ def test_missions_are_reduced_to_their_materials() -> None:
     assert kept(mission) == [
         {"timestamp": TS, "event": "MissionCompleted", "MaterialsReward": reward}
     ]
+
+
+def test_load_game_keeps_the_ship_type_and_the_game_mode() -> None:
+    loaded = record(
+        event="LoadGame",
+        Commander="Cmdr",
+        FID="F123",
+        Ship="PantherMkII",
+        Ship_Localised="Panther Clipper Mk II",
+        ShipName="My ship",
+        ShipIdent="MY-01",
+        GameMode="Group",
+        Group="A private group",
+        gameversion="4.4.1.1",
+    )
+    assert kept(loaded) == [
+        {
+            "timestamp": TS,
+            "event": "LoadGame",
+            "Ship": "PantherMkII",
+            "Ship_Localised": "Panther Clipper Mk II",
+            "GameMode": "Group",
+            "gameversion": "4.4.1.1",
+        }
+    ]
+
+
+def test_a_loadout_is_reduced_to_the_ship_type() -> None:
+    loadout = record(event="Loadout", Ship="mamba", ShipName="My ship", Modules=[{"Slot": "x"}])
+    assert kept(loadout) == [{"timestamp": TS, "event": "Loadout", "Ship": "mamba"}]
+
+
+def test_wingmates_get_neutral_names() -> None:
+    entries = kept(
+        record(event="WingJoin", Others=["Cmdr Alice", {"Name": "Cmdr Bob"}]),
+        record(event="WingAdd", Name="Cmdr Carol"),
+        record(event="WingAdd", Name="Cmdr Alice"),
+        record(event="WingLeave"),
+    )
+    assert entries == [
+        {"timestamp": TS, "event": "WingJoin", "Others": ["Wingmate 1", {"Name": "Wingmate 2"}]},
+        {"timestamp": TS, "event": "WingAdd", "Name": "Wingmate 3"},
+        {"timestamp": TS, "event": "WingAdd", "Name": "Wingmate 1"},
+        {"timestamp": TS, "event": "WingLeave"},
+    ]
+
+
+def test_refuses_to_write_when_a_wingmate_is_still_named(tmp_path: Path) -> None:
+    source = tmp_path / "raw.jsonl"
+    lines = [
+        record(event="WingAdd", Name="Cmdr Alice"),
+        # Not read by the plugin, so dropped; but a kept event naming her would leak
+        record(event="Docked", StationName="Cmdr Alice's place", MarketID=1),
+    ]
+    source.write_text("".join(json.dumps(line) + "\n" for line in lines), encoding="utf-8")
+    assert sanitiser.main([str(source), str(tmp_path / "fixture.jsonl")]) == 1

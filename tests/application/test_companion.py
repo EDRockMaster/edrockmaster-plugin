@@ -13,6 +13,7 @@ from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.mining.journal import ContentLevel
 from edrockmaster.domain.mining.prospecting import AlertSettings, ProspectorAlertRaised
 from edrockmaster.domain.mining.session import SessionEnded, SessionStarted
+from edrockmaster.domain.situation.situation import SituationChanged
 from edrockmaster.domain.trade.session import TradeEnded, TradeStarted
 from tests.domain.engineering.catalogue_data import catalogue
 from tests.fakes import (
@@ -160,3 +161,10 @@ def test_engineering_receives_the_entries_and_its_reset(harness: Harness) -> Non
     assert isinstance(harness.entry(collected)[0], CollectionStarted)
     [ended, _update] = harness.companion.reset(Activity.ENGINEERING)
     assert isinstance(ended, CollectionEnded)
+
+
+def test_the_situation_follows_the_journal(harness: Harness) -> None:
+    jumped: Entry = {"timestamp": timestamp(0), "event": "FSDJump", "StarSystem": "Sol"}
+    [changed] = [n for n in harness.entry(jumped) if isinstance(n, SituationChanged)]
+    assert changed.situation.system == "Sol"
+    assert harness.companion.situation.situation.system == "Sol"

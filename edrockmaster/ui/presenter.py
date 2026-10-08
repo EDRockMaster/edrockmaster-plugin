@@ -38,6 +38,7 @@ from edrockmaster.domain.engineering.session import (
     GoalReady,
     MaterialCapped,
 )
+from edrockmaster.domain.situation.situation import SituationChanged
 from edrockmaster.domain.trade.session import TradeEnded, TradeStarted, TradeUpdated
 from edrockmaster.ui.combat_presenter import CombatPresenter
 from edrockmaster.ui.engineering_names import EngineeringNames
@@ -95,6 +96,8 @@ class ActivityPresenter:
         # Engineering sees its notifications together: its alert depends on the whole batch
         engineering: list[EngineeringNotification] = []
         for notification in notifications:
+            if isinstance(notification, SituationChanged):
+                continue  # not an activity: the desktop application's banner (ADR 0023)
             if isinstance(notification, _COMBAT):
                 self._combat.apply([notification])
                 if isinstance(notification, _COMBAT_PROGRESS):

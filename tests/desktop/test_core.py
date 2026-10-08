@@ -246,3 +246,14 @@ def test_nothing_is_pushed_before_the_interface_is_ready(desktop: Desktop, journ
     desktop.core.ready()
     view = desktop.views.wait_for(lambda v: v["current"] == "trade")
     assert view["journal"]["file"] == "Journal.2026-10-08T014139.01.log"
+
+
+def test_the_live_view_carries_the_situation(desktop: Desktop, journal: Path) -> None:
+    desktop.core.ready()
+    write_journal(journal, "engineering-power-distributor-2026-10-08.jsonl", chunk=10_000)
+    # The game closed at Marco Qwent's base, after the rolls
+    view = desktop.views.wait_for(
+        lambda v: v["situation"]["system"] is not None and not v["situation"]["gameRunning"]
+    )
+    assert view["situation"]["system"] == "Sirius"
+    assert view["situation"]["station"] == "Qwent Research Base"

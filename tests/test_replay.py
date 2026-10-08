@@ -580,3 +580,11 @@ def test_the_engineering_block_before_the_game_closes() -> None:
     assert replay.presenter.render().alert == (
         "Goal done: Power distributor: High charge capacity, grade 2"
     )
+
+
+def test_the_situation_at_the_end_of_the_engineering_session(engineering_session: Replay) -> None:
+    # Review criterion of ADR 0023: the situation the game showed. The game closed at Marco
+    # Qwent's base, after the rolls
+    situation = engineering_session.companion.situation.situation
+    assert (situation.system, situation.station) == ("Sirius", "Qwent Research Base")
+    assert not situation.game_running

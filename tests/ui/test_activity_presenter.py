@@ -21,6 +21,7 @@ from edrockmaster.domain.engineering.session import (
     EngineeringUpdated,
 )
 from edrockmaster.domain.mining.session import SessionStarted
+from edrockmaster.domain.situation.situation import Situation, SituationChanged
 from edrockmaster.domain.trade.session import (
     GoodsTally,
     TradeEnded,
@@ -160,3 +161,11 @@ def test_engineering_shows_when_materials_change_in_game() -> None:
     presenter.apply([CollectionStarted(T0)])
     assert shown(presenter) is Activity.ENGINEERING
     assert presenter.render().status == "Engineering"
+
+
+def test_the_situation_is_no_activity() -> None:
+    presenter = ActivityPresenter()
+    presenter.apply([CombatStarted(T0)])
+    presenter.apply([SituationChanged(Situation(system="Sol"))])
+    assert presenter.current is Activity.COMBAT
+    assert presenter.render().status == "Combat"

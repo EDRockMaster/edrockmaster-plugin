@@ -222,6 +222,7 @@ class DesktopCore:
             notice=self._notice,
             journal_folder=self._journal_folder,
             journal_file=self._follower.current_file if self._follower else None,
+            situation=companion.situation.situation,
         )
         try:
             self._push(view)
