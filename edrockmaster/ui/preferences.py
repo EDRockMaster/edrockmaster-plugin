@@ -27,6 +27,7 @@ _ACTIVITY_NAMES = {
     Activity.MINING: "Show mining",
     Activity.COMBAT: "Show combat",
     Activity.TRADE: "Show trade",
+    Activity.ENGINEERING: "Show engineering",
 }
 _DISPLAY_MODES = {
     DisplayMode.LAST_ACTIVE: "Last active activity",

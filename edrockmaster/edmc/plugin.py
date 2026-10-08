@@ -23,7 +23,9 @@ from edrockmaster.application.ports import Clock, GoalRepository
 from edrockmaster.edmc import host
 from edrockmaster.edmc.i18n import tl
 from edrockmaster.edmc.main_thread import MainThreadDispatcher
+from edrockmaster.edmc.state import engineers_from_state, inventory_from_state
 from edrockmaster.infrastructure.build_file import load_build
+from edrockmaster.infrastructure.catalogue_file import load_catalogue
 from edrockmaster.infrastructure.clock import SystemClock
 from edrockmaster.infrastructure.database import FILE_NAME as DATABASE_FILE_NAME
 from edrockmaster.infrastructure.database import LocalDatabase, Opening
@@ -33,6 +35,7 @@ from edrockmaster.infrastructure.recorder_jsonl import JsonlJournalRecorder
 from edrockmaster.infrastructure.settings_edmc import EdmcConfig, EdmcSettingsStore
 from edrockmaster.infrastructure.sound import SoundNotifier, system_alert_sound
 from edrockmaster.infrastructure.worker import IoWorker
+from edrockmaster.ui.engineering_names import EngineeringNames
 from edrockmaster.ui.panel import Panel
 from edrockmaster.ui.panel_model import LocalDataNotice, notice_text
 from edrockmaster.ui.preferences import PreferencesTab
@@ -138,21 +141,31 @@ class Plugin:
             self._data_directory() / DATABASE_FILE_NAME, logger
         )
         self._worker.submit(lambda: self._opened(database.open()))
-        self._goals = SqliteGoalRepository(
+        goals = self._goals = SqliteGoalRepository(
             database, self._worker.submit, self._main_thread.dispatch, logger
         )
+        # The plugin's own data file, read once like its modules (a few milliseconds)
+        catalogue = load_catalogue()
         recorder = JsonlJournalRecorder(
             self._data_directory() / "recordings",
             self._worker.submit,
             self._clock.now(),
             build.version,
         )
-        self._companion = Companion(
+        companion = self._companion = Companion(
             settings_store=EdmcSettingsStore(self._config, logger),
             notifier=SoundNotifier(self._alert_sound, logger),
             recorder=recorder,
             clock=self._clock,
+            catalogue=catalogue,
+            goals=goals,
         )
+        self._presenter = ActivityPresenter(
+            tl,
+            host.format_number,
+            engineering_names=EngineeringNames(catalogue, tl, companion.engineering.name_of),
+        )
+        companion.engineering.load_goals(self._publish)
         return PLUGIN_NAME
 
     def stop(self) -> None:
@@ -238,10 +251,28 @@ class Plugin:
             return None
         try:
             notifications = self._companion.handle_journal_entry(entry, is_beta)
+            notifications += self._learn_from_state(state)
         except Exception:
             logger.exception("Could not handle the journal entry %r", entry.get("event"))
             return _internal_error()
         return self._publish(notifications)
+
+    def _learn_from_state(self, state: Mapping[str, Any]) -> list[Notification]:
+        """What EDMC read before the plugin started: the inventory and the engineers (ADR 0017).
+
+        After the entry: EDMC's state already includes it.
+        """
+        assert self._companion is not None
+        engineering = self._companion.engineering
+        now = self._clock.now()
+        notifications: list[Notification] = []
+        if engineering.inventory is None and (stated := inventory_from_state(state, now)):
+            notifications += engineering.handle(stated)
+        if not engineering.engineers and (
+            known := engineers_from_state(state, engineering.catalogue, now)
+        ):
+            notifications += engineering.handle(known)
+        return notifications
 
     def _publish(self, notifications: Sequence[Notification]) -> str | None:
         if not notifications:

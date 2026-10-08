@@ -15,6 +15,11 @@ from edrockmaster.domain.combat.session import (
     VouchersUpdated,
 )
 from edrockmaster.domain.combat.sites import SiteType
+from edrockmaster.domain.engineering.session import (
+    CollectionStarted,
+    EngineeringStats,
+    EngineeringUpdated,
+)
 from edrockmaster.domain.mining.session import SessionStarted
 from edrockmaster.domain.trade.session import (
     GoodsTally,
@@ -96,6 +101,7 @@ def test_stacked_mode_shows_a_block_per_activity_in_display_order() -> None:
         (Activity.MINING, "Mining"),
         (Activity.COMBAT, "Combat"),
         (Activity.TRADE, "No trade session"),
+        (Activity.ENGINEERING, "No engineering session"),
     ]
 
 
@@ -137,3 +143,20 @@ def test_trade_takes_the_panel_when_it_progresses() -> None:
     presenter.apply([CombatStarted(T0)])
     presenter.apply([TradeEnded(T0, TradeEndReason.MANUAL, STATS_TRADE)])
     assert presenter.current is Activity.TRADE
+
+
+ENGINEERING_STATS = EngineeringStats(None, (), inventory_known=True)
+
+
+def test_engineering_shows_when_materials_change_in_game() -> None:
+    presenter = ActivityPresenter()
+    presenter.apply([SessionStarted(T0, None, None)])
+    # The game's statement at load is no progress: the panel stays on mining
+    presenter.apply([EngineeringUpdated(ENGINEERING_STATS, progressed=False)])
+    assert shown(presenter) is Activity.MINING
+    presenter.apply([EngineeringUpdated(ENGINEERING_STATS, progressed=True)])
+    assert shown(presenter) is Activity.ENGINEERING
+    presenter.apply([SessionStarted(T0, None, None)])
+    presenter.apply([CollectionStarted(T0)])
+    assert shown(presenter) is Activity.ENGINEERING
+    assert presenter.render().status == "Engineering"

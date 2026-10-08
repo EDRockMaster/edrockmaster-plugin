@@ -125,6 +125,7 @@ def test_preferences_tab_reads_the_edited_fields(root: tk.Tk) -> None:
         Activity.MINING: False,
         Activity.COMBAT: True,
         Activity.TRADE: True,
+        Activity.ENGINEERING: True,
     }
     assert edited.display_mode is DisplayMode.STACKED
 

@@ -13,7 +13,14 @@ from edrockmaster.domain.mining.journal import ContentLevel
 from edrockmaster.domain.mining.prospecting import AlertSettings, ProspectorAlertRaised
 from edrockmaster.domain.mining.session import SessionEnded, SessionStarted
 from edrockmaster.domain.trade.session import TradeEnded, TradeStarted
-from tests.fakes import FakeNotifier, FakeRecorder, FakeSettingsStore, FixedClock
+from tests.domain.engineering.catalogue_data import catalogue
+from tests.fakes import (
+    FakeGoalRepository,
+    FakeNotifier,
+    FakeRecorder,
+    FakeSettingsStore,
+    FixedClock,
+)
 from tests.journal_entries import (
     T0,
     bounty_entry,
@@ -37,6 +44,8 @@ class Harness:
             notifier=self.notifier,
             recorder=self.recorder,
             clock=self.clock,
+            catalogue=catalogue(),
+            goals=FakeGoalRepository(),
         )
 
     def entry(self, entry: Entry, is_beta: bool = False) -> list[object]:

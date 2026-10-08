@@ -162,6 +162,34 @@
 "Tritium" = "Tritium";
 "Void Opals" = "Opales du Néant";
 
+/* ui/preferences.py: activity shown on the panel (ADR 0017) */
+"Show engineering" = "Afficher l'ingénierie";
+
+/* ui/engineering_presenter.py: panel status */
+"Engineering" = "Ingénierie";
+"Engineering session ended: {reason}" = "Session d'ingénierie terminée : {reason}";
+"No engineering session" = "Aucune session d'ingénierie";
+
+/* ui/engineering_presenter.py: statistic labels and values; Raw/Manufactured/Encoded are the material categories */
+"Raw gained" = "Bruts gagnés";
+"Manufactured gained" = "Manufacturés gagnés";
+"Encoded gained" = "Encodés gagnés";
+"Other materials gained" = "Autres matériaux gagnés";
+"Materials used" = "Matériaux utilisés";
+"At cap" = "Au plafond";
+"Goals ready" = "Objectifs prêts";
+"{ready} of {total}" = "{ready} sur {total}";
+"inventory unknown" = "inventaire inconnu";
+
+/* ui/engineering_presenter.py: alerts */
+"{material} at its cap ({cap})" = "{material} au plafond ({cap})";
+"Goal ready: {goal}" = "Objectif prêt : {goal}";
+"Goal done: {goal}" = "Objectif atteint : {goal}";
+
+/* ui/engineering_names.py: a goal: module type, blueprint and grade, or experimental effect */
+"{module}: {blueprint}, grade {grade}" = "{module} : {blueprint}, grade {grade}";
+"{module}: {effect}" = "{module} : {effect}";
+
 /* domain/engineering/catalogue.json: names of the game data (ADR 0017), English from EDCD/FDevIDs and EDCD/coriolis-data */
 
 /* catalogue: raw materials. Material names are the game's own (Name_Localised of a recorded journal) where known */

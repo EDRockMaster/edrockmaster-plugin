@@ -153,6 +153,7 @@ def test_values_show_the_display_settings() -> None:
         Activity.MINING: True,
         Activity.COMBAT: True,
         Activity.TRADE: True,
+        Activity.ENGINEERING: True,
     }
     assert values.display_mode is DisplayMode.LAST_ACTIVE
 
@@ -163,7 +164,7 @@ def test_edited_display_becomes_the_new_settings() -> None:
     values.display_mode = DisplayMode.STACKED
     settings, invalid = to_settings(values)
     assert settings.display == DisplaySettings(
-        (Activity.COMBAT, Activity.TRADE), DisplayMode.STACKED
+        (Activity.COMBAT, Activity.TRADE, Activity.ENGINEERING), DisplayMode.STACKED
     )
     assert invalid == ()
 

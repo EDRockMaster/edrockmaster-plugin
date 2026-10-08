@@ -11,6 +11,7 @@ their bounties at a resource site are miscellaneous, without any rate.
 """
 
 import json
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -29,6 +30,7 @@ from edrockmaster.domain.combat.session import (
 )
 from edrockmaster.domain.combat.sites import SiteType
 from edrockmaster.domain.commodities import Commodity
+from edrockmaster.domain.engineering.goals import Goal
 from edrockmaster.domain.mining.session import EndReason, SessionEnded
 from edrockmaster.domain.trade.journal import Market
 from edrockmaster.domain.trade.session import (
@@ -39,22 +41,39 @@ from edrockmaster.domain.trade.session import (
     TransferKind,
     TransferStats,
 )
+from edrockmaster.infrastructure.catalogue_file import load_catalogue
+from edrockmaster.ui.engineering_names import EngineeringNames
+from edrockmaster.ui.panel_model import identity
 from edrockmaster.ui.presenter import ActivityPresenter
-from tests.fakes import FakeNotifier, FakeRecorder, FakeSettingsStore, FixedClock
+from tests.fakes import (
+    FakeGoalRepository,
+    FakeNotifier,
+    FakeRecorder,
+    FakeSettingsStore,
+    FixedClock,
+)
 
 FIXTURES = Path(__file__).parent / "fixtures"
+CATALOGUE = load_catalogue()
 
 
 class Replay:
-    def __init__(self, fixture: str) -> None:
+    def __init__(self, fixture: str, goals: Sequence[Goal] = ()) -> None:
         self.notifier = FakeNotifier()
+        self.goals = FakeGoalRepository(goals)
         self.companion = Companion(
-            FakeSettingsStore(DEFAULT_SETTINGS),
-            self.notifier,
-            FakeRecorder(),
-            FixedClock(datetime(2026, 10, 3, 13, 0, tzinfo=UTC)),
+            settings_store=FakeSettingsStore(DEFAULT_SETTINGS),
+            notifier=self.notifier,
+            recorder=FakeRecorder(),
+            clock=FixedClock(datetime(2026, 10, 3, 13, 0, tzinfo=UTC)),
+            catalogue=CATALOGUE,
+            goals=self.goals,
         )
-        self.presenter = ActivityPresenter()
+        self.presenter = ActivityPresenter(
+            engineering_names=EngineeringNames(
+                CATALOGUE, identity, self.companion.engineering.name_of
+            )
+        )
         self.notifications: list[Notification] = []
         self.panel_switches: list[tuple[str, Activity]] = []
         for line in (FIXTURES / fixture).read_text(encoding="utf-8").splitlines():
