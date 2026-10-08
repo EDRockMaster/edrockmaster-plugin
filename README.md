@@ -30,7 +30,7 @@ What changed in each version: [changelog](CHANGELOG.md).
 - `edrockmaster/`: the plugin code, in a uniquely named package (see [prerequisites](docs/prerequisites.md)). Domain logic depends neither on EDMC nor on tkinter, and is tested with `pytest`.
 - `L10n/`: translations (`fr.strings`).
 - `tests/fixtures/`: excerpts of real journals.
-- `scripts/`: packaging (`package.sh`, with the build file from `build_file.py`), release notes (`release_notes.sh`), version (`version.sh`), release channel (`release_plan.py`), GitHub release (`github_release.py`), recording to test fixture (`sanitise_recording.py`).
+- `scripts/`: packaging (`package.sh`, with the build file from `build_file.py`), release notes (`release_notes.sh`), version (`version.sh`), release channel (`release_plan.py`), GitHub release (`github_release.py`), recording to test fixture (`sanitise_recording.py`), game data of engineering (`import_engineering_data.py`, ADR 0017).
 
 ## Documentation
 
@@ -63,3 +63,5 @@ Every CI run also keeps the zip as an artifact (dev builds, 14 days).
 ## License
 
 GPL-3.0-or-later — see [LICENSE](LICENSE).
+
+The engineering catalogue (`edrockmaster/domain/engineering/catalogue.json`) is game data of Frontier Developments, not under this licence — see [NOTICE](NOTICE).

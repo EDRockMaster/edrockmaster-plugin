@@ -31,6 +31,9 @@ def test_the_zip_carries_a_build_file_matching_the_release(tmp_path: Path) -> No
     with zipfile.ZipFile(tmp_path / f"EDRockMaster-v{version}.zip") as archive:
         build = json.loads(archive.read("EDRockMaster/edrockmaster/build.json"))
         assert "EDRockMaster/load.py" in archive.namelist()
+        # Game data of Frontier, with the notice that says so (ADR 0017)
+        assert "EDRockMaster/edrockmaster/domain/engineering/catalogue.json" in archive.namelist()
+        assert "EDRockMaster/NOTICE" in archive.namelist()
     assert build == {"version": version, "commit": head_commit(), "channel": "candidate"}
 
 
