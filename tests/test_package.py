@@ -2,6 +2,7 @@
 
 import json
 import subprocess
+import sys
 import zipfile
 from pathlib import Path
 
@@ -20,6 +21,11 @@ def head_commit() -> str:
     ).stdout.strip()
 
 
+# The plugin is packaged by a shell script, on Gitea's Linux runner
+posix_only = pytest.mark.skipif(sys.platform == "win32", reason="package.sh is a shell script")
+
+
+@posix_only
 def test_the_zip_carries_a_build_file_matching_the_release(tmp_path: Path) -> None:
     version = f"{VERSION}-rc.3"
     subprocess.run(
@@ -37,6 +43,7 @@ def test_the_zip_carries_a_build_file_matching_the_release(tmp_path: Path) -> No
     assert build == {"version": version, "commit": head_commit(), "channel": "candidate"}
 
 
+@posix_only
 def test_the_packaging_refuses_a_build_the_plugin_would_refuse(tmp_path: Path) -> None:
     result = subprocess.run(
         ["scripts/package.sh", f"{VERSION}-rc.3", "production", str(tmp_path)],

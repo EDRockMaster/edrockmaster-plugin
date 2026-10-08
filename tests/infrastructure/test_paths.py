@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 import pytest
@@ -23,6 +24,7 @@ def test_macos_uses_application_support() -> None:
     assert path == HOME / "Library" / "Application Support" / "EDRockMaster"
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="a Linux absolute path is not one on Windows")
 def test_linux_honours_xdg_data_home() -> None:
     path = data_directory(platform="linux", environ={"XDG_DATA_HOME": "/data/xdg"}, home=HOME)
     assert path == Path("/data/xdg/EDRockMaster")
