@@ -88,6 +88,9 @@ class DesktopCore:
         self._follower: JournalFollower | None = None
         self._watcher: JournalWatcher | None = None
         self._notice: LocalDataNotice | None = None
+        self._interface_ready = False
+        """Set once the interface asked for the view: until then, nothing is pushed, since a
+        push to a window not yet loaded would wait for it."""
         self.build: BuildInfo = load_build(PACKAGE_DIRECTORY, VERSION, logger)
 
     @property
@@ -155,7 +158,12 @@ class DesktopCore:
     def ready(self) -> None:
         """The interface is loaded: it wants the current view."""
         self._logger.info("The interface is ready")
-        self._core.submit(self._send)
+
+        def first_view() -> None:
+            self._interface_ready = True
+            self._send()
+
+        self._core.submit(first_view)
 
     def reset(self, activity: str) -> None:
         """A reset button: ends the session of that activity."""
@@ -204,6 +212,8 @@ class DesktopCore:
 
     def _send(self) -> None:
         companion = self._require_companion()
+        if not self._interface_ready:
+            return
         self._presenter.configure(companion.settings.display)
         view = live_view(
             language=self._language,

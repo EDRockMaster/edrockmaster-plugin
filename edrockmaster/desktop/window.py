@@ -120,10 +120,38 @@ def main(
     core.start()
     try:
         gui.start(private_mode=True, debug="--debug" in argv)
-    except Exception:
-        # No console in the packaged application: the log is the only place to say it
+    except Exception as error:
+        # No console in the packaged application: the log and a message box say it
         logger.exception("The window could not run")
+        show_error(failure_message(error, directory / "logs" / "edrockmaster.log"))
         return 1
     finally:
         core.stop()
     return 0
+
+
+_BLOCKED_HINT = (
+    "Windows may have blocked the application's files because they were downloaded. "
+    "Right-click the downloaded zip, Properties, tick Unblock, then extract it again "
+    "on a local disk."
+)
+
+
+def failure_message(error: BaseException, log: Path) -> str:
+    """What the player is told when the window cannot open, in English: the language
+    catalogues live in the window that failed."""
+    text = f"EDRockMaster could not open its window.\n\n{error}"
+    # .NET refuses to load a library marked as downloaded (Mark of the Web)
+    if "Python.Runtime" in str(error):
+        text += f"\n\n{_BLOCKED_HINT}"
+    return f"{text}\n\nDetails in {log}"
+
+
+def show_error(message: str, platform: str = sys.platform) -> None:  # pragma: no cover - Windows
+    """A message box on Windows, where the packaged application has no console."""
+    if platform != "win32":
+        return
+    import ctypes  # noqa: PLC0415 - Windows only
+
+    error_icon = 0x10
+    ctypes.windll.user32.MessageBoxW(None, message, TITLE, error_icon)  # type: ignore[attr-defined]

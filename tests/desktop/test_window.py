@@ -150,3 +150,13 @@ def test_a_window_that_cannot_run_is_logged(
     with caplog.at_level(logging.ERROR):
         assert main([], {}, gui, tmp_path / "data") == 1  # type: ignore[arg-type]
     assert "WebView2 is not installed" in caplog.text
+
+
+def test_the_player_is_told_why_the_window_failed(tmp_path: Path) -> None:
+    log = tmp_path / "logs" / "edrockmaster.log"
+    message = window_module.failure_message(OSError("WebView2 is not installed"), log)
+    assert "WebView2 is not installed" in message
+    assert str(log) in message
+    assert "Unblock" not in message
+    blocked = RuntimeError("Failed to resolve Python.Runtime.Loader.Initialize from U:\\x.dll")
+    assert "Unblock" in window_module.failure_message(blocked, log)
