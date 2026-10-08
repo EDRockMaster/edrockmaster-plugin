@@ -14,6 +14,7 @@ import json
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -37,6 +38,7 @@ from edrockmaster.domain.engineering.session import (
     CollectionEndReason,
     CollectionStarted,
 )
+from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.mining.session import EndReason, SessionEnded
 from edrockmaster.domain.trade.journal import Market
 from edrockmaster.domain.trade.session import (
@@ -63,8 +65,17 @@ FIXTURES = Path(__file__).parent / "fixtures"
 CATALOGUE = load_catalogue()
 
 
+def records(fixture: str) -> list[dict[str, Any]]:
+    """The recorded entries of a fixture: ``{"is_beta": …, "entry": {…}}``."""
+    lines = (FIXTURES / fixture).read_text(encoding="utf-8").splitlines()
+    return [json.loads(line) for line in lines]
+
+
 class Replay:
-    def __init__(self, fixture: str, goals: Sequence[Goal] = (), until: str | None = None) -> None:
+    def __init__(
+        self, fixture: str | None, goals: Sequence[Goal] = (), until: str | None = None
+    ) -> None:
+        """Replay a fixture; or, without one, wait for ``handle()``."""
         self.notifier = FakeNotifier()
         self.goals = FakeGoalRepository(goals)
         self.companion = Companion(
@@ -84,16 +95,21 @@ class Replay:
         self.companion.engineering.load_goals(self.presenter.apply)
         self.notifications: list[Notification] = []
         self.panel_switches: list[tuple[str, Activity]] = []
-        for line in (FIXTURES / fixture).read_text(encoding="utf-8").splitlines():
-            record = json.loads(line)
+        if fixture is None:
+            return
+        for record in records(fixture):
             if until is not None and record["entry"]["timestamp"] > until:
                 break
-            produced = self.companion.handle_journal_entry(record["entry"], record["is_beta"])
-            shown = self.presenter.current
-            self.presenter.apply(produced)
-            if self.presenter.current is not shown:
-                self.panel_switches.append((record["entry"]["timestamp"], self.presenter.current))
-            self.notifications += produced
+            self.handle(record["entry"], record["is_beta"])
+
+    def handle(self, entry: Entry, is_beta: bool) -> None:
+        """One journal entry, as EDMC (or the desktop application's journal reader) hands it."""
+        produced = self.companion.handle_journal_entry(entry, is_beta)
+        shown = self.presenter.current
+        self.presenter.apply(produced)
+        if self.presenter.current is not shown:
+            self.panel_switches.append((str(entry["timestamp"]), self.presenter.current))
+        self.notifications += produced
 
     def lines(self) -> list[tuple[str, str]]:
         return [(line.label, line.value) for line in self.presenter.render().lines]
