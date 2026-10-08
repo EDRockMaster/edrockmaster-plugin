@@ -11,6 +11,7 @@ their bounties at a resource site are miscellaneous, without any rate.
 """
 
 import json
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -29,6 +30,13 @@ from edrockmaster.domain.combat.session import (
 )
 from edrockmaster.domain.combat.sites import SiteType
 from edrockmaster.domain.commodities import Commodity
+from edrockmaster.domain.engineering.catalogue import MaterialCategory
+from edrockmaster.domain.engineering.goals import BlueprintGoal, Goal, GoalId
+from edrockmaster.domain.engineering.session import (
+    CollectionEnded,
+    CollectionEndReason,
+    CollectionStarted,
+)
 from edrockmaster.domain.mining.session import EndReason, SessionEnded
 from edrockmaster.domain.trade.journal import Market
 from edrockmaster.domain.trade.session import (
@@ -39,26 +47,47 @@ from edrockmaster.domain.trade.session import (
     TransferKind,
     TransferStats,
 )
+from edrockmaster.infrastructure.catalogue_file import load_catalogue
+from edrockmaster.ui.engineering_names import EngineeringNames
+from edrockmaster.ui.panel_model import identity
 from edrockmaster.ui.presenter import ActivityPresenter
-from tests.fakes import FakeNotifier, FakeRecorder, FakeSettingsStore, FixedClock
+from tests.fakes import (
+    FakeGoalRepository,
+    FakeNotifier,
+    FakeRecorder,
+    FakeSettingsStore,
+    FixedClock,
+)
 
 FIXTURES = Path(__file__).parent / "fixtures"
+CATALOGUE = load_catalogue()
 
 
 class Replay:
-    def __init__(self, fixture: str) -> None:
+    def __init__(self, fixture: str, goals: Sequence[Goal] = (), until: str | None = None) -> None:
         self.notifier = FakeNotifier()
+        self.goals = FakeGoalRepository(goals)
         self.companion = Companion(
-            FakeSettingsStore(DEFAULT_SETTINGS),
-            self.notifier,
-            FakeRecorder(),
-            FixedClock(datetime(2026, 10, 3, 13, 0, tzinfo=UTC)),
+            settings_store=FakeSettingsStore(DEFAULT_SETTINGS),
+            notifier=self.notifier,
+            recorder=FakeRecorder(),
+            clock=FixedClock(datetime(2026, 10, 3, 13, 0, tzinfo=UTC)),
+            catalogue=CATALOGUE,
+            goals=self.goals,
         )
-        self.presenter = ActivityPresenter()
+        self.presenter = ActivityPresenter(
+            engineering_names=EngineeringNames(
+                CATALOGUE, identity, self.companion.engineering.name_of
+            )
+        )
+        # As the plugin does at start; the fake storage answers at once
+        self.companion.engineering.load_goals(self.presenter.apply)
         self.notifications: list[Notification] = []
         self.panel_switches: list[tuple[str, Activity]] = []
         for line in (FIXTURES / fixture).read_text(encoding="utf-8").splitlines():
             record = json.loads(line)
+            if until is not None and record["entry"]["timestamp"] > until:
+                break
             produced = self.companion.handle_journal_entry(record["entry"], record["is_beta"])
             shown = self.presenter.current
             self.presenter.apply(produced)
@@ -440,3 +469,98 @@ def test_flight_time_to_the_carrier(gold_to_carrier: Replay) -> None:
 def test_panel_after_the_deposit(gold_to_carrier: Replay) -> None:
     lines = dict(gold_to_carrier.lines())
     assert lines["Deposited: Or"] == "1,040 t (1 transfer)"
+
+
+# Engineering (ADR 0017): a real session, 2026-10-08, 01:42 to 05:41: materials collected
+# from 04:00, then five rolls of High capacity on a class 7 power distributor at Marco Qwent.
+# Figures checked by hand against the raw journal.
+
+POWER_DISTRIBUTOR_G1 = BlueprintGoal(
+    GoalId("g1"), "PowerDistributor_HighCapacity", "pd", grade=1, rolls=5
+)
+POWER_DISTRIBUTOR_G2 = BlueprintGoal(
+    GoalId("g2"), "PowerDistributor_HighCapacity", "pd", grade=2, rolls=3
+)
+MARCO_QWENT = 300200
+
+
+@pytest.fixture(scope="module")
+def engineering_session() -> Replay:
+    return Replay(
+        "engineering-power-distributor-2026-10-08.jsonl",
+        goals=(POWER_DISTRIBUTOR_G1, POWER_DISTRIBUTOR_G2),
+    )
+
+
+def test_each_roll_takes_the_ingredients_of_the_catalogue() -> None:
+    # Review criterion of ADR 0017: the ingredients of a recorded EngineerCraft are the
+    # catalogue's for that blueprint and grade
+    path = FIXTURES / "engineering-power-distributor-2026-10-08.jsonl"
+    crafts = [
+        record["entry"]
+        for record in map(json.loads, path.read_text(encoding="utf-8").splitlines())
+        if record["entry"]["event"] == "EngineerCraft"
+    ]
+    assert len(crafts) == 5
+    for craft in crafts:
+        blueprint = CATALOGUE.blueprints[craft["BlueprintName"]]
+        spent = {item["Name"]: item["Count"] for item in craft["Ingredients"]}
+        assert spent == blueprint.grades[craft["Level"]]
+        module = CATALOGUE.module_of(craft["Module"])
+        assert module is not None
+        assert MARCO_QWENT in module.engineers(craft["BlueprintName"], craft["Level"])
+
+
+def test_the_inventory_after_the_session(engineering_session: Replay) -> None:
+    inventory = engineering_session.companion.engineering.inventory
+    assert inventory is not None
+    # Stated at load, then collected, then spent on the rolls
+    assert inventory["galvanisingalloys"] == 244 + 3
+    assert inventory["heatconductionwiring"] == 0 + 3
+    assert inventory["legacyfirmware"] == 24 + 3 - 3
+    assert inventory["sulphur"] == 299 - 2
+    assert inventory["chromium"] == 178 - 3
+
+
+def test_the_rolls_count_down_the_goals(engineering_session: Replay) -> None:
+    # Two rolls at grade 1 of five planned; the three at grade 2 complete their goal
+    assert engineering_session.companion.engineering.goals == (
+        BlueprintGoal(GoalId("g1"), "PowerDistributor_HighCapacity", "pd", grade=1, rolls=3),
+    )
+    assert engineering_session.goals.stored == list(engineering_session.companion.engineering.goals)
+
+
+def test_the_collection(engineering_session: Replay) -> None:
+    # Ended by the game's Shutdown at 05:36:48
+    ended = [n for n in engineering_session.notifications if isinstance(n, CollectionEnded)]
+    assert [(n.at, n.reason) for n in ended] == [
+        (datetime(2026, 10, 8, 5, 36, 48, tzinfo=UTC), CollectionEndReason.GAME_CLOSED)
+    ]
+    started = [n for n in engineering_session.notifications if isinstance(n, CollectionStarted)]
+    assert [n.at for n in started] == [datetime(2026, 10, 8, 4, 0, 31, tzinfo=UTC)]
+
+
+def test_the_engineering_block_before_the_game_closes() -> None:
+    replay = Replay(
+        "engineering-power-distributor-2026-10-08.jsonl",
+        goals=(POWER_DISTRIBUTOR_G1, POWER_DISTRIBUTOR_G2),
+        until="2026-10-08T05:30:43Z",
+    )
+    stats = replay.companion.engineering.stats
+    assert stats.collection is not None
+    assert stats.collection.gained == {
+        MaterialCategory.MANUFACTURED: 36,
+        MaterialCategory.ENCODED: 3,
+    }
+    assert stats.collection.used == 8
+    assert stats.collection.capped == ()
+    assert replay.presenter.current is Activity.ENGINEERING
+    assert replay.lines() == [
+        ("Manufactured gained", "36"),
+        ("Encoded gained", "3"),
+        ("Materials used", "8"),
+        ("Goals ready", "1 of 1"),
+    ]
+    assert replay.presenter.render().alert == (
+        "Goal done: Power distributor: High charge capacity, grade 2"
+    )

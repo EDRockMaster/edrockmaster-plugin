@@ -6,7 +6,8 @@ from edrockmaster.application.settings import DEFAULT_SETTINGS, DisplayMode, Dis
 
 def test_by_default_every_activity_is_shown_and_the_last_active_one_alone() -> None:
     assert DEFAULT_SETTINGS.display == DisplaySettings(
-        activities=(Activity.MINING, Activity.COMBAT, Activity.TRADE), mode=DisplayMode.LAST_ACTIVE
+        activities=(Activity.MINING, Activity.COMBAT, Activity.TRADE, Activity.ENGINEERING),
+        mode=DisplayMode.LAST_ACTIVE,
     )
 
 

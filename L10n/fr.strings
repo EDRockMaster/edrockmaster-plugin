@@ -162,9 +162,37 @@
 "Tritium" = "Tritium";
 "Void Opals" = "Opales du Néant";
 
+/* ui/preferences.py: activity shown on the panel (ADR 0017) */
+"Show engineering" = "Afficher l'ingénierie";
+
+/* ui/engineering_presenter.py: panel status */
+"Engineering" = "Ingénierie";
+"Engineering session ended: {reason}" = "Session d'ingénierie terminée : {reason}";
+"No engineering session" = "Aucune session d'ingénierie";
+
+/* ui/engineering_presenter.py: statistic labels and values; Raw/Manufactured/Encoded are the material categories */
+"Raw gained" = "Bruts gagnés";
+"Manufactured gained" = "Manufacturés gagnés";
+"Encoded gained" = "Encodés gagnés";
+"Other materials gained" = "Autres matériaux gagnés";
+"Materials used" = "Matériaux utilisés";
+"At cap" = "Au plafond";
+"Goals ready" = "Objectifs prêts";
+"{ready} of {total}" = "{ready} sur {total}";
+"inventory unknown" = "inventaire inconnu";
+
+/* ui/engineering_presenter.py: alerts */
+"{material} at its cap ({cap})" = "{material} au plafond ({cap})";
+"Goal ready: {goal}" = "Objectif prêt : {goal}";
+"Goal done: {goal}" = "Objectif atteint : {goal}";
+
+/* ui/engineering_names.py: a goal: module type, blueprint and grade, or experimental effect */
+"{module}: {blueprint}, grade {grade}" = "{module} : {blueprint}, grade {grade}";
+"{module}: {effect}" = "{module} : {effect}";
+
 /* domain/engineering/catalogue.json: names of the game data (ADR 0017), English from EDCD/FDevIDs and EDCD/coriolis-data */
 
-/* catalogue: raw materials */
+/* catalogue: raw materials. Material names are the game's own (Name_Localised of a recorded journal) where known */
 "Antimony" = "Antimoine";
 "Arsenic" = "Arsenic";
 "Boron" = "Bore";
@@ -195,117 +223,117 @@
 "Zirconium" = "Zirconium";
 
 /* catalogue: manufactured materials */
-"Basic Conductors" = "Conducteurs basiques";
+"Basic Conductors" = "Conducteurs simples";
 "Bio-Mechanical Conduits" = "Conduits biomécaniques";
-"Biotech Conductors" = "Conducteurs biotechnologiques";
+"Biotech Conductors" = "Conducteurs biotechniques";
 "Chemical Distillery" = "Distillerie chimique";
 "Chemical Manipulators" = "Manipulateurs chimiques";
 "Chemical Processors" = "Processeurs chimiques";
 "Chemical Storage Units" = "Unités de stockage chimique";
 "Compact Composites" = "Composites compacts";
-"Compound Shielding" = "Blindage composé";
-"Conductive Ceramics" = "Céramiques conductrices";
+"Compound Shielding" = "Protection composite";
+"Conductive Ceramics" = "Conducteurs en céramique";
 "Conductive Components" = "Composants conducteurs";
-"Conductive Polymers" = "Polymères conducteurs";
+"Conductive Polymers" = "Conducteurs en polymères";
 "Configurable Components" = "Composants configurables";
 "Core Dynamics Composites" = "Composites Core Dynamics";
 "Crystal Shards" = "Éclats de cristal";
 "Electrochemical Arrays" = "Réseaux électrochimiques";
-"Exquisite Focus Crystals" = "Cristaux de focalisation exquis";
-"Filament Composites" = "Composites à filaments";
+"Exquisite Focus Crystals" = "Cristaux de focalisation sans défaut";
+"Filament Composites" = "Composites filamentaires";
 "Flawed Focus Crystals" = "Cristaux de focalisation imparfaits";
 "Focus Crystals" = "Cristaux de focalisation";
-"Galvanising Alloys" = "Alliages galvanisants";
-"Grid Resistors" = "Résistances de grille";
-"Guardian Power Cell" = "Cellule d'énergie gardienne";
-"Guardian Power Conduit" = "Conduit d'énergie gardien";
-"Guardian Sentinel Weapon Parts" = "Pièces d'arme de sentinelle gardienne";
-"Guardian Sentinel Wreckage Components" = "Composants d'épave de sentinelle gardienne";
-"Guardian Technology Component" = "Composant technologique gardien";
+"Galvanising Alloys" = "Alliages galvaniques";
+"Grid Resistors" = "Résistance à grille";
+"Guardian Power Cell" = "Cellule d'énergie - Guardians";
+"Guardian Power Conduit" = "Conduit d'énergie - Guardians";
+"Guardian Sentinel Weapon Parts" = "Pièce d'arme de sent. - Guardians";
+"Guardian Sentinel Wreckage Components" = "Débris d'épave - Guardians";
+"Guardian Technology Component" = "Composant techno. - Guardians";
 "Heat Conduction Wiring" = "Câblage de conduction thermique";
-"Heat Dispersion Plate" = "Plaque de dispersion thermique";
-"Heat Exchangers" = "Échangeurs thermiques";
+"Heat Dispersion Plate" = "Plaque de dissipation thermique";
+"Heat Exchangers" = "Échangeurs de chaleur";
 "Heat Resistant Ceramics" = "Céramiques résistantes à la chaleur";
-"Heat Vanes" = "Ailettes thermiques";
-"High Density Composites" = "Composites haute densité";
+"Heat Vanes" = "Vannes thermiques";
+"High Density Composites" = "Composites à haute densité";
 "Hybrid Capacitors" = "Condensateurs hybrides";
-"Imperial Shielding" = "Blindage impérial";
+"Imperial Shielding" = "Protection impériale";
 "Improvised Components" = "Composants improvisés";
 "Mechanical Components" = "Composants mécaniques";
 "Mechanical Equipment" = "Équipement mécanique";
-"Mechanical Scrap" = "Débris mécaniques";
-"Military Grade Alloys" = "Alliages de qualité militaire";
+"Mechanical Scrap" = "Ferraille mécanique";
+"Military Grade Alloys" = "Alliages militaires";
 "Military Supercapacitors" = "Supercondensateurs militaires";
-"Pharmaceutical Isolators" = "Isolateurs pharmaceutiques";
+"Pharmaceutical Isolators" = "Isolants pharmaceutiques";
 "Phase Alloys" = "Alliages de phase";
-"Polymer Capacitors" = "Condensateurs polymères";
+"Polymer Capacitors" = "Condensateurs en polymères";
 "Precipitated Alloys" = "Alliages précipités";
 "Proprietary Composites" = "Composites brevetés";
 "Propulsion Elements" = "Éléments de propulsion";
-"Proto Heat Radiators" = "Proto-radiateurs thermiques";
+"Proto Heat Radiators" = "Proto-radiateurs";
 "Proto Light Alloys" = "Proto-alliages légers";
-"Proto Radiolic Alloys" = "Proto-alliages radioliques";
+"Proto Radiolic Alloys" = "Proto-alliages radiologiques";
 "Refined Focus Crystals" = "Cristaux de focalisation raffinés";
 "Salvaged Alloys" = "Alliages récupérés";
 "Sensor Fragment" = "Fragment de capteur";
 "Shield Emitters" = "Émetteurs de bouclier";
-"Shielding Sensors" = "Capteurs de blindage";
+"Shielding Sensors" = "Capteurs de bouclier";
 "Tempered Alloys" = "Alliages trempés";
-"Thargoid Carapace" = "Carapace thargoïde";
-"Thargoid Energy Cell" = "Cellule d'énergie thargoïde";
-"Thargoid Organic Circuitry" = "Circuits organiques thargoïdes";
-"Thargoid Technological Components" = "Composants technologiques thargoïdes";
+"Thargoid Carapace" = "Carapace thargoid";
+"Thargoid Energy Cell" = "Cellule d'énergie thargoid";
+"Thargoid Organic Circuitry" = "Circuits organiques thargoids";
+"Thargoid Technological Components" = "Composants technologiques thargoids";
 "Thermic Alloys" = "Alliages thermiques";
 "Weapon Parts" = "Pièces d'arme";
 "Worn Shield Emitters" = "Émetteurs de bouclier usés";
 "Wreckage Components" = "Composants d'épave";
 
 /* catalogue: encoded materials */
-"Aberrant Shield Pattern Analysis" = "Analyse de motif de bouclier aberrant";
+"Aberrant Shield Pattern Analysis" = "Analyse de modèle de bouclier aberrante";
 "Abnormal Compact Emissions Data" = "Données d'émissions compactes anormales";
-"Adaptive Encryptors Capture" = "Capture de chiffreurs adaptatifs";
-"Anomalous Bulk Scan Data" = "Données de scan en masse anormales";
+"Adaptive Encryptors Capture" = "Capture de cryptage évolutif";
+"Anomalous Bulk Scan Data" = "Fichier volumineux de données d'analyse anormal";
 "Anomalous FSD Telemetry" = "Télémétrie FSD anormale";
-"Atypical Disrupted Wake Echoes" = "Échos de sillage perturbés atypiques";
-"Atypical Encryption Archives" = "Archives de chiffrement atypiques";
-"Classified Scan Databanks" = "Banques de données de scan classifiées";
-"Classified Scan Fragment" = "Fragment de scan classifié";
+"Atypical Disrupted Wake Echoes" = "Échos de sillages perturbés atypiques";
+"Atypical Encryption Archives" = "Archives cryptées atypiques";
+"Classified Scan Databanks" = "Banques de données d'analyse classifiées";
+"Classified Scan Fragment" = "Données d'analyse classifiées parcellaires";
 "Cracked Industrial Firmware" = "Micrologiciel industriel piraté";
 "Datamined Wake Exceptions" = "Exceptions de sillage minées";
-"Decoded Emission Data" = "Données d'émission décodées";
-"Distorted Shield Cycle Recordings" = "Enregistrements de cycle de bouclier déformés";
-"Divergent Scan Data" = "Données de scan divergentes";
-"Eccentric Hyperspace Trajectories" = "Trajectoires hyperspatiales excentriques";
-"Exceptional Scrambled Emission Data" = "Données d'émission brouillées exceptionnelles";
+"Decoded Emission Data" = "Données d'émissions décodées";
+"Distorted Shield Cycle Recordings" = "Enregistrements de cycles de bouclier déformés";
+"Divergent Scan Data" = "Données d'analyse divergentes";
+"Eccentric Hyperspace Trajectories" = "Trajectoires d'hyperespace excentriques";
+"Exceptional Scrambled Emission Data" = "Données d'émissions brouillées exceptionnelles";
 "Guardian Module Blueprint Segment" = "Segment de plan de module gardien";
-"Guardian Vessel Blueprint Segment" = "Segment de plan de vaisseau gardien";
+"Guardian Vessel Blueprint Segment" = "Fragment de plan de vaisseau - Guardians";
 "Guardian Weapon Blueprint Segment" = "Segment de plan d'arme gardien";
 "Inconsistent Shield Soak Analysis" = "Analyse d'absorption de bouclier incohérente";
-"Irregular Emission Data" = "Données d'émission irrégulières";
-"Modified Consumer Firmware" = "Micrologiciel grand public modifié";
-"Modified Embedded Firmware" = "Micrologiciel embarqué modifié";
+"Irregular Emission Data" = "Données d'émissions aberrantes";
+"Modified Consumer Firmware" = "Micrologiciel consommateur modifié";
+"Modified Embedded Firmware" = "Micrologiciel intégré modifié";
 "Open Symmetric Keys" = "Clés symétriques ouvertes";
-"Pattern Alpha Obelisk Data" = "Données d'obélisque, motif Alpha";
-"Pattern Beta Obelisk Data" = "Données d'obélisque, motif Bêta";
-"Pattern Delta Obelisk Data" = "Données d'obélisque, motif Delta";
-"Pattern Epsilon Obelisk Data" = "Données d'obélisque, motif Epsilon";
-"Pattern Gamma Obelisk Data" = "Données d'obélisque, motif Gamma";
-"Peculiar Shield Frequency Data" = "Données de fréquence de bouclier singulières";
-"Security Firmware Patch" = "Correctif de micrologiciel de sécurité";
+"Pattern Alpha Obelisk Data" = "Données d'obélisque de type alpha";
+"Pattern Beta Obelisk Data" = "Données d'obélisque de type bêta";
+"Pattern Delta Obelisk Data" = "Données d'obélisque de type delta";
+"Pattern Epsilon Obelisk Data" = "Données d'obélisque de type epsilon";
+"Pattern Gamma Obelisk Data" = "Données d'obélisque de type gamma";
+"Peculiar Shield Frequency Data" = "Données de fréquences de bouclier singulières";
+"Security Firmware Patch" = "Mise à jour de micrologiciel de sécurité";
 "Ship Flight Data" = "Données de vol de vaisseau";
 "Ship Systems Data" = "Données des systèmes de vaisseau";
-"Specialised Legacy Firmware" = "Micrologiciel ancien spécialisé";
-"Strange Wake Solutions" = "Solutions de sillage étranges";
-"Tagged Encryption Codes" = "Codes de chiffrement marqués";
-"Thargoid Material Composition Data" = "Données de composition matérielle thargoïde";
-"Thargoid Residue Data" = "Données de résidus thargoïdes";
-"Thargoid Ship Signature" = "Signature de vaisseau thargoïde";
-"Thargoid Structural Data" = "Données structurelles thargoïdes";
-"Thargoid Wake Data" = "Données de sillage thargoïde";
-"Unexpected Emission Data" = "Données d'émission inattendues";
-"Unidentified Scan Archives" = "Archives de scan non identifiées";
-"Untypical Shield Scans" = "Scans de bouclier inhabituels";
-"Unusual Encrypted Files" = "Fichiers chiffrés inhabituels";
+"Specialised Legacy Firmware" = "Micrologiciel spécialisé périmé";
+"Strange Wake Solutions" = "Solutions de sillage anormales";
+"Tagged Encryption Codes" = "Clés de cryptage balisées";
+"Thargoid Material Composition Data" = "Données de composition de matériau thargoid";
+"Thargoid Residue Data" = "Données de résidu thargoid";
+"Thargoid Ship Signature" = "Signature de vaisseau thargoid";
+"Thargoid Structural Data" = "Données de structure thargoid";
+"Thargoid Wake Data" = "Données de sillage thargoid";
+"Unexpected Emission Data" = "Données d'émissions inattendues";
+"Unidentified Scan Archives" = "Données d'analyse archivées non identifiées";
+"Untypical Shield Scans" = "Analyses de bouclier atypiques";
+"Unusual Encrypted Files" = "Fichiers cryptés inhabituels";
 
 /* catalogue: blueprints */
 "Ammo capacity" = "Capacité de munitions";

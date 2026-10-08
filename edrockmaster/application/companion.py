@@ -10,27 +10,41 @@ from typing import assert_never
 
 from edrockmaster.application.activity import Activity
 from edrockmaster.application.combat_service import CombatService
+from edrockmaster.application.engineering_service import EngineeringService
 from edrockmaster.application.mining_service import MiningNotification, MiningService
-from edrockmaster.application.ports import Clock, JournalRecorder, Notifier, SettingsStore
+from edrockmaster.application.ports import (
+    Clock,
+    GoalRepository,
+    JournalRecorder,
+    Notifier,
+    SettingsStore,
+)
 from edrockmaster.application.settings import PluginSettings
 from edrockmaster.application.trade_service import TradeService
 from edrockmaster.domain.combat.session import CombatNotification
+from edrockmaster.domain.engineering.catalogue import Catalogue
+from edrockmaster.domain.engineering.session import EngineeringNotification
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.trade.session import TradeNotification
 
-type Notification = MiningNotification | CombatNotification | TradeNotification
+type Notification = (
+    MiningNotification | CombatNotification | TradeNotification | EngineeringNotification
+)
 """What the presentation layer is told after each use case."""
 
 
 class Companion:
     """Called on EDMC's main thread only; the ports must not block."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913 - the ports of every activity
         self,
+        *,
         settings_store: SettingsStore,
         notifier: Notifier,
         recorder: JournalRecorder,
         clock: Clock,
+        catalogue: Catalogue,
+        goals: GoalRepository,
     ) -> None:
         self._store = settings_store
         self._recorder = recorder
@@ -38,6 +52,7 @@ class Companion:
         self.mining = MiningService(self._settings, notifier, clock)
         self.combat = CombatService(clock)
         self.trade = TradeService(clock)
+        self.engineering = EngineeringService(catalogue, goals, clock)
 
     @property
     def settings(self) -> PluginSettings:
@@ -50,6 +65,7 @@ class Companion:
         notifications += self.mining.handle_journal_entry(entry, is_beta)
         notifications += self.combat.handle_journal_entry(entry)
         notifications += self.trade.handle_journal_entry(entry)
+        notifications += self.engineering.handle_journal_entry(entry)
         return notifications
 
     def reset(self, activity: Activity) -> list[Notification]:
@@ -61,6 +77,8 @@ class Companion:
                 return list(self.combat.reset_session())
             case Activity.TRADE:
                 return list(self.trade.reset_session())
+            case Activity.ENGINEERING:
+                return list(self.engineering.reset_session())
             case _:  # pragma: no cover - exhaustiveness checked by mypy
                 assert_never(activity)
 

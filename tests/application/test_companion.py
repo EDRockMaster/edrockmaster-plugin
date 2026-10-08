@@ -8,12 +8,20 @@ from edrockmaster.application.companion import Companion
 from edrockmaster.application.settings import DEFAULT_SETTINGS, PluginSettings
 from edrockmaster.domain.combat.session import CombatEnded, CombatStarted, VouchersUpdated
 from edrockmaster.domain.commodities import Commodity
+from edrockmaster.domain.engineering.session import CollectionEnded, CollectionStarted
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.mining.journal import ContentLevel
 from edrockmaster.domain.mining.prospecting import AlertSettings, ProspectorAlertRaised
 from edrockmaster.domain.mining.session import SessionEnded, SessionStarted
 from edrockmaster.domain.trade.session import TradeEnded, TradeStarted
-from tests.fakes import FakeNotifier, FakeRecorder, FakeSettingsStore, FixedClock
+from tests.domain.engineering.catalogue_data import catalogue
+from tests.fakes import (
+    FakeGoalRepository,
+    FakeNotifier,
+    FakeRecorder,
+    FakeSettingsStore,
+    FixedClock,
+)
 from tests.journal_entries import (
     T0,
     bounty_entry,
@@ -37,6 +45,8 @@ class Harness:
             notifier=self.notifier,
             recorder=self.recorder,
             clock=self.clock,
+            catalogue=catalogue(),
+            goals=FakeGoalRepository(),
         )
 
     def entry(self, entry: Entry, is_beta: bool = False) -> list[object]:
@@ -137,3 +147,16 @@ def test_changed_settings_are_saved_and_applied(harness: Harness) -> None:
 def test_unchanged_settings_are_not_saved_again(harness: Harness) -> None:
     harness.companion.change_settings(DEFAULT_SETTINGS)
     assert harness.store.saves == 0
+
+
+def test_engineering_receives_the_entries_and_its_reset(harness: Harness) -> None:
+    collected: Entry = {
+        "timestamp": timestamp(0),
+        "event": "MaterialCollected",
+        "Category": "Raw",
+        "Name": "arsenic",
+        "Count": 3,
+    }
+    assert isinstance(harness.entry(collected)[0], CollectionStarted)
+    [ended, _update] = harness.companion.reset(Activity.ENGINEERING)
+    assert isinstance(ended, CollectionEnded)

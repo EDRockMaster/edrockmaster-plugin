@@ -9,8 +9,9 @@ at pinned commits. The data is Frontier Developments' (see ``NOTICE``).
 A **material** has a grade from 1 to 5, and the game caps how many of it a
 commander holds: 300 at grade 1, then 50 fewer per grade, 100 at grade 5. A
 **blueprint** has ingredients per grade, the same on every module; which
-engineers offer a grade depends on the **module type**. An **experimental
-effect** has one set of ingredients.
+engineers offer a grade depends on the **module type**, which the journal
+names through an item (``int_powerdistributor_size7_class5``). An
+**experimental effect** has one set of ingredients.
 
 Names are in English; the plugin's catalogues translate them.
 """
@@ -26,6 +27,8 @@ FORMAT = 1
 """The version of ``catalogue.json`` this code reads."""
 
 GRADES = range(1, 6)
+ARMOUR = "bh"
+"""The module type of armour (bulkheads)."""
 _CAPS = {1: 300, 2: 250, 3: 200, 4: 150, 5: 100}
 
 
@@ -77,6 +80,8 @@ class ModuleType:
     offers: Mapping[str, Mapping[int, tuple[int, ...]]]
     """The engineers (ids) offering each grade of each blueprint, by blueprint name."""
     effects: tuple[str, ...]
+    items: tuple[str, ...] = ()
+    """Journal symbols of its items, in lower case."""
 
     def engineers(self, blueprint: str, grade: int) -> tuple[int, ...]:
         return self.offers.get(blueprint, {}).get(grade, ())
@@ -102,6 +107,17 @@ class Catalogue:
     blueprints: Mapping[str, Blueprint]
     effects: Mapping[str, ExperimentalEffect]
     modules: Mapping[str, ModuleType]
+
+    def module_of(self, item: str) -> ModuleType | None:
+        """The module type of an item the journal names (``EngineerCraft.Module``)."""
+        symbol = item.lower()
+        for module in self.modules.values():
+            if symbol in module.items:
+                return module
+        # Armour is named after the ship: "anaconda_armour_grade3", "sidewinder_armour_reactive"
+        if "_armour_" in symbol:
+            return self.modules.get(ARMOUR)
+        return None
 
     @property
     def date(self) -> str:
@@ -147,6 +163,7 @@ class Catalogue:
                             for blueprint, grades in entry["blueprints"].items()
                         },
                         tuple(entry["effects"]),
+                        tuple(entry["items"]),
                     )
                     for key, entry in data["modules"].items()
                 },

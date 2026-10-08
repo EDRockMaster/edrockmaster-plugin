@@ -218,3 +218,49 @@ def test_goals_are_stored_in_the_local_database(tmp_path: Path) -> None:
         assert loaded == [(goal,)]
     finally:
         second.plugin.stop()
+
+
+# Engineering (ADR 0017)
+
+COLLECTED: Entry = {
+    "timestamp": "2026-10-08T04:00:31Z",
+    "event": "MaterialCollected",
+    "Category": "Manufactured",
+    "Name": "heatdispersionplate",
+    "Count": 3,
+}
+
+
+def test_the_inventory_and_engineers_edmc_read_before_the_plugin(started: Started) -> None:
+    # EDMC's state already includes the entry it hands the plugin
+    state = {
+        "Raw": {"sulphur": 299},
+        "Manufactured": {"heatdispersionplate": 79},
+        "Encoded": {},
+        "Engineers": {"Marco Qwent": (5, 0)},
+    }
+    started.plugin.journal_entry("Cmdr", False, "Sol", None, COLLECTED, state)
+    companion = started.plugin.companion
+    assert companion is not None
+    assert companion.engineering.inventory == {"sulphur": 299, "heatdispersionplate": 79}
+    assert companion.engineering.engineers[300200].rank == 5
+    # Known: EDMC's state no longer replaces it
+    started.plugin.journal_entry("Cmdr", False, "Sol", None, COLLECTED, state)
+    assert companion.engineering.inventory == {"sulphur": 299, "heatdispersionplate": 82}
+
+
+def test_the_stored_goals_are_loaded_at_start(tmp_path: Path) -> None:
+    goal = BlueprintGoal(GoalId.new(), "PowerDistributor_HighCapacity", "pd", grade=2)
+    first = Started(tmp_path)
+    assert first.plugin.goals is not None
+    first.plugin.goals.add(goal)
+    first.plugin.stop()
+    second = Started(tmp_path)
+    try:
+        flush_io(second.plugin)
+        second.plugin._main_thread._run_pending()  # the panel's main loop, without a display
+        companion = second.plugin.companion
+        assert companion is not None
+        assert companion.engineering.goals == (goal,)
+    finally:
+        second.plugin.stop()

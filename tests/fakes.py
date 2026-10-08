@@ -1,8 +1,10 @@
 """Test doubles shared by several test modules."""
 
+from collections.abc import Callable, Sequence
 from datetime import datetime
 
 from edrockmaster.application.settings import DEFAULT_SETTINGS, PluginSettings
+from edrockmaster.domain.engineering.goals import Goal, GoalId
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.mining.prospecting import ProspectorAlertRaised
 
@@ -69,3 +71,22 @@ class FixedClock:
 
     def now(self) -> datetime:
         return self.current
+
+
+class FakeGoalRepository:
+    """Goals kept in memory; ``load`` answers at once (on the caller's thread)."""
+
+    def __init__(self, stored: Sequence[Goal] = ()) -> None:
+        self.stored: list[Goal] = list(stored)
+
+    def load(self, on_loaded: Callable[[tuple[Goal, ...]], None]) -> None:
+        on_loaded(tuple(self.stored))
+
+    def add(self, goal: Goal) -> None:
+        self.stored.append(goal)
+
+    def replace(self, goal: Goal) -> None:
+        self.stored = [goal if current.id == goal.id else current for current in self.stored]
+
+    def remove(self, goal_id: GoalId) -> None:
+        self.stored = [goal for goal in self.stored if goal.id != goal_id]

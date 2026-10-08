@@ -8,43 +8,7 @@ from edrockmaster.domain.engineering.catalogue import (
     CatalogueError,
     MaterialCategory,
 )
-
-DATA: dict[str, Any] = {
-    "format": 1,
-    "sources": [
-        {"repository": "EDCD/FDevIDs", "commit": "c356", "date": "2026-09-05"},
-        {"repository": "EDCD/coriolis-data", "commit": "0db9", "date": "2026-04-24"},
-    ],
-    "materials": {
-        "arsenic": {"category": "raw", "grade": 2, "name": "Arsenic"},
-        "chemicalmanipulators": {
-            "category": "manufactured",
-            "grade": 4,
-            "name": "Chemical Manipulators",
-        },
-        "dataminedwake": {"category": "encoded", "grade": 5, "name": "Datamined Wake Exceptions"},
-    },
-    "engineers": {"300100": "Felicity Farseer"},
-    "blueprints": {
-        "FSD_LongRange": {
-            "name": "Increased range",
-            "grades": {"5": {"arsenic": 1, "chemicalmanipulators": 1, "dataminedwake": 1}},
-        }
-    },
-    "effects": {
-        "special_fsd_heavy": {
-            "name": "Mass Manager",
-            "ingredients": {"arsenic": 5, "dataminedwake": 3},
-        }
-    },
-    "modules": {
-        "fsd": {
-            "name": "Frame shift drive",
-            "blueprints": {"FSD_LongRange": {"5": [300100]}},
-            "effects": ["special_fsd_heavy"],
-        }
-    },
-}
+from tests.domain.engineering.catalogue_data import DATA
 
 
 def changed(path: tuple[str, ...], value: object) -> dict[str, Any]:
@@ -106,3 +70,18 @@ def test_a_catalogue_the_code_does_not_expect_is_refused(
 ) -> None:
     with pytest.raises(CatalogueError, match=message):
         Catalogue.from_data(changed(path, value))
+
+
+@pytest.mark.parametrize(
+    ("item", "module"),
+    [
+        ("int_hyperdrive_size5_class5", "fsd"),
+        ("Int_Hyperdrive_Size5_Class5", "fsd"),
+        ("anaconda_armour_grade3", "bh"),
+        ("sidewinder_armour_reactive", "bh"),
+        ("int_cargorack_size2_class1", None),
+    ],
+)
+def test_the_module_type_of_an_item(item: str, module: str | None) -> None:
+    found = Catalogue.from_data(DATA).module_of(item)
+    assert (found.key if found else None) == module

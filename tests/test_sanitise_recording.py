@@ -184,3 +184,38 @@ def test_writes_the_fixture(tmp_path: Path) -> None:
 def test_usage(capsys: pytest.CaptureFixture[str]) -> None:
     assert sanitiser.main([]) == 2
     assert "Usage" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        {"event": "Materials", "Raw": [{"Name": "iron", "Count": 3}], "Manufactured": []},
+        {"event": "MaterialCollected", "Category": "Raw", "Name": "iron", "Count": 3},
+        {"event": "MaterialTrade", "Paid": {"Material": "iron"}, "Received": {"Material": "zinc"}},
+        {
+            "event": "EngineerCraft",
+            "Engineer": "Marco Qwent",
+            "EngineerID": 300200,
+            "BlueprintName": "PowerDistributor_HighCapacity",
+            "Level": 1,
+            "Ingredients": [{"Name": "sulphur", "Count": 1}],
+        },
+        {"event": "EngineerProgress", "Engineer": "Marco Qwent", "Progress": "Unlocked"},
+    ],
+)
+def test_engineering_is_kept(entry: dict[str, Any]) -> None:
+    assert kept(record(**entry)) == [{"timestamp": TS, **entry}]
+
+
+def test_missions_are_reduced_to_their_materials() -> None:
+    reward = [{"Name": "polonium", "Count": 3}]
+    mission = record(
+        event="MissionCompleted",
+        Faction="Some Faction",
+        Name="Mission_Delivery",
+        PassengerName="Someone",
+        MaterialsReward=reward,
+    )
+    assert kept(mission) == [
+        {"timestamp": TS, "event": "MissionCompleted", "MaterialsReward": reward}
+    ]

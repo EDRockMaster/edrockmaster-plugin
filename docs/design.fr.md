@@ -35,7 +35,9 @@ edrockmaster/
     trade/                      contexte du commerce
       journal.py                entrée du journal → fait du commerce
       session.py                agrégat TradeTracker (sessions, routes, temps de vol, cargaison achetée, pertes)
-    engineering/                contexte de l'ingénierie (ADR 0017), en construction
+    engineering/                contexte de l'ingénierie (ADR 0017)
+      journal.py                entrée du journal → fait de l'ingénierie
+      session.py                agrégat EngineeringTracker (inventaire, plafonds, collecte, objectifs, ingénieurs)
       catalogue.py              données du jeu : matériaux (grade, plafond), blueprints, effets, types de modules, ingénieurs
       catalogue.json            ces données, écrites par scripts/import_engineering_data.py (propriété de Frontier, voir NOTICE)
       goals.py                  objectifs de blueprint et d'effet expérimental
@@ -48,6 +50,7 @@ edrockmaster/
     mining_service.py           cas d'usage du minage : traiter une entrée du journal, réinitialiser la session, appliquer les réglages
     combat_service.py           cas d'usage du combat : traiter une entrée du journal, réinitialiser la session
     trade_service.py            cas d'usage du commerce : traiter une entrée du journal, réinitialiser la session
+    engineering_service.py      cas d'usage de l'ingénierie : journal, objectifs et leur enregistrement, réinitialisation
   infrastructure/
     settings_edmc.py            SettingsStore sur le config d'EDMC (clés préfixées « edrockmaster. »)
     recorder_jsonl.py           JournalRecorder : fichiers JSONL dans le dossier de données
@@ -65,12 +68,15 @@ edrockmaster/
     i18n.py                     tl() relié au l10n d'EDMC, avec un repli pour les tests
     host.py                     services d'EDMC (theme, plug.show_error, l10n.Locale), avec replis
     main_thread.py              résultats du fil d'entrées-sorties exécutés sur le fil principal
+    state.py                    inventaire et ingénieurs tirés de l'état d'EDMC, quand le plugin démarre après le jeu
   ui/
     panel_model.py              PanelModel (textes), avis sur les données locales et mise en forme commune, sans tkinter
     presenter.py                ActivityPresenter : les blocs à afficher, selon le mode
     mining_presenter.py         notifications du minage → PanelModel
     combat_presenter.py         notifications du combat → PanelModel
     trade_presenter.py          notifications du commerce → PanelModel
+    engineering_presenter.py    notifications de l'ingénierie → PanelModel
+    engineering_names.py        noms des matériaux, blueprints, effets, types de modules et objectifs
     preferences_form.py         réglages <-> champs des préférences, validation, sans tkinter
     commodity_names.py          noms des commodités minables connues avant que le journal ne les nomme
     panel.py                    panneau de la fenêtre principale (tkinter, fil principal uniquement), un bloc par activité affichée
@@ -185,7 +191,16 @@ En construction (décision de conception ADR 0017) : matériaux, ingénieurs et 
 
 **Données du jeu.** Le journal nomme les matériaux (`chemicalmanipulators`), les blueprints (`FSD_LongRange`) et les effets expérimentaux (`special_fsd_heavy`), mais ne donne ni le grade d'un matériau, ni les ingrédients d'un blueprint, ni l'ingénieur qui le propose sur tel module. `scripts/import_engineering_data.py` les lit dans EDCD/FDevIDs et EDCD/coriolis-data à des commits épinglés et écrit `domain/engineering/catalogue.json`, une entrée par ligne pour des diffs lisibles ; `Catalogue.from_data` le vérifie à la lecture. Le script refuse un nom qu'il ne sait pas faire correspondre ; ses quelques corrections sont listées dans le script, chacune avec sa raison (une espace finale dans FDevIDs, des fautes de frappe dans coriolis-data). Il garde les types de modules qui ont des blueprints, les ingénieurs qui les proposent, et les effets qu'un ingénieur applique encore (les effets anciens n'ont pas d'ingrédients). Pour suivre une mise à jour du jeu : changer les commits épinglés, lancer le script, relire le diff du catalogue.
 
-Les données appartiennent à Frontier et ne relèvent pas de la licence du plugin : `NOTICE`, livré dans le zip, le dit. Les noms sont en anglais dans le catalogue et traduits par `L10n/fr.strings` ; `tests/test_translations.py` vérifie que chaque nom a sa traduction.
+Les données appartiennent à Frontier et ne relèvent pas de la licence du plugin : `NOTICE`, livré dans le zip, le dit. Les noms sont en anglais dans le catalogue et traduits par `L10n/fr.strings` ; `tests/test_translations.py` vérifie que chaque nom a sa traduction. Les noms français des matériaux sont ceux du jeu, relevés dans un journal enregistré, quand ils sont connus.
+
+**Le contexte.** `domain/engineering/journal.py` lit les événements des matériaux de vaisseau : `Materials` (tout l'inventaire, au chargement), `MaterialCollected`, `MaterialDiscarded`, `MaterialTrade`, `Synthesis`, `TechnologyBroker`, `EngineerContribution` (matériaux seulement), `ScientificResearch`, `MissionCompleted` (`MaterialsReward`), `EngineerCraft`, `EngineerProgress` (tous les ingénieurs au chargement, puis un à la fois) et `Shutdown`. `EngineeringTracker` (`session.py`) est l'agrégat :
+
+- **Inventaire** : inconnu tant que `Materials` ou l'état d'EDMC ne le donne pas (`edmc/state.py` : quand le plugin démarre après le jeu, EDMC ne lui transmet aucun événement passé ; son `state` est lu après chaque entrée tant que l'inventaire est inconnu, et inclut déjà cette entrée). Chaque changement s'y applique, jamais en dessous de 0, jamais au-dessus du **plafond** du matériau (300 au grade 1, jusqu'à 100 au grade 5) : l'atteindre déclenche une alerte, car ce qui est collecté au-delà est perdu. Un matériau inconnu du catalogue (le jeu en ajoute avant les données communautaires) est compté, sans plafond. Jamais enregistré.
+- **Collecte** : du premier changement de matériaux à `Shutdown` ou à la réinitialisation ; la mort ne la termine pas. Elle compte les matériaux collectés ou reçus en récompense par catégorie, ceux utilisés (passes, effets, synthèse, courtiers, contributions, recherche ; un échange ne fait que convertir), et ceux qui ont atteint leur plafond.
+- **Objectifs** : un blueprint à un grade pour un type de module, avec un nombre de passes, ou un effet expérimental, avec un nombre d'applications. Ce qui manque à un objectif, ce sont ses ingrédients multipliés par ses passes, moins l'inventaire ; il est **prêt** quand il ne lui manque rien. La **liste de courses** additionne tous les objectifs. Les ingénieurs d'un objectif sont ceux, débloqués, qui proposent son grade sur son type de module. Un `EngineerCraft` retire une passe (ou une application, avec `ApplyExperimentalEffect`) au premier objectif de même blueprint et de même grade sur le même type de module, que `Catalogue.module_of` trouve à partir de l'objet (`int_powerdistributor_size7_class5` ; le blindage par son nom) ; un objectif à qui il ne reste rien est atteint et retiré. L'agrégat signale ces changements, et `EngineeringService` les enregistre par `GoalRepository` (base locale, ADR 0018) ; les objectifs enregistrés sont chargés au démarrage.
+- **Ingénieurs** : statut et rang, d'après `EngineerProgress` ou l'état d'EDMC (qui les nomme : le catalogue donne leurs identifiants).
+
+**Panneau.** Le bloc d'ingénierie affiche les matériaux gagnés par catégorie, utilisés, au plafond, et les objectifs prêts sur le total (ou que l'inventaire est inconnu). Son alerte est le dernier matériau au plafond, objectif prêt ou objectif atteint. Il progresse sur un changement de matériaux en jeu, un plafond ou un objectif prêt ; la déclaration du jeu au chargement n'est pas une progression. Les noms des matériaux sont ceux du jeu quand le journal les a donnés, sinon ceux du catalogue, traduits. La fenêtre séparée (inventaire, ingénieurs, objectifs) vient ensuite.
 
 ## Alertes du prospecteur
 

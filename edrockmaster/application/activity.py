@@ -9,3 +9,4 @@ class Activity(Enum):
     MINING = "mining"
     COMBAT = "combat"
     TRADE = "trade"
+    ENGINEERING = "engineering"

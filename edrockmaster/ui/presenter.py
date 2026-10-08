@@ -8,6 +8,8 @@ up to date. The player chooses the activities shown and the mode:
   Vouchers and community goals update the combat presenter without switching.
   For trade, a session that starts or ends, a purchase, a sale or a loss
   (ADR 0014);
+  For engineering, a collection that starts or ends, a change of materials in
+  game, a material at its cap, or a goal ready (ADR 0017);
 - **stacked**: one block per activity shown, in display order.
 """
 
@@ -26,8 +28,20 @@ from edrockmaster.domain.combat.session import (
     CommunityGoalsChanged,
     VouchersUpdated,
 )
+from edrockmaster.domain.engineering.session import (
+    CollectionEnded,
+    CollectionStarted,
+    EngineeringNotification,
+    EngineeringUpdated,
+    GoalDone,
+    GoalProgressed,
+    GoalReady,
+    MaterialCapped,
+)
 from edrockmaster.domain.trade.session import TradeEnded, TradeStarted, TradeUpdated
 from edrockmaster.ui.combat_presenter import CombatPresenter
+from edrockmaster.ui.engineering_names import EngineeringNames
+from edrockmaster.ui.engineering_presenter import EngineeringPresenter
 from edrockmaster.ui.mining_presenter import MiningPresenter
 from edrockmaster.ui.panel_model import (
     ActivityBlock,
@@ -42,6 +56,16 @@ from edrockmaster.ui.trade_presenter import TradePresenter
 _COMBAT = (CombatStarted, CombatUpdated, CombatEnded, VouchersUpdated, CommunityGoalsChanged)
 _COMBAT_PROGRESS = (CombatStarted, CombatUpdated, CombatEnded)
 _TRADE = (TradeStarted, TradeUpdated, TradeEnded)
+_ENGINEERING = (
+    CollectionStarted,
+    CollectionEnded,
+    EngineeringUpdated,
+    MaterialCapped,
+    GoalReady,
+    GoalProgressed,
+    GoalDone,
+)
+_ENGINEERING_PROGRESS = (CollectionStarted, CollectionEnded, MaterialCapped, GoalReady)
 
 
 class ActivityPresenter:
@@ -50,10 +74,14 @@ class ActivityPresenter:
         translate: Translate = identity,
         format_number: NumberFormat = default_number_format,
         display: DisplaySettings | None = None,
+        engineering_names: EngineeringNames | None = None,
     ) -> None:
         self._mining = MiningPresenter(translate, format_number)
         self._combat = CombatPresenter(translate, format_number)
         self._trade = TradePresenter(translate, format_number)
+        self._engineering = EngineeringPresenter(
+            engineering_names or EngineeringNames(None, translate), translate, format_number
+        )
         self._display = display or DisplaySettings()
         self.current = self._display.activities[0]
         """The activity shown in the last active mode."""
@@ -64,6 +92,8 @@ class ActivityPresenter:
             self.current = display.activities[0]
 
     def apply(self, notifications: Iterable[Notification]) -> PanelModel:
+        # Engineering sees its notifications together: its alert depends on the whole batch
+        engineering: list[EngineeringNotification] = []
         for notification in notifications:
             if isinstance(notification, _COMBAT):
                 self._combat.apply([notification])
@@ -72,9 +102,15 @@ class ActivityPresenter:
             elif isinstance(notification, _TRADE):
                 self._trade.apply([notification])
                 self._progressed(Activity.TRADE)
+            elif isinstance(notification, _ENGINEERING):
+                engineering.append(notification)
             else:
                 self._mining.apply([notification])
                 self._progressed(Activity.MINING)
+        if engineering:
+            self._engineering.apply(engineering)
+            if any(_engineering_progress(n) for n in engineering):
+                self._progressed(Activity.ENGINEERING)
         return self.render()
 
     def render(self) -> PanelModel:
@@ -101,5 +137,13 @@ class ActivityPresenter:
                 return self._combat.render()
             case Activity.TRADE:
                 return self._trade.render()
+            case Activity.ENGINEERING:
+                return self._engineering.render()
             case _:  # pragma: no cover - exhaustiveness checked by mypy
                 assert_never(activity)
+
+
+def _engineering_progress(notification: EngineeringNotification) -> bool:
+    if isinstance(notification, EngineeringUpdated):
+        return notification.progressed
+    return isinstance(notification, _ENGINEERING_PROGRESS)
