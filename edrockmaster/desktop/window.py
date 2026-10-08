@@ -54,6 +54,19 @@ class InterfaceApi:
     def shown(self) -> None:
         self._core.shown()
 
+    def catalogue(self) -> dict[str, Any]:
+        """Returned to the page: the goal form's choices, read once."""
+        return self._core.catalogue()
+
+    def add_goal(self, request: dict[str, Any]) -> None:
+        self._core.add_goal(request)
+
+    def change_goal(self, goal_id: str, count: int) -> None:
+        self._core.change_goal(goal_id, count)
+
+    def remove_goal(self, goal_id: str) -> None:
+        self._core.remove_goal(goal_id)
+
 
 class _Window:
     """The pywebview window, known once created: the core's pushes go to it."""

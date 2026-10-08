@@ -26,6 +26,7 @@ def live_view(  # noqa: PLR0913 - one argument per part of the view
     journal_folder: Path | None,
     journal_file: Path | None,
     situation: Situation,
+    engineering: dict[str, Any],
 ) -> dict[str, Any]:
     return {
         "version": VERSION,
@@ -47,6 +48,7 @@ def live_view(  # noqa: PLR0913 - one argument per part of the view
             "file": journal_file.name if journal_file else None,
         },
         "situation": _situation(situation),
+        "engineering": engineering,
     }
 
 

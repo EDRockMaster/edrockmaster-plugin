@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 import sys
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -25,8 +25,15 @@ from edrockmaster.application.activity import Activity
 from edrockmaster.application.build import BuildInfo
 from edrockmaster.application.companion import Companion, Notification
 from edrockmaster.application.ports import Clock
+from edrockmaster.desktop.engineering_view import (
+    catalogue_view,
+    engineering_view,
+    goal_from_request,
+    with_count,
+)
 from edrockmaster.desktop.journal_reader import POLL_SECONDS, JournalFollower, JournalWatcher
 from edrockmaster.desktop.live_view import live_view
+from edrockmaster.domain.engineering.goals import GoalId
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.infrastructure.build_file import load_build
 from edrockmaster.infrastructure.catalogue_file import load_catalogue
@@ -88,6 +95,8 @@ class DesktopCore:
         self._follower: JournalFollower | None = None
         self._watcher: JournalWatcher | None = None
         self._notice: LocalDataNotice | None = None
+        self._names: EngineeringNames | None = None
+        self._catalogue_view: dict[str, Any] | None = None
         self._interface_ready = False
         """Set once the interface asked for the view: until then, nothing is pushed, since a
         push to a window not yet loaded would wait for it."""
@@ -128,11 +137,10 @@ class DesktopCore:
             catalogue=catalogue,
             goals=SqliteGoalRepository(database, self._io.submit, self._core.submit, self._logger),
         )
+        names = self._names = EngineeringNames(catalogue, self._tl, companion.engineering.name_of)
+        self._catalogue_view = catalogue_view(catalogue, EngineeringNames(catalogue, self._tl))
         self._presenter = ActivityPresenter(
-            self._tl,
-            number_format(self._language),
-            companion.settings.display,
-            EngineeringNames(catalogue, self._tl, companion.engineering.name_of),
+            self._tl, number_format(self._language), companion.settings.display, names
         )
         companion.engineering.load_goals(self._apply)
         if self._journal_folder is not None:
@@ -190,6 +198,52 @@ class DesktopCore:
     def dismiss_notice(self) -> None:
         self._core.submit(lambda: self._set_notice(None))
 
+    # Engineering goals (ADR 0017)
+
+    def catalogue(self) -> dict[str, Any]:
+        """What the goal form offers. Built once at start and never changed: any thread."""
+        if self._catalogue_view is None:
+            raise RuntimeError("the desktop core has not started")
+        return self._catalogue_view
+
+    def add_goal(self, request: Mapping[str, Any]) -> None:
+        def add() -> None:
+            engineering = self._require_companion().engineering
+            try:
+                goal = goal_from_request(request, engineering.catalogue)
+            except ValueError as error:
+                self._logger.warning("Goal refused: %s", error)
+                return
+            self._apply(engineering.add_goal(goal))
+
+        self._core.submit(add)
+
+    def change_goal(self, goal_id: str, count: int) -> None:
+        def change() -> None:
+            engineering = self._require_companion().engineering
+            goal = next((g for g in engineering.goals if g.id.value == goal_id), None)
+            if goal is None:
+                self._logger.warning("No goal %r to change", goal_id)
+                return
+            try:
+                changed = with_count(goal, count)
+            except (ValueError, TypeError) as error:
+                self._logger.warning("Goal change refused: %s", error)
+                return
+            self._apply(engineering.replace_goal(changed))
+
+        self._core.submit(change)
+
+    def remove_goal(self, goal_id: str) -> None:
+        def remove() -> None:
+            engineering = self._require_companion().engineering
+            if not any(goal.id.value == goal_id for goal in engineering.goals):
+                self._logger.warning("No goal %r to remove", goal_id)
+                return
+            self._apply(engineering.remove_goal(GoalId(goal_id)))
+
+        self._core.submit(remove)
+
     # The core thread
 
     def _on_entry(self, entry: Entry, is_beta: bool) -> None:
@@ -236,11 +290,17 @@ class DesktopCore:
             journal_folder=self._journal_folder,
             journal_file=self._follower.current_file if self._follower else None,
             situation=companion.situation.situation,
+            engineering=engineering_view(companion.engineering, self._require_names()),
         )
         try:
             self._push(view)
         except Exception:
             self._logger.exception("Could not send the live view to the interface")
+
+    def _require_names(self) -> EngineeringNames:
+        if self._names is None:
+            raise RuntimeError("the desktop core has not started")
+        return self._names
 
     def _require_companion(self) -> Companion:
         if self._companion is None:

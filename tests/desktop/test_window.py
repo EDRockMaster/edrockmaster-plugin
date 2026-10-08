@@ -45,6 +45,10 @@ class FakeGui:
         api.reset("mining")
         api.dismiss_notice()
         api.shown()
+        assert api.catalogue()["modules"]
+        api.add_goal({"kind": "effect", "module": "fsd", "name": "special_fsd_heavy"})
+        api.change_goal("nowhere", 2)
+        api.remove_goal("nowhere")
 
 
 @pytest.fixture
