@@ -8,6 +8,9 @@ requires-python = ">=3.13"
 dependencies = []
 
 [dependency-groups]
+desktop = [
+    "pywebview>=6.2.1",
+]
 dev = [
     "pytest>=8",
     "pytest-cov>=5",
@@ -20,6 +23,8 @@ dev = [
 
 [tool.uv]
 package = false
+# The desktop application's dependencies (ADR 0020); the plugin has none, EDMC bundles its runtime
+default-groups = ["dev", "desktop"]
 
 [tool.ruff]
 line-length = 100
@@ -53,7 +58,12 @@ source = [
     "edrockmaster/desktop",
 ]
 # tkinter widgets: tested only where a display exists (not in CI), kept thin
-omit = ["edrockmaster/ui/panel.py", "edrockmaster/ui/preferences.py"]
+omit = [
+    "edrockmaster/ui/panel.py",
+    "edrockmaster/ui/preferences.py",
+    # python -m edrockmaster.desktop: calls main() of window.py, which is tested
+    "edrockmaster/desktop/__main__.py",
+]
 branch = true
 
 [tool.coverage.report]
@@ -77,6 +87,12 @@ forbidden_modules = [
     "webview",
     "sqlite3",
 ]
+
+[[tool.importlinter.contracts]]
+name = "The desktop application depends neither on EDMC nor on Tk (ADR 0020)"
+type = "forbidden"
+source_modules = ["edrockmaster.desktop", "edrockmaster.infrastructure"]
+forbidden_modules = ["edrockmaster.edmc", "tkinter"]
 
 [[tool.importlinter.contracts]]
 name = "The domain depends on nothing else of the plugin"

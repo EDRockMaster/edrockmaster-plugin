@@ -33,7 +33,7 @@ from edrockmaster.infrastructure.goal_repository import SqliteGoalRepository
 from edrockmaster.infrastructure.paths import data_directory as default_data_directory
 from edrockmaster.infrastructure.recorder_jsonl import JsonlJournalRecorder
 from edrockmaster.infrastructure.settings_edmc import EdmcConfig, EdmcSettingsStore
-from edrockmaster.infrastructure.sound import SoundNotifier, system_alert_sound
+from edrockmaster.infrastructure.sound import SoundNotifier
 from edrockmaster.infrastructure.worker import IoWorker
 from edrockmaster.ui.engineering_names import EngineeringNames
 from edrockmaster.ui.panel import Panel
@@ -182,7 +182,7 @@ class Plugin:
         panel.render(self._presenter.blocks())
         self._show_notice()
         self.subscribe(self._refresh)
-        self.attach_alert_sound(system_alert_sound(panel.frame))
+        self.attach_alert_sound(host.system_alert_sound(panel.frame))
         # Results of the I/O thread wait for the panel, and run in EDMC's main loop from now on
         self._main_thread.attach(panel.frame)
         return panel.frame

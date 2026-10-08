@@ -66,6 +66,9 @@ edrockmaster/
   desktop/                      l'application de bureau (ADR 0020), en construction : elle lit le journal sans EDMC
     journal_folder.py           où le jeu écrit son journal ; les fichiers du journal dans l'ordre
     journal_reader.py           JournalFollower (suit le journal au fil de l'écriture du jeu), JournalWatcher (son fil)
+    core.py                     DesktopCore : la racine de composition, le fil du cœur, la vue en direct poussée
+    live_view.py                la vue en direct, telle que la décrit schemas/live_view.schema.json
+    window.py                   la fenêtre pywebview, InterfaceApi, le point d'entrée (python -m edrockmaster.desktop)
   edmc/
     plugin.py                   assemblage : construit le graphe d'objets, implémente les hooks
     i18n.py                     tl() relié au l10n d'EDMC, avec un repli pour les tests
@@ -300,6 +303,16 @@ En construction (décision de conception ADR 0020) : le cœur du plugin dans une
 - **Fil** : `JournalWatcher` relève toutes les secondes sur son propre fil (`EDRockMaster journal`), aussi souvent qu'EDMC le fait quand le jeu tourne.
 - **Parité** : `tests/desktop/test_parity.py` réécrit chaque donnée de test en fichiers de journal, les lit avec le lecteur, et vérifie que le cœur produit exactement les notifications du rejeu par EDMC, y compris pour une session découpée en parties écrites pendant que le lecteur suit. Lire 20 000 entrées au démarrage prend environ 0,1 s, 0,3 s avec le cœur.
 - **Frontières** : `lint-imports` (dans la CI) vérifie que `domain/` et `application/` n'importent aucun adaptateur, aucun hôte ni aucune boîte à outils d'interface (`infrastructure`, `edmc`, `desktop`, `ui`, `tkinter`, `webview`, `sqlite3`), et que le domaine n'importe rien d'autre du plugin.
+
+**Étape 2, la coquille de l'application** (ADR 0020, ADR 0021) :
+
+- `desktop/core.py`, `DesktopCore` : la racine de composition de l'application de bureau, comme `edmc/plugin.py` est celle du plugin. Le même cœur (companion, base locale, objectifs, catalogue), alimenté par le lecteur de journal. Chaque appel au companion et au présentateur a lieu sur le **fil du cœur** (`EDRockMaster core`, un `IoWorker` à lui) ; le fil du lecteur de journal et les appels de l'interface ne font que déposer des tâches. Après chaque changement, le cœur pousse la **vue en direct** à l'interface.
+- `desktop/live_view.py`, `desktop/schemas/live_view.schema.json` : la vue en direct, décrite par un schéma JSON : les activités affichées et leurs blocs (textes des présentateurs du plugin, déjà dans la langue du joueur), l'activité en cours, l'avis sur les données locales, le journal lu. Les tests valident chaque vue poussée contre le schéma ; les types TypeScript de l'interface en sont générés (`pnpm types`), et la CI vérifie qu'ils sont à jour.
+- `desktop/window.py` : pywebview affiche l'interface, un seul fichier HTML autonome (`desktop/interface/index.html`, construit depuis `web/`, hors de git), remis comme une page : ni serveur, ni port. L'interface appelle le cœur par `InterfaceApi` (`window.pywebview.api` : `ready`, `reset`, `dismiss_notice`) ; le cœur pousse par `run_js`, en JSON ASCII (sous GTK, pywebview donne à WebKit la longueur d'un script en caractères et non en octets). pywebview crée `window.pywebview` avant d'y ajouter les appels du cœur : l'interface attend `pywebviewready`.
+- Réglages dans `settings.json` du dossier de données, lus et vérifiés comme ceux du plugin (mêmes clés) ; un journal tournant dans `logs/` ; la langue de l'interface du système (Windows) ou des variables de localisation, l'anglais sinon ; les textes des présentateurs traduits depuis `L10n/*.strings`, les nombres écrits comme la langue les écrit.
+- `lint-imports` vérifie aussi que `desktop/` et `infrastructure/` n'importent ni EDMC ni Tk.
+- **Interface** (`web/`) : Svelte 5 et TypeScript, construite par Vite en un seul fichier HTML ; ses propres textes dans `src/locales/*.json`, avec un test qui vérifie que chaque clé est traduite et utilisée ; Vitest et Testing Library ; un thème sombre tiré de jetons de conception. Node 22 et pnpm (par corepack) ne sont que des outils de construction.
+- **La lancer** (développement) : `cd web && corepack pnpm install && corepack pnpm build`, puis `uv run python -m edrockmaster.desktop` (`--debug` ouvre l'inspecteur web). Sous Linux, pywebview a besoin de GTK et de WebKit2GTK avec leur liaison Python (PyGObject), en général celle de la Python du système ; `EDROCKMASTER_JOURNAL_DIR` désigne un dossier de journal, par exemple un enregistrement réécrit en fichiers de journal.
 
 ## Tests
 

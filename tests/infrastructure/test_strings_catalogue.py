@@ -31,12 +31,23 @@ def test_numbers_as_each_language_writes_them() -> None:
 
 
 @pytest.mark.parametrize(
-    ("name", "language"),
-    [("fr_FR", "fr"), ("French_France", "fr"), ("en_GB", "en"), ("de_DE", "en"), (None, "en")],
+    ("environ", "language"),
+    [
+        ({"LANG": "fr_FR.UTF-8"}, "fr"),
+        ({"LC_ALL": "en_GB.UTF-8", "LANG": "fr_FR.UTF-8"}, "en"),
+        ({"LC_MESSAGES": "fr_CA.UTF-8"}, "fr"),
+        ({"LANG": "de_DE.UTF-8"}, "en"),
+        ({}, "en"),
+    ],
 )
-def test_the_system_language(name: str | None, language: str) -> None:
-    assert system_language(lambda: name) == language
+def test_the_system_language_from_the_locale_variables(
+    environ: dict[str, str], language: str
+) -> None:
+    assert system_language("linux", environ) == language
 
 
-def test_the_system_language_by_default() -> None:
-    assert system_language() in ("en", "fr")
+@pytest.mark.parametrize(
+    ("language_id", "language"), [(0x040C, "fr"), (0x0C0C, "fr"), (0x0409, "en")]
+)
+def test_the_system_language_on_windows(language_id: int, language: str) -> None:
+    assert system_language("win32", {}, lambda: language_id) == language

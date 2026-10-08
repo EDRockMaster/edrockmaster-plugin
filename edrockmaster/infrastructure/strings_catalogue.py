@@ -8,9 +8,11 @@ same files (ADR 0020), until its views move to the interface's catalogues
 
 from __future__ import annotations
 
-import locale
+import ctypes
+import os
 import re
-from collections.abc import Callable
+import sys
+from collections.abc import Callable, Mapping
 from pathlib import Path
 
 L10N_DIRECTORY = Path(__file__).resolve().parents[2] / "L10n"
@@ -56,11 +58,28 @@ def number_format(language: str) -> Callable[[float, int], str]:
     return lambda number, decimals: f"{number:,.{decimals}f}"
 
 
-def system_language(get_locale: Callable[[], str | None] | None = None) -> str:
-    """The system's language if the application has it, else English."""
-    name = (get_locale or (lambda: locale.getlocale()[0]))() or ""
-    lowered = name.lower()
-    # "fr_FR" on Linux; "French_France" on Windows
-    if lowered.startswith(("fr", "french")):
-        return "fr"
+def system_language(
+    platform: str = sys.platform,
+    environ: Mapping[str, str] = os.environ,
+    windows_ui_language: Callable[[], int] | None = None,
+) -> str:
+    """The language of the system's interface if the application has it, else English.
+
+    On Windows, the language of the user interface; elsewhere, the locale variables.
+    """
+    if platform == "win32":
+        language_id = (windows_ui_language or _windows_ui_language)()
+        # The primary language is the low 10 bits of a Windows language id
+        return "fr" if language_id & 0x3FF == _WINDOWS_FRENCH else "en"
+    for name in ("LC_ALL", "LC_MESSAGES", "LANG"):
+        value = environ.get(name, "")
+        if value:
+            return "fr" if value.lower().startswith("fr") else "en"
     return "en"
+
+
+_WINDOWS_FRENCH = 0x0C
+
+
+def _windows_ui_language() -> int:  # pragma: no cover - Windows only
+    return int(ctypes.windll.kernel32.GetUserDefaultUILanguage())  # type: ignore[attr-defined]
