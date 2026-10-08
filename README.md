@@ -30,7 +30,7 @@ What changed in each version: [changelog](CHANGELOG.md).
 - `edrockmaster/`: the plugin code, in a uniquely named package (see [prerequisites](docs/prerequisites.md)). Domain logic depends neither on EDMC nor on tkinter, and is tested with `pytest`; `lint-imports` checks it. `edrockmaster/desktop/` is the start of the desktop application that will replace the plugin (ADR 0020); its interface is in `web/` (Svelte, ADR 0021). How to run it: [design](docs/design.md#desktop-application).
 - `L10n/`: translations (`fr.strings`).
 - `tests/fixtures/`: excerpts of real journals.
-- `scripts/`: packaging (`package.sh`, with the build file from `build_file.py`), release notes (`release_notes.sh`), version (`version.sh`), release channel (`release_plan.py`), GitHub release (`github_release.py`), recording to test fixture (`sanitise_recording.py`), game data of engineering (`import_engineering_data.py`, ADR 0017).
+- `scripts/`: packaging (`package.sh`, with the build file from `build_file.py`), release notes (`release_notes.sh`), version (`version.sh`), release channel (`release_plan.py`), GitHub release (`github_release.py`), recording to test fixture (`sanitise_recording.py`), game data of engineering (`import_engineering_data.py`, ADR 0017), the desktop application for Windows (`package_desktop.py`, `make_icons.py`, `fixture_to_journal.py`, ADR 0022).
 
 ## Documentation
 

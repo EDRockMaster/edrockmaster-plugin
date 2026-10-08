@@ -314,6 +314,14 @@ En construction (décision de conception ADR 0020) : le cœur du plugin dans une
 - **Interface** (`web/`) : Svelte 5 et TypeScript, construite par Vite en un seul fichier HTML ; ses propres textes dans `src/locales/*.json`, avec un test qui vérifie que chaque clé est traduite et utilisée ; Vitest et Testing Library ; un thème sombre tiré de jetons de conception. Node 22 et pnpm (par corepack) ne sont que des outils de construction.
 - **La lancer** (développement) : `cd web && corepack pnpm install && corepack pnpm build`, puis `uv run python -m edrockmaster.desktop` (`--debug` ouvre l'inspecteur web). Sous Linux, pywebview a besoin de GTK et de WebKit2GTK avec leur liaison Python (PyGObject), en général celle de la Python du système ; `EDROCKMASTER_JOURNAL_DIR` désigne un dossier de journal, par exemple un enregistrement réécrit en fichiers de journal.
 
+**Emballage pour Windows** (ADR 0022) : le Microsoft Store distribue l'application en paquet MSIX, qu'il signe.
+
+- `.github/workflows/windows.yml` s'exécute sur le **miroir GitHub seulement** (`windows-latest` ; Gitea lit `.gitea/workflows/` et l'ignore), sans secret : il construit l'interface, rejoue les tests Python sous Windows, décide du plan de release, emballe, **lance l'application emballée sur un journal enregistré** (son journal doit dire que l'interface est prête et le journal du jeu lu, sans erreur), et garde les paquets 14 jours.
+- `scripts/package_desktop.py` (sous Windows) : le fichier de build (ADR 0016), les icônes (`scripts/make_icons.py`, un rocher provisoire en attendant une icône dessinée), PyInstaller (`packaging/windows/EDRockMaster.spec` : un dossier, sans console, sans Tk), le **zip portable** `EDRockMaster-v<version>-windows.zip` (non signé : SmartScreen avertit), et le **MSIX** `EDRockMaster-v<version>.msix` avec `makeappx` (`packaging/windows/AppxManifest.xml.in` : confiance totale, `%LOCALAPPDATA%\EDRockMaster` non virtualisé pour que les données restent partagées avec le plugin).
+- L'identité du paquet vient des variables du dépôt GitHub `EDROCKMASTER_MSIX_NAME`, `EDROCKMASTER_MSIX_PUBLISHER` et `EDROCKMASTER_MSIX_PUBLISHER_NAME`, telles que Partner Center les donne pour le nom réservé ; sans elles, une identité de développement.
+- Versions du paquet (`scripts/release_plan.py`) : `X.Y.(Z×100+N).0` pour la candidate N, `X.Y.(Z×100+99).0` pour la production, `X.Y.(Z×100).0` pour une construction de développement. Une candidate part au Store en package flight vers les testeurs ; la production est reconstruite depuis le commit de la candidate. La soumission se fait à la main dans Partner Center pour l'instant.
+- `scripts/fixture_to_journal.py` réécrit une donnée de test en fichier de journal, pour essayer l'application à la main.
+
 ## Tests
 
 - **Domaine et application : en TDD**, avec `pytest` seul, sans EDMC.

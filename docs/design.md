@@ -314,6 +314,14 @@ Being built (design decision ADR 0020): the plugin's core in an application of i
 - **Interface** (`web/`): Svelte 5 and TypeScript, built by Vite into one HTML file; its own texts in `src/locales/*.json`, with a test that every key is translated and used; Vitest and Testing Library; a dark theme from design tokens. Node 22 and pnpm (through corepack) are build tools only.
 - **Run it** (development): `cd web && corepack pnpm install && corepack pnpm build`, then `uv run python -m edrockmaster.desktop` (`--debug` opens the web inspector). On Linux, pywebview needs GTK and WebKit2GTK with their Python binding (PyGObject), usually from the system's Python; `EDROCKMASTER_JOURNAL_DIR` points to a journal folder, a recording written back as journal files for instance.
 
+**Packaging for Windows** (ADR 0022): the Microsoft Store distributes the application as an MSIX package, which it signs.
+
+- `.github/workflows/windows.yml` runs on the **GitHub mirror only** (`windows-latest`; Gitea reads `.gitea/workflows/` and ignores it), with no secret: it builds the interface, runs the Python tests on Windows, decides the release plan, packages, **starts the packaged application on a recorded journal** (its log must say that the interface is ready and the journal read, with no error), and keeps the packages 14 days.
+- `scripts/package_desktop.py` (on Windows): the build file (ADR 0016), the icons (`scripts/make_icons.py`, a placeholder rock until a designed icon), PyInstaller (`packaging/windows/EDRockMaster.spec`: one folder, no console, no Tk), the **portable zip** `EDRockMaster-v<version>-windows.zip` (unsigned: SmartScreen warns), and the **MSIX** `EDRockMaster-v<version>.msix` with `makeappx` (`packaging/windows/AppxManifest.xml.in`: full trust, `%LOCALAPPDATA%\EDRockMaster` unvirtualized so that data stays shared with the plugin).
+- The package identity comes from the GitHub repository variables `EDROCKMASTER_MSIX_NAME`, `EDROCKMASTER_MSIX_PUBLISHER` and `EDROCKMASTER_MSIX_PUBLISHER_NAME`, as Partner Center gives them for the reserved name; without them, a development identity.
+- Package versions (`scripts/release_plan.py`): `X.Y.(Z×100+N).0` for candidate N, `X.Y.(Z×100+99).0` for production, `X.Y.(Z×100).0` for a development build. A candidate goes to the Store as a package flight to the testers; production is rebuilt from the candidate's commit. Submission is by hand in Partner Center for now.
+- `scripts/fixture_to_journal.py` writes a fixture back as a journal file, to try the application by hand.
+
 ## Testing
 
 - **Domain and application: test-driven**, with plain `pytest`, no EDMC needed.

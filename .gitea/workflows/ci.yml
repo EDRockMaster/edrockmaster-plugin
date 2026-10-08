@@ -1,4 +1,5 @@
-# CI on Gitea Actions (the cluster's runner). The GitHub mirror runs nothing.
+# CI on Gitea Actions (the cluster's runner). The GitHub mirror runs only the Windows build of the
+# desktop application (.github/workflows/windows.yml, ADR 0022).
 # Release channels (ADR 0012, no production without acceptance):
 # - dev: every run keeps the installable zip as an artifact;
 # - candidate: a vX.Y.Z-rc.N tag publishes a private pre-release on Gitea, for acceptance in game;
