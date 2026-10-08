@@ -1,8 +1,8 @@
 """Import the game data of ship engineering into the plugin (ADR 0017).
 
 Reads EDCD/FDevIDs (materials, engineers) and EDCD/coriolis-data (blueprints,
-experimental effects, which engineer offers which grade on which module) at
-the pinned commits below, keeps the fields the plugin uses, maps every
+experimental effects, which engineer offers which grade on which module, the
+items of each module type) at the pinned commits below, keeps the fields the plugin uses, maps every
 ingredient to its journal symbol, and writes
 ``edrockmaster/domain/engineering/catalogue.json``.
 
@@ -22,6 +22,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import re
 import sys
 import urllib.request
 from collections.abc import Callable, Mapping
@@ -108,6 +109,15 @@ MODULE_NAMES = {
 # variant (D: dumbfire, S: seeker), merged here
 EFFECT_LISTS = ("specials", "specials_D", "specials_S")
 
+# modules/index.js lists the file of each module type:
+#   pd: require('./standard/power_distributor').pd,
+MODULE_FILE = re.compile(
+    r"^\s*(\w+): require\('\./(\w+/\w+)(?:\.json)?'\)\.(\w+),?\s*$", re.MULTILINE
+)
+
+# Armour has no items: the journal names it after the ship ("anaconda_armour_grade3")
+ITEMLESS_MODULES = {"bh"}
+
 type Read = Callable[[Source, str], str]
 """Returns the text of a file of a source, at its pinned commit."""
 
@@ -143,6 +153,30 @@ def _engineers(read: Read) -> dict[str, int]:
     """Engineer id by name."""
     rows = csv.DictReader(io.StringIO(read(FDEVIDS, "engineers.csv")))
     return {row["name"].strip(): int(row["id"]) for row in rows}
+
+
+def _items(read: Read, keys: set[str]) -> dict[str, list[str]]:
+    """The journal symbols (lower case) of the items of each module type."""
+    files = {
+        key: path
+        for key, path, exported in MODULE_FILE.findall(read(CORIOLIS, "modules/index.js"))
+        if key in keys and key == exported
+    }
+    items: dict[str, list[str]] = {}
+    for key in sorted(keys - ITEMLESS_MODULES):
+        if key not in files:
+            raise ImportRefused(f"module {key!r} has no file in modules/index.js")
+        data = json.loads(read(CORIOLIS, f"modules/{files[key]}.json"))
+        symbols = {
+            item["symbol"].lower()
+            for group in data.values()
+            for item in group
+            if item.get("grp") == key and item.get("symbol")
+        }
+        if not symbols:
+            raise ImportRefused(f"module {key!r} has no item in modules/{files[key]}.json")
+        items[key] = sorted(symbols)
+    return items
 
 
 def _ingredients(components: Mapping[str, int], symbols: Mapping[str, str]) -> dict[str, int]:
@@ -200,6 +234,9 @@ def build_catalogue(read: Read) -> dict[str, Any]:
         craftable = sorted(effect for effect in listed if "components" in effects_data[effect])
         used_effects.update(craftable)
         modules[key] = {"name": MODULE_NAMES[key], "blueprints": offers, "effects": craftable}
+    items = _items(read, set(modules))
+    for key, module in modules.items():
+        module["items"] = items.get(key, [])
 
     blueprints = {
         name: {

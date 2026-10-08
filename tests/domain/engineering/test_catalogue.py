@@ -42,7 +42,9 @@ DATA: dict[str, Any] = {
             "name": "Frame shift drive",
             "blueprints": {"FSD_LongRange": {"5": [300100]}},
             "effects": ["special_fsd_heavy"],
-        }
+            "items": ["int_hyperdrive_size5_class5", "int_hyperdrive_overcharge_size5_class5"],
+        },
+        "bh": {"name": "Armour", "blueprints": {}, "effects": [], "items": []},
     },
 }
 
@@ -106,3 +108,18 @@ def test_a_catalogue_the_code_does_not_expect_is_refused(
 ) -> None:
     with pytest.raises(CatalogueError, match=message):
         Catalogue.from_data(changed(path, value))
+
+
+@pytest.mark.parametrize(
+    ("item", "module"),
+    [
+        ("int_hyperdrive_size5_class5", "fsd"),
+        ("Int_Hyperdrive_Size5_Class5", "fsd"),
+        ("anaconda_armour_grade3", "bh"),
+        ("sidewinder_armour_reactive", "bh"),
+        ("int_cargorack_size2_class1", None),
+    ],
+)
+def test_the_module_type_of_an_item(item: str, module: str | None) -> None:
+    found = Catalogue.from_data(DATA).module_of(item)
+    assert (found.key if found else None) == module

@@ -57,6 +57,22 @@ EFFECTS: dict[str, Any] = {
 }
 
 
+MODULE_INDEX = """module.exports = {
+  standard: {
+    fsd: require('./standard/frame_shift_drive').fsd,
+    pd: require('./standard/power_distributor').pd,
+  },
+};
+"""
+FSD_ITEMS: dict[str, Any] = {
+    "fsd": [
+        {"grp": "fsd", "symbol": "Int_Hyperdrive_Size5_Class5"},
+        {"grp": "fsd", "symbol": "Int_Hyperdrive_Size2_Class1"},
+        {"grp": "gfsb", "symbol": "Int_GuardianFSDBooster_Size1"},
+    ]
+}
+
+
 class Sources:
     def __init__(self) -> None:
         self.files = {
@@ -65,6 +81,8 @@ class Sources:
             "modifications/blueprints.json": json.dumps(BLUEPRINTS),
             "modifications/modules.json": json.dumps(MODULES),
             "modifications/specials.json": json.dumps(EFFECTS),
+            "modules/index.js": MODULE_INDEX,
+            "modules/standard/frame_shift_drive.json": json.dumps(FSD_ITEMS),
         }
         self.read_at: set[tuple[str, str]] = set()
 
@@ -100,6 +118,7 @@ def test_the_catalogue_keeps_what_the_plugin_uses(sources: Sources) -> None:
             "name": "Frame shift drive",
             "blueprints": {"FSD_LongRange": {"1": [300100, 300260], "5": [300100]}},
             "effects": ["special_fsd_heavy"],
+            "items": ["int_hyperdrive_size2_class1", "int_hyperdrive_size5_class5"],
         }
     }
     assert catalogue["effects"] == {
@@ -200,3 +219,21 @@ def test_the_shipped_catalogue_names_every_module_the_script_knows() -> None:
         importer.MODULE_NAMES.values()
     )
     assert shipped["sources"][1]["commit"] == importer.CORIOLIS.commit
+
+
+def test_a_module_without_items_is_refused(sources: Sources) -> None:
+    sources.files["modules/index.js"] = "module.exports = {};\n"
+    with pytest.raises(importer.ImportRefused, match="module 'fsd' has no file"):
+        importer.build_catalogue(sources.read)
+    sources.files["modules/index.js"] = MODULE_INDEX
+    sources.files["modules/standard/frame_shift_drive.json"] = json.dumps({"fsd": []})
+    with pytest.raises(importer.ImportRefused, match="module 'fsd' has no item"):
+        importer.build_catalogue(sources.read)
+
+
+def test_armour_needs_no_items(sources: Sources) -> None:
+    def armour(data: dict[str, Any]) -> None:
+        data["bh"] = {"blueprints": copy.deepcopy(data["fsd"]["blueprints"])}
+
+    sources.change("modifications/modules.json", armour)
+    assert importer.build_catalogue(sources.read)["modules"]["bh"]["items"] == []
