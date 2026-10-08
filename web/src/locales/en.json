@@ -11,5 +11,17 @@
   "journal.reading": "Reading {file}",
   "notice.reset": "Local data could not be read and was reset, see the log.",
   "notice.unavailable": "Local data is unavailable until the application restarts, see the log.",
-  "notice.dismiss": "Dismiss"
+  "notice.dismiss": "Dismiss",
+  "situation.waiting": "Waiting for the game…",
+  "situation.commander": "CMDR {name}",
+  "situation.onFoot": "On foot",
+  "situation.docked": "{system}, docked at {station}",
+  "situation.mode.open": "Open play",
+  "situation.mode.solo": "Solo",
+  "situation.mode.group": "Private group: {group}",
+  "situation.mode.groupUnnamed": "Private group",
+  "situation.wing": "Wing: {members}",
+  "situation.gameClosed": "Game closed",
+  "situation.shipName": "“{name}”",
+  "situation.label": "Commander's situation"
 }

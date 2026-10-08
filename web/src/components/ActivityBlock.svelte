@@ -50,8 +50,9 @@
   }
   header {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-2);
+    gap: var(--space-1) var(--space-2);
   }
   h2 {
     margin: 0;

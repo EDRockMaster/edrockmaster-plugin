@@ -1,4 +1,4 @@
-import type { Block, LiveView } from "../src/lib/live-view";
+import type { Block, LiveView, Situation } from "../src/lib/live-view";
 
 export function block(overrides: Partial<Block> = {}): Block {
   return {
@@ -22,6 +22,22 @@ export function view(overrides: Partial<LiveView> = {}): LiveView {
     ],
     notice: null,
     journal: { folder: "C:/Journal", file: "Journal.2026-10-08T014139.01.log" },
+    situation: situation(),
+    ...overrides,
+  };
+}
+
+export function situation(overrides: Partial<Situation> = {}): Situation {
+  return {
+    commander: null,
+    ship: null,
+    onFoot: false,
+    system: null,
+    station: null,
+    mode: null,
+    group: null,
+    wing: [],
+    gameRunning: false,
     ...overrides,
   };
 }
