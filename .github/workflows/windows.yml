@@ -99,5 +99,6 @@ jobs:
           path: |
             dist-desktop/*.zip
             dist-desktop/*.msix
+            dist-desktop/assets/store/*.png
           retention-days: 14
           if-no-files-found: error
