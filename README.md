@@ -22,7 +22,7 @@ Requires EDMC 6.1 or later.
 - **Settings → EDRockMaster**: alert threshold per commodity (empty means no alert), minimum content, minimum remaining reserve, cores, sound.
 - **Journal recorder** (same tab, off by default): saves the journal events received by the plugin in JSONL files. *Open recordings folder* shows them; join one to a bug report. The tab ends with the full version of the plugin (for example `0.3.0-rc.2`): quote it too.
 
-What changed in each version: [changelog](CHANGELOG.md).
+What changed in each version: [changelog](CHANGELOG.md). Privacy: [privacy policy](docs/privacy.md) (nothing is sent anywhere).
 
 ## Layout
 
