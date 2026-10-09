@@ -9,14 +9,43 @@ export const GOAL_CATALOGUE: GoalCatalogue = {
     {
       key: "fsd",
       name: "Frame shift drive",
-      blueprints: [{ name: "FSD_LongRange", title: "Increased range", grades: [1, 2, 3, 4, 5] }],
-      effects: [{ name: "special_fsd_heavy", title: "Mass Manager" }],
+      blueprints: [
+        {
+          name: "FSD_LongRange",
+          title: "Increased range",
+          grades: [1, 2, 3, 4, 5],
+          recipes: [1, 2, 3, 4, 5].map((grade) => ({
+            grade,
+            ingredients: [
+              { symbol: "germanium", name: "Germanium", count: 1 },
+              { symbol: "chromium", name: "Chromium", count: grade === 5 ? 3 : 1 },
+            ],
+            engineers: grade === 5 ? [300100, 300160] : [300100, 300160, 300220],
+          })),
+        },
+      ],
+      effects: [
+        {
+          name: "special_fsd_heavy",
+          title: "Mass Manager",
+          ingredients: [
+            { symbol: "disruptedwakeechoes", name: "Atypical Disrupted Wake Echoes", count: 5 },
+          ],
+        },
+      ],
     },
     {
       key: "cr",
       name: "Cargo rack",
       blueprints: [
-        { name: "CargoRack_IncreasedCapacity", title: "Expanded Capacity", grades: [1] },
+        {
+          name: "CargoRack_IncreasedCapacity",
+          title: "Expanded Capacity",
+          grades: [1],
+          recipes: [
+            { grade: 1, ingredients: [{ symbol: "iron", name: "Iron", count: 1 }], engineers: [] },
+          ],
+        },
       ],
       effects: [],
     },
