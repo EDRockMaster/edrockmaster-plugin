@@ -104,7 +104,7 @@ jobs:
           sleep 3
           taskkill //F //IM EDRockMaster.exe || true
           cat "$log"
-          grep -q "Demo mode: a sample journal" "$log"
+          grep -q "Demo mode (.*): a sample journal" "$log"
           [ "$(grep -c "Reading the journal from Journal." "$log")" -ge 2 ]
           [ "$(grep -c "The interface is ready" "$log")" -ge 2 ]
           ! grep -E "ERROR|Traceback" "$log"
