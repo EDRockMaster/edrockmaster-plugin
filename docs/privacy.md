@@ -52,7 +52,7 @@ The application is meant for players of Elite Dangerous, rated PEGI 7 / ESRB Tee
 
 ## Contact
 
-Questions about this policy: [CONTACT TO SET BEFORE PUBLICATION]. Source code: [github.com/EDRockMaster/edrockmaster-plugin](https://github.com/EDRockMaster/edrockmaster-plugin).
+Questions about this policy: [contact@edrm.space](mailto:contact@edrm.space). Source code: [github.com/EDRockMaster/edrockmaster-plugin](https://github.com/EDRockMaster/edrockmaster-plugin).
 
 ## Changes
 

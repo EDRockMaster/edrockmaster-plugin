@@ -4,14 +4,14 @@
 
 The texts to enter in Partner Center for the store listing (ADR 0022), kept here so that they change with the application. The French listing is in [store-listing.fr.md](store-listing.fr.md).
 
-**Before the first submission**: the application needs a settings view (alert thresholds, activities shown, journal recordings), which the listing describes; today only the plugin, in EDMC, has one. The support contact must be set, here and in the privacy policy.
+**Before the first submission**: the application needs a settings view (alert thresholds, activities shown, journal recordings), which the listing describes; today only the plugin, in EDMC, has one.
 
 ## Properties
 
 - **Category**: Utilities + tools (no subcategory); **secondary category**: Entertainment.
 - **Privacy policy URL**: https://github.com/EDRockMaster/edrockmaster-plugin/blob/main/docs/privacy.md (until edrm.space hosts it).
 - **Website**: https://github.com/EDRockMaster/edrockmaster-plugin
-- **Support contact**: [CONTACT TO SET].
+- **Support contact**: contact@edrm.space.
 - **Personal information**: *yes*, the application accesses personal information: it reads the game journal, which names the commander and other players; it keeps it on the computer and sends nothing (see the privacy policy).
 - **System requirements**: Windows 10 version 21H1 or Windows 11, 64-bit; Elite Dangerous on the same computer.
 
