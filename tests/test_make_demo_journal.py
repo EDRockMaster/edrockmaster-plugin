@@ -10,7 +10,9 @@ maker = load_script("make_demo_journal")
 
 def test_the_shipped_demo_journal_is_up_to_date(tmp_path: Path) -> None:
     written = maker.write(tmp_path / "demo.jsonl")
-    assert written.read_bytes() == maker.DEMO_JOURNAL.read_bytes(), (
+    # Line by line: Git may check the file out with Windows line ends
+    shipped = maker.DEMO_JOURNAL.read_text(encoding="utf-8").splitlines()
+    assert written.read_text(encoding="utf-8").splitlines() == shipped, (
         "run python3 scripts/make_demo_journal.py"
     )
 
