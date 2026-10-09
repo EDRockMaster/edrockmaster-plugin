@@ -345,6 +345,7 @@ class DesktopCore:
             journal_file=self._follower.current_file if self._follower else None,
             situation=companion.situation.situation,
             engineering=engineering_view(companion.engineering, self._require_names()),
+            application_version=self.build.version,
         )
         try:
             self._push(view)

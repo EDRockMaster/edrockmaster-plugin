@@ -18,9 +18,11 @@ afterEach(() => {
   delete window.edrm;
 });
 
+const JOURNAL = { folder: "C:/Journal", file: "Journal.2026-10-08T014139.01.log" };
+
 async function opened(language: "en" | "fr" = "en") {
   const api = withCore();
-  render(SettingsView, { language });
+  render(SettingsView, { language, journal: JOURNAL });
   await waitFor(() => expect(screen.getByRole("form")).toBeInTheDocument());
   return api;
 }
@@ -114,15 +116,25 @@ describe("SettingsView", () => {
   it("says when no journal folder was found, and waits for the core", async () => {
     const api = withCore();
     api.settings = async () => ({ ...SETTINGS, journalFolderInUse: null, journalFolder: "D:/J" });
-    render(SettingsView, { language: "fr" });
+    render(SettingsView, { language: "fr", journal: { folder: null, file: null } });
     await waitFor(() =>
       expect(screen.getByText("Aucun dossier de journal trouvé.")).toBeInTheDocument(),
     );
     expect(screen.getByLabelText(/Dossier du journal/)).toHaveValue("D:/J");
   });
 
+  it("tells which journal file is read, or that the game's is awaited", async () => {
+    withCore();
+    const { rerender } = render(SettingsView, { language: "en", journal: JOURNAL });
+    await waitFor(() =>
+      expect(screen.getByText("Reading Journal.2026-10-08T014139.01.log")).toBeInTheDocument(),
+    );
+    await rerender({ language: "en", journal: { folder: "C:/Journal", file: null } });
+    expect(screen.getByText("Waiting for the game's journal in C:/Journal")).toBeInTheDocument();
+  });
+
   it("shows nothing to change outside pywebview", () => {
-    render(SettingsView, { language: "en" });
+    render(SettingsView, { language: "en", journal: JOURNAL });
     expect(screen.getByText("Loading the settings…")).toBeInTheDocument();
   });
 });

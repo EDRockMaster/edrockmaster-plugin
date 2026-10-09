@@ -27,9 +27,11 @@ def live_view(  # noqa: PLR0913 - one argument per part of the view
     journal_file: Path | None,
     situation: Situation,
     engineering: dict[str, Any],
+    application_version: str,
 ) -> dict[str, Any]:
     return {
         "version": VERSION,
+        "application": {"version": application_version},
         "language": language,
         "current": current,
         "activities": [

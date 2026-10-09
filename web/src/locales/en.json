@@ -6,7 +6,7 @@
   "activity.reset": "Reset",
   "activity.running": "Session running",
   "app.loading": "Starting…",
-  "journal.missing": "No journal folder found. Set EDROCKMASTER_JOURNAL_DIR to the folder where the game writes its journal.",
+  "journal.missing": "No journal folder found: choose it in the settings.",
   "journal.waiting": "Waiting for the game's journal in {folder}",
   "journal.reading": "Reading {file}",
   "notice.reset": "Local data could not be read and was reset, see the log.",

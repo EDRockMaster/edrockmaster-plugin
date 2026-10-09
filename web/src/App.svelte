@@ -19,16 +19,15 @@
     if (view === null) void core()?.shown?.();
     view = next;
   });
-
-  function journalText(journal: LiveView["journal"]): string {
-    if (journal.folder === null) return t(language, "journal.missing");
-    if (journal.file === null) return t(language, "journal.waiting", { folder: journal.folder });
-    return t(language, "journal.reading", { file: journal.file });
-  }
 </script>
 
 <main lang={language}>
-  <h1>EDRockMaster</h1>
+  <header>
+    <h1>EDRockMaster</h1>
+    {#if view !== null}
+      <span class="version">{view.application.version}</span>
+    {/if}
+  </header>
   {#if view === null}
     <p>{t(language, "app.loading")}</p>
   {:else}
@@ -41,7 +40,9 @@
       </div>
     {/if}
     <SituationBanner situation={view.situation} {language} />
-    <p class="journal">{journalText(view.journal)}</p>
+    {#if view.journal.folder === null}
+      <p class="journal" role="status">{t(language, "journal.missing")}</p>
+    {/if}
     <div class="tabs" role="tablist" aria-label={t(language, "tab.label")}>
       {#each TABS as name (name)}
         <button
@@ -73,7 +74,7 @@
       {:else if tab === "blueprints"}
         <BlueprintsView engineering={view.engineering} {language} />
       {:else}
-        <SettingsView {language} />
+        <SettingsView {language} journal={view.journal} />
       {/if}
     </div>
   {/if}
@@ -83,10 +84,20 @@
   main {
     padding: var(--space-3);
   }
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+  }
   h1 {
-    margin: 0 0 var(--space-3);
+    margin: 0;
     font-size: 1.4rem;
     color: var(--colour-accent);
+  }
+  .version {
+    color: var(--colour-text-muted);
+    font-size: 0.85rem;
   }
   .notice {
     display: flex;

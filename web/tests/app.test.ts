@@ -35,7 +35,8 @@ describe("App", () => {
     expect(api.shown).toHaveBeenCalledOnce();
     expect(screen.getByRole("heading", { name: "Mining" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Trade" })).toBeInTheDocument();
-    expect(screen.getByText("Reading Journal.2026-10-08T014139.01.log")).toBeInTheDocument();
+    // The journal being read is told in the settings, not above the tabs
+    expect(screen.queryByText(/Reading Journal/)).not.toBeInTheDocument();
     // Mining runs, trade does not
     expect(screen.getAllByText("Session running")).toHaveLength(1);
   });
@@ -48,13 +49,23 @@ describe("App", () => {
     expect(document.querySelector("main")?.getAttribute("lang")).toBe("fr");
   });
 
-  it("says where the journal is awaited, or that none was found", () => {
+  it("shows its version beside its name", () => {
+    withCore();
+    render(App);
+    push(view());
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("EDRockMaster");
+    expect(screen.getByText("0.4.0-rc.1")).toBeInTheDocument();
+  });
+
+  it("says above the tabs only that no journal folder was found", () => {
     withCore();
     render(App);
     push(view({ journal: { folder: "C:/Journal", file: null } }));
-    expect(screen.getByText("Waiting for the game's journal in C:/Journal")).toBeInTheDocument();
+    expect(screen.queryByText(/Waiting for the game's journal/)).not.toBeInTheDocument();
     push(view({ journal: { folder: null, file: null } }));
-    expect(screen.getByText(/No journal folder found/)).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "No journal folder found: choose it in the settings.",
+    );
   });
 
   it("shows a notice about local data until dismissed", async () => {

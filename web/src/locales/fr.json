@@ -6,7 +6,7 @@
   "activity.reset": "Réinitialiser",
   "activity.running": "Session en cours",
   "app.loading": "Démarrage…",
-  "journal.missing": "Aucun dossier de journal trouvé. Indiquez dans EDROCKMASTER_JOURNAL_DIR le dossier où le jeu écrit son journal.",
+  "journal.missing": "Aucun dossier de journal trouvé : indiquez-le dans les réglages.",
   "journal.waiting": "En attente du journal du jeu dans {folder}",
   "journal.reading": "Lecture de {file}",
   "notice.reset": "Les données locales étaient illisibles et ont été réinitialisées, voir le journal de l'application.",

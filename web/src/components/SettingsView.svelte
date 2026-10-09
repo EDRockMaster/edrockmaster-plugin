@@ -1,6 +1,7 @@
 <script lang="ts">
   import { core } from "../lib/bridge";
   import { t, type Language } from "../lib/i18n";
+  import type { LiveView } from "../lib/live-view";
   import type { Settings } from "../lib/settings";
   import {
     ACTIVITIES,
@@ -10,7 +11,7 @@
     type Activity,
   } from "../lib/settings-form";
 
-  let { language }: { language: Language } = $props();
+  let { language, journal }: { language: Language; journal: LiveView["journal"] } = $props();
 
   let loaded = $state<Settings | null>(null);
   // Percentages are edited as text: empty means none
@@ -154,6 +155,13 @@
           ? t(language, "settings.journalNone")
           : t(language, "settings.journalInUse", { folder: loaded.journalFolderInUse })}
       </p>
+      {#if journal.folder !== null}
+        <p class="muted">
+          {journal.file === null
+            ? t(language, "journal.waiting", { folder: journal.folder })
+            : t(language, "journal.reading", { file: journal.file })}
+        </p>
+      {/if}
       <label class="line wide">
         {t(language, "settings.journalFolder")}
         <input bind:value={journalFolder} spellcheck="false" />
