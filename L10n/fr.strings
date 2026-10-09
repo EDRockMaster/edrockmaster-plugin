@@ -1,21 +1,5 @@
 /* French translations of EDRockMaster. Checked by tests/test_translations.py. */
 
-/* edmc/plugin.py: status bar message when the plugin fails */
-"EDRockMaster: internal error, see the EDMC log" = "EDRockMaster : erreur interne, voir le journal d'EDMC";
-
-/* edmc/plugin.py: status bar message after the settings dialog; fields = names of the fields */
-"Invalid entries ignored: {fields}" = "Saisies invalides ignorées : {fields}";
-
-/* ui/panel.py: button ending the current mining session */
-"Reset" = "Réinitialiser";
-
-/* ui/panel.py: button hiding a notice about the plugin's local data */
-"Dismiss" = "Ignorer";
-
-/* ui/panel_model.py: notice when the local database could not be read or opened (ADR 0018) */
-"Local data could not be read and was reset, see the EDMC log" = "Les données locales étaient illisibles et ont été réinitialisées, voir le journal d'EDMC";
-"Local data is unavailable until EDMC restarts, see the EDMC log" = "Les données locales sont indisponibles jusqu'au redémarrage d'EDMC, voir le journal d'EDMC";
-
 /* ui/mining_presenter.py: panel status */
 "No mining session" = "Aucune session de minage";
 "Mining" = "Minage en cours";
@@ -117,30 +101,6 @@
 "{tons} (1 transfer)" = "{tons} (1 transfert)";
 "{tons} ({count} transfers)" = "{tons} ({count} transferts)";
 
-/* ui/preferences.py: settings tab */
-"Prospector alerts" = "Alertes du prospecteur";
-"Alert when an asteroid holds at least this percentage. Leave empty for no alert." = "Alerte quand un astéroïde contient au moins ce pourcentage. Laisser vide pour ne pas être alerté.";
-"Minimum content" = "Teneur minimale";
-"Minimum remaining" = "Réserve minimale";
-"Low" = "Faible";
-"Medium" = "Moyenne";
-"High" = "Élevée";
-"Alert on cores (motherlodes)" = "Alerte sur les cores (filons-mères)";
-"Play a sound on alerts" = "Jouer un son lors des alertes";
-"Display" = "Affichage";
-"Activities shown" = "Activités affichées";
-"Show mining" = "Afficher le minage";
-"Show combat" = "Afficher le combat";
-"Show trade" = "Afficher le commerce";
-"Mode" = "Mode";
-"Last active activity" = "Dernière activité active";
-"All of them, stacked" = "Toutes, empilées";
-"Debugging" = "Débogage";
-"Record the journal (for bug reports)" = "Enregistrer le journal (pour signaler un bogue)";
-"Open recordings folder" = "Ouvrir le dossier des enregistrements";
-/* ui/preferences.py: the full build version, e.g. 0.3.0-rc.2 */
-"Version {version}" = "Version {version}";
-
 /* ui/commodity_names.py: commodity names, as the game shows them in French */
 "Alexandrite" = "Alexandrite";
 "Benitoite" = "Bénitoïte";
@@ -161,9 +121,6 @@
 "Silver" = "Argent";
 "Tritium" = "Tritium";
 "Void Opals" = "Opales du Néant";
-
-/* ui/preferences.py: activity shown on the panel (ADR 0017) */
-"Show engineering" = "Afficher l'ingénierie";
 
 /* ui/engineering_presenter.py: panel status */
 "Engineering" = "Ingénierie";
@@ -191,7 +148,6 @@
 "{module}: {effect}" = "{module} : {effect}";
 
 /* domain/engineering/catalogue.json: names of the game data (ADR 0017), English from EDCD/FDevIDs and EDCD/coriolis-data */
-
 /* catalogue: raw materials. Material names are the game's own (Name_Localised of a recorded journal) where known */
 "Antimony" = "Antimoine";
 "Arsenic" = "Arsenic";

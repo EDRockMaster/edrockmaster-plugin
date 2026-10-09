@@ -1,8 +1,8 @@
-"""Settings stored with EDMC's ``config``.
+"""Settings stored in a key-value store (``settings_file.py``), as the EDMC plugin stored them.
 
 Every key is prefixed with ``edrockmaster.``. Values are read one by one: an
 invalid value falls back to its own default and is logged, the others are kept.
-Numbers are stored as text, which every EDMC config back-end supports.
+Numbers are stored as text.
 
 The activities shown are stored with the activities the tab offered: one that
 a later version adds is shown until the player hides it.
@@ -47,8 +47,8 @@ _MINIMUM_CONTENTS = {
 }
 
 
-class EdmcConfig(Protocol):
-    """The part of EDMC's ``config`` object the plugin uses."""
+class ConfigStore(Protocol):
+    """What the settings need of a key-value store."""
 
     def get_str(self, key: str, /, *, default: str | None = None) -> str | None: ...
 
@@ -61,8 +61,8 @@ class _InvalidValueError(ValueError):
     pass
 
 
-class EdmcSettingsStore:
-    def __init__(self, config: EdmcConfig, logger: logging.Logger) -> None:
+class KeyValueSettingsStore:
+    def __init__(self, config: ConfigStore, logger: logging.Logger) -> None:
         self._config = config
         self._logger = logger
 

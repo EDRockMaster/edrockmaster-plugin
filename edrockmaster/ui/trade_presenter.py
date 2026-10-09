@@ -31,7 +31,7 @@ from edrockmaster.ui.panel_model import (
 )
 
 ROUTE_LABEL_LENGTH = 32
-"""Station names can be long: beyond this, a route would widen EDMC's window. A route
+"""Station names can be long: beyond this, a route would widen its block. A route
 too long names its destination only, then is cut."""
 
 # English source strings, translated at render time

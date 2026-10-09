@@ -1,1 +1,1 @@
-"""Ui layer of the EDRockMaster plugin."""
+"""Presenters of EDRockMaster Companion: notifications in, texts out."""

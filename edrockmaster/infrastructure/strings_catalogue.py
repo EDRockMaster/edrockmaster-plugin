@@ -1,8 +1,7 @@
 """Translations of the desktop application's core texts, from ``L10n/<language>.strings``.
 
-The plugin's presenters write English texts and translate them with ``tl()``;
-in EDMC, ``tl`` reads ``L10n/fr.strings``. The desktop application reads the
-same files (ADR 0020), until its views move to the interface's catalogues
+The presenters write English texts and translate them with ``tl()``, which
+reads ``L10n/<language>.strings``; the interface has its own catalogues
 (ADR 0021). Numbers are written as the language writes them.
 """
 

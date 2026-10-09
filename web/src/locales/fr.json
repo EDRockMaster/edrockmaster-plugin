@@ -57,7 +57,7 @@
   "engineering.shopping.empty": "Rien ne manque.",
   "engineering.shopping.item": "{count} (en stock : {held})",
   "engineering.inventory": "Inventaire",
-  "engineering.inventory.unknown": "L'inventaire s'affiche dès que le jeu se charge (ou qu'EDMC le donne).",
+  "engineering.inventory.unknown": "L'inventaire s'affiche dès que le jeu se charge.",
   "engineering.category.raw": "Bruts",
   "engineering.category.manufactured": "Manufacturés",
   "engineering.category.encoded": "Encodés",

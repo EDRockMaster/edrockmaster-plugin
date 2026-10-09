@@ -9,7 +9,7 @@ from edrockmaster.application.settings import DEFAULT_SETTINGS, DisplayMode, Dis
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.mining.journal import ContentLevel
 from edrockmaster.domain.mining.prospecting import AlertSettings
-from edrockmaster.infrastructure.settings_edmc import EdmcSettingsStore
+from edrockmaster.infrastructure.settings_store import KeyValueSettingsStore
 from tests.fakes import FakeConfig
 
 PAINITE = Commodity.from_symbol("painite")
@@ -33,26 +33,26 @@ CUSTOM = replace(
 
 
 def test_empty_config_yields_the_defaults() -> None:
-    assert EdmcSettingsStore(FakeConfig(), logger).load() == DEFAULT_SETTINGS
+    assert KeyValueSettingsStore(FakeConfig(), logger).load() == DEFAULT_SETTINGS
 
 
 def test_saved_settings_load_back_identical() -> None:
     config = FakeConfig()
-    EdmcSettingsStore(config, logger).save(CUSTOM)
-    assert EdmcSettingsStore(config, logger).load() == CUSTOM
+    KeyValueSettingsStore(config, logger).save(CUSTOM)
+    assert KeyValueSettingsStore(config, logger).load() == CUSTOM
 
 
 def test_keys_are_prefixed_and_versioned() -> None:
     config = FakeConfig()
-    EdmcSettingsStore(config, logger).save(CUSTOM)
+    KeyValueSettingsStore(config, logger).save(CUSTOM)
     assert all(key.startswith("edrockmaster.") for key in config.values)
     assert config.values["edrockmaster.settings_version"] == "1"
 
 
 def test_minimum_remaining_none_round_trips() -> None:
     config = FakeConfig()
-    EdmcSettingsStore(config, logger).save(DEFAULT_SETTINGS)
-    assert EdmcSettingsStore(config, logger).load().alerts.minimum_remaining is None
+    KeyValueSettingsStore(config, logger).save(DEFAULT_SETTINGS)
+    assert KeyValueSettingsStore(config, logger).load().alerts.minimum_remaining is None
 
 
 @pytest.mark.parametrize(
@@ -69,7 +69,7 @@ def test_minimum_remaining_none_round_trips() -> None:
 def test_invalid_thresholds_fall_back_to_the_defaults(
     key: str, value: str, caplog: pytest.LogCaptureFixture
 ) -> None:
-    store = EdmcSettingsStore(FakeConfig({key: value}), logger)
+    store = KeyValueSettingsStore(FakeConfig({key: value}), logger)
     with caplog.at_level(logging.WARNING):
         settings = store.load()
     assert settings.alerts.thresholds == DEFAULT_SETTINGS.alerts.thresholds
@@ -93,7 +93,7 @@ def test_invalid_thresholds_fall_back_to_the_defaults(
 )
 def test_each_invalid_value_falls_back_to_its_own_default(key: str, value: object) -> None:
     config = FakeConfig()
-    store = EdmcSettingsStore(config, logger)
+    store = KeyValueSettingsStore(config, logger)
     store.save(CUSTOM)
     config.values[key] = value
     settings = store.load()
@@ -104,7 +104,7 @@ def test_each_invalid_value_falls_back_to_its_own_default(key: str, value: objec
 
 def test_display_is_stored_as_text() -> None:
     config = FakeConfig()
-    EdmcSettingsStore(config, logger).save(CUSTOM)
+    KeyValueSettingsStore(config, logger).save(CUSTOM)
     assert config.values["edrockmaster.display.activities"] == '["combat"]'
     assert config.values["edrockmaster.display.mode"] == "stacked"
     assert (
@@ -117,7 +117,7 @@ def test_an_activity_the_tab_did_not_offer_is_shown() -> None:
     # Saved by 0.3.0, before trade existed: no list of the activities offered
     config = FakeConfig()
     config.values["edrockmaster.display.activities"] = '["combat"]'
-    display = EdmcSettingsStore(config, logger).load().display
+    display = KeyValueSettingsStore(config, logger).load().display
     assert display.activities == (Activity.COMBAT, Activity.TRADE, Activity.ENGINEERING)
 
 
@@ -125,7 +125,7 @@ def test_engineering_is_shown_to_players_who_chose_before_it_existed() -> None:
     config = FakeConfig()
     config.values["edrockmaster.display.activities"] = '["combat"]'
     config.values["edrockmaster.display.offered"] = '["mining", "combat", "trade"]'
-    display = EdmcSettingsStore(config, logger).load().display
+    display = KeyValueSettingsStore(config, logger).load().display
     assert display.activities == (Activity.COMBAT, Activity.ENGINEERING)
 
 
@@ -133,7 +133,7 @@ def test_an_activity_hidden_after_it_was_offered_stays_hidden() -> None:
     config = FakeConfig()
     config.values["edrockmaster.display.activities"] = '["combat"]'
     config.values["edrockmaster.display.offered"] = '["mining", "combat", "trade", "engineering"]'
-    display = EdmcSettingsStore(config, logger).load().display
+    display = KeyValueSettingsStore(config, logger).load().display
     assert display.activities == (Activity.COMBAT,)
 
 
@@ -141,5 +141,5 @@ def test_an_invalid_list_of_offered_activities_is_the_one_of_0_3_0() -> None:
     config = FakeConfig()
     config.values["edrockmaster.display.activities"] = '["mining"]'
     config.values["edrockmaster.display.offered"] = "trade"
-    display = EdmcSettingsStore(config, logger).load().display
+    display = KeyValueSettingsStore(config, logger).load().display
     assert display.activities == (Activity.MINING, Activity.TRADE, Activity.ENGINEERING)

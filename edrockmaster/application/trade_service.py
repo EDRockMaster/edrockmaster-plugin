@@ -9,7 +9,7 @@ from edrockmaster.domain.trade.session import TradeNotification, TradeStats, Tra
 
 
 class TradeService:
-    """Called on EDMC's main thread only; pure computation."""
+    """Called on the core thread only; pure computation."""
 
     def __init__(self, clock: Clock) -> None:
         self._clock = clock

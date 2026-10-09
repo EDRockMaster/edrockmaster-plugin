@@ -1,4 +1,4 @@
-"""Which build of the plugin is running (ADR 0016).
+"""Which build of the application is running (ADR 0016).
 
 The code carries the base version ``X.Y.Z`` only, the same for a candidate and for
 production (ADR 0012). The packaging writes ``edrockmaster/build.json`` into the zip,
@@ -56,7 +56,7 @@ class BuildInfo:
 
 
 def development_build(base_version: str) -> BuildInfo:
-    """The identity of a plugin run from a clone, or whose build file is unusable."""
+    """The identity of an application run from a clone, or whose build file is unusable."""
     return BuildInfo(version=f"{base_version}-dev", channel=Channel.DEV)
 
 
@@ -85,7 +85,7 @@ def parse_build_file(text: str, base_version: str) -> BuildInfo:
 
 
 def build_file_content(version: str, channel: str, commit: str, base_version: str) -> str:
-    """The build file the packaging writes; refused if the plugin would not accept it."""
+    """The build file the packaging writes; refused if the application would not accept it."""
     text = json.dumps({"version": version, "commit": commit, "channel": channel})
     parse_build_file(text, base_version)
     return text + "\n"

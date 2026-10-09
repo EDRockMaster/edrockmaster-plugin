@@ -1,1 +1,1 @@
-"""Infrastructure layer of the EDRockMaster plugin."""
+"""Infrastructure layer of EDRockMaster Companion."""

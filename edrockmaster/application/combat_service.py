@@ -14,7 +14,7 @@ from edrockmaster.domain.journal_reading import Entry
 
 
 class CombatService:
-    """Called on EDMC's main thread only; pure computation."""
+    """Called on the core thread only; pure computation."""
 
     def __init__(self, clock: Clock) -> None:
         self._clock = clock

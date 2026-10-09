@@ -78,7 +78,7 @@ export interface Situation {
  */
 export interface Engineering {
   /**
-   * False until the game or EDMC states the inventory.
+   * False until the game states the inventory.
    */
   inventoryKnown: boolean;
   materials: {

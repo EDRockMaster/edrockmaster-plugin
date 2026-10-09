@@ -1,1 +1,1 @@
-"""Application layer of the EDRockMaster plugin."""
+"""Application layer of EDRockMaster Companion."""

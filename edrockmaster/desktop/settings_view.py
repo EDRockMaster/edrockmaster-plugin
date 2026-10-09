@@ -1,7 +1,7 @@
 """The desktop application's settings view (ADR 0020, ADR 0021).
 
-The player's settings are the plugin's (alerts, sound, journal recordings, the
-activities shown), stored with the same keys (``settings.json``). The desktop
+The player's settings (alerts, sound, journal recordings, the activities shown)
+are stored in ``settings.json``, with the keys of the EDMC plugin. The
 application adds two of its own: the **language** of its texts (the system's
 by default), applied at once, and the **journal folder** when the game's is not
 where it is usually found, applied at the next start (reading another folder
@@ -23,7 +23,7 @@ from edrockmaster.application.settings import DisplaySettings, PluginSettings
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.mining.journal import ContentLevel
 from edrockmaster.domain.mining.prospecting import AlertSettings
-from edrockmaster.infrastructure.settings_edmc import EdmcConfig
+from edrockmaster.infrastructure.settings_store import ConfigStore
 from edrockmaster.ui.commodity_names import MINEABLE
 
 LANGUAGES = ("auto", "en", "fr")
@@ -49,9 +49,9 @@ class DesktopPreferences:
 
 
 class DesktopPreferencesStore:
-    """The desktop application's own settings, next to the plugin's in ``settings.json``."""
+    """The desktop application's own settings, next to the others in ``settings.json``."""
 
-    def __init__(self, config: EdmcConfig) -> None:
+    def __init__(self, config: ConfigStore) -> None:
         self._config = config
 
     def load(self) -> DesktopPreferences:
@@ -102,7 +102,7 @@ def settings_from_request(
         alerts=_alerts(alerts),
         sound_enabled=_bool(request, "sound"),
         record_journal=_bool(request, "recordJournal"),
-        # The desktop application shows every chosen activity: the plugin's mode is kept
+        # The application shows every chosen activity: the plugin's display mode is kept
         display=replace(current.display, activities=_activities(request.get("activities"))),
     )
     language = request.get("language")

@@ -40,7 +40,7 @@ type Notification = (
 
 
 class Companion:
-    """Called on EDMC's main thread only; the ports must not block."""
+    """Called on the core thread only; the ports must not block."""
 
     def __init__(  # noqa: PLR0913 - the ports of every activity
         self,

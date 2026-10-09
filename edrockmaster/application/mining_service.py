@@ -14,7 +14,7 @@ type MiningNotification = SessionNotification | ProspectorAlertRaised
 
 
 class MiningService:
-    """Called on EDMC's main thread only. Every call is pure computation; the
+    """Called on the core thread only. Every call is pure computation; the
     notifier must hand any slow work over to the I/O thread.
     """
 

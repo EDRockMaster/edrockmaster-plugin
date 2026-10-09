@@ -35,7 +35,7 @@ SHIP = {
 ENGINEERING_EVENTS = ("Materials", "EngineerProgress")
 COLLECTED = "MaterialCollected"
 DROPPED = {"StartUp"}
-"""Written by EDMC's recorder, not by the game."""
+"""Written by EDMC, which recorded the fixtures, not by the game."""
 
 
 def _entries(fixture: Path) -> list[dict[str, Any]]:

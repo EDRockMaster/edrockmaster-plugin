@@ -1,4 +1,4 @@
-"""Display names of the commodities the plugin knows before the journal names them."""
+"""Display names of the commodities the application knows before the journal names them."""
 
 from __future__ import annotations
 
