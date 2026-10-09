@@ -20,11 +20,16 @@ def template() -> str:
 
 
 def test_the_manifest_carries_the_identity_and_the_version() -> None:
-    identity = Identity("12345DamScan.EDRockMaster", 'CN=ABCD-1234 "x"', "DamScan & co")
+    identity = Identity(
+        "Nexagone.EDRockMasterCompanion",
+        'CN=ABCD-1234 "x"',
+        "DamScan & co",
+        "EDRockMaster Companion",
+    )
     root = ET.fromstring(packager.manifest(template(), identity, "0.4.3.0"))
     found = root.find(f"{FOUNDATION}Identity")
     assert found is not None
-    assert found.attrib["Name"] == "12345DamScan.EDRockMaster"
+    assert found.attrib["Name"] == "Nexagone.EDRockMasterCompanion"
     assert found.attrib["Publisher"] == 'CN=ABCD-1234 "x"'
     assert found.attrib["Version"] == "0.4.3.0"
     assert (
@@ -44,6 +49,7 @@ def test_a_development_identity_without_partner_center() -> None:
     identity = Identity.from_environment({"EDROCKMASTER_MSIX_NAME": ""})
     assert identity.name == "EDRockMaster.Development"
     assert identity.publisher.startswith("CN=")
+    assert identity.display_name == "EDRockMaster"
 
 
 @pytest.mark.parametrize("version", ["0.4.0", "0.4.3.1", "0.4.x.0", "v0.4.3.0"])

@@ -62,6 +62,7 @@ jobs:
           EDROCKMASTER_MSIX_NAME: ${{ vars.EDROCKMASTER_MSIX_NAME }}
           EDROCKMASTER_MSIX_PUBLISHER: ${{ vars.EDROCKMASTER_MSIX_PUBLISHER }}
           EDROCKMASTER_MSIX_PUBLISHER_NAME: ${{ vars.EDROCKMASTER_MSIX_PUBLISHER_NAME }}
+          EDROCKMASTER_MSIX_DISPLAY_NAME: ${{ vars.EDROCKMASTER_MSIX_DISPLAY_NAME }}
         run: >
           uv run python scripts/package_desktop.py
           "${{ steps.plan.outputs.build_version }}"
