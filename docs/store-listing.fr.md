@@ -4,14 +4,14 @@
 
 Les textes à saisir dans Partner Center pour la fiche du Store (ADR 0022), gardés ici pour évoluer avec l'application. La fiche anglaise est dans [store-listing.md](store-listing.md).
 
-**Avant la première soumission** : l'application doit avoir un écran de réglages (seuils d'alerte, activités affichées, enregistrements du journal), que la fiche décrit ; aujourd'hui, seul le plugin, dans EDMC, en a un. Le contact du support doit être défini, ici et dans la politique de confidentialité.
+**Avant la première soumission** : l'application doit avoir un écran de réglages (seuils d'alerte, activités affichées, enregistrements du journal), que la fiche décrit ; aujourd'hui, seul le plugin, dans EDMC, en a un.
 
 ## Propriétés
 
 - **Catégorie** : Utilitaires + outils (sans sous-catégorie) ; **catégorie secondaire** : Divertissement.
 - **Adresse de la politique de confidentialité** : https://github.com/EDRockMaster/edrockmaster-plugin/blob/main/docs/privacy.fr.md (en attendant qu'edrm.space l'héberge).
 - **Site web** : https://github.com/EDRockMaster/edrockmaster-plugin
-- **Contact du support** : [CONTACT À DÉFINIR].
+- **Contact du support** : contact@edrm.space.
 - **Informations personnelles** : *oui*, l'application accède à des informations personnelles : elle lit le journal du jeu, qui nomme le commandant et d'autres joueurs ; elle les garde sur l'ordinateur et n'envoie rien (voir la politique de confidentialité).
 - **Configuration requise** : Windows 10 version 21H1 ou Windows 11, 64 bits ; Elite Dangerous sur le même ordinateur.
 

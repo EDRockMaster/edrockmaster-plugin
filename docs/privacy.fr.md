@@ -52,7 +52,7 @@ L'application s'adresse aux joueurs d'Elite Dangerous, classé PEGI 7 / ESRB Tee
 
 ## Contact
 
-Questions sur cette politique : [CONTACT À DÉFINIR AVANT PUBLICATION]. Code source : [github.com/EDRockMaster/edrockmaster-plugin](https://github.com/EDRockMaster/edrockmaster-plugin).
+Questions sur cette politique : [contact@edrm.space](mailto:contact@edrm.space). Code source : [github.com/EDRockMaster/edrockmaster-plugin](https://github.com/EDRockMaster/edrockmaster-plugin).
 
 ## Modifications
 
