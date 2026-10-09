@@ -78,6 +78,43 @@ def test_the_window_shows_the_interface_and_receives_the_live_view(
     assert view["journal"]["folder"] == str(tmp_path / "journal")
 
 
+def test_the_demo_reads_a_sample_journal_and_keeps_the_player_s_data(
+    tmp_path: Path, interface: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    gui = FakeGui()
+    environ = {"EDROCKMASTER_JOURNAL_DIR": str(tmp_path / "journal")}
+    data = tmp_path / "data"
+    with caplog.at_level(logging.INFO):
+        assert main(["--demo"], environ, gui, data) == 0  # type: ignore[arg-type]
+    prefix = "window.edrm && window.edrm.receive("
+    view = json.loads(gui.window.scripts[0][len(prefix) : -1])
+    demo = Path(view["journal"]["folder"]).parent
+    assert demo.name.startswith("edrockmaster-demo-")
+    assert not demo.exists()  # deleted at exit
+    # The settings saved during the demo were not the player's
+    assert sorted(path.name for path in data.iterdir()) == ["logs"]
+    assert "Demo mode (" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("argument", "language"), [("--demo=en", "en"), ("--demo=fr", "fr"), ("--demo=de", None)]
+)
+def test_the_demo_in_a_language(
+    tmp_path: Path,
+    interface: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    argument: str,
+    language: str | None,
+) -> None:
+    monkeypatch.setattr(window_module, "system_language", lambda: "fr")
+    gui = FakeGui()
+    assert main([argument], {}, gui, tmp_path / "data") == 0  # type: ignore[arg-type]
+    prefix = "window.edrm && window.edrm.receive("
+    view = json.loads(gui.window.scripts[0][len(prefix) : -1])
+    assert view["language"] == (language or "fr")  # the system's when not one the application has
+    assert "edrockmaster-demo-" in view["journal"]["folder"]
+
+
 def test_debug_on_request(tmp_path: Path, interface: Path) -> None:
     gui = FakeGui()
     main(["--debug"], {}, gui, tmp_path / "data")  # type: ignore[arg-type]

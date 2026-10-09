@@ -92,6 +92,23 @@ jobs:
           grep -q "The interface is ready" "$log"
           ! grep -E "ERROR|Traceback" "$log"
 
+      - name: Smoke test of the demo
+        # The demo journal is packaged, and read instead of the player's
+        run: |
+          ./dist-desktop/pyinstaller/EDRockMaster/EDRockMaster.exe --demo &
+          log="$(cygpath -u "$LOCALAPPDATA")/EDRockMaster/logs/edrockmaster.log"
+          for _ in $(seq 1 60); do
+            [ "$(grep -c "The interface is ready" "$log")" -ge 2 ] && break
+            sleep 1
+          done
+          sleep 3
+          taskkill //F //IM EDRockMaster.exe || true
+          cat "$log"
+          grep -q "Demo mode: a sample journal" "$log"
+          [ "$(grep -c "Reading the journal from Journal." "$log")" -ge 2 ]
+          [ "$(grep -c "The interface is ready" "$log")" -ge 2 ]
+          ! grep -E "ERROR|Traceback" "$log"
+
       - name: Keep the packages
         uses: actions/upload-artifact@v7
         with:

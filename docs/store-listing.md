@@ -87,3 +87,5 @@ EDRockMaster Companion is free software, under the GNU General Public License ve
 ## Screenshots
 
 At least one, 1366 × 768 or larger, in English and in French: the activities during a session; the engineering tab with goals; the situation banner.
+
+Take them in the **demo** (`EDRockMaster.exe --demo=en`, then `--demo=fr`, from the portable zip): a mining session in progress, under the fictional Commander Jameson, with no player's name. Add two or three goals in the *Engineering* tab, and capture the window alone (Alt + Print Screen) at about 1366 × 768 or 1920 × 1080.
