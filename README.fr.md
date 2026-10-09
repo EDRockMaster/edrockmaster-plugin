@@ -22,7 +22,7 @@ Demande EDMC 6.1 ou plus récent.
 - **Paramètres → EDRockMaster** : seuil d'alerte par commodité (vide : pas d'alerte), teneur minimale, réserve minimale, cores, son.
 - **Enregistreur du journal** (même onglet, désactivé par défaut) : enregistre les événements du journal reçus par le plugin dans des fichiers JSONL. *Ouvrir le dossier des enregistrements* les affiche ; en joindre un à un signalement de bogue. L'onglet se termine par la version complète du plugin (par exemple `0.3.0-rc.2`) : la citer aussi.
 
-Les changements de chaque version : [journal des modifications](CHANGELOG.fr.md).
+Les changements de chaque version : [journal des modifications](CHANGELOG.fr.md). Confidentialité : [politique de confidentialité](docs/privacy.fr.md) (rien n'est envoyé nulle part).
 
 ## Structure
 
