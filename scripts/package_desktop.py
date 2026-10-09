@@ -96,8 +96,9 @@ def msix_layout(app: Path, assets: Path, manifest_text: str, layout: Path) -> Pa
         shutil.rmtree(layout)
     shutil.copytree(app, layout / APP_FOLDER)
     (layout / "assets").mkdir(parents=True)
-    for name in ("Square44x44Logo.png", "Square150x150Logo.png", "StoreLogo.png"):
-        shutil.copy2(assets / name, layout / "assets" / name)
+    # The package's logos (every size); not the Store listing's images, uploaded apart
+    for path in sorted(assets.glob("*.png")):
+        shutil.copy2(path, layout / "assets" / path.name)
     (layout / "AppxManifest.xml").write_text(manifest_text, encoding="utf-8")
     return layout
 

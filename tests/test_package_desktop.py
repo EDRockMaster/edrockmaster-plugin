@@ -86,13 +86,16 @@ def test_the_msix_layout(tmp_path: Path) -> None:
         for path in layout.rglob("*")
         if path.is_file()
     )
-    assert found == [
-        "AppxManifest.xml",
-        "EDRockMaster/EDRockMaster.exe",
+    assert found[:2] == ["AppxManifest.xml", "EDRockMaster/EDRockMaster.exe"]
+    logos = [name for name in found if name.startswith("assets/")]
+    assert {
         "assets/Square150x150Logo.png",
         "assets/Square44x44Logo.png",
         "assets/StoreLogo.png",
-    ]
+    } <= set(logos)
+    assert "assets/Square44x44Logo.targetsize-16_altform-unplated.png" in logos
+    # The Store listing's images are uploaded apart, not packaged
+    assert not any("store" in name for name in found)
 
 
 def test_makeappx_is_the_newest_of_the_sdk(tmp_path: Path) -> None:
@@ -108,12 +111,32 @@ def test_makeappx_is_the_newest_of_the_sdk(tmp_path: Path) -> None:
 def test_icons_in_every_size_the_package_asks(tmp_path: Path) -> None:
     written = icons.write(tmp_path)
     sizes = {path.name: Image.open(path).size for path in written if path.suffix == ".png"}
-    assert sizes == {
-        "Square44x44Logo.png": (44, 44),
-        "Square150x150Logo.png": (150, 150),
-        "StoreLogo.png": (50, 50),
-    }
+    assert sizes["Square44x44Logo.png"] == (44, 44)
+    assert sizes["Square150x150Logo.png"] == (150, 150)
+    assert sizes["StoreLogo.png"] == (50, 50)
+    for size in (16, 24, 32, 48, 256):
+        assert sizes[f"Square44x44Logo.targetsize-{size}.png"] == (size, size)
+        unplated = Image.open(tmp_path / f"Square44x44Logo.targetsize-{size}_altform-unplated.png")
+        corner = unplated.getpixel((0, 0))
+        assert isinstance(corner, tuple)
+        assert corner[3] == 0  # the rock alone, on a transparent background
     assert (tmp_path / "EDRockMaster.ico").stat().st_size > 0
+
+
+def test_the_store_listing_s_images(tmp_path: Path) -> None:
+    icons.write(tmp_path)
+    store = tmp_path / "store"
+    assert {path.name: Image.open(path).size for path in store.glob("*.png")} == {
+        "app-tile-300.png": (300, 300),
+        "box-art-1080.png": (1080, 1080),
+        "box-art-2160.png": (2160, 2160),
+        "poster-720x1080.png": (720, 1080),
+    }
+
+
+def test_a_font_is_always_found(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(icons, "FONTS", ("/nowhere/font.ttf",))
+    assert icons._font(20) is not None
 
 
 def test_icons_usage(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
