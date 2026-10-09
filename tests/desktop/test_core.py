@@ -58,6 +58,7 @@ class Desktop:
             language=language,
             logger=logger,
             poll_interval=0.01,
+            usual_journal_folder=lambda: None,
         )
 
 
@@ -326,3 +327,70 @@ def test_the_goal_form_s_catalogue_once_started(tmp_path: Path) -> None:
         desktop.core.stop()
     with pytest.raises(RuntimeError, match="not started"):
         Desktop(tmp_path, None).core._require_names()
+
+
+# Settings (ADR 0020)
+
+
+def test_settings_saved_from_the_interface_apply_and_are_kept(tmp_path: Path) -> None:
+    desktop = Desktop(tmp_path, None)
+    desktop.core.start()
+    try:
+        desktop.core.ready()
+        desktop.views.wait_for(lambda v: v["language"] == "en")
+        request = desktop.core.settings()
+        request.update(activities=["engineering"], language="fr", sound=False)
+        desktop.core.save_settings(request)
+        view = desktop.views.wait_for(lambda v: v["language"] == "fr")
+        assert [block["activity"] for block in view["activities"]] == ["engineering"]
+        assert blocks(view)["engineering"]["status"] == "Aucune session d'ingénierie"
+        assert desktop.core.catalogue()["modules"][0]["name"] != ""
+        assert desktop.core.settings()["language"] == "fr"
+    finally:
+        desktop.core.stop()
+    stored = json.loads((tmp_path / "data" / "settings.json").read_text(encoding="utf-8"))
+    assert stored["edrockmaster.desktop.language"] == "fr"
+    assert stored["edrockmaster.sound"] is False
+
+
+def test_invalid_settings_are_logged_and_change_nothing(
+    desktop: Desktop, caplog: pytest.LogCaptureFixture
+) -> None:
+    desktop.core.ready()
+    request = desktop.core.settings()
+    with caplog.at_level(logging.WARNING):
+        desktop.core.save_settings({**request, "language": "de"})
+        desktop.core.save_settings({**request, "sound": False})
+        desktop.views.wait_for(lambda v: True)
+    assert "Settings refused: language" in caplog.text
+
+
+def test_the_journal_folder_of_the_settings_is_used_from_the_next_start(
+    tmp_path: Path, journal: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    first = Desktop(tmp_path, None)
+    first.core.start()
+    try:
+        first.core.ready()
+        request = first.core.settings()
+        assert request["journalFolderInUse"] is None
+        with caplog.at_level(logging.INFO):
+            first.core.save_settings({**request, "journalFolder": str(journal)})
+            first.views.wait_for(lambda v: True)
+            first.core.stop()
+    finally:
+        first.core.stop()
+    assert "used from the next start" in caplog.text
+    write_journal(journal, TRADE, chunk=10_000)
+    second = Desktop(tmp_path, None)
+    second.core.start()
+    try:
+        second.core.ready()
+        second.views.wait_for(lambda v: v["journal"]["folder"] == str(journal))
+    finally:
+        second.core.stop()
+
+
+def test_settings_before_start_are_refused(tmp_path: Path) -> None:
+    with pytest.raises(RuntimeError, match="not started"):
+        Desktop(tmp_path, None).core.settings()

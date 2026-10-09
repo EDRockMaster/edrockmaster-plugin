@@ -24,7 +24,7 @@ from typing import Any
 import webview
 
 from edrockmaster.desktop.core import DesktopCore, Push
-from edrockmaster.desktop.journal_folder import default_journal_folder, environment_override
+from edrockmaster.desktop.journal_folder import environment_override
 from edrockmaster.infrastructure.paths import data_directory
 from edrockmaster.infrastructure.strings_catalogue import system_language
 
@@ -66,6 +66,13 @@ class InterfaceApi:
 
     def remove_goal(self, goal_id: str) -> None:
         self._core.remove_goal(goal_id)
+
+    def settings(self) -> dict[str, Any]:
+        """Returned to the page: what the settings form shows."""
+        return self._core.settings()
+
+    def save_settings(self, request: dict[str, Any]) -> None:
+        self._core.save_settings(request)
 
 
 class _Window:
@@ -122,7 +129,8 @@ def main(
     if not INTERFACE.is_file():
         logger.error("The interface is not built: run 'pnpm build' in web/ (%s missing)", INTERFACE)
         return 1
-    folder = environment_override(environ) or default_journal_folder()
+    # The usual folder and the one the settings name are the core's to find
+    folder = environment_override(environ)
     window = _Window()
     push: Push = window.push
     core = DesktopCore(

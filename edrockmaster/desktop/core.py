@@ -31,8 +31,16 @@ from edrockmaster.desktop.engineering_view import (
     goal_from_request,
     with_count,
 )
+from edrockmaster.desktop.journal_folder import default_journal_folder
 from edrockmaster.desktop.journal_reader import POLL_SECONDS, JournalFollower, JournalWatcher
 from edrockmaster.desktop.live_view import live_view
+from edrockmaster.desktop.settings_view import (
+    DesktopPreferences,
+    DesktopPreferencesStore,
+    SettingsError,
+    settings_from_request,
+    settings_view,
+)
 from edrockmaster.domain.engineering.goals import GoalId
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.infrastructure.build_file import load_build
@@ -78,18 +86,27 @@ class DesktopCore:
         logger: logging.Logger,
         clock: Clock | None = None,
         poll_interval: float = POLL_SECONDS,
+        usual_journal_folder: Callable[[], Path | None] = default_journal_folder,
     ) -> None:
+        """``journal_folder``: set by the environment, before the settings' and the usual one;
+        ``language``: the system's, unless the settings choose another."""
         self._data = data_directory
-        self._journal_folder = journal_folder
+        self._journal_override = journal_folder
+        self._usual_journal_folder = usual_journal_folder
+        self._journal_folder: Path | None = journal_folder
         self._push = push
+        self._system_language = language
         self._language = language
         self._logger = logger
         self._clock = clock or SystemClock()
         self._poll_interval = poll_interval
         self._io = IoWorker(logger)
         self._core = IoWorker(logger, CORE_THREAD)
-        self._tl = translator(language)
-        self._presenter = ActivityPresenter(self._tl, number_format(language))
+        self._translations = translator(language)
+        self._number_format = number_format(language)
+        self._presenter = ActivityPresenter(self._tl, self._format_number)
+        self._preferences = DesktopPreferences()
+        self._preferences_store: DesktopPreferencesStore | None = None
         self._companion: Companion | None = None
         self._database: LocalDatabase | None = None
         self._follower: JournalFollower | None = None
@@ -112,6 +129,15 @@ class DesktopCore:
 
     def start(self) -> None:
         build = self.build
+        config = JsonFileConfig(self._data / SETTINGS_FILE_NAME, self._io.submit, self._logger)
+        store = self._preferences_store = DesktopPreferencesStore(config)
+        preferences = self._preferences = store.load()
+        self._set_language(preferences.language)
+        self._journal_folder = (
+            self._journal_override
+            or (Path(preferences.journal_folder) if preferences.journal_folder else None)
+            or self._usual_journal_folder()
+        )
         self._logger.info(
             "EDRockMaster %s (%s, commit %s) starting, journal in %s",
             build.version,
@@ -125,10 +151,7 @@ class DesktopCore:
         self._io.submit(lambda: self._opened(database.open()))
         catalogue = load_catalogue()
         companion = self._companion = Companion(
-            settings_store=EdmcSettingsStore(
-                JsonFileConfig(self._data / SETTINGS_FILE_NAME, self._io.submit, self._logger),
-                self._logger,
-            ),
+            settings_store=EdmcSettingsStore(config, self._logger),
             notifier=SoundNotifier(_alert_sound, self._logger),
             recorder=JsonlJournalRecorder(
                 self._data / "recordings", self._io.submit, self._clock.now(), build.version
@@ -140,7 +163,7 @@ class DesktopCore:
         names = self._names = EngineeringNames(catalogue, self._tl, companion.engineering.name_of)
         self._catalogue_view = catalogue_view(catalogue, EngineeringNames(catalogue, self._tl))
         self._presenter = ActivityPresenter(
-            self._tl, number_format(self._language), companion.settings.display, names
+            self._tl, self._format_number, companion.settings.display, names
         )
         companion.engineering.load_goals(self._apply)
         if self._journal_folder is not None:
@@ -197,6 +220,38 @@ class DesktopCore:
 
     def dismiss_notice(self) -> None:
         self._core.submit(lambda: self._set_notice(None))
+
+    # Settings
+
+    def settings(self) -> dict[str, Any]:
+        """What the settings form shows. Reads immutable objects only: any thread."""
+        return settings_view(
+            self._require_companion().settings,
+            self._preferences,
+            self._journal_folder,
+            self._tl,
+        )
+
+    def save_settings(self, request: Mapping[str, Any]) -> None:
+        def save() -> None:
+            companion = self._require_companion()
+            try:
+                settings, preferences = settings_from_request(request, companion.settings)
+            except SettingsError as error:
+                self._logger.warning("Settings refused: %s", error)
+                return
+            companion.change_settings(settings)
+            if preferences != self._preferences:
+                assert self._preferences_store is not None, "created at start, with the companion"
+                self._preferences_store.save(preferences)
+                if preferences.journal_folder != self._preferences.journal_folder:
+                    self._logger.info("Journal folder set, used from the next start")
+                self._preferences = preferences
+                self._set_language(preferences.language)
+            self._presenter.configure(settings.display)
+            self._send()
+
+        self._core.submit(save)
 
     # Engineering goals (ADR 0017)
 
@@ -296,6 +351,25 @@ class DesktopCore:
             self._push(view)
         except Exception:
             self._logger.exception("Could not send the live view to the interface")
+
+    # Language: the presenters translate through these, so that a change applies at once
+
+    def _tl(self, text: str) -> str:
+        return self._translations(text)
+
+    def _format_number(self, number: float, decimals: int) -> str:
+        return self._number_format(number, decimals)
+
+    def _set_language(self, choice: str) -> None:
+        language = self._system_language if choice == "auto" else choice
+        if language == self._language and self._catalogue_view is not None:
+            return
+        self._language = language
+        self._translations = translator(language)
+        self._number_format = number_format(language)
+        if self._companion is not None:
+            catalogue = self._companion.engineering.catalogue
+            self._catalogue_view = catalogue_view(catalogue, EngineeringNames(catalogue, self._tl))
 
     def _require_names(self) -> EngineeringNames:
         if self._names is None:
