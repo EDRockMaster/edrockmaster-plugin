@@ -145,7 +145,8 @@ def _ingredients(
 
 
 def catalogue_view(catalogue: Catalogue, names: EngineeringNames) -> dict[str, Any]:
-    """What the goal form offers: module types, their blueprints with grades, their effects."""
+    """What the goal form and the blueprints tab offer: module types, their blueprints with
+    each grade's ingredients and engineers, their effects with their ingredients."""
     modules: list[dict[str, Any]] = []
     for key, module in catalogue.modules.items():
         blueprints: list[dict[str, Any]] = [
@@ -153,12 +154,29 @@ def catalogue_view(catalogue: Catalogue, names: EngineeringNames) -> dict[str, A
                 "name": name,
                 "title": names.blueprint(name),
                 "grades": sorted(module.offers[name]),
+                "recipes": [
+                    {
+                        "grade": grade,
+                        "ingredients": _recipe(
+                            catalogue.blueprints[name].grades.get(grade, {}), names
+                        ),
+                        "engineers": list(module.offers[name][grade]),
+                    }
+                    for grade in sorted(module.offers[name])
+                ],
             }
             for name in module.offers
             if name in catalogue.blueprints
         ]
         effects: list[dict[str, Any]] = [
-            {"name": name, "title": names.effect(name)} for name in module.effects
+            {
+                "name": name,
+                "title": names.effect(name),
+                "ingredients": _recipe(catalogue.effects[name].ingredients, names)
+                if name in catalogue.effects
+                else [],
+            }
+            for name in module.effects
         ]
         modules.append(
             {
@@ -172,6 +190,13 @@ def catalogue_view(catalogue: Catalogue, names: EngineeringNames) -> dict[str, A
         "date": catalogue.date,
         "modules": sorted(modules, key=lambda row: row["name"].casefold()),
     }
+
+
+def _recipe(ingredients: Ingredients, names: EngineeringNames) -> list[dict[str, Any]]:
+    return [
+        {"symbol": row["symbol"], "name": row["name"], "count": row["count"]}
+        for row in _ingredients(ingredients, {}, names)
+    ]
 
 
 def goal_from_request(request: Mapping[str, Any], catalogue: Catalogue) -> Goal:

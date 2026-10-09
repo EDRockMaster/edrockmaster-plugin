@@ -172,6 +172,28 @@ def test_the_goal_form_s_catalogue(service: EngineeringService) -> None:
     assert any(effect["name"] == "special_fsd_heavy" for effect in fsd["effects"])
 
 
+def test_the_catalogue_s_recipes_for_the_blueprints_tab(service: EngineeringService) -> None:
+    built = catalogue_view(CATALOGUE, names(service))
+    pd = next(module for module in built["modules"] if module["key"] == "pd")
+    high_capacity = next(
+        b for b in pd["blueprints"] if b["name"] == "PowerDistributor_HighCapacity"
+    )
+    recipes = {recipe["grade"]: recipe for recipe in high_capacity["recipes"]}
+    assert sorted(recipes) == high_capacity["grades"]
+    # Grade 2: one Specialised Legacy Firmware and one Chromium a roll
+    assert {row["symbol"]: row["count"] for row in recipes[2]["ingredients"]} == {
+        "chromium": 1,
+        "legacyfirmware": 1,
+    }
+    marco_qwent = next(i for i, name in CATALOGUE.engineers.items() if name == "Marco Qwent")
+    assert marco_qwent in recipes[2]["engineers"]
+    assert marco_qwent not in recipes[5]["engineers"]  # up to grade 4
+    fsd = next(module for module in built["modules"] if module["key"] == "fsd")
+    mass_manager = next(e for e in fsd["effects"] if e["name"] == "special_fsd_heavy")
+    assert mass_manager["ingredients"]
+    assert all(row["name"] and row["count"] >= 1 for row in mass_manager["ingredients"])
+
+
 def test_a_goal_from_the_form() -> None:
     goal = goal_from_request(
         {"kind": "blueprint", "module": "fsd", "name": "FSD_LongRange", "grade": 5, "count": 4},
