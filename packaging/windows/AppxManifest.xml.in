@@ -12,7 +12,7 @@
   <Identity Name="{name}" Publisher="{publisher}" Version="{version}" ProcessorArchitecture="x64" />
 
   <Properties>
-    <DisplayName>EDRockMaster</DisplayName>
+    <DisplayName>{display_name}</DisplayName>
     <PublisherDisplayName>{publisher_name}</PublisherDisplayName>
     <Logo>assets\StoreLogo.png</Logo>
     <!-- The data stays in %LOCALAPPDATA%\EDRockMaster, shared with the EDMC plugin and kept on
@@ -38,7 +38,7 @@
   <Applications>
     <Application Id="EDRockMaster" Executable="EDRockMaster\EDRockMaster.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
-        DisplayName="EDRockMaster"
+        DisplayName="{display_name}"
         Description="Elite Dangerous companion: mining, combat, trade and engineering, live from the game journal."
         BackgroundColor="transparent"
         Square150x150Logo="assets\Square150x150Logo.png"

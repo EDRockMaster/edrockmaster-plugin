@@ -12,7 +12,9 @@ reserved; a development identity is used without it:
 
 - ``EDROCKMASTER_MSIX_NAME``: Package/Identity/Name;
 - ``EDROCKMASTER_MSIX_PUBLISHER``: Package/Identity/Publisher (``CN=…``);
-- ``EDROCKMASTER_MSIX_PUBLISHER_NAME``: Package/Properties/PublisherDisplayName.
+- ``EDROCKMASTER_MSIX_PUBLISHER_NAME``: Package/Properties/PublisherDisplayName;
+- ``EDROCKMASTER_MSIX_DISPLAY_NAME``: the name reserved in Partner Center, which the Store
+  requires as the package's display name (EDRockMaster without it).
 
 Usage: python scripts/package_desktop.py <version> <channel> <msix version> [<dist>]
 """
@@ -52,6 +54,7 @@ class Identity:
     name: str
     publisher: str
     publisher_name: str
+    display_name: str = "EDRockMaster"
 
     @classmethod
     def from_environment(cls, environ: Mapping[str, str]) -> Identity:
@@ -59,6 +62,7 @@ class Identity:
             environ.get("EDROCKMASTER_MSIX_NAME") or "EDRockMaster.Development",
             environ.get("EDROCKMASTER_MSIX_PUBLISHER") or "CN=EDRockMaster Development",
             environ.get("EDROCKMASTER_MSIX_PUBLISHER_NAME") or "EDRockMaster (development)",
+            environ.get("EDROCKMASTER_MSIX_DISPLAY_NAME") or "EDRockMaster",
         )
 
 
@@ -71,6 +75,7 @@ def manifest(template: str, identity: Identity, msix_version: str) -> str:
         name=escape(identity.name, {'"': "&quot;"}),
         publisher=escape(identity.publisher, {'"': "&quot;"}),
         publisher_name=escape(identity.publisher_name),
+        display_name=escape(identity.display_name, {'"': "&quot;"}),
         version=msix_version,
     )
 
