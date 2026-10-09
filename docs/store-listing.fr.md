@@ -87,3 +87,5 @@ EDRockMaster Companion est un logiciel libre, sous licence publique générale G
 ## Captures d'écran
 
 Au moins une, en 1366 × 768 ou plus, en français et en anglais : les activités pendant une session ; l'onglet Ingénierie avec des objectifs ; le bandeau de situation.
+
+À prendre dans la **démo** (`EDRockMaster.exe --demo=fr`, puis `--demo=en`, depuis le zip portable) : une session de minage en cours, sous le nom du commandant fictif Jameson, sans nom de joueur. Ajouter deux ou trois objectifs dans l'onglet *Ingénierie*, et capturer la fenêtre seule (Alt + Impr. écran) vers 1366 × 768 ou 1920 × 1080.
