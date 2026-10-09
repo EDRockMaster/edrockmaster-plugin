@@ -137,6 +137,56 @@ def test_an_unreadable_file_is_logged(
     assert "locked" in caplog.text
 
 
+CARGO_AT = "2026-10-08T01:42:20Z"
+INVENTORY = [{"Name": "painite", "Name_Localised": "Painite", "Count": 12, "Stolen": 0}]
+
+
+def cargo_file(journal: Journal, timestamp: str = CARGO_AT, vessel: str = "Ship") -> None:
+    content = {"timestamp": timestamp, "event": "Cargo", "Vessel": vessel, "Count": 12}
+    (journal.directory / "Cargo.json").write_text(
+        json.dumps({**content, "Inventory": INVENTORY}), encoding="utf-8"
+    )
+
+
+def test_the_ship_s_cargo_comes_from_cargo_json_as_edmc_added_it(tmp_path: Path) -> None:
+    handed: list[Entry] = []
+    follower = JournalFollower(tmp_path, lambda entry, _beta: handed.append(entry), logger)
+    journal = Journal(tmp_path)
+    cargo_file(journal)
+    # Since 3.3, the journal's Cargo event lists the cargo only at load: the rest is in Cargo.json
+    journal.write(FIRST, line("Cargo", Vessel="Ship", Count=12))
+    follower.poll()
+    assert handed[0]["Inventory"] == INVENTORY
+    assert handed[0]["Count"] == 12
+
+
+@pytest.mark.parametrize(
+    ("event", "cargo"),
+    [
+        # An older event, read at start: Cargo.json describes a later one
+        (line("Cargo", Vessel="Ship", Count=3).replace(CARGO_AT, "2026-10-08T01:00:00Z"), "ship"),
+        # The SRV's cargo is not the ship's
+        (line("Cargo", Vessel="SRV", Count=2), "srv"),
+        # The event already lists it: the file is not needed
+        (line("Cargo", Vessel="Ship", Count=1, Inventory=[]), "ship"),
+        # No file, or not one the game wrote
+        (line("Cargo", Vessel="Ship", Count=12), "missing"),
+        (line("Cargo", Vessel="Ship", Count=12), "invalid"),
+    ],
+)
+def test_otherwise_the_cargo_event_is_left_as_it_is(tmp_path: Path, event: str, cargo: str) -> None:
+    handed: list[Entry] = []
+    follower = JournalFollower(tmp_path, lambda entry, _beta: handed.append(entry), logger)
+    journal = Journal(tmp_path)
+    if cargo in {"ship", "srv"}:
+        cargo_file(journal, vessel="SRV" if cargo == "srv" else "Ship")
+    elif cargo == "invalid":
+        (tmp_path / "Cargo.json").write_text("[1, 2", encoding="utf-8")
+    journal.write(FIRST, event)
+    follower.poll()
+    assert handed == [json.loads(event)]
+
+
 def test_the_watcher_polls_on_its_own_thread_until_stopped(journal: Journal) -> None:
     seen = threading.Event()
     threads: list[str] = []

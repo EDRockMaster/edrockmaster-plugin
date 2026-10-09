@@ -7,6 +7,12 @@ that it reaches the same figures as if it had run since the game started. When
 the game opens a newer file (a new session, or the next part of a long one), the
 follower finishes the current one, then follows the newer from its beginning.
 
+Since the game's 3.3, the journal's ``Cargo`` event lists the ship's cargo only
+at load; afterwards the list is in ``Cargo.json``, next to the journal. EDMC
+added it to the event, and the core relies on it: so does the follower, when
+the file describes that very event (same timestamp), so that a past event read
+at start never gets the current cargo.
+
 The game writes whole lines, but a read can still fall in the middle of one: an
 incomplete line waits for the rest. A line that is not a journal entry is
 logged and skipped. The follower only reads; it never writes in the folder.
@@ -32,6 +38,7 @@ POLL_SECONDS = 1.0
 """As often as EDMC polled a running game: reading a few new lines costs nothing."""
 
 _VERSION_EVENTS = frozenset({"Fileheader", "LoadGame"})
+CARGO_FILE = "Cargo.json"
 
 
 class JournalFollower:
@@ -93,7 +100,7 @@ class JournalFollower:
             entry = self._entry(line)
             if entry is not None:
                 self._note_version(entry)
-                self._on_entry(entry, self._beta)
+                self._on_entry(self._with_cargo(entry), self._beta)
                 handed += 1
         return handed
 
@@ -110,6 +117,23 @@ class JournalFollower:
             self._logger.warning("Not a journal entry in %s: %r", self._file, text[:200])
             return None
         return entry
+
+    def _with_cargo(self, entry: Entry) -> Entry:
+        """The ship's ``Cargo`` event with its list, from ``Cargo.json`` when it describes it."""
+        if entry["event"] != "Cargo" or entry.get("Vessel") != "Ship" or "Inventory" in entry:
+            return entry
+        try:
+            cargo = json.loads((self.directory / CARGO_FILE).read_text(encoding="utf-8-sig"))
+        except (OSError, ValueError):
+            return entry
+        if (
+            not isinstance(cargo, dict)
+            or cargo.get("timestamp") != entry.get("timestamp")
+            or cargo.get("Vessel") != "Ship"
+            or not isinstance(cargo.get("Inventory"), list)
+        ):
+            return entry
+        return {**entry, "Inventory": cargo["Inventory"]}
 
     def _note_version(self, entry: Entry) -> None:
         """A beta of the game says so in its version, as EDMC read it."""
