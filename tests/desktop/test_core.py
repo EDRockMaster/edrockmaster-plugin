@@ -361,7 +361,8 @@ def test_invalid_settings_are_logged_and_change_nothing(
     with caplog.at_level(logging.WARNING):
         desktop.core.save_settings({**request, "language": "de"})
         desktop.core.save_settings({**request, "sound": False})
-        desktop.views.wait_for(lambda v: True)
+        # The core thread runs in order: the first view, the refusal, then the valid change's view
+        desktop.views.wait_for(lambda v: len(desktop.views.received) >= 2)
     assert "Settings refused: language" in caplog.text
 
 
