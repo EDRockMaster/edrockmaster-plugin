@@ -273,3 +273,56 @@ def test_resets_and_the_first_view_shown_are_logged(
     assert "Reset of mining: no session" in caplog.text
     assert "Reset of trade: session ended" in caplog.text
     assert "The interface shows the live view" in caplog.text
+
+
+# Engineering goals (ADR 0017)
+
+FSD_GOAL = {"kind": "blueprint", "module": "fsd", "name": "FSD_LongRange", "grade": 5, "count": 2}
+
+
+def goals(view: dict[str, Any]) -> list[dict[str, Any]]:
+    return list(view["engineering"]["goals"])
+
+
+def test_goals_added_changed_and_removed_from_the_interface(desktop: Desktop) -> None:
+    desktop.core.ready()
+    desktop.core.add_goal(FSD_GOAL)
+    [goal] = goals(desktop.views.wait_for(lambda v: len(goals(v)) == 1))
+    assert (goal["kind"], goal["grade"], goal["count"]) == ("blueprint", 5, 2)
+    desktop.core.change_goal(goal["id"], 3)
+    desktop.views.wait_for(lambda v: [g["count"] for g in goals(v)] == [3])
+    desktop.core.remove_goal(goal["id"])
+    desktop.views.wait_for(lambda v: goals(v) == [])
+
+
+def test_goal_requests_that_cannot_be_done_are_logged(
+    desktop: Desktop, caplog: pytest.LogCaptureFixture
+) -> None:
+    desktop.core.ready()
+    with caplog.at_level(logging.WARNING):
+        desktop.core.add_goal({**FSD_GOAL, "grade": 9})
+        desktop.core.change_goal("nowhere", 2)
+        desktop.core.remove_goal("nowhere")
+        desktop.core.add_goal(FSD_GOAL)
+        [goal] = goals(desktop.views.wait_for(lambda v: len(goals(v)) == 1))
+        desktop.core.change_goal(goal["id"], 0)
+        # The core handles calls in order: once this one is seen, the others were
+        desktop.core.add_goal(FSD_GOAL)
+        desktop.views.wait_for(lambda v: len(goals(v)) == 2)
+    assert "Goal refused" in caplog.text
+    assert "No goal 'nowhere' to change" in caplog.text
+    assert "No goal 'nowhere' to remove" in caplog.text
+    assert "Goal change refused" in caplog.text
+
+
+def test_the_goal_form_s_catalogue_once_started(tmp_path: Path) -> None:
+    desktop = Desktop(tmp_path, None)
+    with pytest.raises(RuntimeError, match="not started"):
+        desktop.core.catalogue()
+    desktop.core.start()
+    try:
+        assert len(desktop.core.catalogue()["modules"]) == 44
+    finally:
+        desktop.core.stop()
+    with pytest.raises(RuntimeError, match="not started"):
+        Desktop(tmp_path, None).core._require_names()

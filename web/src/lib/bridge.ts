@@ -1,6 +1,7 @@
 // The bridge with the Python core (ADR 0020): pywebview exposes the core's calls as
 // `window.pywebview.api`, and the core pushes the live view through `window.edrm.receive`.
 // Nothing goes through the network.
+import type { GoalCatalogue } from "./goal-catalogue";
 import type { LiveView } from "./live-view";
 
 export interface CoreApi {
@@ -9,6 +10,21 @@ export interface CoreApi {
   dismiss_notice(): Promise<void>;
   /** The first live view is shown: the core logs that its pushes reach the page. */
   shown(): Promise<void>;
+  /** What the goal form offers; it never changes (ADR 0017). */
+  catalogue(): Promise<GoalCatalogue>;
+  add_goal(request: GoalRequest): Promise<void>;
+  /** A new number of rolls (blueprint) or applications (effect). */
+  change_goal(goalId: string, count: number): Promise<void>;
+  remove_goal(goalId: string): Promise<void>;
+}
+
+/** A goal the player asks for; the core checks it against the catalogue. */
+export interface GoalRequest {
+  kind: "blueprint" | "effect";
+  module: string;
+  name: string;
+  grade?: number;
+  count: number;
 }
 
 declare global {

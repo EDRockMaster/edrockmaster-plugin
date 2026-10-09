@@ -12,7 +12,8 @@
     "activities",
     "notice",
     "journal",
-    "situation"
+    "situation",
+    "engineering"
   ],
   "properties": {
     "version": {
@@ -70,6 +71,9 @@
     },
     "situation": {
       "$ref": "#/$defs/situation"
+    },
+    "engineering": {
+      "$ref": "#/$defs/engineering"
     }
   },
   "$defs": {
@@ -223,6 +227,217 @@
         },
         "gameRunning": {
           "type": "boolean"
+        }
+      }
+    },
+    "ingredient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "symbol",
+        "name",
+        "count",
+        "held"
+      ],
+      "properties": {
+        "symbol": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "held": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "engineering": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Inventory, ship engineers, goals and shopping list (ADR 0017). Names in the player's language.",
+      "required": [
+        "inventoryKnown",
+        "materials",
+        "engineers",
+        "goals",
+        "shoppingList",
+        "catalogueDate"
+      ],
+      "properties": {
+        "inventoryKnown": {
+          "type": "boolean",
+          "description": "False until the game or EDMC states the inventory."
+        },
+        "materials": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "symbol",
+              "name",
+              "category",
+              "grade",
+              "count",
+              "cap"
+            ],
+            "properties": {
+              "symbol": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "category": {
+                "enum": [
+                  "raw",
+                  "manufactured",
+                  "encoded",
+                  null
+                ]
+              },
+              "grade": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "cap": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "engineers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "name",
+              "status",
+              "rank"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "known",
+                  "invited",
+                  "acquainted",
+                  "unlocked",
+                  "barred",
+                  null
+                ]
+              },
+              "rank": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "goals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "kind",
+              "title",
+              "module",
+              "grade",
+              "count",
+              "known",
+              "ready",
+              "missing",
+              "engineers"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "blueprint",
+                  "effect"
+                ]
+              },
+              "title": {
+                "type": "string"
+              },
+              "module": {
+                "type": "string"
+              },
+              "grade": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "known": {
+                "type": "boolean"
+              },
+              "ready": {
+                "type": "boolean"
+              },
+              "missing": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/ingredient"
+                    }
+                  }
+                ],
+                "description": "What the inventory lacks for the goal; null while the inventory is unknown."
+              },
+              "engineers": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Unlocked engineers offering it."
+              }
+            }
+          }
+        },
+        "shoppingList": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ingredient"
+          }
+        },
+        "catalogueDate": {
+          "type": "string"
         }
       }
     }

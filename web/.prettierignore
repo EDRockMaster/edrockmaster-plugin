@@ -1,4 +1,4 @@
 node_modules/
 coverage/
 pnpm-lock.yaml
-src/lib/live-view.d.ts
+src/lib/*.d.ts

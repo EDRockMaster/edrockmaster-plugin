@@ -15,7 +15,7 @@
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "test": "vitest run --coverage",
-    "types": "json2ts --input ../edrockmaster/desktop/schemas/live_view.schema.json --output src/lib/live-view.d.ts --bannerComment \"/* Generated from edrockmaster/desktop/schemas/live_view.schema.json by 'pnpm types': do not edit. */\""
+    "types": "json2ts --input ../edrockmaster/desktop/schemas/live_view.schema.json --output src/lib/live-view.d.ts --bannerComment \"/* Generated from edrockmaster/desktop/schemas/live_view.schema.json by 'pnpm types': do not edit. */\" && json2ts --input ../edrockmaster/desktop/schemas/goal_catalogue.schema.json --output src/lib/goal-catalogue.d.ts --bannerComment \"/* Generated from edrockmaster/desktop/schemas/goal_catalogue.schema.json by 'pnpm types': do not edit. */\""
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

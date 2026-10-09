@@ -9,6 +9,14 @@ from edrockmaster.desktop.live_view import SCHEMA, live_view
 from edrockmaster.domain.situation.journal import GameMode, Ship
 from edrockmaster.domain.situation.situation import Situation
 
+EMPTY_ENGINEERING: dict[str, object] = {
+    "inventoryKnown": False,
+    "materials": [],
+    "engineers": [],
+    "goals": [],
+    "shoppingList": [],
+    "catalogueDate": "2026-09-05",
+}
 VALIDATOR = jsonschema.Draft202012Validator(json.loads(SCHEMA.read_text(encoding="utf-8")))
 
 
@@ -21,6 +29,7 @@ def view(situation: Situation) -> dict[str, object]:
         journal_folder=Path("journal"),
         journal_file=None,
         situation=situation,
+        engineering=EMPTY_ENGINEERING,
     )
     VALIDATOR.validate(built)
     return built

@@ -6,7 +6,15 @@ import en from "../src/locales/en.json";
 import fr from "../src/locales/fr.json";
 import { placeholders, t, type Key } from "../src/lib/i18n";
 
-const ACTIVITIES = ["mining", "combat", "trade", "engineering"];
+// Keys built from a value at run time: `activity.${activity}`, `tab.${tab}`…
+const DYNAMIC_KEYS = [
+  ...["mining", "combat", "trade", "engineering"].map((activity) => `activity.${activity}`),
+  ...["activities", "engineering"].map((tab) => `tab.${tab}`),
+  ...["raw", "manufactured", "encoded", "other"].map((c) => `engineering.category.${c}`),
+  ...["known", "invited", "acquainted", "unlocked", "barred", "unknown"].map(
+    (status) => `engineering.status.${status}`,
+  ),
+];
 
 function sources(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) =>
@@ -19,7 +27,7 @@ function sources(directory: string): string[] {
 }
 
 function usedKeys(): Set<string> {
-  const used = new Set<string>(ACTIVITIES.map((activity) => `activity.${activity}`));
+  const used = new Set<string>(DYNAMIC_KEYS);
   for (const source of sources("src")) {
     for (const match of source.matchAll(/"([a-z]+\.[a-zA-Z.]+)"/g)) used.add(match[1] ?? "");
   }
