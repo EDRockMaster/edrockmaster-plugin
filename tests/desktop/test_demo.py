@@ -62,6 +62,15 @@ def test_the_names_the_application_shows_are_in_english_for_a_demo_in_english(
     assert "Methane Clathrate" in english
 
 
+def test_materials_are_named_by_the_catalogue_in_a_demo_in_english(tmp_path: Path) -> None:
+    english = _lines(write_demo_journal(tmp_path / "en", NOW, "en"))
+    materials = [e for e in english if e["event"] in {"Materials", "MaterialCollected"}]
+    assert materials
+    assert "_Localised" not in json.dumps(materials)
+    french = _lines(write_demo_journal(tmp_path / "fr", NOW, "fr"))
+    assert "Carbone" in json.dumps([e for e in french if e["event"] == "Materials"])
+
+
 def test_a_short_journal(tmp_path: Path) -> None:
     source = tmp_path / "demo.jsonl"
     source.write_text(
@@ -79,7 +88,7 @@ def test_a_short_journal(tmp_path: Path) -> None:
 
 def test_the_demo_shows_running_sessions_of_commander_jameson(tmp_path: Path) -> None:
     folder = tmp_path / "journal"
-    write_demo_journal(folder, datetime.now(UTC))
+    write_demo_journal(folder, datetime.now(UTC), "en")
     views: list[dict[str, Any]] = []
     core = DesktopCore(
         data_directory=tmp_path / "data",
@@ -109,3 +118,5 @@ def test_the_demo_shows_running_sessions_of_commander_jameson(tmp_path: Path) ->
     assert running == {"mining", "combat", "engineering"}
     assert view["engineering"]["inventoryKnown"] is True
     assert view["engineering"]["engineers"]
+    materials = {row["symbol"]: row["name"] for row in view["engineering"]["materials"]}
+    assert materials["carbon"] == "Carbon"
