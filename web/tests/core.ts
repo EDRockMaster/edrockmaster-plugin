@@ -1,6 +1,7 @@
 import { vi } from "vitest";
 import type { CoreApi } from "../src/lib/bridge";
 import type { GoalCatalogue } from "../src/lib/goal-catalogue";
+import type { Settings } from "../src/lib/settings";
 
 export const GOAL_CATALOGUE: GoalCatalogue = {
   date: "2026-09-05",
@@ -22,6 +23,24 @@ export const GOAL_CATALOGUE: GoalCatalogue = {
   ],
 };
 
+export const SETTINGS: Settings = {
+  alerts: {
+    thresholds: [
+      { commodity: "painite", name: "Painite", threshold: 35 },
+      { commodity: "platinum", name: "Platinum", threshold: null },
+    ],
+    minimumContent: "medium",
+    minimumRemaining: null,
+    cores: true,
+  },
+  sound: true,
+  recordJournal: false,
+  activities: ["mining", "combat", "trade", "engineering"],
+  language: "auto",
+  journalFolder: null,
+  journalFolderInUse: "C:/Users/cmdr/Saved Games/Frontier Developments/Elite Dangerous",
+};
+
 /** The core's API as pywebview exposes it, every call recorded. */
 export function fakeCore(): CoreApi {
   return {
@@ -33,5 +52,7 @@ export function fakeCore(): CoreApi {
     add_goal: vi.fn(async () => {}),
     change_goal: vi.fn(async () => {}),
     remove_goal: vi.fn(async () => {}),
+    settings: vi.fn(async () => structuredClone(SETTINGS)),
+    save_settings: vi.fn(async () => {}),
   };
 }

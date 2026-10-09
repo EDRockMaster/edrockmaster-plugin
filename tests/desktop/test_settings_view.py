@@ -1,13 +1,16 @@
 """The settings form of the desktop application (ADR 0020)."""
 
 import copy
+import json
 from pathlib import Path
 from typing import Any
 
+import jsonschema
 import pytest
 
 from edrockmaster.application.activity import Activity
 from edrockmaster.application.settings import DEFAULT_SETTINGS, DisplayMode
+from edrockmaster.desktop.live_view import SCHEMA
 from edrockmaster.desktop.settings_view import (
     DesktopPreferences,
     DesktopPreferencesStore,
@@ -106,3 +109,8 @@ def test_the_desktop_preferences_are_stored_next_to_the_plugin_s() -> None:
     assert store.load() == DesktopPreferences("fr", "D:/Journal")
     config.values["edrockmaster.desktop.language"] = "klingon"
     assert store.load().language == "auto"
+
+
+def test_the_form_follows_its_schema() -> None:
+    schema = json.loads((SCHEMA.parent / "settings.schema.json").read_text(encoding="utf-8"))
+    jsonschema.Draft202012Validator(schema).validate(view("fr", str(JOURNAL)))
