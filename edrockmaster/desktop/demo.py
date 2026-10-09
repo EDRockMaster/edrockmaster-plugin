@@ -10,8 +10,9 @@ the player's own are neither read nor changed.
 The journal was recorded with the game in French. The names the game writes in
 its language and the application shows as they are (commodities, asteroid
 content, community goal) are given in English for a demo in English, as the
-game in English would write them: the screenshots in each language are then
-in that language only. Materials are named by the application's catalogue.
+game in English would write them, and the game's names of the materials are
+left out, so that the application names them from its catalogue, in English:
+the screenshots in each language are then in that language only.
 """
 
 from __future__ import annotations
@@ -44,6 +45,8 @@ ENGLISH = {
     ),
 }
 """The game's names in French that the application shows, and the game's in English."""
+MATERIAL_EVENTS = ("Materials", "MaterialCollected")
+"""Their names in French are the game's: for a demo in English, the catalogue names them."""
 SHOWN_NAMES = (
     "Type_Localised",
     "Name_Localised",
@@ -60,7 +63,10 @@ def write_demo_journal(
     the names of the game in ``language`` (``fr``, else English)."""
     entries = [json.loads(line) for line in source.read_text(encoding="utf-8").splitlines()]
     if language != RECORDED_IN:
-        entries = [_in_english(entry) for entry in entries]
+        entries = [
+            _without_names(entry) if entry["event"] in MATERIAL_EVENTS else _in_english(entry)
+            for entry in entries
+        ]
     times = [datetime.strptime(entry["timestamp"], _GAME_TIME) for entry in entries]
     shift = now.replace(tzinfo=None, microsecond=0) - times[-1]
     for entry, at in zip(entries, times, strict=True):
@@ -82,4 +88,16 @@ def _in_english(value: Any) -> Any:
         }
     if isinstance(value, list):
         return [_in_english(item) for item in value]
+    return value
+
+
+def _without_names(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: _without_names(item)
+            for key, item in value.items()
+            if not key.endswith("_Localised")
+        }
+    if isinstance(value, list):
+        return [_without_names(item) for item in value]
     return value
