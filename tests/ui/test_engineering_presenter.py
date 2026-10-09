@@ -88,13 +88,28 @@ def test_alerts_last_until_a_change_without_one() -> None:
     assert model.alert == "Arsenic at its cap (250)"
     # A statement of the game at load keeps it
     assert presenter.apply([updated(collection(), progressed=False)]).alert == model.alert
-    assert presenter.apply([GoalReady(RANGE), updated(collection())]).alert == (
-        "Goal ready: Frame shift drive: Increased range, grade 5"
-    )
+    assert presenter.apply(
+        [GoalReady(RANGE), updated(collection(), progress(RANGE, True))]
+    ).alert == ("Goal ready: Frame shift drive: Increased range, grade 5")
     assert presenter.apply([GoalProgressed(MASS), GoalDone(MASS), updated(collection())]).alert == (
         "Goal done: Frame shift drive: Mass Manager"
     )
     assert presenter.apply([updated(collection())]).alert is None
+
+
+def test_a_ready_goal_s_alert_goes_with_the_goal() -> None:
+    presenter = EngineeringPresenter(names())
+    ready = presenter.apply([GoalReady(RANGE), updated(collection(), progress(RANGE, True))])
+    assert ready.alert == "Goal ready: Frame shift drive: Increased range, grade 5"
+    # Another goal changed by the player: the alert stays
+    kept = presenter.apply(
+        [updated(collection(), progress(RANGE, True), progress(MASS, False), progressed=False)]
+    )
+    assert kept.alert == ready.alert
+    # The player removed it: nothing left to alert about
+    removed = presenter.apply([updated(collection(), progress(MASS, False), progressed=False)])
+    assert removed.alert is None
+    assert removed.lines == (StatLine("Goals ready", "0 of 1"),)
 
 
 def test_the_end_of_a_collection() -> None:
