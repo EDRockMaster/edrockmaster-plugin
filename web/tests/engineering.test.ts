@@ -220,6 +220,31 @@ describe("edges", () => {
     expect(screen.getByText("No unlocked engineer offers it")).toBeInTheDocument();
   });
 
+  it("collapses the engineers, and says how many are unlocked", async () => {
+    withCore();
+    render(EngineeringView, {
+      language: "en",
+      engineering: engineering({
+        engineers: [
+          { id: 1, name: "Elvira Martuuk", status: "invited", rank: null },
+          { id: 2, name: "Marco Qwent", status: "unlocked", rank: 5 },
+        ],
+      }),
+    });
+    expect(screen.getByText("1 unlocked of 2")).toBeInTheDocument();
+    // One row per engineer: the name and its status together
+    const row = screen.getByText("Marco Qwent").closest("li");
+    expect(row).toHaveClass("unlocked");
+    expect(within(row as HTMLElement).getByText("Unlocked, rank 5")).toBeInTheDocument();
+    const toggle = screen.getByRole("button", { name: "Hide" });
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await fireEvent.click(toggle);
+    expect(screen.queryByText("Marco Qwent")).not.toBeInTheDocument();
+    expect(screen.getByText("1 unlocked of 2")).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole("button", { name: "Show" }));
+    expect(screen.getByText("Marco Qwent")).toBeInTheDocument();
+  });
+
   it("offers no experimental effect on a module without any", async () => {
     withCore();
     render(EngineeringView, { language: "en", engineering: engineering() });
