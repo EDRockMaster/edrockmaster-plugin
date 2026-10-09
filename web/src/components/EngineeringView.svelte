@@ -16,6 +16,11 @@
 
   const groups = $derived(groupMaterials(engineering.materials, language));
   const goals = $derived(orderedGoals(engineering.goals));
+  const unlocked = $derived(
+    engineering.engineers.filter((engineer) => engineer.status === "unlocked").length,
+  );
+  // A long list once the game has named them all: the player may fold it away
+  let showEngineers = $state(true);
 
   function changeCount(goalId: string, event: Event): void {
     const count = Number((event.currentTarget as HTMLInputElement).value);
@@ -136,13 +141,35 @@
   </section>
 
   <section aria-labelledby="engineers-title">
-    <h2 id="engineers-title">{t(language, "engineering.engineers")}</h2>
-    <dl class="pairs">
-      {#each engineering.engineers as engineer (engineer.id)}
-        <dt>{engineer.name}</dt>
-        <dd class:muted={engineer.status !== "unlocked"}>{statusText(engineer, language)}</dd>
-      {/each}
-    </dl>
+    <div class="heading">
+      <h2 id="engineers-title">{t(language, "engineering.engineers")}</h2>
+      <span class="muted">
+        {t(language, "engineering.engineers.unlocked", {
+          unlocked,
+          total: engineering.engineers.length,
+        })}
+      </span>
+      <button
+        type="button"
+        aria-expanded={showEngineers}
+        aria-controls="engineers-list"
+        onclick={() => (showEngineers = !showEngineers)}
+      >
+        {t(language, showEngineers ? "engineering.engineers.hide" : "engineering.engineers.show")}
+      </button>
+    </div>
+    {#if showEngineers}
+      <ul id="engineers-list" class="engineers">
+        {#each engineering.engineers as engineer (engineer.id)}
+          <li class:unlocked={engineer.status === "unlocked"}>
+            <span>{engineer.name}</span>
+            <span class:muted={engineer.status !== "unlocked"}
+              >{statusText(engineer, language)}</span
+            >
+          </li>
+        {/each}
+      </ul>
+    {/if}
     <p class="muted small">
       {t(language, "engineering.data", { date: engineering.catalogueDate })}
     </p>
@@ -232,6 +259,46 @@
   .pairs dd {
     margin: 0;
     text-align: right;
+  }
+  .heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-3);
+    margin-bottom: var(--space-2);
+  }
+  .heading h2 {
+    margin: 0;
+  }
+  .heading button {
+    margin-left: auto;
+  }
+  /* Name and status side by side in short rows, so that the eye does not cross the screen */
+  .engineers {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+    gap: var(--space-1) var(--space-3);
+    margin: 0 0 var(--space-2);
+    padding: 0;
+    list-style: none;
+  }
+  .engineers li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius);
+    background: var(--colour-surface-current);
+    font-size: 0.9rem;
+  }
+  .engineers li span:last-child {
+    white-space: nowrap;
+  }
+  .engineers li.unlocked {
+    border-left: 3px solid var(--colour-accent);
+  }
+  .engineers li:hover {
+    outline: 1px solid var(--colour-border);
   }
   .categories {
     display: grid;
