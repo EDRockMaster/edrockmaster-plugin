@@ -61,6 +61,7 @@ def source_strings() -> set[str]:
         catalogue.modules,
     ):
         strings |= {entry.english_name for entry in entries.values()}
+    strings |= set(catalogue.engineers.values())
     return strings
 
 

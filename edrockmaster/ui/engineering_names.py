@@ -1,4 +1,5 @@
-"""Display names of engineering: materials, blueprints, effects, module types, goals (ADR 0017).
+"""Display names of engineering: materials, blueprints, effects, module types, engineers, goals
+(ADR 0017).
 
 A material shows the game's own name when the journal gave it (the game's
 language), else the catalogue's English name, translated; the others always
@@ -44,6 +45,11 @@ class EngineeringNames:
     def module(self, key: str) -> str:
         module = self._catalogue.modules.get(key) if self._catalogue else None
         return self._tl(module.english_name) if module else key
+
+    def engineer(self, engineer_id: int) -> str:
+        """Most keep their name; a title is translated (``Professor Palin``)."""
+        name = self._catalogue.engineers.get(engineer_id) if self._catalogue else None
+        return self._tl(name) if name else str(engineer_id)
 
     def goal(self, goal: Goal) -> str:
         """``Frame shift drive: Increased range, grade 5``."""

@@ -37,7 +37,10 @@ MASS_MANAGER = ExperimentalEffectGoal(GoalId("mm"), "special_fsd_heavy", "fsd")
 
 
 def french(text: str) -> str:
-    return {"Power distributor": "Distributeur d'énergie"}.get(text, text)
+    return {
+        "Power distributor": "Distributeur d'énergie",
+        "Professor Palin": "Professeur Palin",
+    }.get(text, text)
 
 
 @pytest.fixture
@@ -141,6 +144,18 @@ def test_goals_what_they_miss_and_who_offers_them(service: EngineeringService) -
     assert engineers["Marco Qwent"] == ("unlocked", 5)
     assert engineers["Felicity Farseer"] == ("invited", None)
     assert engineers["Elvira Martuuk"] == (None, None)
+    # Engineers are named in the player's language, and sorted by that name
+    assert "Professeur Palin" in engineers
+    assert "Professor Palin" not in engineers
+    ordered = [row["name"] for row in built["engineers"]]
+    assert ordered == sorted(ordered, key=str.casefold)
+
+
+def test_an_engineer_s_name(service: EngineeringService) -> None:
+    palin = next(id_ for id_, name in CATALOGUE.engineers.items() if name == "Professor Palin")
+    assert names(service).engineer(palin) == "Professeur Palin"
+    assert names(service).engineer(1) == "1"  # not in the catalogue
+    assert EngineeringNames(None, french).engineer(palin) == str(palin)
 
 
 def test_the_goal_form_s_catalogue(service: EngineeringService) -> None:
