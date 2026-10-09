@@ -3,6 +3,7 @@
 // Nothing goes through the network.
 import type { GoalCatalogue } from "./goal-catalogue";
 import type { LiveView } from "./live-view";
+import type { Settings } from "./settings";
 
 export interface CoreApi {
   ready(): Promise<void>;
@@ -16,6 +17,9 @@ export interface CoreApi {
   /** A new number of rolls (blueprint) or applications (effect). */
   change_goal(goalId: string, count: number): Promise<void>;
   remove_goal(goalId: string): Promise<void>;
+  /** What the settings form shows (ADR 0020). */
+  settings(): Promise<Settings>;
+  save_settings(settings: Settings): Promise<void>;
 }
 
 /** A goal the player asks for; the core checks it against the catalogue. */

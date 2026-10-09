@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://edrm.space/schemas/desktop/settings.schema.json",
+  "title": "Settings",
+  "description": "The desktop application's settings (ADR 0020): what settings() returns and save_settings() takes. Names in the player's language.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "alerts",
+    "sound",
+    "recordJournal",
+    "activities",
+    "language",
+    "journalFolder",
+    "journalFolderInUse"
+  ],
+  "properties": {
+    "alerts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "thresholds",
+        "minimumContent",
+        "minimumRemaining",
+        "cores"
+      ],
+      "properties": {
+        "thresholds": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "commodity",
+              "name",
+              "threshold"
+            ],
+            "properties": {
+              "commodity": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "threshold": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 100,
+                "description": "Minimum proportion, in percent, that raises an alert; null for none."
+              }
+            }
+          }
+        },
+        "minimumContent": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "minimumRemaining": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Minimum remaining reserve, in percent; null for none."
+        },
+        "cores": {
+          "type": "boolean"
+        }
+      }
+    },
+    "sound": {
+      "type": "boolean"
+    },
+    "recordJournal": {
+      "type": "boolean"
+    },
+    "activities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "enum": [
+          "mining",
+          "combat",
+          "trade",
+          "engineering"
+        ]
+      }
+    },
+    "language": {
+      "enum": [
+        "auto",
+        "en",
+        "fr"
+      ]
+    },
+    "journalFolder": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Set by hand; null: where the game usually writes it. Used from the next start."
+    },
+    "journalFolderInUse": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The folder read now (read only)."
+    }
+  }
+}

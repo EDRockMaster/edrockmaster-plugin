@@ -1,6 +1,7 @@
 <script lang="ts">
   import ActivityBlock from "./components/ActivityBlock.svelte";
   import EngineeringView from "./components/EngineeringView.svelte";
+  import SettingsView from "./components/SettingsView.svelte";
   import SituationBanner from "./components/SituationBanner.svelte";
   import { connect, core } from "./lib/bridge";
   import { t, type Language } from "./lib/i18n";
@@ -8,8 +9,8 @@
 
   let view = $state<LiveView | null>(null);
   const language: Language = $derived(view?.language ?? "en");
-  type Tab = "activities" | "engineering";
-  const TABS: Tab[] = ["activities", "engineering"];
+  type Tab = "activities" | "engineering" | "settings";
+  const TABS: Tab[] = ["activities", "engineering", "settings"];
   let tab = $state<Tab>("activities");
 
   connect((next) => {
@@ -66,8 +67,10 @@
             />
           {/each}
         </div>
-      {:else}
+      {:else if tab === "engineering"}
         <EngineeringView engineering={view.engineering} {language} />
+      {:else}
+        <SettingsView {language} />
       {/if}
     </div>
   {/if}

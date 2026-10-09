@@ -49,6 +49,8 @@ class FakeGui:
         api.add_goal({"kind": "effect", "module": "fsd", "name": "special_fsd_heavy"})
         api.change_goal("nowhere", 2)
         api.remove_goal("nowhere")
+        settings = api.settings()
+        api.save_settings(settings)
 
 
 @pytest.fixture

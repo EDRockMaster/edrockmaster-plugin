@@ -9,7 +9,7 @@ import { placeholders, t, type Key } from "../src/lib/i18n";
 // Keys built from a value at run time: `activity.${activity}`, `tab.${tab}`…
 const DYNAMIC_KEYS = [
   ...["mining", "combat", "trade", "engineering"].map((activity) => `activity.${activity}`),
-  ...["activities", "engineering"].map((tab) => `tab.${tab}`),
+  ...["activities", "engineering", "settings"].map((tab) => `tab.${tab}`),
   ...["raw", "manufactured", "encoded", "other"].map((c) => `engineering.category.${c}`),
   ...["known", "invited", "acquainted", "unlocked", "barred", "unknown"].map(
     (status) => `engineering.status.${status}`,
