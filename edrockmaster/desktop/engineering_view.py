@@ -44,7 +44,7 @@ def engineering_view(service: EngineeringService, names: EngineeringNames) -> di
     return {
         "inventoryKnown": inventory is not None,
         "materials": _materials(catalogue, inventory or {}, names),
-        "engineers": _engineers(service),
+        "engineers": _engineers(service, names),
         "goals": [_goal(progress, catalogue, names) for progress in service.stats.goals],
         "shoppingList": _ingredients(service.shopping_list(), inventory or {}, names),
         "catalogueDate": catalogue.date,
@@ -80,16 +80,16 @@ def _materials(
     return sorted(rows, key=order)
 
 
-def _engineers(service: EngineeringService) -> list[dict[str, Any]]:
+def _engineers(service: EngineeringService, names: EngineeringNames) -> list[dict[str, Any]]:
     """The ship engineers of the catalogue, with what the game says of them."""
     known = service.engineers
     rows = []
-    for engineer_id, name in service.catalogue.engineers.items():
+    for engineer_id in service.catalogue.engineers:
         state = known.get(engineer_id)
         rows.append(
             {
                 "id": engineer_id,
-                "name": name,
+                "name": names.engineer(engineer_id),
                 "status": _status(state.status) if state else None,
                 "rank": state.rank if state else None,
             }
@@ -126,7 +126,7 @@ def _goal(progress: GoalProgress, catalogue: Catalogue, names: EngineeringNames)
         "known": progress.known,
         "ready": progress.ready,
         "missing": None if progress.missing is None else _ingredients(progress.missing, {}, names),
-        "engineers": [catalogue.engineers.get(id_, str(id_)) for id_ in progress.engineers],
+        "engineers": [names.engineer(id_) for id_ in progress.engineers],
     }
 
 
