@@ -11,7 +11,9 @@ Since the game's 3.3, the journal's ``Cargo`` event lists the ship's cargo only
 at load; afterwards the list is in ``Cargo.json``, next to the journal. EDMC
 added it to the event, and the core relies on it: so does the follower, when
 the file describes that very event (same timestamp), so that a past event read
-at start never gets the current cargo.
+at start never gets the current cargo. The game does not always write the file
+before the line (seen 22 ms after it): while the file is older than the event,
+or half-written, the follower reads it again, for a second at most.
 
 The game writes whole lines, but a read can still fall in the middle of one: an
 incomplete line waits for the rest. A line that is not a journal entry is
@@ -25,6 +27,7 @@ from __future__ import annotations
 import json
 import logging
 import threading
+import time
 from collections.abc import Callable
 from pathlib import Path
 
@@ -38,14 +41,25 @@ POLL_SECONDS = 1.0
 """As often as EDMC polled a running game: reading a few new lines costs nothing."""
 
 _VERSION_EVENTS = frozenset({"Fileheader", "LoadGame"})
+_HALF_WRITTEN = object()
 CARGO_FILE = "Cargo.json"
+CARGO_RETRY_SECONDS = 0.05
+CARGO_WAIT_SECONDS = 1.0
+"""How long ``Cargo.json`` may lag behind its journal line: far longer than ever seen."""
 
 
 class JournalFollower:
-    def __init__(self, directory: Path, on_entry: OnEntry, logger: logging.Logger) -> None:
+    def __init__(
+        self,
+        directory: Path,
+        on_entry: OnEntry,
+        logger: logging.Logger,
+        sleep: Callable[[float], None] = time.sleep,
+    ) -> None:
         self.directory = directory
         self._on_entry = on_entry
         self._logger = logger
+        self._sleep = sleep
         self._file: Path | None = None
         self._offset = 0
         self._pending = b""
@@ -122,18 +136,42 @@ class JournalFollower:
         """The ship's ``Cargo`` event with its list, from ``Cargo.json`` when it describes it."""
         if entry["event"] != "Cargo" or entry.get("Vessel") != "Ship" or "Inventory" in entry:
             return entry
+        timestamp = entry.get("timestamp")
+        for retry in range(round(CARGO_WAIT_SECONDS / CARGO_RETRY_SECONDS) + 1):
+            if retry:
+                self._sleep(CARGO_RETRY_SECONDS)
+            cargo = self._cargo_file()
+            if not isinstance(cargo, dict) or not isinstance(timestamp, str):
+                if cargo is _HALF_WRITTEN:
+                    continue
+                return entry
+            written_at = cargo.get("timestamp")
+            if isinstance(written_at, str) and written_at < timestamp:
+                # Still describing an earlier event: the game is about to rewrite it
+                continue
+            if (
+                written_at != timestamp
+                or cargo.get("Vessel") != "Ship"
+                or not isinstance(cargo.get("Inventory"), list)
+            ):
+                return entry
+            return {**entry, "Inventory": cargo["Inventory"]}
+        self._logger.warning("%s never described the Cargo event of %s", CARGO_FILE, timestamp)
+        return entry
+
+    def _cargo_file(self) -> object:
+        """What ``Cargo.json`` holds: ``None`` without one, ``_HALF_WRITTEN`` if unreadable."""
         try:
-            cargo = json.loads((self.directory / CARGO_FILE).read_text(encoding="utf-8-sig"))
-        except (OSError, ValueError):
-            return entry
-        if (
-            not isinstance(cargo, dict)
-            or cargo.get("timestamp") != entry.get("timestamp")
-            or cargo.get("Vessel") != "Ship"
-            or not isinstance(cargo.get("Inventory"), list)
-        ):
-            return entry
-        return {**entry, "Inventory": cargo["Inventory"]}
+            text = (self.directory / CARGO_FILE).read_text(encoding="utf-8-sig")
+        except FileNotFoundError:
+            return None
+        except OSError:
+            # The game may hold it while rewriting it
+            return _HALF_WRITTEN
+        try:
+            return json.loads(text)
+        except ValueError:
+            return _HALF_WRITTEN
 
     def _note_version(self, entry: Entry) -> None:
         """A beta of the game says so in its version, as EDMC read it."""
