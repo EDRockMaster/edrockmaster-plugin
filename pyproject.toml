@@ -1,6 +1,6 @@
 [project]
 name = "edrockmaster-plugin"
-version = "0.3.0"
+version = "0.4.0"
 description = "EDRockMaster desktop application (ADR 0020, ADR 0024)"
 license = "GPL-3.0-or-later"
 requires-python = ">=3.13"
