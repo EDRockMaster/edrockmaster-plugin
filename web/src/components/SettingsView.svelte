@@ -173,6 +173,23 @@
           "settings.recordJournal",
         )}
       </label>
+      <div class="folder">
+        <span class="muted small">{t(language, "settings.recordingsFolder")}</span>
+        <code class="small">{loaded.recordingsFolder}</code>
+        <button type="button" onclick={() => core()?.open_folder("recordings")}>
+          {t(language, "settings.openRecordings")}
+        </button>
+      </div>
+    </section>
+
+    <section>
+      <h2>{t(language, "settings.logs")}</h2>
+      <div class="folder">
+        <code class="small">{loaded.logsFolder}</code>
+        <button type="button" onclick={() => core()?.open_folder("logs")}>
+          {t(language, "settings.openLogs")}
+        </button>
+      </div>
     </section>
 
     <div class="actions">
@@ -248,6 +265,16 @@
   }
   .muted {
     color: var(--colour-text-muted);
+  }
+  .folder {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin: var(--space-2) 0 0;
+  }
+  .folder code {
+    overflow-wrap: anywhere;
   }
   .small {
     font-size: 0.85rem;

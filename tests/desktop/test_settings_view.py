@@ -23,11 +23,17 @@ from edrockmaster.domain.mining.journal import ContentLevel
 from tests.fakes import FakeConfig
 
 JOURNAL = Path("/games/journal").resolve()
+RECORDINGS = Path("/data/recordings").resolve()
+LOGS = Path("/data/logs").resolve()
 
 
 def view(language: str = "auto", folder: str | None = None) -> dict[str, Any]:
     return settings_view(
-        DEFAULT_SETTINGS, DesktopPreferences(language, folder), JOURNAL, lambda text: text
+        DEFAULT_SETTINGS,
+        DesktopPreferences(language, folder),
+        JOURNAL,
+        lambda text: text,
+        {"recordings": RECORDINGS, "logs": LOGS},
     )
 
 
@@ -40,6 +46,9 @@ def test_the_form_shows_the_settings() -> None:
     assert shown["language"] == "auto"
     assert shown["journalFolder"] is None
     assert shown["journalFolderInUse"] == str(JOURNAL)
+    # Where the journal recordings and the application's logs go, for a bug report
+    assert shown["recordingsFolder"] == str(RECORDINGS)
+    assert shown["logsFolder"] == str(LOGS)
 
 
 def test_the_form_back_into_settings() -> None:

@@ -133,6 +133,22 @@ describe("SettingsView", () => {
     expect(screen.getByText("Waiting for the game's journal in C:/Journal")).toBeInTheDocument();
   });
 
+  it("opens the folders of the recordings and of the logs, for a bug report", async () => {
+    const api = await opened("fr");
+    expect(
+      screen.getByText("C:/Users/cmdr/AppData/Local/EDRockMaster/recordings"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("C:/Users/cmdr/AppData/Local/EDRockMaster/logs")).toBeInTheDocument();
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Ouvrir le dossier des enregistrements" }),
+    );
+    await fireEvent.click(screen.getByRole("button", { name: "Ouvrir le dossier des logs" }));
+    expect(api.open_folder).toHaveBeenNthCalledWith(1, "recordings");
+    expect(api.open_folder).toHaveBeenNthCalledWith(2, "logs");
+    // Opening a folder saves nothing
+    expect(api.save_settings).not.toHaveBeenCalled();
+  });
+
   it("shows nothing to change outside pywebview", () => {
     render(SettingsView, { language: "en", journal: JOURNAL });
     expect(screen.getByText("Loading the settings…")).toBeInTheDocument();

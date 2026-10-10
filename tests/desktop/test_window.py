@@ -51,6 +51,15 @@ class FakeGui:
         api.remove_goal("nowhere")
         settings = api.settings()
         api.save_settings(settings)
+        api.open_folder("logs")
+
+
+@pytest.fixture(autouse=True)
+def opened(monkeypatch: pytest.MonkeyPatch) -> list[Path]:
+    """The folders the application would open in the file manager."""
+    folders: list[Path] = []
+    monkeypatch.setattr(window_module, "open_in_file_manager", folders.append)
+    return folders
 
 
 @pytest.fixture
@@ -79,7 +88,7 @@ def test_the_window_shows_the_interface_and_receives_the_live_view(
 
 
 def test_the_demo_reads_a_sample_journal_and_keeps_the_player_s_data(
-    tmp_path: Path, interface: Path, caplog: pytest.LogCaptureFixture
+    tmp_path: Path, interface: Path, caplog: pytest.LogCaptureFixture, opened: list[Path]
 ) -> None:
     gui = FakeGui()
     environ = {"EDROCKMASTER_JOURNAL_DIR": str(tmp_path / "journal")}
@@ -94,6 +103,8 @@ def test_the_demo_reads_a_sample_journal_and_keeps_the_player_s_data(
     # The settings saved during the demo were not the player's
     assert sorted(path.name for path in data.iterdir()) == ["logs"]
     assert "Demo mode (" in caplog.text
+    # The log goes on in the player's folder, which the button opens
+    assert opened == [data / "logs"]
 
 
 @pytest.mark.parametrize(

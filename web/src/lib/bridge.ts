@@ -20,6 +20,8 @@ export interface CoreApi {
   /** What the settings form shows (ADR 0020). */
   settings(): Promise<Settings>;
   save_settings(settings: Settings): Promise<void>;
+  /** Show the folder of the journal recordings or of the logs in the file manager. */
+  open_folder(folder: "recordings" | "logs"): Promise<void>;
 }
 
 /** A goal the player asks for; the core checks it against the catalogue. */

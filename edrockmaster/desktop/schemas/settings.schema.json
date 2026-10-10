@@ -12,7 +12,9 @@
     "activities",
     "language",
     "journalFolder",
-    "journalFolderInUse"
+    "journalFolderInUse",
+    "recordingsFolder",
+    "logsFolder"
   ],
   "properties": {
     "alerts": {
@@ -113,6 +115,14 @@
         "null"
       ],
       "description": "The folder read now (read only)."
+    },
+    "recordingsFolder": {
+      "type": "string",
+      "description": "Where the journal recordings go (read only); the interface can open it."
+    },
+    "logsFolder": {
+      "type": "string",
+      "description": "Where the application's log file is (read only); the interface can open it."
     }
   }
 }

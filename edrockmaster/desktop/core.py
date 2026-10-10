@@ -30,6 +30,7 @@ from edrockmaster.desktop.engineering_view import (
     goal_from_request,
     with_count,
 )
+from edrockmaster.desktop.folder_opener import open_in_file_manager
 from edrockmaster.desktop.journal_folder import default_journal_folder
 from edrockmaster.desktop.journal_reader import POLL_SECONDS, JournalFollower, JournalWatcher
 from edrockmaster.desktop.live_view import live_view
@@ -63,6 +64,7 @@ if sys.platform == "win32":  # pragma: no cover
     import winsound
 
 CORE_THREAD = "EDRockMaster core"
+RECORDINGS_DIRECTORY = "recordings"
 PACKAGE_DIRECTORY = Path(__file__).resolve().parents[1]
 
 type Push = Callable[[dict[str, Any]], None]
@@ -86,10 +88,18 @@ class DesktopCore:
         clock: Clock | None = None,
         poll_interval: float = POLL_SECONDS,
         usual_journal_folder: Callable[[], Path | None] = default_journal_folder,
+        logs_directory: Path | None = None,
+        open_folder: Callable[[Path], None] = open_in_file_manager,
     ) -> None:
         """``journal_folder``: set by the environment, before the settings' and the usual one;
-        ``language``: the system's, unless the settings choose another."""
+        ``language``: the system's, unless the settings choose another; ``logs_directory``:
+        where the log file is, in the data directory unless the demo keeps its data apart."""
         self._data = data_directory
+        self._folders = {
+            "recordings": data_directory / RECORDINGS_DIRECTORY,
+            "logs": logs_directory or data_directory / "logs",
+        }
+        self._open_folder = open_folder
         self._journal_override = journal_folder
         self._usual_journal_folder = usual_journal_folder
         self._journal_folder: Path | None = journal_folder
@@ -153,7 +163,7 @@ class DesktopCore:
             settings_store=KeyValueSettingsStore(config, self._logger),
             notifier=SoundNotifier(_alert_sound, self._logger),
             recorder=JsonlJournalRecorder(
-                self._data / "recordings", self._io.submit, self._clock.now(), build.version
+                self._folders["recordings"], self._io.submit, self._clock.now(), build.version
             ),
             clock=self._clock,
             catalogue=catalogue,
@@ -229,6 +239,7 @@ class DesktopCore:
             self._preferences,
             self._journal_folder,
             self._tl,
+            self._folders,
         )
 
     def save_settings(self, request: Mapping[str, Any]) -> None:
@@ -251,6 +262,22 @@ class DesktopCore:
             self._send()
 
         self._core.submit(save)
+
+    def open_folder(self, name: str) -> None:
+        """Show the folder of the journal recordings or of the logs, for a bug report."""
+        folder = self._folders.get(name)
+        if folder is None:
+            self._logger.warning("Unknown folder to open: %r", name)
+            return
+
+        def show() -> None:
+            try:
+                folder.mkdir(parents=True, exist_ok=True)
+                self._open_folder(folder)
+            except OSError as error:
+                self._logger.warning("Could not open %s: %s", folder, error)
+
+        self._io.submit(show)
 
     # Engineering goals (ADR 0017)
 
