@@ -30,6 +30,7 @@ def view(situation: Situation) -> dict[str, object]:
         journal_file=None,
         situation=situation,
         engineering=EMPTY_ENGINEERING,
+        application_version="0.4.0-rc.1",
     )
     VALIDATOR.validate(built)
     return built
@@ -70,3 +71,8 @@ def test_an_unknown_situation() -> None:
     situation = view(Situation())["situation"]
     assert situation["ship"] is None  # type: ignore[index]
     assert situation["mode"] is None  # type: ignore[index]
+
+
+def test_the_application_s_version_in_the_view() -> None:
+    # The full version of the build file (ADR 0016), shown beside the application's name
+    assert view(Situation())["application"] == {"version": "0.4.0-rc.1"}

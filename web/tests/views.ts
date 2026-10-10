@@ -14,6 +14,7 @@ export function block(overrides: Partial<Block> = {}): Block {
 export function view(overrides: Partial<LiveView> = {}): LiveView {
   return {
     version: 1,
+    application: { version: "0.4.0-rc.1" },
     language: "en",
     current: "mining",
     activities: [
