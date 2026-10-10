@@ -4,7 +4,7 @@
 
 The texts to enter in Partner Center for the store listing (ADR 0022), kept here so that they change with the application. The French listing is in [store-listing.fr.md](store-listing.fr.md).
 
-**Before the first submission**: the application needs a settings view (alert thresholds, activities shown, journal recordings), which the listing describes; today only the plugin, in EDMC, has one.
+How a release is submitted: [store-submission.md](store-submission.md).
 
 ## Properties
 
