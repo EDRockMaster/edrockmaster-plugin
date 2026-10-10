@@ -4,7 +4,7 @@
 
 All notable changes to EDRockMaster Companion, the desktop application (until 0.3.0, the EDMC plugin). The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.4.0] - 2026-10-10
 
 The first version of **EDRockMaster Companion**, the desktop application, which replaces the EDMC plugin.
 
@@ -95,6 +95,7 @@ First version, for the first in-game test. The plugin works on its own, without 
 - No estimated value of the cargo: it needs the server's prices.
 - Not checked yet: EDMC's dark theme, the alert sound on Windows.
 
+[0.4.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.4.0
 [0.3.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.3.0
 [0.2.2]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.2
 [0.2.1]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.1
