@@ -2,7 +2,7 @@
 
 ``SqliteGoalRepository`` implements the application's ``GoalRepository``: each
 call becomes a job of the I/O thread, and the goals read are handed back to the
-main thread. The functions below are the SQL, run on the I/O thread only.
+core thread. The functions below are the SQL, run on the I/O thread only.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from edrockmaster.infrastructure.database import LocalDatabase
 from edrockmaster.infrastructure.worker import Job
 
 type Dispatch = Callable[[Callable[[], None]], None]
-"""Runs a callback on EDMC's main thread, later; callable from any thread."""
+"""Runs a callback on the core thread, later; callable from any thread."""
 
 _BLUEPRINT = "blueprint"
 _EXPERIMENTAL_EFFECT = "experimental_effect"

@@ -1,15 +1,16 @@
-"""The plugin's local database: one SQLite file in the data directory (ADR 0018).
+"""The application's local database: one SQLite file in the data directory (ADR 0018).
 
 Only the I/O thread uses it: ``open()`` runs there, and ``connection()`` refuses
 any other thread. The schema is versioned with ``PRAGMA user_version`` and
 migrated at opening (``migrations.py``); before a migration, the file is copied
 to ``edrockmaster.sqlite3.v<N>.bak``, and only the last copy is kept.
 
-A file the plugin cannot read, because it is corrupt or written by a newer
-version of the plugin, is moved aside as ``edrockmaster.sqlite3.unreadable-<date>``
-and a new one is created. Any other failure (the file is locked by another EDMC,
+A file the application cannot read, because it is corrupt or written by a
+newer version, is moved aside as ``edrockmaster.sqlite3.unreadable-<date>`` and a
+new one is created. Any other failure (the file is locked by another instance,
 the disk refuses it, a migration fails) leaves the file as it is, and the
-database is unavailable until EDMC restarts. The plugin never fails because of it.
+database is unavailable until the application restarts. The application never
+fails because of it.
 """
 
 from __future__ import annotations
@@ -27,7 +28,7 @@ from edrockmaster.infrastructure.migrations import MIGRATIONS, Migration
 FILE_NAME = "edrockmaster.sqlite3"
 
 BUSY_TIMEOUT = 5.0
-"""Seconds; how long a statement waits for another connection (another EDMC) before failing."""
+"""Seconds; how long a statement waits for another connection (another instance) before failing."""
 
 _UNREADABLE_ERRORS = frozenset({"SQLITE_CORRUPT", "SQLITE_NOTADB"})
 
@@ -41,7 +42,7 @@ class WrongThreadError(RuntimeError):
 
 
 class _UnreadableError(Exception):
-    """The file must be moved aside: the plugin cannot read it."""
+    """The file must be moved aside: the application cannot read it."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -163,7 +164,7 @@ class LocalDatabase:
         [version] = connection.execute("PRAGMA user_version").fetchone()
         if version > self.latest_version:
             raise _UnreadableError(
-                f"schema version {version}, written by a newer version of the plugin "
+                f"schema version {version}, written by a newer version of the application "
                 f"(this one knows up to {self.latest_version})"
             )
         return int(version)
@@ -217,7 +218,7 @@ class LocalDatabase:
 
     def _unavailable(self, error: BaseException, moved: Path | None = None) -> Opening:
         self._logger.error(
-            "Local database %s unavailable until EDMC restarts: %s",
+            "Local database %s unavailable until the application restarts: %s",
             self.path,
             error,
             exc_info=error,

@@ -33,7 +33,7 @@ from edrockmaster.ui.panel_model import (
 )
 
 GOAL_TITLE_LENGTH = 32
-"""Community goal titles can be long: beyond this, they would widen EDMC's window."""
+"""Community goal titles can be long: beyond this, they would widen the block."""
 
 # English source strings, translated at render time
 _END_REASONS = {

@@ -57,7 +57,7 @@
   "engineering.shopping.empty": "Nothing missing.",
   "engineering.shopping.item": "{count} (held: {held})",
   "engineering.inventory": "Inventory",
-  "engineering.inventory.unknown": "The inventory shows once the game loads (or EDMC tells it).",
+  "engineering.inventory.unknown": "The inventory shows once the game loads.",
   "engineering.category.raw": "Raw",
   "engineering.category.manufactured": "Manufactured",
   "engineering.category.encoded": "Encoded",

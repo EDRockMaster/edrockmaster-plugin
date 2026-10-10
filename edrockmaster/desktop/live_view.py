@@ -1,6 +1,6 @@
 """The live view the core pushes to the interface (ADR 0020), as ``live_view.schema.json`` says.
 
-The blocks come from the plugin's presenters: their texts are already in the
+The blocks come from the presenters: their texts are already in the
 player's language. The interface's own texts (titles, the notice, the journal
 status) come from its catalogues, in the same language (ADR 0021).
 """

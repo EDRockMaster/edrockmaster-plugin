@@ -1,13 +1,13 @@
-# Plugin design
+# Design of the desktop application
 
 *English · [Français](design.fr.md)*
 
-Design of the EDRockMaster EDMC plugin. Scope: **milestone 1, step 1A** (local plugin, first in-game test), plus the combat and trade activities (design decisions ADR 0011, ADR 0013, ADR 0014 and ADR 0015, in the project's architecture repository). The server link (step 1B) is designed here so that 1A does not have to be reworked, but it is not implemented yet. Constraints come from [prerequisites](prerequisites.md); engineering rules from `edrockmaster-architecture`.
+Design of EDRockMaster Companion, the desktop application (design decision ADR 0020, in the project's architecture repository): it reads the game journal, computes mining, combat, trade and engineering live, and shows them in its own window. It replaced the EDMC plugin, retired before it had players (ADR 0024); the domain and its rules came from it unchanged. Scope: **milestone 1, step 1A** (local, no server), with combat, trade, engineering and the commander's situation (ADR 0011, 0013 to 0015, 0017 to 0019, 0023). The server link (step 1B) is designed here so that 1A does not have to be reworked, but it is not implemented yet. Engineering rules come from `edrockmaster-architecture`.
 
 ## Goals of step 1A
 
 - Live mining assistance with no server: prospector alerts, cores, session statistics, limpets.
-- Bilingual interface (English, French), following EDMC's language.
+- Bilingual interface (English, French), in the system's language or the one chosen.
 - A journal recorder (opt-in) that turns real play sessions into test fixtures.
 - Structure ready for the server link: ports already defined, adapters added in 1B.
 
@@ -15,13 +15,12 @@ Out of scope for 1A: uploads, sign-in, cargo value estimates (they need server p
 
 ## Architecture
 
-Hexagonal, like the services, within EDMC's constraints:
+Hexagonal, like the services:
 
 ```
-load.py                         EDMC entry points only, delegates to edrockmaster.edmc
 edrockmaster/
   __init__.py                   VERSION
-  domain/                       pure Python: no EDMC, no tkinter, no I/O
+  domain/                       pure Python: no I/O, no interface
     journal_reading.py          shared kernel: tolerant reading of journal entries (ADR 0011)
     commodities.py              shared kernel: commodity names, normalisation, commodities a refinery produces
     mining/                     mining context
@@ -43,76 +42,77 @@ edrockmaster/
       catalogue.json            that data, written by scripts/import_engineering_data.py (Frontier's, see NOTICE)
       goals.py                  blueprint and experimental effect goals
   application/
-    activity.py                 the activities: mining, combat, trade
+    activity.py                 the activities: mining, combat, trade, engineering
     build.py                    BuildInfo: full version, commit and channel of the running build (ADR 0016)
     companion.py                Companion: records the journal once, hands each entry to every activity, owns the settings
-    settings.py                 PluginSettings (alerts, sound, recorder) and their defaults
+    settings.py                 PluginSettings (alerts, sound, recorder, activities shown) and their defaults
     ports.py                    Clock, SettingsStore, Notifier, JournalRecorder, GoalRepository (and, in 1B, UploadQueue, Authenticator)
     mining_service.py           mining use cases: handle a journal entry, reset the session, apply settings
     combat_service.py           combat use cases: handle a journal entry, reset the session
     trade_service.py            trade use cases: handle a journal entry, reset the session
     engineering_service.py      engineering use cases: journal, goals and their storage, reset
+    situation_service.py        the commander's situation
   infrastructure/
-    settings_edmc.py            SettingsStore on EDMC's config (keys prefixed "edrockmaster.")
+    settings_store.py           SettingsStore on a key-value store (keys prefixed "edrockmaster.")
+    settings_file.py            that store: settings.json in the data directory
     recorder_jsonl.py           JournalRecorder: JSONL files in the data directory
     database.py                 the local SQLite database: opening, migrations, copy, moving aside (ADR 0018)
     migrations.py               the database schema, one migration per version
     goal_repository.py          GoalRepository on the local database
-    catalogue_file.py           reads the engineering catalogue shipped with the plugin
+    catalogue_file.py           reads the engineering catalogue shipped with the application
     build_file.py               reads edrockmaster/build.json, written by the packaging
-    sound.py                    Notifier: sound alerts (winsound on Windows, Tk bell elsewhere)
+    sound.py                    Notifier: alert sounds, played by the host's function
+    strings_catalogue.py        the core's translations (L10n/*.strings), number formats, the system's language
     paths.py                    data directory per platform
-    worker.py                   the plugin's single I/O thread and its queue
+    worker.py                   a thread fed by a queue of jobs: the I/O thread, the core thread
     clock.py                    Clock: system time, UTC
-  desktop/                      the desktop application (ADR 0020), being built: it reads the journal without EDMC
-    journal_folder.py           where the game writes its journal; journal files in order
-    journal_reader.py           JournalFollower (follows the journal as the game writes it), JournalWatcher (its thread)
-    core.py                     DesktopCore: the composition root, the core thread, the live view pushed
-    live_view.py                the live view, as schemas/live_view.schema.json describes it
-    window.py                   the pywebview window, InterfaceApi, the entry point (python -m edrockmaster.desktop)
-  edmc/
-    plugin.py                   wiring: builds the object graph, implements the hooks
-    i18n.py                     tl() bound to EDMC's l10n, with a fallback for tests
-    host.py                     EDMC services (theme, plug.show_error, l10n.Locale), with fallbacks
-    main_thread.py              results of the I/O thread run on the main thread
-    state.py                    inventory and engineers from EDMC's state, when the plugin starts after the game
-  ui/
-    panel_model.py              PanelModel (texts), local data notices and shared formatting, no tkinter
-    presenter.py                ActivityPresenter: the blocks to show, by display mode
+  ui/                           presenters: notifications in, texts out, no interface toolkit
+    panel_model.py              PanelModel (texts of a block), local data notices, shared formatting
+    presenter.py                ActivityPresenter: the blocks of the activities shown
     mining_presenter.py         mining notifications → PanelModel
     combat_presenter.py         combat notifications → PanelModel
     trade_presenter.py          trade notifications → PanelModel
     engineering_presenter.py    engineering notifications → PanelModel
-    engineering_names.py        names of materials, blueprints, effects, module types and goals
-    preferences_form.py         settings <-> preferences fields, validation, no tkinter
+    engineering_names.py        names of materials, blueprints, effects, module types, engineers and goals
     commodity_names.py          names of the mineable commodities known before the journal names them
-    panel.py                    main-window panel (tkinter, main thread only), one block per activity shown
-    preferences.py              preferences tab (myNotebook)
-L10n/fr.strings                 French translations
+  desktop/                      the application (ADR 0020): its composition root and its window
+    journal_folder.py           where the game writes its journal; journal files in order
+    journal_reader.py           JournalFollower (follows the journal as the game writes it), JournalWatcher (its thread)
+    core.py                     DesktopCore: the composition root, the core thread, the live view pushed
+    live_view.py                the live view, as schemas/live_view.schema.json describes it
+    engineering_view.py         the engineering part of the live view, the catalogue for the goal form and the blueprints tab
+    settings_view.py            the settings form: what it shows, what it asks for
+    demo.py                     the demo journal (--demo)
+    window.py                   the pywebview window, InterfaceApi, the entry point (python -m edrockmaster.desktop)
+    schemas/                    JSON Schemas of what the core sends to the interface
+    interface/index.html        the interface, built from web/ (not in git)
+L10n/fr.strings                 French translations of the core's texts
+web/                            the interface: Svelte 5 and TypeScript (ADR 0021)
 ```
 
-Dependency rule: `domain` imports nothing from the plugin; `application` imports `domain`; `infrastructure`, `edmc` and `ui` import `application` and `domain`. Only `load.py` (which only runs inside EDMC), `edmc/`, `ui/` and the EDMC-specific adapters import EDMC modules; except in `load.py`, always guarded by `try/except ImportError` so that the rest is testable outside EDMC.
+Dependency rule: `domain` imports nothing else of the application; `application` imports `domain`; `infrastructure` and `ui` import `application` and `domain`, never the window; `desktop` composes them all. `lint-imports` (in the CI) checks it.
 
 ## Data flow
 
-1. EDMC calls `journal_entry(...)` on the main thread.
-2. `edmc/plugin.py` passes the entry to `Companion.handle_journal_entry(entry, is_beta)`, which copies it to the `JournalRecorder` (if recording is enabled), then hands it to each activity: `MiningService`, then `HuntingService`. Each activity translates the journal on its own; below, the mining path.
+1. The journal reader (`JournalWatcher`, its own thread) reads what the game added to the current journal file, and queues each entry for the core thread.
+2. On the core thread, `DesktopCore` passes the entry to `Companion.handle_journal_entry(entry, is_beta)`, which copies it to the `JournalRecorder` (if recording is enabled), then hands it to each activity and to the situation. Each activity translates the journal on its own; below, the mining path.
 3. `domain/mining/journal.py` turns the raw entry into a typed fact (`AsteroidProspected`, `CommodityRefined`, `LimpetLaunched`, `RingEntered`, …) or ignores it. Unknown events and fields are ignored, never fatal.
 4. The `MiningTracker` aggregate applies the fact and returns session notifications.
 5. The `ProspectingMonitor` evaluates every prospected asteroid against the alert settings.
-6. The service forwards the outcome: the alert to the `Notifier` (if sound is enabled), and returns the notifications (`SessionStarted`, `SessionUpdated`, `SessionEnded`, `ProspectorAlertRaised`) to the caller, which hands them to the `ActivityPresenter`: it shows the last activity whose session progressed.
-7. The panel is refreshed on the main thread.
+6. The service forwards the outcome: the alert to the `Notifier` (if sound is enabled), and returns the notifications (`SessionStarted`, `SessionUpdated`, `SessionEnded`, `ProspectorAlertRaised`) to the caller, which hands them to the `ActivityPresenter`.
+7. The core builds the live view and pushes it to the interface.
 
-All of this is pure computation on small objects (well under a millisecond per event): it stays on the main thread. Anything touching files or the network goes through the I/O thread.
+All of this is pure computation on small objects (well under a millisecond per event): it stays on the core thread. Anything touching files goes through the I/O thread.
 
-`edmc/plugin.py` is the composition root. `load.py` hands it EDMC's `config`; it builds the I/O thread, the adapters and the `Companion` in `plugin_start3`, and stops the thread in `plugin_stop`. The UI subscribes to the notifications and provides the alert sound, which needs a widget. The reset button ends the session of the activity shown. Any exception while handling an entry is logged and reported in EDMC's status bar; the next entries are handled normally. The logger is the one EDMC prepares for the plugin, `<appname>.<plugin folder>`.
+`desktop/core.py` is the composition root: it builds the I/O and core threads, the adapters and the `Companion` at start, and stops them at exit. The interface's reset button ends the session of its activity. Any exception while handling an entry is logged; the next entries are handled normally.
 
 ## Threads
 
-- **Main thread**: hooks, domain, UI.
-- **One I/O thread** (`infrastructure/worker.py`): a daemon thread fed by a `queue.Queue` of jobs (append to the recording file, the local database; in 1B, uploads and authentication). It never touches tkinter.
-- **Results back to the main thread** (`edmc/main_thread.py`): the I/O thread puts a callback in a queue, and the main thread runs it, polling the queue every 100 ms with `after()` on the panel. Waking the main thread with `event_generate()` from the I/O thread, as EDMC does for its own threads, needs Tk's main loop to run, and EDMC calls `plugin_app` before starting it: polling makes no Tk call from the I/O thread at all. Callbacks queued before the panel exists wait for it.
-- `plugin_stop()` closes the local database, posts a stop job, joins the thread with a timeout, and flushes the recorder.
+- **Main thread**: pywebview's window and its event loop.
+- **Journal thread** (`EDRockMaster journal`): `JournalWatcher` reads the journal every second.
+- **Core thread** (`EDRockMaster core`, an `IoWorker` of its own): every call to the companion, the presenters and the view builders. The journal thread and the interface's calls only queue jobs for it; it calls `push`, which must not block.
+- **One I/O thread** (`infrastructure/worker.py`): a daemon thread fed by a `queue.Queue` of jobs (append to the recording file, the local database, the settings file; in 1B, uploads and authentication). What it reads reaches the core thread as a job queued there.
+- At exit: the watcher stops, then the core thread; the database closes in a last job of the I/O thread, which then stops.
 
 ## Mining session lifecycle
 
@@ -124,13 +124,13 @@ All of this is pure computation on small objects (well under a millisecond per e
 | `MiningRefined` | One ton of the commodity counted |
 | `LaunchDrone` | Limpet counted by type |
 | `AsteroidCracked` | Core cracked |
-| `Cargo` (augmented by EDMC) | Cargo snapshot: tons on board, capacity used |
+| `Cargo` | Cargo snapshot: tons on board, capacity used |
 | `EjectCargo` | Ejected tons counted apart (not part of production) |
 | No mining activity for 10 minutes | Session paused: inactive time is not counted |
 | `SupercruiseEntry`, `FSDJump`, `Docked`, `Shutdown`, `ShutDown` | Session ends |
-| `StartUp` (synthetic, EDMC started mid-game) | Current ring from the event's `Body`/`BodyType`; cargo figures come with the next `Cargo` event (the game writes one at each refinement) |
+| `StartUp` (written by EDMC, in older recordings) | Current ring from the event's `Body`/`BodyType`; cargo figures come with the next `Cargo` event (the game writes one at each refinement) |
 | `MarketSell` | Credited to the running session, or else to the last one that ended: only its mined tons not yet ejected nor sold, at the sale's unit price |
-| Manual reset (panel button) | Session ends, a new one can start |
+| Manual reset (button of the block) | Session ends, a new one can start |
 | `is_beta`, or `gameversion` not 4.x in `LoadGame` | Everything works locally; flagged as not uploadable (1B) |
 
 Statistics of a session: active duration, tons per commodity, total tons, tons per hour, asteroids prospected (by content level), cores found and cracked, limpets launched (prospector, collector), refinements per minute, tons sold and credits earned.
@@ -154,22 +154,17 @@ Combat covers bounty hunting, conflict zones and any kill ([ADR 0013](https://gi
 | `SupercruiseEntry`, `Docked`, `FSDJump`, `StartJump` to hyperspace, `BookDropship` retreat, `Embark` | Departure: the segment closes; the session goes on. A site left without any reward is not counted. `Embark` off a station is a new arrival, by ship |
 | `FactionKillBond` outside any segment | A combat bond only exists in a conflict zone: a segment opens from the last arrival (from the bond when none was seen). By ship: **conflict zone, unknown intensity**; on foot: **ground conflict zone** |
 | Bounty elsewhere (a pirate while mining, near a station, after an interdiction): a bounty does not tell the place | **Miscellaneous**: counted in kills, credits and vouchers, in no rate |
-| Reward with no arrival seen (EDMC or the game started on the site: `StartUp`, `Location` off station) | A segment of type **unknown**, from that reward; miscellaneous if the commander mines there (`ProspectedAsteroid`, `MiningRefined`, `AsteroidCracked`, prospector or collector limpets) |
+| Reward with no arrival seen (the game started on the site: `StartUp`, `Location` off station) | A segment of type **unknown**, from that reward; miscellaneous if the commander mines there (`ProspectedAsteroid`, `MiningRefined`, `AsteroidCracked`, prospector or collector limpets) |
 | `CommitCrime` during a session | Counted by kind of crime: fines and bounties on the commander, never deducted from the credits |
 | `Died` | Session ends; unredeemed vouchers are lost |
 | `Shutdown`, `ShutDown` | Session ends |
 | `RedeemVoucher` (bounties, combat bonds) | The vouchers paid are removed, per faction, never below zero |
 | `CommunityGoal` | The goals the commander joined: contribution, percentile band, tier reached |
-| Manual reset (panel button, combat shown) | Session ends, a new one can start; still on the site, the next segment starts at the reset |
+| Manual reset (button of the combat block) | Session ends, a new one can start; still on the site, the next segment starts at the reset |
 
-Statistics of a combat session: its segments (site type, duration, kills, credits, rates), an average **per site type, weighted by time** (total kills and credits over total duration), time on combat sites, kills (and shared kills), bounty and combat bond credits, miscellaneous kills, crimes. Shared with the panel: unredeemed vouchers (known since EDMC started only: the journal does not restate older ones) and the community goals. Superpower factions written `$faction_Federation;` are normalised to `Federation`. Another activity never ends a combat session: a miner may fight back and keep mining.
+Statistics of a combat session: its segments (site type, duration, kills, credits, rates), an average **per site type, weighted by time** (total kills and credits over total duration), time on combat sites, kills (and shared kills), bounty and combat bond credits, miscellaneous kills, crimes. Shown with the block: unredeemed vouchers (known since the journal file began only: the journal does not restate older ones) and the community goals. Superpower factions written `$faction_Federation;` are normalised to `Federation`. Another activity never ends a combat session: a miner may fight back and keep mining.
 
-The panel shows the activities the player chose (preferences, **Display**), in one of two modes ([ADR 0013](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0013-combat-segments-and-live-panel.md)):
-
-- **last active activity** (the default): one block, the last shown activity to **progress**. For combat, a session or a segment that starts or ends, a reward or a crime; leaving a site without a segment, vouchers and community goals never switch it. For trade, a session that starts or ends, a purchase, a sale or a loss. A hidden activity never takes the panel;
-- **all of them, stacked**: one block per activity shown, mining, combat then trade, each with its own **Reset** button.
-
-A hidden activity is still followed: shown again, it is up to date.
+The *Activities* tab shows one block per activity the player chose (*Settings*), each with its own **Reset** button ([ADR 0013](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0013-combat-segments-and-live-panel.md)); the block of the last activity to **progress** is highlighted. For combat, a session or a segment that starts or ends, a reward or a crime is progress; leaving a site without a segment, vouchers and community goals are not. For trade, a session that starts or ends, a purchase, a sale or a loss. A hidden activity is still followed: shown again, it is up to date.
 
 ## Trade
 
@@ -179,7 +174,7 @@ Trade follows purchases and sales of goods on markets ([ADR 0014](https://git.ne
 | --- | --- |
 | First `MarketBuy`, or first `MarketSell` of bought goods (`AvgPricePaid` above 0) | Trade session starts. The flight to that market does not count |
 | `MarketBuy` | The goods are on board at their cost; the market is the origin of their route (the last purchase wins) |
-| `MarketSell` of bought goods | Profit `(SellPrice - AvgPricePaid) × Count`, the game's own, even for goods bought before EDMC started (origin unknown). Counted on the route: commodity, market of purchase, market of sale |
+| `MarketSell` of bought goods | Profit `(SellPrice - AvgPricePaid) × Count`, the game's own, even for goods bought before the journal file began (origin unknown). Counted on the route: commodity, market of purchase, market of sale |
 | `MarketSell` with `AvgPricePaid` 0 | Not bought: **refined commodities** if a refinery produces them (their profit belongs to mining), **other goods** otherwise. In no profit and no rate; no session started |
 | `Undocked`, then `Docked` | A leg. It counts once a purchase or a sale of bought goods follows it in the session: a stop without trade is part of the flight, a flight after the last trade does not count. Time docked never counts |
 | `Location` or `StartUp` off station | In flight since an unknown time: the leg counts from there |
@@ -188,9 +183,9 @@ Trade follows purchases and sales of goods on markets ([ADR 0014](https://git.ne
 | `Cargo` | Bought goods that left without a sale (a mission) are no longer on board: never more than the ship carries |
 | `Died` | The bought cargo is lost (a loss), the session ends |
 | `Shutdown`, `ShutDown` | Session ends; the cargo stays known |
-| Manual reset (panel button, trade shown) | Session ends, a new one can start |
+| Manual reset (button of the trade block) | Session ends, a new one can start |
 
-Statistics of a trade session: flight time, profit (sales minus losses), profit and tons per hour of flight, tons sold, losses, the cost of the bought goods on board, one line per route (tons, profit, profit per ton, sales), the transfers with fleet carriers, refined commodities and other goods. On the panel, a route too long for EDMC's window names its destination only. Out of scope: the fleet carrier's market and stock, smuggling, missions. Trade is not uploaded.
+Statistics of a trade session: flight time, profit (sales minus losses), profit and tons per hour of flight, tons sold, losses, the cost of the bought goods on board, one line per route (tons, profit, profit per ton, sales), the transfers with fleet carriers, refined commodities and other goods. In the block, a route too long names its destination only. Out of scope: the fleet carrier's market and stock, smuggling, missions. Trade is not uploaded.
 
 ## Engineering
 
@@ -198,16 +193,16 @@ Being built (design decision ADR 0017): materials, engineers and blueprint goals
 
 **Game data.** The journal names materials (`chemicalmanipulators`), blueprints (`FSD_LongRange`) and experimental effects (`special_fsd_heavy`), but gives neither a material's grade nor the ingredients of a blueprint, nor which engineer offers it on which module. `scripts/import_engineering_data.py` reads them from EDCD/FDevIDs and EDCD/coriolis-data at pinned commits and writes `domain/engineering/catalogue.json`, one entry per line for readable diffs; `Catalogue.from_data` checks it when read. The script refuses a name it cannot map; the few fixes it makes are listed in it, each with its reason (a trailing space in FDevIDs, misspellings in coriolis-data). It keeps the module types that have blueprints, the engineers who offer them, and the effects an engineer still applies (legacy effects have no ingredients). To follow a game update: change the pinned commits, run the script, review the diff of the catalogue.
 
-The data is Frontier's, not under the plugin's licence: `NOTICE`, shipped in the zip, says so. Names are in English in the catalogue and translated by `L10n/fr.strings`; `tests/test_translations.py` checks that every name has its translation. Material names in French are the game's own, taken from a recorded journal, where known.
+The data is Frontier's, not under the application's licence: `NOTICE`, shipped with the application, says so. Names are in English in the catalogue and translated by `L10n/fr.strings`; `tests/test_translations.py` checks that every name has its translation. Material names in French are the game's own, taken from a recorded journal, where known.
 
 **The context.** `domain/engineering/journal.py` reads the ship materials events: `Materials` (the whole inventory, at load), `MaterialCollected`, `MaterialDiscarded`, `MaterialTrade`, `Synthesis`, `TechnologyBroker`, `EngineerContribution` (materials only), `ScientificResearch`, `MissionCompleted` (`MaterialsReward`), `EngineerCraft`, `EngineerProgress` (all engineers at load, then one at a time) and `Shutdown`. `EngineeringTracker` (`session.py`) is the aggregate:
 
-- **Inventory**: unknown until `Materials` or EDMC's state gives it (`edmc/state.py`: when the plugin starts after the game, EDMC hands it no past event; its `state` is read after each entry while the inventory is unknown, and already includes that entry). Each change applies to it, never below 0, never above the material's **cap** (300 at grade 1 down to 100 at grade 5): reaching it is an alert, as what is collected beyond it is lost. A material the catalogue does not know (the game adds some before the community data) is counted, without cap. Never stored.
+- **Inventory**: unknown until `Materials` gives it (the journal reader reads the current file from its beginning, so the inventory stated at load is known even when the application starts after the game). Each change applies to it, never below 0, never above the material's **cap** (300 at grade 1 down to 100 at grade 5): reaching it is an alert, as what is collected beyond it is lost. A material the catalogue does not know (the game adds some before the community data) is counted, without cap. Never stored.
 - **Collection**: from the first change of materials to `Shutdown` or reset; death does not end it. It counts the materials collected or rewarded per category, those used (rolls, effects, synthesis, brokers, contributions, research; a trade only converts), and those that reached their cap.
 - **Goals**: a blueprint at a grade for a module type, with a number of rolls, or an experimental effect, with a number of applications. What a goal misses is its ingredients, times its rolls, minus the inventory; it is **ready** when it misses nothing. The **shopping list** adds up every goal. The engineers of a goal are the unlocked ones offering its grade on its module type. An `EngineerCraft` takes one roll (or application, with `ApplyExperimentalEffect`) off the first goal with the same blueprint and grade on the same module type, which `Catalogue.module_of` finds from the item (`int_powerdistributor_size7_class5`; armour by its name); a goal with nothing left is done and removed. The tracker reports these changes, and `EngineeringService` stores them through `GoalRepository` (local database, ADR 0018); the stored goals are loaded at start.
-- **Engineers**: status and rank, from `EngineerProgress` or EDMC's state (which names them: the catalogue gives their ids).
+- **Engineers**: status and rank, from `EngineerProgress` (which names them: the catalogue gives their ids).
 
-**Panel.** The engineering block shows the materials gained per category, used, at their cap, and the goals ready out of all goals (or that the inventory is unknown). Its alert is the last material at its cap, goal ready or goal done; a ready goal's alert goes when the player removes the goal. It progresses on a change of materials in game, a cap or a goal ready; the game's statement at load is no progress. Material names are the game's own when the journal gave them, else the catalogue's, translated. The separate window (inventory, engineers, goals) comes next.
+**Activities block.** The engineering block shows the materials gained per category, used, at their cap, and the goals ready out of all goals (or that the inventory is unknown). Its alert is the last material at its cap, goal ready or goal done; a ready goal's alert goes when the player removes the goal. It progresses on a change of materials in game, a cap or a goal ready; the game's statement at load is no progress. Material names are the game's own when the journal gave them, else the catalogue's, translated. The *Engineering* and *Blueprints* tabs show the rest (below, Desktop application).
 
 ## Prospector alerts
 
@@ -219,67 +214,70 @@ The data is Frontier's, not under the plugin's licence: `NOTICE`, shipped in the
 
 ## User interface
 
-**Panel** (EDMC's main window): status (no session, mining in a ring, session ended and why), the last prospector alert, highlighted, until the next asteroid is prospected, then the statistics: active time, refined tons, rate, tons per commodity, asteroids prospected and, once known, cores, limpets, cargo and sales. The statistics of an ended session stay displayed, and its sales are added to them. A **Reset** button ends the running session. Numbers follow the system's locale, like EDMC's own.
+**Activities** tab: one block per activity shown. For mining: status (no session, mining in a ring, session ended and why), the last prospector alert, highlighted, until the next asteroid is prospected, then the statistics: active time, refined tons, rate, tons per commodity, asteroids prospected and, once known, cores, limpets, cargo and sales. The statistics of an ended session stay displayed, and its sales are added to them. A **Reset** button ends the running session. Numbers are written as the interface's language writes them.
 
-**Preferences tab**: a percentage field per mineable commodity (empty means no alert), minimum content, minimum remaining reserve, alert on cores, sound, journal recorder, the activities shown and the display mode, and a button opening the recordings folder; it ends with the full build version. At least one activity stays shown. Numbers are typed in the system's locale. When the dialog closes, an invalid entry keeps its previous value and is named in EDMC's status bar; the valid ones are applied at once.
+The other tabs (*Engineering*, *Blueprints*, *Settings*) and the banner of the commander's situation are described below (Desktop application).
 
 ## Settings
 
-Stored with EDMC's `config` (`config.set` / `config.get_*`), keys prefixed with `edrockmaster.`, read once at start and on `prefs_changed`. Domain code receives an immutable settings object, never the store.
+Stored in `settings.json` in the data directory (`infrastructure/settings_file.py`), keys prefixed with `edrockmaster.`, read at start and written by the I/O thread when the *Settings* tab saves them. Domain code receives an immutable settings object, never the store.
 
 | Key | Type | Content |
 | --- | --- | --- |
 | `edrockmaster.settings_version` | text | Format version of the keys below (`1`), for future migrations |
 | `edrockmaster.alert.thresholds` | text | JSON object, commodity key → percent (`{"painite": 25.0, …}`) |
 | `edrockmaster.alert.minimum_content` | text | `low`, `medium` or `high` |
-| `edrockmaster.alert.minimum_remaining` | text | Percent, or empty for none (text, for every EDMC config back-end) |
+| `edrockmaster.alert.minimum_remaining` | text | Percent, or empty for none |
 | `edrockmaster.alert.cores` | bool | Alert on cores |
 | `edrockmaster.sound` | bool | Audible alerts |
 | `edrockmaster.record_journal` | bool | Journal recorder |
 | `edrockmaster.display.activities` | text | JSON list of the activities shown, at least one (`["mining", "combat"]`) |
-| `edrockmaster.display.offered` | text | JSON list of the activities the tab offered when saved (`["mining", "combat", "trade"]`). An activity a later version adds is shown until the player hides it; absent (saved by 0.3.0): mining and combat |
-| `edrockmaster.display.mode` | text | `last_active` or `stacked` |
+| `edrockmaster.display.offered` | text | JSON list of the activities offered when saved (`["mining", "combat", "trade"]`). An activity a later version adds is shown until the player hides it; absent: mining and combat |
+| `edrockmaster.display.mode` | text | `last_active` or `stacked`: kept from the plugin's panel; the application shows every activity chosen |
+| `edrockmaster.desktop.language` | text | `auto` (the system's), `en` or `fr` |
+| `edrockmaster.desktop.journal_folder` | text | The journal folder set by hand; empty: where the game writes it |
 
 Values are read one by one: a missing or invalid value falls back to its own default (and is logged), the others are kept.
 
 ## Files
 
-Data directory, outside the plugin folder so that it survives plugin updates:
+Data directory:
 
-- Windows: `%LOCALAPPDATA%\EDRockMaster`
+- Windows: `%LOCALAPPDATA%\EDRockMaster` (left unvirtualised by the MSIX package)
 - Linux: `$XDG_DATA_HOME/EDRockMaster`, or `~/.local/share/EDRockMaster`
 - macOS: `~/Library/Application Support/EDRockMaster`
 
 Contents:
 
-- `recordings/`: journal recordings, JSONL, one file per EDMC run;
-- `edrockmaster.sqlite3`: the local database (below), with its `-wal` and `-shm` files while EDMC runs;
+- `settings.json`: the settings (above);
+- `logs/`: the technical log, rotating;
+- `recordings/`: journal recordings, JSONL, one file per run;
+- `edrockmaster.sqlite3`: the local database (below), with its `-wal` and `-shm` files while the application runs;
 - `edrockmaster.sqlite3.v<N>.bak`: a copy of the database made before its last migration, from schema version N;
-- `edrockmaster.sqlite3.unreadable-<date>`: a database the plugin could not read, moved aside.
+- `edrockmaster.sqlite3.unreadable-<date>`: a database the application could not read, moved aside.
 
 ## Local database
 
-One SQLite file for the plugin's durable **state**, which is neither a setting (EDMC's `config`) nor a recording (design decision ADR 0018). Each need has its own tables and its own repository port: the engineering goals first (`GoalRepository`, ADR 0017), the upload queue in 1B (ADR 0005). Nothing in it is sent to the server unless an ADR says so.
+One SQLite file for the application's durable **state**, which is neither a setting nor a recording (design decision ADR 0018). Each need has its own tables and its own repository port: the engineering goals first (`GoalRepository`, ADR 0017), the upload queue in 1B (ADR 0005). Nothing in it is sent to the server unless an ADR says so.
 
-- **The I/O thread only.** The database opens in a job of the I/O thread at `plugin_start3`, and closes in one at `plugin_stop`. `LocalDatabase.connection()` refuses any other thread. Repositories turn each call into a job; what they read reaches the main thread through `edmc/main_thread.py`.
+- **The I/O thread only.** The database opens in a job of the I/O thread at start, and closes in one at exit. `LocalDatabase.connection()` refuses any other thread. Repositories turn each call into a job; what they read reaches the core thread as a job queued there.
 - **Versioned schema.** `PRAGMA user_version` is the schema version; `infrastructure/migrations.py` lists the migrations, applied in order at opening, each in its own transaction, forward only. A released migration never changes. Before migrating a database of version N > 0, the file is copied (SQLite's backup API) to `edrockmaster.sqlite3.v<N>.bak`, and older copies are removed. WAL journal mode.
-- **Unreadable file.** A corrupt file (SQLite says it is not a database, or the integrity check fails) or a file written by a newer version of the plugin (a downgrade) is moved aside as `edrockmaster.sqlite3.unreadable-<UTC date>`, and a new database is created. The log says why, and the panel shows a notice until the player dismisses it.
-- **Unavailable database.** Any other failure (another EDMC holds the file, the disk refuses it, a migration fails and is rolled back) leaves the file as it is; nothing is stored until EDMC restarts, the log says why and the panel says so. The plugin never fails because of its database.
+- **Unreadable file.** A corrupt file (SQLite says it is not a database, or the integrity check fails) or a file written by a newer version of the application (a downgrade) is moved aside as `edrockmaster.sqlite3.unreadable-<UTC date>`, and a new database is created. The log says why, and the interface shows a notice until the player dismisses it.
+- **Unavailable database.** Any other failure (another instance holds the file, the disk refuses it, a migration fails and is rolled back) leaves the file as it is; nothing is stored until the application restarts, the log says why and the interface says so. The application never fails because of its database.
 - **Tests.** Every schema version has a fixture, `tests/fixtures/database/schema-v<N>.sql`, kept as released; the tests migrate each one to the latest version, and check that the latest fixture has the schema the migrations create. A new migration therefore comes with its fixture.
 
 ## Journal recorder
 
-- Off by default; enabled in preferences ("Record journal for debugging").
-- Writes every entry received by the plugin, unmodified, one JSON object per line, with the `is_beta` flag: `{"is_beta": false, "entry": {…}}`. File: `recordings/journal-<start, UTC, YYYYMMDDTHHMMSSZ>-<build version>.jsonl`, so a recording says which build counted it.
-- The entry is serialised when received (EDMC shares the same dict with every plugin) and written by the I/O thread.
+- Off by default; enabled in the *Settings* tab.
+- Writes every entry the application reads, unmodified, one JSON object per line, with the `is_beta` flag: `{"is_beta": false, "entry": {…}}`. File: `recordings/journal-<start, UTC, YYYYMMDDTHHMMSSZ>-<build version>.jsonl`, so a recording says which build counted it.
+- The entry is serialised when read, and written by the I/O thread.
 - Recordings are what we turn into `tests/fixtures/`; the player decides what to share.
-- The repository is public, and a raw recording holds personal data (commander name and Frontier id, squadron, carrier, chat messages, other players' names, reputation). A recording becomes a fixture only through `scripts/sanitise_recording.py`: it keeps the events the plugin reads and a few harmless ones, reduces `LoadGame` to the game version, drops the reputation (`Factions` of `Location`, `FSDJump`, `StartUp`), the targets' pilot names (`Bounty.PilotName`) and crime victims (`CommitCrime.Victim`), per event, replaces every fleet carrier (name, callsign, id) with a neutral value, and refuses to write if the commander's name or id, or a carrier, remains. `tests/test_replay.py` replays each fixture, with figures checked by hand against the raw journal.
+- The repository is public, and a raw recording holds personal data (commander name and Frontier id, squadron, carrier, chat messages, other players' names, reputation). A recording becomes a fixture only through `scripts/sanitise_recording.py`: it keeps the events the application reads and a few harmless ones, reduces `LoadGame` to the game version, drops the reputation (`Factions` of `Location`, `FSDJump`, `StartUp`), the targets' pilot names (`Bounty.PilotName`) and crime victims (`CommitCrime.Victim`), per event, replaces every fleet carrier (name, callsign, id) with a neutral value, and refuses to write if the commander's name or id, or a carrier, remains. `tests/test_replay.py` replays each fixture, with figures checked by hand against the raw journal.
 
 ## Internationalisation
 
-- English source strings in the code, wrapped with `tl()` (`edmc/i18n.py`, bound to `l10n.translations.tl` with `context=__file__`).
-- French in `L10n/fr.strings` (UTF-8 `.strings` format).
-- Displayed strings are refreshed in `prefs_changed`: the presenter keeps domain objects, not texts, and rebuilds every text in the current language.
+- The core's texts (the activity blocks): English source strings in the code, wrapped with `tl()`, translated by `infrastructure/strings_catalogue.py` from `L10n/fr.strings` (UTF-8 `.strings` format). The interface's own texts: JSON catalogues in `web/src/locales/`, with a test that every key is translated and used.
+- The language is the system's (Windows' interface language, or the locale variables), or the one chosen in *Settings*, applied at once: the presenters keep domain objects, not texts, and rebuild every text in the current language.
 - Counts avoid plural agreement (`prospectors: 3`), which `.strings` files cannot express.
 - `tests/test_translations.py` fails if a text passed to `tl()` has no French translation, if a translation is no longer used, or if placeholders differ.
 - Commodity names come from the journal's `*_Localised` fields when present (the game's own language), otherwise from our own names.
@@ -289,37 +287,35 @@ One SQLite file for the plugin's durable **state**, which is neither a setting (
 Ports defined in 1A, implemented in 1B:
 
 - `UploadQueue`: its own tables in the local database (ADR 0018); every uploadable fact gets a client id (`uuid4`).
-- `Authenticator`: Keycloak device flow; refresh token stored with `config`.
+- `Authenticator`: Keycloak device flow; refresh token kept in the data directory.
 - `Uploader`: batches (gzip) to `edrockmaster-ingest`, on the I/O thread, with backoff.
-- Kill switch: EDMC's `killswitch` module, fetched every 10 minutes from our server.
-- Galaxy on `StartUp`: there is no `LoadGame` then, so the game version must be read from `state["GameVersion"]` to tell Live from Legacy.
+- Kill switch: by version (ADR 0016), fetched every 10 minutes from our server.
 
 ## Desktop application
 
-Being built (design decision ADR 0020): the plugin's core in an application of its own, which reads the journal without EDMC and shows a web interface in a native window. Step 1, the **journal reader**, is in `desktop/`:
+Design decision ADR 0020: the core in an application of its own, which reads the journal itself and shows a web interface in a native window. The **journal reader** is in `desktop/`:
 
 - **Folder**: on Windows, the "Saved Games" known folder of the player's profile (wherever it was moved), else `%USERPROFILE%\Saved Games`, then `Frontier Developments\Elite Dangerous`; on Linux, the Proton prefix of the game (Steam app 359320) under the usual Steam folders. `EDROCKMASTER_JOURNAL_DIR` sets it by hand.
 - **Files**: `Journal.<start>.<part>.log` (and `JournalBeta.…`), ordered by the start time in their name (two formats, before and since 2022), then by part.
-- **Reading**: the first poll reads the current file **from its beginning**, and hands the core every entry: unlike EDMC, which keeps past entries for its own state and hands plugins only the new ones, the application reaches the same figures as if it had run since the game started (its state then needs no `state` from a host). Then each poll reads what was added; an incomplete line waits for the rest; a newer file (a new session, or the next part of a long one) is followed once the current one is finished. A line that is not an entry is logged and skipped. A beta says so in its file name or its game version (`Fileheader`, `LoadGame`), as EDMC reads it.
-- **Thread**: `JournalWatcher` polls every second on its own thread (`EDRockMaster journal`), as often as EDMC polls a running game.
-- **Parity**: `tests/desktop/test_parity.py` writes every fixture back as journal files, reads them with the reader, and checks that the core gives exactly the notifications of the replay through EDMC, also for a session split in parts written while the reader follows. Reading 20,000 entries at start takes about 0.1 s, 0.3 s with the core.
-- **Boundaries**: `lint-imports` (in the CI) checks that `domain/` and `application/` import no adapter, no host and no interface toolkit (`infrastructure`, `edmc`, `desktop`, `ui`, `tkinter`, `webview`, `sqlite3`), and that the domain imports nothing else of the plugin.
+- **Reading**: the first poll reads the current file **from its beginning**, and hands the core every entry: the application reaches the same figures as if it had run since the game started. Then each poll reads what was added; an incomplete line waits for the rest; a newer file (a new session, or the next part of a long one) is followed once the current one is finished. A line that is not an entry is logged and skipped. A beta says so in its file name or its game version (`Fileheader`, `LoadGame`), as EDMC read it.
+- **Thread**: `JournalWatcher` polls every second on its own thread (`EDRockMaster journal`), as often as EDMC polled a running game.
+- **Parity**: `tests/desktop/test_parity.py` writes every fixture back as journal files, reads them with the reader, and checks that the core gives exactly the notifications of the replay of the fixture, also for a session split in parts written while the reader follows. Reading 20,000 entries at start takes about 0.1 s, 0.3 s with the core.
+- **Boundaries**: `lint-imports` (in the CI) checks that `domain/` and `application/` import no adapter, no host and no interface toolkit (`infrastructure`, `desktop`, `ui`, `webview`, `sqlite3`), that presenters and adapters know nothing of the window, and that the domain imports nothing else of the application.
 
-**Step 2, the application shell** (ADR 0020, ADR 0021):
+**The application shell** (ADR 0020, ADR 0021):
 
-- `desktop/core.py`, `DesktopCore`: the composition root of the desktop application, as `edmc/plugin.py` is the plugin's. The same core (companion, local database, goals, catalogue), fed by the journal reader. Every call to the companion and the presenter happens on the **core thread** (`EDRockMaster core`, an `IoWorker` of its own); the journal reader's thread and the interface's calls only queue jobs. After each change, the core pushes the **live view** to the interface.
-- `desktop/live_view.py`, `desktop/schemas/live_view.schema.json`: the live view, described by a JSON Schema: the activities shown and their blocks (texts from the plugin's presenters, already in the player's language), the current activity, the local data notice, the journal read. The tests validate every view pushed against the schema; the interface's TypeScript types are generated from it (`pnpm types`), and the CI checks that they are up to date.
+- `desktop/core.py`, `DesktopCore`: the composition root. The core (companion, local database, goals, catalogue), fed by the journal reader. Every call to the companion and the presenter happens on the **core thread** (`EDRockMaster core`, an `IoWorker` of its own); the journal reader's thread and the interface's calls only queue jobs. After each change, the core pushes the **live view** to the interface.
+- `desktop/live_view.py`, `desktop/schemas/live_view.schema.json`: the live view, described by a JSON Schema: the activities shown and their blocks (texts from the presenters, already in the player's language), the current activity, the local data notice, the journal read. The tests validate every view pushed against the schema; the interface's TypeScript types are generated from it (`pnpm types`), and the CI checks that they are up to date.
 - `desktop/window.py`: pywebview shows the interface, one self-contained HTML file (`desktop/interface/index.html`, built from `web/`, not in git), given as a page: no server, no port. The interface calls the core through `InterfaceApi` (`window.pywebview.api`: `ready`, `reset`, `dismiss_notice`); the core pushes with `run_js`, in ASCII JSON (pywebview on GTK gives WebKit the length of a script in characters, not bytes). pywebview creates `window.pywebview` before adding the core's calls to it: the interface waits for `pywebviewready`.
-- Settings in `settings.json` of the data directory, read and checked as the plugin's (same keys); a rotating log in `logs/`; the language of the system's interface (Windows) or of the locale variables, English otherwise; the presenters' texts translated from `L10n/*.strings`, numbers written as the language writes them.
-- `lint-imports` also checks that `desktop/` and `infrastructure/` import neither EDMC nor Tk.
+- Settings in `settings.json` of the data directory (above); a rotating log in `logs/`; the language of the system's interface (Windows) or of the locale variables, English otherwise; the presenters' texts translated from `L10n/*.strings`, numbers written as the language writes them.
 - **Interface** (`web/`): Svelte 5 and TypeScript, built by Vite into one HTML file; its own texts in `src/locales/*.json`, with a test that every key is translated and used; Vitest and Testing Library; a dark theme from design tokens. Node 22 and pnpm (through corepack) are build tools only.
 - **Run it** (development): `cd web && corepack pnpm install && corepack pnpm build`, then `uv run python -m edrockmaster.desktop` (`--debug` opens the web inspector). On Linux, pywebview needs GTK and WebKit2GTK with their Python binding (PyGObject), usually from the system's Python; `EDROCKMASTER_JOURNAL_DIR` points to a journal folder, a recording written back as journal files for instance. `uv run python -m edrockmaster.desktop --demo` (or `EDRockMaster.exe --demo`, `--demo=en`, `--demo=fr`) shows the **demo**: see below.
 
-**Settings** (the *Settings* tab): the plugin's settings, with the same keys in `settings.json` (alert thresholds per commodity, minimum content and remaining reserve, cores, sound, journal recordings, activities shown), and two of the desktop application's own: its **language** (the system's by default; the presenters translate through the core, so a new language applies at once) and its **journal folder** (empty: where the game writes it), used from the next start, since reading another folder at once would count its sessions on top of the current ones. The folder named by `EDROCKMASTER_JOURNAL_DIR` comes first, then the settings', then the usual one. `settings()` gives the form its content (`settings.schema.json`), `save_settings()` checks it field by field (`desktop/settings_view.py`) and logs what it refuses.
+**Settings** (the *Settings* tab): the settings of the table above (alert thresholds per commodity, minimum content and remaining reserve, cores, sound, journal recordings, activities shown), and the application's own: its **language** (the system's by default; the presenters translate through the core, so a new language applies at once) and its **journal folder** (empty: where the game writes it), used from the next start, since reading another folder at once would count its sessions on top of the current ones. The folder named by `EDROCKMASTER_JOURNAL_DIR` comes first, then the settings', then the usual one. `settings()` gives the form its content (`settings.schema.json`), `save_settings()` checks it field by field (`desktop/settings_view.py`) and logs what it refuses.
 
 **The engineering view** (ADR 0017): the desktop application's *Engineering* tab, in place of the Tk window ADR 0017 planned. The live view's `engineering` part (`desktop/engineering_view.py`) carries the materials by category and grade with their count and cap, the ship engineers (status, rank; named in the player's language, through `L10n/`, since some carry a title such as *Professor Palin*), the goals with what each misses and the unlocked engineers offering it (ready goals first), and the shopping list. The engineers show in short rows, name and status side by side, the unlocked ones marked, with how many are unlocked; a button folds the list away for the session. The goal form asks the core once for the catalogue (`catalogue()`, schema `goal_catalogue.schema.json`): module types, their blueprints with their grades, their experimental effects. The interface adds, changes (rolls, applications) and removes goals (`add_goal`, `change_goal`, `remove_goal`); the core checks a new goal against the catalogue and the domain, logs what it refuses, and stores goals in the local database (ADR 0018).
 
-**The commander's situation** (ADR 0023): `domain/situation/` reads `Commander`, `LoadGame`, `Location`, the jumps and supercruise, `Docked`, `Undocked`, `Loadout`, `ShipyardSwap`, `SetUserShipName`, `Embark`, `Disembark` and the wing events, into the commander's name, the ship (its type in the game's language, the player's name and registration), on foot or not, the system, the station, the game mode with the private group's name, and the wing members. `Shutdown` keeps the last situation and says the game is closed. It is in memory only: never stored, never uploaded; the plugin ignores it (EDMC shows it), the desktop application shows it in a banner, through the live view's `situation`. Wing members are other players: the recording sanitiser names them `Wingmate 1`, `Wingmate 2`…
+**The commander's situation** (ADR 0023): `domain/situation/` reads `Commander`, `LoadGame`, `Location`, the jumps and supercruise, `Docked`, `Undocked`, `Loadout`, `ShipyardSwap`, `SetUserShipName`, `Embark`, `Disembark` and the wing events, into the commander's name, the ship (its type in the game's language, the player's name and registration), on foot or not, the system, the station, the game mode with the private group's name, and the wing members. `Shutdown` keeps the last situation and says the game is closed. It is in memory only: never stored, never uploaded; the application shows it in a banner, through the live view's `situation`. Wing members are other players: the recording sanitiser names them `Wingmate 1`, `Wingmate 2`…
 
 **The demo** (`--demo`, `desktop/demo.py`): the application reads a sample journal instead of the player's, for the Store's screenshots and the documentation, or to discover it without playing. `scripts/make_demo_journal.py` writes it (`desktop/demo_journal.jsonl`, checked by a test to be up to date) from published fixtures: a mining session in a resource extraction site with its combat bonds, under the fictional **Commander Jameson** in Open play, in the *Rock Hound*, with the materials, engineers and collected materials of the engineering fixture; it stops while the commander is still mining. At start, its timestamps are moved so that it ends now: the mining, combat and engineering sessions are running. The demo is in the system's language, or the one it names (`--demo=en`, `--demo=fr`); the journal was recorded with the game in French, so for a demo in English the names the game writes in its language and the application shows as they are (commodities, asteroid content, community goal) are replaced by the game's names in English, the game's names of the materials are left out so that the catalogue names them, and each screenshot is in one language only. Its settings and goals live in a temporary folder deleted at exit, so the player's own are neither read nor changed; the technical log stays the usual one and says "Demo mode" and its language. `EDROCKMASTER_JOURNAL_DIR` is ignored.
 
@@ -328,16 +324,17 @@ Being built (design decision ADR 0020): the plugin's core in an application of i
 **Packaging for Windows** (ADR 0022): the Microsoft Store distributes the application as an MSIX package, which it signs.
 
 - `.github/workflows/windows.yml` runs on the **GitHub mirror only** (`windows-latest`; Gitea reads `.gitea/workflows/` and ignores it), with no secret: it builds the interface, runs the Python tests on Windows, decides the release plan, packages, **starts the packaged application on a recorded journal**, then in demo mode (its log must say that the interface is ready and the journal read, with no error), and keeps the packages 14 days.
-- `scripts/package_desktop.py` (on Windows): the build file (ADR 0016), the icons (`scripts/make_icons.py`, a placeholder rock until a designed icon), PyInstaller (`packaging/windows/EDRockMaster.spec`: one folder, no console, no Tk), the **portable zip** `EDRockMaster-v<version>-windows.zip` (unsigned: SmartScreen warns), and the **MSIX** `EDRockMaster-v<version>.msix` with `makeappx` (`packaging/windows/AppxManifest.xml.in`: full trust, `%LOCALAPPDATA%\EDRockMaster` unvirtualized so that data stays shared with the plugin).
+- `scripts/package_desktop.py` (on Windows): the build file (ADR 0016), the icons (`scripts/make_icons.py`, a placeholder rock until a designed icon), PyInstaller (`packaging/windows/EDRockMaster.spec`: one folder, no console, no Tk), the **portable zip** `EDRockMaster-v<version>-windows.zip` (unsigned: SmartScreen warns), and the **MSIX** `EDRockMaster-v<version>.msix` with `makeappx` (`packaging/windows/AppxManifest.xml.in`: full trust, `%LOCALAPPDATA%\EDRockMaster` unvirtualised so that the data survives a reinstall and the player can find it).
 - The package identity comes from the GitHub repository variables `EDROCKMASTER_MSIX_NAME`, `EDROCKMASTER_MSIX_PUBLISHER` and `EDROCKMASTER_MSIX_PUBLISHER_NAME`, as Partner Center gives them for the reserved name, and `EDROCKMASTER_MSIX_DISPLAY_NAME`, the reserved name itself, which the Store requires as the package's display name; without them, a development identity.
 - Package versions (`scripts/release_plan.py`): `X.Y.(Z×100+N).0` for candidate N, `X.Y.(Z×100+99).0` for production, `X.Y.(Z×100).0` for a development build. A candidate goes to the Store as a package flight to the testers; production is rebuilt from the candidate's commit. Submission is by hand in Partner Center for now.
 - `scripts/fixture_to_journal.py` writes a fixture back as a journal file, to try the application by hand.
 
 ## Testing
 
-- **Domain and application: test-driven**, with plain `pytest`, no EDMC needed.
+- **Domain and application: test-driven**, with plain `pytest`.
 - **Fixtures**: real journal excerpts (`tests/fixtures/*.jsonl`), recorded with the recorder.
-- **Replay tests**: a whole recorded session is replayed through `Companion` and the panel's presenter, and the final statistics, checked by hand against the raw journal, are asserted.
-- **EDMC adapters**: tested with fake `config`, `l10n` and `theme` modules injected by `tests/conftest.py`.
-- **UI**: the presenter and the preferences form are pure and fully tested. The tkinter widgets are kept thin; their tests use a real Tk and are skipped where no display exists (CI), so they run on developers' machines. Checked in game during test 1A.
-- CI: `ruff`, `mypy --strict`, `pytest` with coverage on `domain/` and `application/`.
+- **Replay tests**: a whole recorded session is replayed through `Companion` and the presenters, and the final statistics, checked by hand against the raw journal, are asserted; the parity tests read the same fixtures back through the journal reader.
+- **Desktop**: the core with a fake push, the window with a stand-in for pywebview, the views validated against their JSON Schemas; checked in a real window (GTK/WebKit on Linux, WebView2 in the Windows runner's smoke test).
+- **Interface**: Vitest and Testing Library, its logic in `web/src/lib/` tested alone.
+- CI: `ruff`, `mypy --strict`, `lint-imports`, `pytest` with coverage on `domain/`, `application/`, `ui/` and `desktop/`; the interface's lint, type check, tests and build.
+

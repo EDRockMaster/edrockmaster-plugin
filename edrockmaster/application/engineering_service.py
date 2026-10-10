@@ -22,7 +22,7 @@ type Publish = Callable[[Sequence[EngineeringNotification]], object]
 
 
 class EngineeringService:
-    """Called on EDMC's main thread only; the goals are stored through a non-blocking port."""
+    """Called on the core thread only; the goals are stored through a non-blocking port."""
 
     def __init__(self, catalogue: Catalogue, goals: GoalRepository, clock: Clock) -> None:
         self._tracker = EngineeringTracker(catalogue)
@@ -64,7 +64,7 @@ class EngineeringService:
         return self.handle(fact) if fact is not None else []
 
     def handle(self, fact: Fact) -> list[EngineeringNotification]:
-        """A fact of the journal, or one EDMC states when the plugin starts after the game."""
+        """A fact of the journal."""
         return self._stored(self._tracker.handle(fact))
 
     def reset_session(self) -> list[EngineeringNotification]:

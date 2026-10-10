@@ -271,7 +271,7 @@
       "properties": {
         "inventoryKnown": {
           "type": "boolean",
-          "description": "False until the game or EDMC states the inventory."
+          "description": "False until the game states the inventory."
         },
         "materials": {
           "type": "array",

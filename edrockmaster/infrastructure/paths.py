@@ -1,4 +1,4 @@
-"""Where the plugin keeps its files: outside the plugin folder, so they survive updates."""
+"""Where the application keeps its files: outside its install folder, so they survive updates."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ def data_directory(
     environ: Mapping[str, str] = os.environ,
     home: Path | None = None,
 ) -> Path:
-    """Return the plugin's data directory for the given platform (not created)."""
+    """Return the application's data directory for the given platform (not created)."""
     home = home if home is not None else Path.home()
     if platform == "win32":
         local = environ.get("LOCALAPPDATA")

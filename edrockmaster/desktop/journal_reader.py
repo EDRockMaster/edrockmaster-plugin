@@ -1,13 +1,11 @@
-"""Following the game journal as the game writes it (ADR 0020), in place of EDMC.
+"""Following the game journal as the game writes it (ADR 0020).
 
 ``JournalFollower.poll()`` reads what was added to the journal since the last
 call, and hands each entry on. Its first call reads the current file from its
-beginning: unlike EDMC, which keeps past entries for its own state and hands
-plugins only the new ones, the application gives the core every entry of the
-game session, so that it reaches the same figures as if it had run since the
-game started. When the game opens a newer file (a new session, or the next
-part of a long one), the follower finishes the current one, then follows the
-newer from its beginning.
+beginning: the application gives the core every entry of the game session, so
+that it reaches the same figures as if it had run since the game started. When
+the game opens a newer file (a new session, or the next part of a long one), the
+follower finishes the current one, then follows the newer from its beginning.
 
 The game writes whole lines, but a read can still fall in the middle of one: an
 incomplete line waits for the rest. A line that is not a journal entry is
@@ -31,7 +29,7 @@ type OnEntry = Callable[[Entry, bool], None]
 """Receives each entry, and whether it comes from a beta of the game."""
 
 POLL_SECONDS = 1.0
-"""As often as EDMC polls a running game: reading a few new lines costs nothing."""
+"""As often as EDMC polled a running game: reading a few new lines costs nothing."""
 
 _VERSION_EVENTS = frozenset({"Fileheader", "LoadGame"})
 
@@ -114,7 +112,7 @@ class JournalFollower:
         return entry
 
     def _note_version(self, entry: Entry) -> None:
-        """A beta of the game says so in its version, as EDMC reads it."""
+        """A beta of the game says so in its version, as EDMC read it."""
         if entry["event"] in _VERSION_EVENTS:
             version = entry.get("gameversion")
             if isinstance(version, str) and self._file is not None:

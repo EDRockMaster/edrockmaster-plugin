@@ -1,8 +1,7 @@
 """The desktop application's settings, in a JSON file of the data directory (ADR 0020).
 
-It offers what ``EdmcSettingsStore`` needs of EDMC's ``config`` (``get_str``,
-``get_bool``, ``set``), so that the settings are read and checked as the
-plugin's are, with the same keys. The file is read once, at start; each change
+It is the ``ConfigStore`` that ``KeyValueSettingsStore`` reads and checks the
+settings from (``get_str``, ``get_bool``, ``set``). The file is read once, at start; each change
 is written on the I/O thread, atomically (a new file, then renamed).
 """
 

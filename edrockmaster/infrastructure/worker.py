@@ -1,9 +1,8 @@
-"""The plugin's single I/O thread, and the desktop application's core thread.
+"""A thread fed by a queue of jobs: the I/O thread, and the core thread (ADR 0020).
 
-Hooks run on EDMC's tkinter main thread and must never wait on a file or the
-network: such work is submitted here as a job. Jobs never touch tkinter. The
-desktop application runs its core the same way, on a worker of its own
-(ADR 0020).
+The core thread must never wait on a file or the network: such work is
+submitted as a job to the I/O thread. The core itself runs the same way, on a
+worker of its own, fed by the journal reader and the interface.
 """
 
 from __future__ import annotations

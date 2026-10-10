@@ -20,8 +20,8 @@ a = Analysis(
         (str(PACKAGE / "desktop" / "demo_journal.jsonl"), "edrockmaster/desktop"),
         (str(PACKAGE / "desktop" / "interface" / "index.html"), "edrockmaster/desktop/interface"),
     ],
-    # The plugin's Tk interface is not part of the desktop application
-    excludes=["tkinter", "_tkinter", "edrockmaster.edmc", "edrockmaster.ui.panel", "edrockmaster.ui.preferences"],
+    # Tk is not used: left out of the bundle
+    excludes=["tkinter", "_tkinter"],
     noarchive=False,
 )
 pyz = PYZ(a.pure)

@@ -2,63 +2,61 @@
 
 *English · [Français](README.fr.md)*
 
-[EDMarketConnector](https://github.com/EDCD/EDMarketConnector) (EDMC) plugin for **EDRockMaster — Elite Dangerous Rock Master Companion**.
+**EDRockMaster Companion**, the desktop application of **EDRockMaster — Elite Dangerous Rock Master Companion** (design decisions ADR 0020 and ADR 0024). The repository keeps its name until the release of 0.4.0, when it becomes `edrockmaster-desktop`.
 
-Works on its own, without any server: prospector alerts, cores and motherlodes, live session stats, limpets, cargo and sales. Also a combat counter, per site (conflict zones in space and on the ground, resource extraction sites, navigation beacons): kills, bounties and combat bonds, kills and credits per hour by site type, miscellaneous kills, fines, unredeemed vouchers, community goals. And a trade counter: profit, profit per hour of flight, routes, cargo bought, losses, transfers with fleet carriers. And engineering: materials gained and used, materials at their cap, blueprint goals and what they miss. A later version will add an optional link with EDRockMaster services (sign-in and uploads, opt-in).
+It reads the journal that Elite Dangerous writes on the player's computer and shows, live, in a window of its own: prospector alerts, cores and motherlodes, mining statistics, limpets, cargo and sales; a combat counter per site (conflict zones in space and on the ground, resource extraction sites, navigation beacons), with bounties, combat bonds, rates per site type, fines, unredeemed vouchers and community goals; trade (profit, profit per hour of flight, routes, fleet carrier transfers); engineering (materials, caps, engineers, blueprint goals and their shopping list, and every blueprint to browse); the commander's situation. English and French. Nothing is sent anywhere; a later version will add an optional link with EDRockMaster services (step 1B).
 
-User interface in English and French: the plugin follows the language selected in EDMC.
+> **The EDMC plugin is discontinued** (ADR 0024). Its last release, [0.2.2](https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.2), stays available but gets no further release: use the desktop application.
+
+## Role in the project
+
+- **Bounded contexts** (in `edrockmaster/domain/`): mining, combat, trade, engineering and the commander's situation, computed locally from the journal (ADR 0011, 0013 to 0015, 0017 to 0019, 0023).
+- **Events**: none produced or consumed today: the application works offline. In step 1B it will send its facts to the ingestion API (ADR 0005), never to a service directly.
+- Engineering rules, ADRs, context map and glossary: `edrockmaster-architecture` repository.
 
 ## Installation
 
-Requires EDMC 6.1 or later.
-
-1. Download `EDRockMaster-vX.Y.Z.zip` from the [releases](https://github.com/EDRockMaster/edrockmaster-plugin/releases).
-2. In EDMC, open *File → Settings → Plugins → Open Plugins Folder* and extract the zip there: you get an `EDRockMaster` folder next to the other plugins.
-3. Restart EDMC.
-
-## Usage
-
-- **Panel** (EDMC's main window): the activity in progress, mining, combat, trade or engineering. For mining: the last prospector alert and the session statistics; for combat: the current site, rates per site type, kills, credits, fines, unredeemed vouchers and community goals; for trade: flight time, profit, profit per hour, tons sold, cargo bought and one line per route; for engineering: materials gained per category, used, at their cap, and the goals ready. **Reset** ends the session shown. In the preferences, choose the activities shown, and whether the panel shows the last active one or stacks them all.
-- **Settings → EDRockMaster**: alert threshold per commodity (empty means no alert), minimum content, minimum remaining reserve, cores, sound.
-- **Journal recorder** (same tab, off by default): saves the journal events received by the plugin in JSONL files. *Open recordings folder* shows them; join one to a bug report. The tab ends with the full version of the plugin (for example `0.3.0-rc.2`): quote it too.
+- **Players**: from the Microsoft Store, *EDRockMaster Companion* (Windows 10 21H1 or later, 64-bit).
+- **Testers**: the portable zip of a [Windows build](https://github.com/EDRockMaster/edrockmaster-plugin/actions/workflows/windows.yml); unblock the downloaded zip (*Properties → Unblock*), extract it on a local disk and run `EDRockMaster.exe`.
 
 What changed in each version: [changelog](CHANGELOG.md). Privacy: [privacy policy](docs/privacy.md) (nothing is sent anywhere).
 
 ## Layout
 
-- `load.py`: EDMC entry points (`plugin_start3`, `plugin_app`, `journal_entry`…), kept as thin as possible.
-- `edrockmaster/`: the plugin code, in a uniquely named package (see [prerequisites](docs/prerequisites.md)). Domain logic depends neither on EDMC nor on tkinter, and is tested with `pytest`; `lint-imports` checks it. `edrockmaster/desktop/` is the start of the desktop application that will replace the plugin (ADR 0020); its interface is in `web/` (Svelte, ADR 0021). How to run it: [design](docs/design.md#desktop-application).
-- `L10n/`: translations (`fr.strings`).
-- `tests/fixtures/`: excerpts of real journals.
-- `scripts/`: packaging (`package.sh`, with the build file from `build_file.py`), release notes (`release_notes.sh`), version (`version.sh`), release channel (`release_plan.py`), GitHub release (`github_release.py`), recording to test fixture (`sanitise_recording.py`), game data of engineering (`import_engineering_data.py`, ADR 0017), the desktop application for Windows (`package_desktop.py`, `make_icons.py`, `fixture_to_journal.py`, ADR 0022).
+- `edrockmaster/`: the application. `domain/` and `application/` (the core) depend on no adapter and no interface; `infrastructure/` (adapters), `ui/` (presenters), `desktop/` (the composition root, the journal reader, the pywebview window). `lint-imports` checks the boundaries.
+- `web/`: the interface (Svelte 5 and TypeScript, ADR 0021), built into one HTML file shipped with the application.
+- `L10n/`: translations of the core's texts (`fr.strings`).
+- `tests/fixtures/`: excerpts of real journals, free of personal data.
+- `packaging/windows/`: PyInstaller specification and MSIX manifest (ADR 0022).
+- `scripts/`: Windows packaging (`package_desktop.py`, `make_icons.py`, with the build file of ADR 0016), release notes (`release_notes.sh`), version (`version.sh`), release channel (`release_plan.py`), GitHub release (`github_release.py`), recording to test fixture (`sanitise_recording.py`), fixture to journal file (`fixture_to_journal.py`), demo journal (`make_demo_journal.py`), game data of engineering (`import_engineering_data.py`, ADR 0017).
 
 ## Documentation
 
-- [EDMC and plugin registry prerequisites](docs/prerequisites.md)
-- [Plugin design](docs/design.md)
-- Engineering rules and architecture: `edrockmaster-architecture` repository
+- [Design of the desktop application](docs/design.md)
+- [Privacy policy](docs/privacy.md) and [Microsoft Store listing](docs/store-listing.md)
 
 ## Development
 
 ```sh
 uv sync
 uv run pytest
+cd web && corepack pnpm install && corepack pnpm build && cd ..
+uv run python -m edrockmaster.desktop          # the player's journal
+uv run python -m edrockmaster.desktop --demo   # a sample journal (--demo=en, --demo=fr)
 ```
 
-Widget tests use a real Tk: they run where a display exists and are skipped elsewhere (CI).
+On Linux, pywebview needs GTK and WebKit2GTK with their Python binding (PyGObject), usually from the system's Python; `EDROCKMASTER_JOURNAL_DIR` points to another journal folder. Details: [design](docs/design.md#desktop-application). The CI also runs `ruff`, `mypy --strict`, `lint-imports` and the interface's checks (`pnpm lint`, `check`, `test`).
 
 ## Releasing
 
-No production without acceptance (ADR 0012, in the architecture repository):
+No production without acceptance (ADR 0012, ADR 0022):
 
 1. Set the new version in `pyproject.toml` and `edrockmaster/__init__.py` (`VERSION`), following SemVer, and add its entry to `CHANGELOG.md` and `CHANGELOG.fr.md`. Tests check that versions match and that both entries exist. Merge through a pull request.
-2. **Candidate**: tag the merge commit `vX.Y.Z-rc.1` and push the tag. The CI publishes a **private pre-release on Gitea**.
-3. **Acceptance**: install the candidate in EDMC and play, journal recorder on, following the milestone's in-game checklist. A problem: fix it through a pull request, then tag `vX.Y.Z-rc.2` on the new merge commit.
-4. **Production**: tag `vX.Y.Z` on the **same commit** as the accepted candidate and push. The CI refuses a production tag without a candidate on that commit (`scripts/release_plan.py`), then publishes on Gitea and GitHub, with the changelog entry as notes.
+2. **Candidate**: tag the merge commit `vX.Y.Z-rc.1` and push the tag. Gitea publishes the release notes as a private pre-release; the Windows build of that commit gives the MSIX, submitted in Partner Center as a **package flight** to the testers.
+3. **Acceptance**: install the candidate from the Store and play. A problem: fix it through a pull request, then tag `vX.Y.Z-rc.2` on the new merge commit.
+4. **Production**: tag `vX.Y.Z` on the **same commit** as the accepted candidate and push. The CI refuses a production tag without a candidate on that commit (`scripts/release_plan.py`), then publishes the notes on Gitea and GitHub, which announces the release on Discord; the production MSIX, rebuilt from that commit, is submitted to every customer.
 
-The code keeps the version `X.Y.Z` from candidate to production; the packaging writes `edrockmaster/build.json` into each zip, with the full version, the commit and the channel (ADR 0016). A CI artifact is `X.Y.Z-dev+<commit>`, a clone runs as `X.Y.Z-dev`.
-
-Every CI run also keeps the zip as an artifact (dev builds, 14 days).
+The code keeps the version `X.Y.Z` from candidate to production; the packaging writes `edrockmaster/build.json` with the full version, the commit and the channel (ADR 0016).
 
 ## License
 

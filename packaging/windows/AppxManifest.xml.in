@@ -15,7 +15,7 @@
     <DisplayName>{display_name}</DisplayName>
     <PublisherDisplayName>{publisher_name}</PublisherDisplayName>
     <Logo>assets\StoreLogo.png</Logo>
-    <!-- The data stays in %LOCALAPPDATA%\EDRockMaster, shared with the EDMC plugin and kept on
+    <!-- The data stays in %LOCALAPPDATA%\EDRockMaster, where the player finds it, and is kept on
          uninstall. Windows 10: AppData is not virtualized; Windows 11: only that folder. -->
     <desktop6:FileSystemWriteVirtualization>disabled</desktop6:FileSystemWriteVirtualization>
     <virtualization:FileSystemWriteVirtualization>

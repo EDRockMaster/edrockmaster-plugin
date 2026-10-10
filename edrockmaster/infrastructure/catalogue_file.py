@@ -1,4 +1,4 @@
-"""Reads the engineering catalogue shipped with the plugin (ADR 0017)."""
+"""Reads the engineering catalogue shipped with the application (ADR 0017)."""
 
 from __future__ import annotations
 

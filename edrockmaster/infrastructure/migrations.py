@@ -1,4 +1,4 @@
-"""Schema of the plugin's local database (ADR 0018), one migration per version.
+"""Schema of the application's local database (ADR 0018), one migration per version.
 
 Migrations are applied in order, forward only, each in its own transaction. A
 migration, once released, never changes: a change is a new migration. Every

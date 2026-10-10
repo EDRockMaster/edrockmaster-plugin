@@ -1,7 +1,7 @@
 """Audible prospector alerts.
 
-How a sound is played depends on the host: EDMC's Tk window (``edmc/host.py``)
-or the desktop application (``desktop/core.py``).
+How a sound is played depends on the platform: ``desktop/core.py`` gives the
+function.
 """
 
 from __future__ import annotations

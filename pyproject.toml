@@ -1,10 +1,10 @@
 [project]
 name = "edrockmaster-plugin"
 version = "0.3.0"
-description = "EDMC plugin for EDRockMaster"
+description = "EDRockMaster desktop application (ADR 0020, ADR 0024)"
 license = "GPL-3.0-or-later"
 requires-python = ">=3.13"
-# EDMC bundles its own runtime: the plugin must not need any third-party package.
+# The application's dependencies are in the desktop group, which uv installs by default
 dependencies = []
 
 [dependency-groups]
@@ -27,7 +27,7 @@ packaging = [
 
 [tool.uv]
 package = false
-# The desktop application's dependencies (ADR 0020); the plugin has none, EDMC bundles its runtime
+# The desktop application's dependencies (ADR 0020), its tools and its packaging
 default-groups = ["dev", "desktop", "packaging"]
 
 [tool.ruff]
@@ -40,9 +40,6 @@ ignore = ["PLR2004"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["PLR0913"]
-# Hook signatures are imposed by EDMC
-"load.py" = ["PLR0913", "PLR0917"]
-"edrockmaster/edmc/plugin.py" = ["PLR0913", "PLR0917"]
 
 [tool.mypy]
 strict = true
@@ -61,10 +58,7 @@ source = [
     "edrockmaster/ui",
     "edrockmaster/desktop",
 ]
-# tkinter widgets: tested only where a display exists (not in CI), kept thin
 omit = [
-    "edrockmaster/ui/panel.py",
-    "edrockmaster/ui/preferences.py",
     # python -m edrockmaster.desktop: calls main() of window.py, which is tested
     "edrockmaster/desktop/__main__.py",
 ]
@@ -84,22 +78,20 @@ type = "forbidden"
 source_modules = ["edrockmaster.domain", "edrockmaster.application"]
 forbidden_modules = [
     "edrockmaster.infrastructure",
-    "edrockmaster.edmc",
     "edrockmaster.desktop",
     "edrockmaster.ui",
-    "tkinter",
     "webview",
     "sqlite3",
 ]
 
 [[tool.importlinter.contracts]]
-name = "The desktop application depends neither on EDMC nor on Tk (ADR 0020)"
+name = "Presenters and adapters know nothing of the window (ADR 0020)"
 type = "forbidden"
-source_modules = ["edrockmaster.desktop", "edrockmaster.infrastructure"]
-forbidden_modules = ["edrockmaster.edmc", "tkinter"]
+source_modules = ["edrockmaster.ui", "edrockmaster.infrastructure"]
+forbidden_modules = ["edrockmaster.desktop", "webview", "tkinter"]
 
 [[tool.importlinter.contracts]]
-name = "The domain depends on nothing else of the plugin"
+name = "The domain depends on nothing else of the application"
 type = "forbidden"
 source_modules = ["edrockmaster.domain"]
 forbidden_modules = ["edrockmaster.application"]

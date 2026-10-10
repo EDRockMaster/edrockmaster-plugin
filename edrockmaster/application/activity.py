@@ -1,4 +1,4 @@
-"""The activities the plugin assists, each one a bounded context (ADR 0011)."""
+"""The activities the application assists, each one a bounded context (ADR 0011)."""
 
 from __future__ import annotations
 

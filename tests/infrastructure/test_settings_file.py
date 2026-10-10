@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 
 from edrockmaster.application.settings import DEFAULT_SETTINGS
-from edrockmaster.infrastructure.settings_edmc import EdmcSettingsStore
 from edrockmaster.infrastructure.settings_file import JsonFileConfig
+from edrockmaster.infrastructure.settings_store import KeyValueSettingsStore
 from edrockmaster.infrastructure.worker import Job
 
 logger = logging.getLogger("test.settings_file")
@@ -18,7 +18,7 @@ def run_now(job: Job) -> None:
 
 def test_settings_are_stored_as_the_plugin_stores_them(tmp_path: Path) -> None:
     path = tmp_path / "data" / "settings.json"
-    store = EdmcSettingsStore(JsonFileConfig(path, run_now, logger), logger)
+    store = KeyValueSettingsStore(JsonFileConfig(path, run_now, logger), logger)
     changed = DEFAULT_SETTINGS.__class__(
         alerts=DEFAULT_SETTINGS.alerts,
         sound_enabled=False,
@@ -29,7 +29,7 @@ def test_settings_are_stored_as_the_plugin_stores_them(tmp_path: Path) -> None:
     stored = json.loads(path.read_text(encoding="utf-8"))
     assert stored["edrockmaster.sound"] is False
     assert not path.with_name("settings.json.partial").exists()
-    assert EdmcSettingsStore(JsonFileConfig(path, run_now, logger), logger).load() == changed
+    assert KeyValueSettingsStore(JsonFileConfig(path, run_now, logger), logger).load() == changed
 
 
 def test_writes_happen_on_the_given_thread(tmp_path: Path) -> None:

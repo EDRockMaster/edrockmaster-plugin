@@ -1,9 +1,8 @@
 """The desktop application without its window (ADR 0020): journal, core, storage.
 
-``DesktopCore`` is the composition root of the desktop application, as
-``edmc/plugin.py`` is the plugin's. It builds the same core (the ``Companion``
-of the activities, the local database, the goals, the catalogue), feeds it
-with the journal reader instead of EDMC, and pushes the live view to the
+``DesktopCore`` is the composition root of the application. It builds the core
+(the ``Companion`` of the activities, the local database, the goals, the
+catalogue), feeds it with the journal reader, and pushes the live view to the
 interface after each change.
 
 Threads: every call to the companion and to the presenter happens on the
@@ -50,9 +49,9 @@ from edrockmaster.infrastructure.database import FILE_NAME as DATABASE_FILE_NAME
 from edrockmaster.infrastructure.database import LocalDatabase, Opening
 from edrockmaster.infrastructure.goal_repository import SqliteGoalRepository
 from edrockmaster.infrastructure.recorder_jsonl import JsonlJournalRecorder
-from edrockmaster.infrastructure.settings_edmc import EdmcSettingsStore
 from edrockmaster.infrastructure.settings_file import FILE_NAME as SETTINGS_FILE_NAME
 from edrockmaster.infrastructure.settings_file import JsonFileConfig
+from edrockmaster.infrastructure.settings_store import KeyValueSettingsStore
 from edrockmaster.infrastructure.sound import SoundNotifier
 from edrockmaster.infrastructure.strings_catalogue import number_format, translator
 from edrockmaster.infrastructure.worker import IoWorker
@@ -151,7 +150,7 @@ class DesktopCore:
         self._io.submit(lambda: self._opened(database.open()))
         catalogue = load_catalogue()
         companion = self._companion = Companion(
-            settings_store=EdmcSettingsStore(config, self._logger),
+            settings_store=KeyValueSettingsStore(config, self._logger),
             notifier=SoundNotifier(_alert_sound, self._logger),
             recorder=JsonlJournalRecorder(
                 self._data / "recordings", self._io.submit, self._clock.now(), build.version

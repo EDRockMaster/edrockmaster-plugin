@@ -1,11 +1,14 @@
-"""Publish a release of the plugin on GitHub, where players download it.
+"""Publish a release on GitHub: its notes, and the files given, if any.
 
-Talks to api.github.com explicitly: under Gitea Actions, GITHUB_API_URL points
+A production release carries the release notes and the sources only (ADR 0022,
+ADR 0024): players get the application from the Microsoft Store, and the
+release's publication triggers the Discord announcement (a webhook of the
+repository). Talks to api.github.com explicitly: under Gitea Actions, GITHUB_API_URL points
 at Gitea, and JavaScript actions cannot be made to ignore it. Idempotent: an
 existing release of the tag is reused, an asset already attached is replaced.
 
 Usage: GH_RELEASE_TOKEN=... python3 scripts/github_release.py \
-           <tag> <target commit> <notes file> <asset>...
+           <tag> <target commit> <notes file> [<asset>...]
 """
 
 from __future__ import annotations
@@ -78,7 +81,7 @@ def upload(release: dict[str, Any], asset: Path, token: str) -> None:
 
 
 def main(arguments: list[str]) -> int:
-    if len(arguments) < 4:
+    if len(arguments) < 3:  # tag, commit, notes
         print(__doc__, file=sys.stderr)
         return 2
     token = os.environ.get("GH_RELEASE_TOKEN", "")
