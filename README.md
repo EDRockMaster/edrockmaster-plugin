@@ -4,14 +4,20 @@
 
 **EDRockMaster Companion**, the desktop application of **EDRockMaster — Elite Dangerous Rock Master Companion** (design decisions ADR 0020 and ADR 0024). The repository keeps its name until the release of 0.4.0, when it becomes `edrockmaster-desktop`.
 
-It reads the journal that Elite Dangerous writes on the player's computer and shows, live, in a window of its own: prospector alerts, cores and motherlodes, mining statistics, limpets, cargo and sales; a combat counter per site (conflict zones in space and on the ground, resource extraction sites, navigation beacons), with bounties, combat bonds, rates per site type, fines, unredeemed vouchers and community goals; trade (profit, profit per hour of flight, routes, fleet carrier transfers); engineering (materials, caps, engineers, blueprint goals and their shopping list, and every blueprint to browse); the commander's situation. English and French. Nothing is sent anywhere; a later version will add an optional link with EDRockMaster services (step 1B).
+It reads the journal that Elite Dangerous writes on the player's computer and shows, live, in a window of its own: prospector alerts, cores and motherlodes, mining statistics, limpets, cargo and sales; a combat counter per site (conflict zones in space and on the ground, resource extraction sites, navigation beacons), with bounties, combat bonds, rates per site type, fines, unredeemed vouchers and community goals; trade (profit, profit per hour of flight, routes, fleet carrier transfers); engineering (materials, caps, engineers, blueprint goals and their shopping list, and every blueprint to browse), and on foot (materials in the ship locker and the backpack, suits and weapons, on-foot engineers, materials moved to the player's fleet carrier); the commander's situation. English and French. Nothing leaves the computer today; later versions open optional doors, each off by default (below).
 
 > **The EDMC plugin is discontinued** (ADR 0024). Its last release, [0.2.2](https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.2), stays available but gets no further release: use the desktop application.
 
 ## Role in the project
 
-- **Bounded contexts** (in `edrockmaster/domain/`): mining, combat, trade, engineering and the commander's situation, computed locally from the journal (ADR 0011, 0013 to 0015, 0017 to 0019, 0023).
-- **Events**: none produced or consumed today: the application works offline. In step 1B it will send its facts to the ingestion API (ADR 0005), never to a service directly.
+- **Bounded contexts** (in `edrockmaster/domain/`): mining, combat, trade, engineering and the commander's situation, computed locally from the journal (ADR 0011, 0013 to 0015, 0017 to 0019, 0023, 0027, 0029).
+- **Events**: none produced or consumed today: the application works offline, and stays complete with every door closed (ADR 0026).
+- **Dialogues** (ADR 0028): the application only talks to the doors that ADR lists, each turned on by the player in *Settings*:
+  - EDRockMaster services, once an account is linked (step 1B): journal entries reduced to an allow-list sent to the ingestion API (ADR 0005), data read through the GraphQL gateway (ADR 0004); never to a service directly;
+  - EDDN, the community's data network, sent by the application itself, no account needed;
+  - later, Inara and EDSM, with the player's own key.
+
+  It never talks to Frontier: what only Frontier's Companion API tells (a fleet carrier's content, the docked market) comes from EDRockMaster services. Its own secrets (the sign-in token, the player's keys) are kept in the Windows Credential Manager; no secret of the project ships in it.
 - Engineering rules, ADRs, context map and glossary: `edrockmaster-architecture` repository.
 
 ## Installation
@@ -19,7 +25,7 @@ It reads the journal that Elite Dangerous writes on the player's computer and sh
 - **Players**: from the Microsoft Store, *EDRockMaster Companion* (Windows 10 21H1 or later, 64-bit).
 - **Testers**: the portable zip of a [Windows build](https://github.com/EDRockMaster/edrockmaster-plugin/actions/workflows/windows.yml); unblock the downloaded zip (*Properties → Unblock*), extract it on a local disk and run `EDRockMaster.exe`.
 
-What changed in each version: [changelog](CHANGELOG.md). Privacy: [privacy policy](docs/privacy.md) (nothing is sent anywhere).
+What changed in each version: [changelog](CHANGELOG.md). Privacy: [privacy policy](docs/privacy.md) (nothing is sent anywhere today).
 
 ## Layout
 
@@ -28,7 +34,7 @@ What changed in each version: [changelog](CHANGELOG.md). Privacy: [privacy polic
 - `L10n/`: translations of the core's texts (`fr.strings`).
 - `tests/fixtures/`: excerpts of real journals, free of personal data.
 - `packaging/windows/`: PyInstaller specification and MSIX manifest (ADR 0022).
-- `scripts/`: Windows packaging (`package_desktop.py`, `make_icons.py`, with the build file of ADR 0016), release notes (`release_notes.sh`), version (`version.sh`), release channel (`release_plan.py`), GitHub release (`github_release.py`), recording to test fixture (`sanitise_recording.py`), fixture to journal file (`fixture_to_journal.py`), demo journal (`make_demo_journal.py`), game data of engineering (`import_engineering_data.py`, ADR 0017).
+- `scripts/`: Windows packaging (`package_desktop.py`, `make_icons.py`, with the build file of ADR 0016), release notes (`release_notes.sh`), version (`version.sh`), release channel (`release_plan.py`), GitHub release (`github_release.py`), recording to test fixture (`sanitise_recording.py`), fixture to journal file (`fixture_to_journal.py`), demo journal (`make_demo_journal.py`), game data of engineering (`import_engineering_data.py`, ADR 0017, ADR 0027).
 
 ## Documentation
 
@@ -52,7 +58,7 @@ On Linux, pywebview needs GTK and WebKit2GTK with their Python binding (PyGObjec
 No production without acceptance (ADR 0012, ADR 0022):
 
 1. Set the new version in `pyproject.toml` and `edrockmaster/__init__.py` (`VERSION`), following SemVer, and add its entry to `CHANGELOG.md` and `CHANGELOG.fr.md`. Tests check that versions match and that both entries exist. Merge through a pull request.
-2. **Candidate**: tag the merge commit `vX.Y.Z-rc.1` and push the tag. Gitea publishes the release notes as a private pre-release; the Windows build of that commit gives the MSIX, submitted in Partner Center as a **package flight** to the testers.
+2. **Candidate**: tag the merge commit `vX.Y.Z-rc.1` and push the tag. Gitea publishes the release notes as a private pre-release; the Windows build of that commit gives the MSIX, submitted in Partner Center to the testers: an ordinary update while the application is private, the **package flight** once it is public ([Store submission](docs/store-submission.md)).
 3. **Acceptance**: install the candidate from the Store and play. A problem: fix it through a pull request, then tag `vX.Y.Z-rc.2` on the new merge commit.
 4. **Production**: tag `vX.Y.Z` on the **same commit** as the accepted candidate and push. The CI refuses a production tag without a candidate on that commit (`scripts/release_plan.py`), then publishes the notes on Gitea and GitHub, which announces the release on Discord; the production MSIX, rebuilt from that commit, is submitted to every customer.
 
