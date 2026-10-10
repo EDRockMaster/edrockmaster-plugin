@@ -1,16 +1,19 @@
-"""Import the game data of engineering into the plugin (ADR 0017, ADR 0027).
+"""Import the game data of engineering into the plugin (ADR 0017, ADR 0027, ADR 0030).
 
 Reads EDCD/FDevIDs (materials, on-foot materials, engineers) and EDCD/coriolis-data (blueprints,
 experimental effects, which engineer offers which grade on which module, the
-items of each module type) at the pinned commits below, keeps the fields the plugin uses, maps every
-ingredient to its journal symbol, and writes
+items of each module type) at the pinned commits below, and the project's own
+on-foot recipes (``data/odyssey/recipes.toml``); keeps the fields the plugin
+uses, maps every ingredient to its journal symbol, and writes
 ``edrockmaster/domain/engineering/catalogue.json``.
 
 The data is Frontier Developments' intellectual property (see ``NOTICE``), used
 as community tools use it; it is not under the plugin's licence.
 
 To follow a game update: change the pinned commits and dates, run the script,
-review the diff of the catalogue, and open a pull request. The script refuses a
+review the diff of the catalogue, and open a pull request. An on-foot recipe
+read in game is written in ``recipes.toml``, then the script is run the same
+way; it refuses a recipe without the proof its confidence asks for. The script refuses a
 name it cannot map rather than guess: fix the source upstream, or add a mapping
 below with its reason.
 
@@ -20,17 +23,19 @@ Usage: python3 scripts/import_engineering_data.py [<catalogue.json>]
 from __future__ import annotations
 
 import csv
+import datetime
 import io
 import json
 import re
 import sys
+import tomllib
 import urllib.request
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-FORMAT = 2
+FORMAT = 3
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,6 +58,9 @@ ON_FOOT_KINDS = {
 }
 ON_FOOT_ENGINEERS = 400000
 """FDevIDs numbers the on-foot engineers from 400001, the ship engineers from 300000."""
+EQUIPMENT_KINDS = {"suit", "weapon"}
+UPGRADE_CLASSES = range(2, 6)
+"""The classes an item can rise to: from class 1 to 2, up to 4 to 5."""
 
 INGREDIENT_FIXES = {
     # Misspelt in coriolis-data (FDevIDs and the game: "Encryptors")
@@ -178,6 +186,87 @@ def _on_foot_materials(read: Read) -> dict[str, dict[str, str]]:
     return dict(sorted(materials.items()))
 
 
+def _confidence(what: str, upgrade: Mapping[str, Any], rules: Mapping[str, Any]) -> str:
+    """The recipe's confidence, once it has the proof that confidence asks for (ADR 0030)."""
+    confidence = upgrade.get("confidence")
+    if confidence in ("game", "web") and not isinstance(upgrade.get("read"), datetime.date):
+        raise ImportRefused(f"{what}: a {confidence} recipe needs the date it was read")
+    if confidence == "deduced":
+        named = upgrade.get("rules") or []
+        if not named:
+            raise ImportRefused(f"{what}: a deduced recipe needs its rule")
+        for rule in named:
+            if rule not in rules:
+                raise ImportRefused(f"{what}: unknown rule {rule!r}")
+    elif confidence == "web":
+        if not upgrade.get("sources"):
+            raise ImportRefused(f"{what}: a web recipe needs its sources")
+    elif confidence != "game":
+        raise ImportRefused(f"{what}: confidence {confidence!r}")
+    return str(confidence)
+
+
+def _upgrade(
+    what: str,
+    upgrade: Mapping[str, Any],
+    rules: Mapping[str, Any],
+    materials: Mapping[str, Mapping[str, str]],
+) -> dict[str, Any]:
+    ingredients = {}
+    for symbol, count in upgrade["ingredients"].items():
+        if symbol not in materials:
+            raise ImportRefused(f"{what}: ingredient {symbol!r} is no on-foot material of FDevIDs")
+        if materials[symbol]["kind"] == "consumable":
+            raise ImportRefused(f"{what}: consumable {symbol!r}")
+        ingredients[symbol] = count
+    return {
+        "credits": upgrade["credits"],
+        "ingredients": dict(sorted(ingredients.items())),
+        "confidence": _confidence(what, upgrade, rules),
+    }
+
+
+def on_foot_items(
+    recipes: str, materials: Mapping[str, Mapping[str, str]]
+) -> dict[str, dict[str, Any]]:
+    """The suits and weapons of ``recipes.toml`` and their class upgrades (ADR 0027, ADR 0030)."""
+    data = tomllib.loads(recipes)
+    rules: Mapping[str, Any] = data.get("rules", {})
+    items: dict[str, dict[str, Any]] = {}
+    read_in_game: set[str] = set()
+    for symbol, item in sorted(data["items"].items()):
+        if symbol != symbol.lower():
+            raise ImportRefused(f"item {symbol!r}: the journal writes symbols in lower case")
+        if item.get("kind") not in EQUIPMENT_KINDS:
+            raise ImportRefused(f"item {symbol!r}: unknown kind {item.get('kind')!r}")
+        if not item.get("name"):
+            raise ImportRefused(f"item {symbol!r} has no name")
+        upgrades: dict[int, dict[str, Any]] = {}
+        for upgrade in item.get("upgrades", []):
+            to_class = upgrade["to"]
+            what = f"item {symbol!r} to class {to_class}"
+            if to_class not in UPGRADE_CLASSES:
+                raise ImportRefused(f"{what}: no such class upgrade")
+            if to_class in upgrades:
+                raise ImportRefused(f"{what}: written twice")
+            upgrades[to_class] = _upgrade(what, upgrade, rules, materials)
+            if upgrades[to_class]["confidence"] == "game":
+                read_in_game.add(f"{symbol} {to_class}")
+        items[symbol] = {
+            "kind": item["kind"],
+            "name": item["name"],
+            "upgrades": {str(to_class): upgrades[to_class] for to_class in sorted(upgrades)},
+        }
+    for name, rule in sorted(rules.items()):
+        if not rule.get("text"):
+            raise ImportRefused(f"rule {name!r} has no text")
+        readings = rule.get("readings") or []
+        unread = [reading for reading in readings if reading not in read_in_game]
+        if not readings or unread:
+            raise ImportRefused(f"rule {name!r} rests on {unread or 'nothing'}, not read in game")
+    return items
+
+
 def _items(read: Read, keys: set[str]) -> dict[str, list[str]]:
     """The journal symbols (lower case) of the items of each module type."""
     files = {
@@ -222,7 +311,7 @@ def _engineer_ids(names: list[str], engineers: Mapping[str, int]) -> list[int]:
     return sorted(ids)
 
 
-def build_catalogue(read: Read) -> dict[str, Any]:
+def build_catalogue(read: Read, recipes: str) -> dict[str, Any]:
     materials, symbols = _materials(read)
     engineer_ids = _engineers(read)
     blueprints_data = json.loads(read(CORIOLIS, "modifications/blueprints.json"))
@@ -284,6 +373,7 @@ def build_catalogue(read: Read) -> dict[str, Any]:
     on_foot_engineers = {
         str(id_): name for name, id_ in engineer_ids.items() if id_ > ON_FOOT_ENGINEERS
     }
+    on_foot_materials = _on_foot_materials(read)
     return {
         "format": FORMAT,
         "sources": [
@@ -295,8 +385,9 @@ def build_catalogue(read: Read) -> dict[str, Any]:
         "blueprints": blueprints,
         "effects": effects,
         "modules": modules,
-        "on_foot_materials": _on_foot_materials(read),
+        "on_foot_materials": on_foot_materials,
         "on_foot_engineers": dict(sorted(on_foot_engineers.items(), key=lambda item: int(item[0]))),
+        "on_foot_items": on_foot_items(recipes, on_foot_materials),
     }
 
 
@@ -320,18 +411,20 @@ def render(catalogue: Mapping[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-DEFAULT_OUTPUT = (
-    Path(__file__).resolve().parent.parent / "edrockmaster/domain/engineering/catalogue.json"
-)
+ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_OUTPUT = ROOT / "edrockmaster/domain/engineering/catalogue.json"
+DEFAULT_RECIPES = ROOT / "data/odyssey/recipes.toml"
 
 
-def main(argv: list[str], read: Read = read_github) -> int:
+def main(argv: list[str], read: Read = read_github, recipes: str | None = None) -> int:
     if len(argv) > 2:
         print(__doc__.strip().splitlines()[-1], file=sys.stderr)
         return 2
     output = Path(argv[1]) if len(argv) == 2 else DEFAULT_OUTPUT
     try:
-        catalogue = build_catalogue(read)
+        if recipes is None:
+            recipes = DEFAULT_RECIPES.read_text(encoding="utf-8")
+        catalogue = build_catalogue(read, recipes)
     except ImportRefused as refusal:
         print(f"refused: {refusal}", file=sys.stderr)
         return 1
@@ -341,7 +434,8 @@ def main(argv: list[str], read: Read = read_github) -> int:
         f"{len(catalogue['blueprints'])} blueprints, {len(catalogue['effects'])} effects, "
         f"{len(catalogue['modules'])} modules, {len(catalogue['engineers'])} engineers, "
         f"{len(catalogue['on_foot_materials'])} on-foot materials, "
-        f"{len(catalogue['on_foot_engineers'])} on-foot engineers"
+        f"{len(catalogue['on_foot_engineers'])} on-foot engineers, "
+        f"{len(catalogue['on_foot_items'])} suits and weapons"
     )
     return 0
 

@@ -13,9 +13,14 @@ It is not covered by the plugin's licence.
 The file is written by scripts/import_engineering_data.py from community sources, at the
 commits it records:
 
-- EDCD/FDevIDs (https://github.com/EDCD/FDevIDs): material.csv, engineers.csv.
+- EDCD/FDevIDs (https://github.com/EDCD/FDevIDs): material.csv, engineers.csv,
+  microresources.csv.
 - EDCD/coriolis-data (https://github.com/EDCD/coriolis-data): modifications/blueprints.json,
   modifications/modules.json, modifications/specials.json.
+
+and from data/odyssey/recipes.toml: the class upgrades of suits and weapons, read in the game
+by the project. Each recipe states how it was known (seen in game, deduced from rules read in
+game, or read from public sources, which it names).
 
 Elite Dangerous is a trademark of Frontier Developments plc. EDRockMaster is not endorsed by
 or affiliated with Frontier Developments plc.
