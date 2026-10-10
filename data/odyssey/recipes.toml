@@ -1,0 +1,430 @@
+# On-foot recipes of Elite Dangerous Odyssey, written by the project (ADR 0027, ADR 0030).
+#
+# Read by scripts/import_engineering_data.py, which writes them into catalogue.json with the
+# on-foot materials of FDevIDs. Every ingredient is a journal symbol of FDevIDs'
+# microresources.csv, in lower case.
+#
+# Each recipe states its confidence (ADR 0030):
+# - "game": seen in the game by the player (screenshots kept outside the repository), or
+#   confirmed by a recorded journal event; `read` is the date of the reading;
+# - "deduced": follows from the `rules` it names, each backed by "game" readings;
+# - "web": figures read by hand from public sources, never copied in bulk; `sources` names each
+#   one, `read` is the date.
+# The game wins: a reading that contradicts a rule makes every recipe deduced from it unknown
+# again (removed from this file) until checked.
+#
+# An unknown recipe is absent. The game shows a class upgrade only for an item the player owns,
+# at its next class: the upgrades to class 5 have not been seen yet.
+
+game_version = "4.4.1.1"
+
+# Rules read in game
+
+[rules.quantities-by-step]
+text = """The quantities of a class upgrade depend on its step only: to class 2, 1 of each of \
+the first three ingredients and 2 of each of the last two; to class 3, 2 and 5; to class 4, \
+4 and 9."""
+readings = [
+    "utilitysuit 2", "utilitysuit 3", "tacticalsuit 2", "tacticalsuit 4", "explorationsuit 2",
+    "explorationsuit 3", "wpn_m_submachinegun_laser_fauto 4",
+]
+
+[rules.suit-ingredients]
+text = """A suit's class upgrades take a suit schematic, a health monitor, manufacturing \
+instructions, the suit's plating and graphene."""
+readings = [
+    "utilitysuit 2", "utilitysuit 3", "tacticalsuit 2", "tacticalsuit 4", "explorationsuit 2",
+    "explorationsuit 3",
+]
+
+[rules.weapon-ingredients-by-maker]
+text = """A weapon's class upgrades take a weapon schematic, manufacturing instructions and \
+three ingredients of its maker: Kinematic, liquefied gas, tungsten carbide and weapon \
+component; Takada, ionised gas, microelectrode and optical fibre; Manticore, ionised gas, \
+chemical superbase and microelectrode."""
+readings = [
+    "wpn_s_pistol_kinetic_sauto 2", "wpn_m_submachinegun_kinetic_fauto 2",
+    "wpn_m_assaultrifle_kinetic_fauto 2", "wpn_m_launcher_rocket_sauto 2",
+    "wpn_s_pistol_laser_sauto 2", "wpn_m_submachinegun_laser_fauto 2",
+    "wpn_m_submachinegun_laser_fauto 4", "wpn_m_assaultrifle_laser_fauto 2",
+    "wpn_s_pistol_plasma_charged 2", "wpn_m_shotgun_plasma_doublebarrel 2",
+    "wpn_m_assaultrifle_plasma_fauto 2", "wpn_m_sniper_plasma_charged 2",
+]
+
+[rules.credits-by-step]
+text = """The credits of the upgrade to class 3 are 3.75 times those to class 2, and to \
+class 4, 7.5 times."""
+readings = [
+    "utilitysuit 2", "utilitysuit 3", "tacticalsuit 2", "tacticalsuit 4", "explorationsuit 2",
+    "explorationsuit 3", "wpn_m_submachinegun_laser_fauto 2", "wpn_m_submachinegun_laser_fauto 4",
+]
+
+# Suits: the flight suit has no class
+
+[items.flightsuit]
+kind = "suit"
+name = "Flight suit"
+
+[items.utilitysuit]
+kind = "suit"
+name = "Maverick suit"
+
+[[items.utilitysuit.upgrades]]
+to = 2
+credits = 600_000
+ingredients = { suitschematic = 1, healthmonitor = 1, manufacturinginstructions = 1, carbonfibreplating = 2, graphene = 2 }
+confidence = "game"
+read = 2026-10-11
+
+[[items.utilitysuit.upgrades]]
+to = 3
+credits = 2_250_000
+ingredients = { suitschematic = 2, healthmonitor = 2, manufacturinginstructions = 2, carbonfibreplating = 5, graphene = 5 }
+confidence = "game"
+read = 2026-10-11
+
+[[items.utilitysuit.upgrades]]
+to = 4
+credits = 4_500_000
+ingredients = { suitschematic = 4, healthmonitor = 4, manufacturinginstructions = 4, carbonfibreplating = 9, graphene = 9 }
+confidence = "deduced"
+rules = ["quantities-by-step", "suit-ingredients", "credits-by-step"]
+
+[items.tacticalsuit]
+kind = "suit"
+name = "Dominator suit"
+
+[[items.tacticalsuit.upgrades]]
+to = 2
+credits = 600_000
+ingredients = { suitschematic = 1, healthmonitor = 1, manufacturinginstructions = 1, titaniumplating = 2, graphene = 2 }
+confidence = "game"
+read = 2026-10-11
+
+[[items.tacticalsuit.upgrades]]
+to = 3
+credits = 2_250_000
+ingredients = { suitschematic = 2, healthmonitor = 2, manufacturinginstructions = 2, titaniumplating = 5, graphene = 5 }
+confidence = "deduced"
+rules = ["quantities-by-step", "suit-ingredients", "credits-by-step"]
+
+[[items.tacticalsuit.upgrades]]
+to = 4
+credits = 4_500_000
+ingredients = { suitschematic = 4, healthmonitor = 4, manufacturinginstructions = 4, titaniumplating = 9, graphene = 9 }
+confidence = "game"
+read = 2026-10-11
+
+[items.explorationsuit]
+kind = "suit"
+name = "Artemis suit"
+
+[[items.explorationsuit.upgrades]]
+to = 2
+credits = 600_000
+ingredients = { suitschematic = 1, healthmonitor = 1, manufacturinginstructions = 1, aerogel = 2, graphene = 2 }
+confidence = "game"
+read = 2026-10-11
+
+[[items.explorationsuit.upgrades]]
+to = 3
+credits = 2_250_000
+ingredients = { suitschematic = 2, healthmonitor = 2, manufacturinginstructions = 2, aerogel = 5, graphene = 5 }
+confidence = "game"
+read = 2026-10-11
+
+[[items.explorationsuit.upgrades]]
+to = 4
+credits = 4_500_000
+ingredients = { suitschematic = 4, healthmonitor = 4, manufacturinginstructions = 4, aerogel = 9, graphene = 9 }
+confidence = "deduced"
+rules = ["quantities-by-step", "suit-ingredients", "credits-by-step"]
+
+# Weapons: the ingredients are their maker's (rules.weapon-ingredients-by-maker)
+
+[items.wpn_s_pistol_kinetic_sauto]
+kind = "weapon"
+name = "Karma P-15"
+maker = "Kinematic"
+
+[[items.wpn_s_pistol_kinetic_sauto.upgrades]]
+to = 2
+credits = 200_000
+ingredients = { weaponschematic = 1, compressionliquefiedgas = 1, manufacturinginstructions = 1, tungstencarbide = 2, weaponcomponent = 2 }
+confidence = "game"
+read = 2026-10-11
+
+[[items.wpn_s_pistol_kinetic_sauto.upgrades]]
+to = 3
+credits = 750_000
+ingredients = { weaponschematic = 2, compressionliquefiedgas = 2, manufacturinginstructions = 2, tungstencarbide = 5, weaponcomponent = 5 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+
+[[items.wpn_s_pistol_kinetic_sauto.upgrades]]
+to = 4
+credits = 1_500_000
+ingredients = { weaponschematic = 4, compressionliquefiedgas = 4, manufacturinginstructions = 4, tungstencarbide = 9, weaponcomponent = 9 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+
+[items.wpn_m_submachinegun_kinetic_fauto]
+kind = "weapon"
+name = "Karma C-44"
+maker = "Kinematic"
+
+[[items.wpn_m_submachinegun_kinetic_fauto.upgrades]]
+to = 2
+credits = 300_000
+ingredients = { weaponschematic = 1, compressionliquefiedgas = 1, manufacturinginstructions = 1, tungstencarbide = 2, weaponcomponent = 2 }
+confidence = "game"
+read = 2026-10-11
+
+[[items.wpn_m_submachinegun_kinetic_fauto.upgrades]]
+to = 3
+credits = 1_125_000
+ingredients = { weaponschematic = 2, compressionliquefiedgas = 2, manufacturinginstructions = 2, tungstencarbide = 5, weaponcomponent = 5 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+
+[[items.wpn_m_submachinegun_kinetic_fauto.upgrades]]
+to = 4
+credits = 2_250_000
+ingredients = { weaponschematic = 4, compressionliquefiedgas = 4, manufacturinginstructions = 4, tungstencarbide = 9, weaponcomponent = 9 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+
+[items.wpn_m_assaultrifle_kinetic_fauto]
+kind = "weapon"
+name = "Karma AR-50"
+maker = "Kinematic"
+
+[[items.wpn_m_assaultrifle_kinetic_fauto.upgrades]]
+to = 2
+credits = 500_000
+ingredients = { weaponschematic = 1, compressionliquefiedgas = 1, manufacturinginstructions = 1, tungstencarbide = 2, weaponcomponent = 2 }
+confidence = "game"
+read = 2026-10-11
+
+[[items.wpn_m_assaultrifle_kinetic_fauto.upgrades]]
+to = 3
+credits = 1_875_000
+ingredients = { weaponschematic = 2, compressionliquefiedgas = 2, manufacturinginstructions = 2, tungstencarbide = 5, weaponcomponent = 5 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+
+[[items.wpn_m_assaultrifle_kinetic_fauto.upgrades]]
+to = 4
+credits = 3_750_000
+ingredients = { weaponschematic = 4, compressionliquefiedgas = 4, manufacturinginstructions = 4, tungstencarbide = 9, weaponcomponent = 9 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+
+[items.wpn_m_launcher_rocket_sauto]
+kind = "weapon"
+name = "Karma L-6"
+maker = "Kinematic"
+
+[[items.wpn_m_launcher_rocket_sauto.upgrades]]
+to = 2
+credits = 700_000
+ingredients = { weaponschematic = 1, compressionliquefiedgas = 1, manufacturinginstructions = 1, tungstencarbide = 2, weaponcomponent = 2 }
+confidence = "game"
+read = 2026-10-11
+
+[[items.wpn_m_launcher_rocket_sauto.upgrades]]
+to = 3
+credits = 2_625_000
+ingredients = { weaponschematic = 2, compressionliquefiedgas = 2, manufacturinginstructions = 2, tungstencarbide = 5, weaponcomponent = 5 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+
+[[items.wpn_m_launcher_rocket_sauto.upgrades]]
+to = 4
+credits = 5_250_000
+ingredients = { weaponschematic = 4, compressionliquefiedgas = 4, manufacturinginstructions = 4, tungstencarbide = 9, weaponcomponent = 9 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+
+[items.wpn_s_pistol_laser_sauto]
+kind = "weapon"
+name = "TK Zenith"
+maker = "Takada"
+
+[[items.wpn_s_pistol_laser_sauto.upgrades]]
+to = 2
+credits = 200_000
+ingredients = { weaponschematic = 1, ionisedgas = 1, manufacturinginstructions = 1, microelectrode = 2, opticalfibre = 2 }
+confidence = "game"
+read = 2026-10-11
+
+[[items.wpn_s_pistol_laser_sauto.upgrades]]
+to = 3
+credits = 750_000
+ingredients = { weaponschematic = 2, ionisedgas = 2, manufacturinginstructions = 2, microelectrode = 5, opticalfibre = 5 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+
+[[items.wpn_s_pistol_laser_sauto.upgrades]]
+to = 4
+credits = 1_500_000
+ingredients = { weaponschematic = 4, ionisedgas = 4, manufacturinginstructions = 4, microelectrode = 9, opticalfibre = 9 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+
+[items.wpn_m_submachinegun_laser_fauto]
+kind = "weapon"
+name = "TK Eclipse"
+maker = "Takada"
+
+[[items.wpn_m_submachinegun_laser_fauto.upgrades]]
+to = 2
+credits = 300_000
+ingredients = { weaponschematic = 1, ionisedgas = 1, manufacturinginstructions = 1, microelectrode = 2, opticalfibre = 2 }
+confidence = "game"
+read = 2026-10-11
+
+[[items.wpn_m_submachinegun_laser_fauto.upgrades]]
+to = 3
+credits = 1_125_000
+ingredients = { weaponschematic = 2, ionisedgas = 2, manufacturinginstructions = 2, microelectrode = 5, opticalfibre = 5 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+
+[[items.wpn_m_submachinegun_laser_fauto.upgrades]]
+to = 4
+credits = 2_250_000
+ingredients = { weaponschematic = 4, ionisedgas = 4, manufacturinginstructions = 4, microelectrode = 9, opticalfibre = 9 }
+confidence = "game"
+read = 2026-10-11
+
+[items.wpn_m_assaultrifle_laser_fauto]
+kind = "weapon"
+name = "TK Aphelion"
+maker = "Takada"
+
+[[items.wpn_m_assaultrifle_laser_fauto.upgrades]]
+to = 2
+credits = 500_000
+ingredients = { weaponschematic = 1, ionisedgas = 1, manufacturinginstructions = 1, microelectrode = 2, opticalfibre = 2 }
+confidence = "game"
+read = 2026-10-11
+
+[[items.wpn_m_assaultrifle_laser_fauto.upgrades]]
+to = 3
+credits = 1_875_000
+ingredients = { weaponschematic = 2, ionisedgas = 2, manufacturinginstructions = 2, microelectrode = 5, opticalfibre = 5 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+
+[[items.wpn_m_assaultrifle_laser_fauto.upgrades]]
+to = 4
+credits = 3_750_000
+ingredients = { weaponschematic = 4, ionisedgas = 4, manufacturinginstructions = 4, microelectrode = 9, opticalfibre = 9 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+
+[items.wpn_s_pistol_plasma_charged]
+kind = "weapon"
+name = "Manticore Tormentor"
+maker = "Manticore"
+
+[[items.wpn_s_pistol_plasma_charged.upgrades]]
+to = 2
+credits = 200_000
+ingredients = { weaponschematic = 1, ionisedgas = 1, manufacturinginstructions = 1, chemicalsuperbase = 2, microelectrode = 2 }
+confidence = "game"
+read = 2026-10-11
+
+[[items.wpn_s_pistol_plasma_charged.upgrades]]
+to = 3
+credits = 750_000
+ingredients = { weaponschematic = 2, ionisedgas = 2, manufacturinginstructions = 2, chemicalsuperbase = 5, microelectrode = 5 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+
+[[items.wpn_s_pistol_plasma_charged.upgrades]]
+to = 4
+credits = 1_500_000
+ingredients = { weaponschematic = 4, ionisedgas = 4, manufacturinginstructions = 4, chemicalsuperbase = 9, microelectrode = 9 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+
+[items.wpn_m_shotgun_plasma_doublebarrel]  # symbol not seen in the player's journals yet
+kind = "weapon"
+name = "Manticore Intimidator"
+maker = "Manticore"
+
+[[items.wpn_m_shotgun_plasma_doublebarrel.upgrades]]
+to = 2
+credits = 400_000
+ingredients = { weaponschematic = 1, ionisedgas = 1, manufacturinginstructions = 1, chemicalsuperbase = 2, microelectrode = 2 }
+confidence = "game"
+read = 2026-10-11
+
+[[items.wpn_m_shotgun_plasma_doublebarrel.upgrades]]
+to = 3
+credits = 1_500_000
+ingredients = { weaponschematic = 2, ionisedgas = 2, manufacturinginstructions = 2, chemicalsuperbase = 5, microelectrode = 5 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+
+[[items.wpn_m_shotgun_plasma_doublebarrel.upgrades]]
+to = 4
+credits = 3_000_000
+ingredients = { weaponschematic = 4, ionisedgas = 4, manufacturinginstructions = 4, chemicalsuperbase = 9, microelectrode = 9 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+
+[items.wpn_m_assaultrifle_plasma_fauto]  # symbol not seen in the player's journals yet
+kind = "weapon"
+name = "Manticore Oppressor"
+maker = "Manticore"
+
+[[items.wpn_m_assaultrifle_plasma_fauto.upgrades]]
+to = 2
+credits = 500_000
+ingredients = { weaponschematic = 1, ionisedgas = 1, manufacturinginstructions = 1, chemicalsuperbase = 2, microelectrode = 2 }
+confidence = "game"
+read = 2026-10-11
+
+[[items.wpn_m_assaultrifle_plasma_fauto.upgrades]]
+to = 3
+credits = 1_875_000
+ingredients = { weaponschematic = 2, ionisedgas = 2, manufacturinginstructions = 2, chemicalsuperbase = 5, microelectrode = 5 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+
+[[items.wpn_m_assaultrifle_plasma_fauto.upgrades]]
+to = 4
+credits = 3_750_000
+ingredients = { weaponschematic = 4, ionisedgas = 4, manufacturinginstructions = 4, chemicalsuperbase = 9, microelectrode = 9 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+
+[items.wpn_m_sniper_plasma_charged]  # symbol not seen in the player's journals yet
+kind = "weapon"
+name = "Manticore Executioner"
+maker = "Manticore"
+
+[[items.wpn_m_sniper_plasma_charged.upgrades]]
+to = 2
+credits = 700_000
+ingredients = { weaponschematic = 1, ionisedgas = 1, manufacturinginstructions = 1, chemicalsuperbase = 2, microelectrode = 2 }
+confidence = "game"
+read = 2026-10-11
+
+[[items.wpn_m_sniper_plasma_charged.upgrades]]
+to = 3
+credits = 2_625_000
+ingredients = { weaponschematic = 2, ionisedgas = 2, manufacturinginstructions = 2, chemicalsuperbase = 5, microelectrode = 5 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+
+[[items.wpn_m_sniper_plasma_charged.upgrades]]
+to = 4
+credits = 5_250_000
+ingredients = { weaponschematic = 4, ionisedgas = 4, manufacturinginstructions = 4, chemicalsuperbase = 9, microelectrode = 9 }
+confidence = "deduced"
+rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+

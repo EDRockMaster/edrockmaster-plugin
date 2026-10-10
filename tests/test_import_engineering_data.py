@@ -81,6 +81,50 @@ FSD_ITEMS: dict[str, Any] = {
 }
 
 
+RECIPES = """
+game_version = "4.4.1.1"
+
+[rules.by-step]
+text = "Quantities depend on the step."
+readings = ["tacticalsuit 2"]
+
+[items.flightsuit]
+kind = "suit"
+name = "Flight suit"
+
+[items.tacticalsuit]
+kind = "suit"
+name = "Dominator suit"
+
+[[items.tacticalsuit.upgrades]]
+to = 2
+credits = 600_000
+ingredients = { graphene = 2, chemicalsample = 1 }
+confidence = "game"
+read = 2026-10-11
+
+[[items.tacticalsuit.upgrades]]
+to = 3
+credits = 2_250_000
+ingredients = { graphene = 5, chemicalsample = 2 }
+confidence = "deduced"
+rules = ["by-step"]
+
+[items.wpn_m_assaultrifle_kinetic_fauto]
+kind = "weapon"
+name = "Karma AR-50"
+maker = "Kinematic"
+
+[[items.wpn_m_assaultrifle_kinetic_fauto.upgrades]]
+to = 5
+credits = 3_000_000
+ingredients = { internalcorrespondence = 9 }
+confidence = "web"
+sources = ["https://example.org/ar-50"]
+read = 2026-10-11
+"""
+
+
 class Sources:
     def __init__(self) -> None:
         self.files = {
@@ -111,7 +155,7 @@ def sources() -> Sources:
 
 
 def test_the_catalogue_keeps_what_the_plugin_uses(sources: Sources) -> None:
-    catalogue = importer.build_catalogue(sources.read)
+    catalogue = importer.build_catalogue(sources.read, RECIPES)
     assert catalogue["materials"]["arsenic"] == {"category": "raw", "grade": 2, "name": "Arsenic"}
     assert catalogue["blueprints"] == {
         "FSD_LongRange": {
@@ -145,7 +189,7 @@ def test_the_catalogue_keeps_what_the_plugin_uses(sources: Sources) -> None:
 
 
 def test_the_catalogue_has_the_on_foot_materials_and_engineers(sources: Sources) -> None:
-    catalogue = importer.build_catalogue(sources.read)
+    catalogue = importer.build_catalogue(sources.read, RECIPES)
     assert catalogue["on_foot_materials"] == {
         "chemicalsample": {"kind": "item", "name": "Chemical Sample"},
         "graphene": {"kind": "component", "name": "Graphene"},
@@ -156,14 +200,69 @@ def test_the_catalogue_has_the_on_foot_materials_and_engineers(sources: Sources)
     Catalogue.from_data(catalogue)
 
 
+def test_the_catalogue_has_the_class_upgrades_read_in_game(sources: Sources) -> None:
+    catalogue = importer.build_catalogue(sources.read, RECIPES)
+    items = catalogue["on_foot_items"]
+    assert list(items) == ["flightsuit", "tacticalsuit", "wpn_m_assaultrifle_kinetic_fauto"]
+    assert items["flightsuit"] == {"kind": "suit", "name": "Flight suit", "upgrades": {}}
+    assert items["tacticalsuit"]["upgrades"] == {
+        "2": {
+            "credits": 600000,
+            "ingredients": {"chemicalsample": 1, "graphene": 2},
+            "confidence": "game",
+        },
+        "3": {
+            "credits": 2250000,
+            "ingredients": {"chemicalsample": 2, "graphene": 5},
+            "confidence": "deduced",
+        },
+    }
+    assert items["wpn_m_assaultrifle_kinetic_fauto"]["upgrades"]["5"]["confidence"] == "web"
+    Catalogue.from_data(catalogue)
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "message"),
+    [
+        ('kind = "suit"\nname = "Dominator', 'kind = "helmet"\nname = "Dominator', "kind"),
+        ('name = "Flight suit"', 'name = ""', "name"),
+        ("[items.flightsuit]", "[items.FlightSuit]", "lower case"),
+        ("to = 3", "to = 2", "twice"),
+        ("to = 3", "to = 1", "class 1"),
+        ("graphene = 5", "iron = 5", "'iron'"),
+        ("graphene = 5", "healthpack = 5", "consumable 'healthpack'"),
+        ('confidence = "deduced"', 'confidence = "rumour"', "confidence 'rumour'"),
+        ("read = 2026-10-11\n\n[[items.tacticalsuit", "\n[[items.tacticalsuit", "date"),
+        ('rules = ["by-step"]', "rules = []", "rule"),
+        ('rules = ["by-step"]', 'rules = ["guesswork"]', "'guesswork'"),
+        ('sources = ["https://example.org/ar-50"]', "sources = []", "source"),
+        ('readings = ["tacticalsuit 2"]', 'readings = ["tacticalsuit 3"]', "not read in game"),
+        ('readings = ["tacticalsuit 2"]', "readings = []", "not read in game"),
+        ('text = "Quantities depend on the step."', 'text = ""', "rule 'by-step'"),
+    ],
+)
+def test_a_recipe_without_its_proof_is_refused(
+    sources: Sources, old: str, new: str, message: str
+) -> None:
+    assert old in RECIPES
+    with pytest.raises(importer.ImportRefused, match=message):
+        importer.build_catalogue(sources.read, RECIPES.replace(old, new, 1))
+
+
+def test_the_shipped_catalogue_has_the_shipped_recipes() -> None:
+    shipped = json.loads(importer.DEFAULT_OUTPUT.read_text(encoding="utf-8"))
+    recipes = importer.DEFAULT_RECIPES.read_text(encoding="utf-8")
+    assert shipped["on_foot_items"] == importer.on_foot_items(recipes, shipped["on_foot_materials"])
+
+
 def test_an_on_foot_material_of_an_unknown_kind_is_refused(sources: Sources) -> None:
     sources.files["microresources.csv"] += "128000000,Mystery,Gadget,Mystery\n"
     with pytest.raises(importer.ImportRefused, match="Mystery"):
-        importer.build_catalogue(sources.read)
+        importer.build_catalogue(sources.read, RECIPES)
 
 
 def test_the_sources_are_read_at_their_pinned_commits(sources: Sources) -> None:
-    catalogue = importer.build_catalogue(sources.read)
+    catalogue = importer.build_catalogue(sources.read, RECIPES)
     assert sources.read_at == {
         ("EDCD/FDevIDs", importer.FDEVIDS.commit),
         ("EDCD/coriolis-data", importer.CORIOLIS.commit),
@@ -212,16 +311,16 @@ def test_a_name_it_cannot_map_is_refused(
 ) -> None:
     sources.change(path, edit)
     with pytest.raises(importer.ImportRefused, match=message):
-        importer.build_catalogue(sources.read)
+        importer.build_catalogue(sources.read, RECIPES)
 
 
 def test_the_file_is_stable_and_has_one_entry_per_line(sources: Sources, tmp_path: Path) -> None:
     output = tmp_path / "catalogue.json"
-    assert importer.main(["import", str(output)], sources.read) == 0
+    assert importer.main(["import", str(output)], sources.read, RECIPES) == 0
     text = output.read_text(encoding="utf-8")
-    assert json.loads(text) == importer.build_catalogue(sources.read)
+    assert json.loads(text) == importer.build_catalogue(sources.read, RECIPES)
     assert '    "FSD_LongRange": {"name": "Increased range", ' in text
-    assert importer.main(["import", str(output)], sources.read) == 0
+    assert importer.main(["import", str(output)], sources.read, RECIPES) == 0
     assert output.read_text(encoding="utf-8") == text
 
 
@@ -230,13 +329,13 @@ def test_nothing_is_written_when_refused(
 ) -> None:
     sources.change("modifications/modules.json", lambda data: data.update({"zz": data["fsd"]}))
     output = tmp_path / "catalogue.json"
-    assert importer.main(["import", str(output)], sources.read) == 1
+    assert importer.main(["import", str(output)], sources.read, RECIPES) == 1
     assert not output.exists()
     assert "refused" in capsys.readouterr().err
 
 
 def test_usage(capsys: pytest.CaptureFixture[str]) -> None:
-    assert importer.main(["import", "a", "b"]) == 2
+    assert importer.main(["import", "a", "b"], recipes=RECIPES) == 2
     assert "Usage" in capsys.readouterr().err
 
 
@@ -251,11 +350,11 @@ def test_the_shipped_catalogue_names_every_module_the_script_knows() -> None:
 def test_a_module_without_items_is_refused(sources: Sources) -> None:
     sources.files["modules/index.js"] = "module.exports = {};\n"
     with pytest.raises(importer.ImportRefused, match="module 'fsd' has no file"):
-        importer.build_catalogue(sources.read)
+        importer.build_catalogue(sources.read, RECIPES)
     sources.files["modules/index.js"] = MODULE_INDEX
     sources.files["modules/standard/frame_shift_drive.json"] = json.dumps({"fsd": []})
     with pytest.raises(importer.ImportRefused, match="module 'fsd' has no item"):
-        importer.build_catalogue(sources.read)
+        importer.build_catalogue(sources.read, RECIPES)
 
 
 def test_armour_needs_no_items(sources: Sources) -> None:
@@ -263,4 +362,4 @@ def test_armour_needs_no_items(sources: Sources) -> None:
         data["bh"] = {"blueprints": copy.deepcopy(data["fsd"]["blueprints"])}
 
     sources.change("modifications/modules.json", armour)
-    assert importer.build_catalogue(sources.read)["modules"]["bh"]["items"] == []
+    assert importer.build_catalogue(sources.read, RECIPES)["modules"]["bh"]["items"] == []

@@ -15,7 +15,11 @@ names through an item (``int_powerdistributor_size7_class5``). An
 
 On foot (ADR 0027), an **on-foot material** is of a kind (item, component,
 data, consumable) and has no grade nor cap; the **on-foot engineers** are kept
-apart from the ship engineers.
+apart from the ship engineers. A suit or a weapon (an **on-foot item**) rises
+one class at a time: each **class upgrade** takes credits and on-foot
+materials. These recipes are the project's own, read in game
+(``data/odyssey/recipes.toml``), each with its **confidence** (ADR 0030); an
+unknown one is absent.
 
 Names are in English; the plugin's catalogues translate them.
 """
@@ -27,10 +31,12 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
-FORMAT = 2
+FORMAT = 3
 """The version of ``catalogue.json`` this code reads."""
 
 GRADES = range(1, 6)
+CLASSES = range(1, 6)
+"""The classes of a suit or weapon."""
 ARMOUR = "bh"
 """The module type of armour (bulkheads)."""
 _CAPS = {1: 300, 2: 250, 3: 200, 4: 150, 5: 100}
@@ -48,6 +54,22 @@ class OnFootKind(StrEnum):
     DATA = "data"
     CONSUMABLE = "consumable"
     """Medkits, energy cells, grenades: engineering does not use them."""
+
+
+class EquipmentKind(StrEnum):
+    SUIT = "suit"
+    WEAPON = "weapon"
+
+
+class RecipeConfidence(StrEnum):
+    """How sure a recipe is (ADR 0030)."""
+
+    GAME = "game"
+    """Seen in game, or confirmed by a journal event."""
+    DEDUCED = "deduced"
+    """Follows from a rule read in game."""
+    WEB = "web"
+    """Read by hand from public sources."""
 
 
 type Ingredients = Mapping[str, int]
@@ -74,6 +96,27 @@ class OnFootMaterial:
     """As the journal writes it, in lower case (``chemicalsample``)."""
     kind: OnFootKind
     english_name: str
+
+
+@dataclass(frozen=True, slots=True)
+class ClassUpgrade:
+    to_class: int
+    """The class the item rises to, from the one below."""
+    credits: int
+    ingredients: Ingredients
+    """Count of each on-foot material, by journal symbol."""
+    confidence: RecipeConfidence
+
+
+@dataclass(frozen=True, slots=True)
+class OnFootItem:
+    symbol: str
+    """As the journal writes it, in lower case and without class (``tacticalsuit``,
+    ``wpn_m_assaultrifle_kinetic_fauto``)."""
+    kind: EquipmentKind
+    english_name: str
+    upgrades: Mapping[int, ClassUpgrade]
+    """The known class upgrades, by the class they rise to."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -130,6 +173,8 @@ class Catalogue:
     on_foot_materials: Mapping[str, OnFootMaterial]
     on_foot_engineers: Mapping[int, str]
     """On-foot engineer names, by the id the journal gives (``EngineerID``)."""
+    on_foot_items: Mapping[str, OnFootItem]
+    """Suits and weapons, by journal symbol."""
 
     def module_of(self, item: str) -> ModuleType | None:
         """The module type of an item the journal names (``EngineerCraft.Module``)."""
@@ -197,6 +242,10 @@ class Catalogue:
                 on_foot_engineers={
                     int(id_): name for id_, name in data["on_foot_engineers"].items()
                 },
+                on_foot_items={
+                    symbol: _on_foot_item(symbol, entry)
+                    for symbol, entry in data["on_foot_items"].items()
+                },
             )
         except (AttributeError, KeyError, TypeError, ValueError) as error:
             raise CatalogueError(f"malformed catalogue: {error!r}") from error
@@ -225,9 +274,54 @@ class Catalogue:
                 if name not in self.effects:
                     raise CatalogueError(f"module {module.key!r}: unknown effect {name!r}")
 
+        self._check_on_foot()
+
+    def _check_on_foot(self) -> None:
+        for item in self.on_foot_items.values():
+            for upgrade in item.upgrades.values():
+                self._check_upgrade(item.symbol, upgrade)
+
+    def _check_upgrade(self, symbol: str, upgrade: ClassUpgrade) -> None:
+        what = f"item {symbol!r} to class {upgrade.to_class}"
+        if upgrade.to_class not in CLASSES or upgrade.to_class == CLASSES.start:
+            raise CatalogueError(f"{what}: no such class upgrade")
+        if upgrade.credits < 1:
+            raise CatalogueError(f"{what}: {upgrade.credits} credits")
+        for material, count in upgrade.ingredients.items():
+            known = self.on_foot_materials.get(material)
+            if known is None:
+                raise CatalogueError(f"{what}: unknown on-foot material {material!r}")
+            if known.kind is OnFootKind.CONSUMABLE:
+                raise CatalogueError(f"{what}: consumable {material!r}")
+            if count < 1:
+                raise CatalogueError(f"{what}: {count} {material}")
+
     def _check_ingredients(self, what: str, ingredients: Ingredients) -> None:
         for symbol, count in ingredients.items():
             if symbol not in self.materials:
                 raise CatalogueError(f"{what}: unknown material {symbol!r}")
             if count < 1:
                 raise CatalogueError(f"{what}: {count} {symbol}")
+
+
+def _on_foot_item(symbol: str, entry: Mapping[str, Any]) -> OnFootItem:
+    return OnFootItem(
+        symbol,
+        EquipmentKind(entry["kind"]),
+        entry["name"],
+        {
+            int(to_class): ClassUpgrade(
+                int(to_class),
+                _integer(upgrade["credits"]),
+                dict(upgrade["ingredients"]),
+                RecipeConfidence(upgrade["confidence"]),
+            )
+            for to_class, upgrade in entry["upgrades"].items()
+        },
+    )
+
+
+def _integer(value: object) -> int:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise TypeError(f"{value!r} is not a whole number")
+    return value

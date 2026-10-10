@@ -6,8 +6,10 @@ import pytest
 from edrockmaster.domain.engineering.catalogue import (
     Catalogue,
     CatalogueError,
+    EquipmentKind,
     MaterialCategory,
     OnFootKind,
+    RecipeConfidence,
 )
 from tests.domain.engineering.catalogue_data import DATA
 
@@ -43,6 +45,22 @@ def test_a_catalogue_has_the_on_foot_materials_and_engineers() -> None:
     assert 400002 not in catalogue.engineers
 
 
+def test_a_catalogue_has_the_class_upgrades_of_suits_and_weapons() -> None:
+    items = Catalogue.from_data(DATA).on_foot_items
+    dominator = items["tacticalsuit"]
+    assert (dominator.kind, dominator.english_name) == (EquipmentKind.SUIT, "Dominator suit")
+    upgrade = dominator.upgrades[3]
+    assert upgrade.to_class == 3
+    assert upgrade.credits == 2250000
+    assert upgrade.ingredients == {"chemicalsample": 2, "graphene": 5}
+    # Deduced from a rule read in game, not seen itself (ADR 0030)
+    assert upgrade.confidence is RecipeConfidence.DEDUCED
+    assert dominator.upgrades[2].confidence is RecipeConfidence.GAME
+    # Unknown recipes are absent; the flight suit has no class at all
+    assert 4 not in dominator.upgrades
+    assert items["flightsuit"].upgrades == {}
+
+
 def test_the_engineers_offering_a_grade_depend_on_the_module() -> None:
     fsd = Catalogue.from_data(DATA).modules["fsd"]
     assert fsd.engineers("FSD_LongRange", 5) == (300100,)
@@ -76,6 +94,26 @@ def test_the_date_of_the_data_is_the_most_recent_source() -> None:
         (("modules", "fsd", "blueprints"), {"FSD_LongRange": {"5": [1]}}, "unknown engineers"),
         (("modules", "fsd", "effects"), ["special_unknown"], "'special_unknown'"),
         (("engineers",), None, "malformed"),
+        (("on_foot_items", "tacticalsuit", "kind"), "helmet", "malformed"),
+        (("on_foot_items", "tacticalsuit", "upgrades", "3", "confidence"), "rumour", "malformed"),
+        (("on_foot_items", "tacticalsuit", "upgrades", "2", "credits"), "a lot", "malformed"),
+        (
+            ("on_foot_items", "tacticalsuit", "upgrades", "6"),
+            {"credits": 1, "ingredients": {"graphene": 1}, "confidence": "game"},
+            "class 6",
+        ),
+        (("on_foot_items", "tacticalsuit", "upgrades", "2", "credits"), 0, "0 credits"),
+        (("on_foot_items", "tacticalsuit", "upgrades", "2", "ingredients"), {"iron": 1}, "'iron'"),
+        (
+            ("on_foot_items", "tacticalsuit", "upgrades", "2", "ingredients"),
+            {"healthpack": 1},
+            "consumable 'healthpack'",
+        ),
+        (
+            ("on_foot_items", "tacticalsuit", "upgrades", "2", "ingredients"),
+            {"graphene": 0},
+            "0 graphene",
+        ),
     ],
 )
 def test_a_catalogue_the_code_does_not_expect_is_refused(
