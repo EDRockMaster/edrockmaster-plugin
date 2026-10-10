@@ -8,8 +8,8 @@ How a release of EDRockMaster Companion reaches the Microsoft Store, by hand, as
 
 - **Package identity**: the GitHub repository variables `EDROCKMASTER_MSIX_NAME`, `EDROCKMASTER_MSIX_PUBLISHER`, `EDROCKMASTER_MSIX_PUBLISHER_NAME` and `EDROCKMASTER_MSIX_DISPLAY_NAME` hold the values of Partner Center (*Product management → Product identity*). Without them the workflow builds a development identity, which Partner Center refuses.
 - **Store listing**: the texts of [store-listing.md](store-listing.md) (English) and [store-listing.fr.md](store-listing.fr.md) (French), the screenshots, the privacy policy ([privacy.md](privacy.md)).
-- **Testers**: a known user group "testers" (*Settings → Known user groups*: the Microsoft accounts of the testers), before the first submission; once the application is published, a package flight "testers" for that group (*Package flights → New package flight*).
-- **First submission**: package flights only exist once the application is published, so the first submission is the application itself, with the first candidate's MSIX (never a development build) and, in *Pricing and availability → Audience*, a **private audience** limited to the testers' known user group: only they can see and install it. It goes public with the first production, below.
+- **Testers**: a known user group "testers" (*Settings → Known user groups*: the Microsoft accounts of the testers), used by the first submission; once the application is public, a package flight "testers" for that group (*Package flights → New package flight*).
+- **First submission**: package flights only exist once the application is published, so the first submission is the application itself, with the first candidate's MSIX (never a development build) and, in *Pricing and availability → Audience*, a **private audience** limited to the testers' known user group: only they can see and install it. While it is private, a new candidate is an ordinary update of the application, since only the testers see it. It goes public with the first production, below.
 
 ## Each release
 
@@ -34,7 +34,7 @@ How a release of EDRockMaster Companion reaches the Microsoft Store, by hand, as
 
 ### 3. The submission
 
-- **Candidate**: *Package flights → testers → Create a new submission* (or *Update*); on *Packages*, remove the previous package and upload the MSIX; *Submit to the Store*.
+- **Candidate**: while the application is private, as an update of the application (*Start update*); once it is public, *Package flights → testers → Create a new submission* (or *Update*); on *Packages*, remove the previous package and upload the MSIX; *Submit to the Store*.
 - **Production**: *Start update* on the application's overview; on *Packages*, remove the previous package and upload the MSIX; in each *Store listing* (English, French), *What's new in this version*: the version's section of the changelog, in that language, without the links; for the first production, *Pricing and availability → Audience*: **public audience**; *Submit to the Store*.
 - A submission still in certification blocks the next one of the same kind: wait for it, or cancel it in Partner Center first.
 - **Restricted capabilities** (*Submission options*): `runFullTrust` and `unvirtualizedResources` need a justification, which a new submission usually takes over. If it is asked again:
