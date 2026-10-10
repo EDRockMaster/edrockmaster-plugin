@@ -275,3 +275,32 @@ def test_refuses_to_write_when_a_wingmate_is_still_named(tmp_path: Path) -> None
     ]
     source.write_text("".join(json.dumps(line) + "\n" for line in lines), encoding="utf-8")
     assert sanitiser.main([str(source), str(tmp_path / "fixture.jsonl")]) == 1
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        {"event": "ShipLocker", "Items": [{"Name": "gmeds", "OwnerID": 0, "Count": 1}]},
+        {"event": "Backpack", "Items": [], "Components": [], "Consumables": [], "Data": []},
+        {
+            "event": "BackpackChange",
+            "Added": [{"Name": "ionbattery", "OwnerID": 0, "Count": 1, "Type": "Component"}],
+        },
+        {"event": "BuySuit", "Name": "UtilitySuit_Class2", "SuitID": 1, "SuitMods": []},
+        {"event": "BuyWeapon", "Name": "wpn_x", "Class": 3, "SuitModuleID": 2, "WeaponMods": []},
+        {"event": "SellSuit", "Name": "utilitysuit_class2", "SuitID": 1},
+        {"event": "SellWeapon", "Name": "wpn_x", "Class": 3, "SuitModuleID": 2},
+    ],
+)
+def test_on_foot_engineering_is_kept(entry: dict[str, Any]) -> None:
+    assert kept(record(**entry)) == [{"timestamp": TS, **entry}]
+
+
+@pytest.mark.parametrize(
+    "event", ["SuitLoadout", "SwitchSuitLoadout", "CreateSuitLoadout", "LoadoutEquipModule"]
+)
+def test_loadouts_on_foot_lose_the_name_the_player_gave_them(event: str) -> None:
+    loadout = record(event=event, SuitID=1, SuitName="flightsuit", LoadoutName="My loadout")
+    assert kept(loadout) == [
+        {"timestamp": TS, "event": event, "SuitID": 1, "SuitName": "flightsuit"}
+    ]

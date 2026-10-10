@@ -15,6 +15,11 @@ at start never gets the current cargo. The game does not always write the file
 before the line (seen 22 ms after it): while the file is older than the event,
 or half-written, the follower reads it again, for a second at most.
 
+``ShipLocker`` works the same way (ADR 0027): most lines hold the whole ship
+locker, but some only point to ``ShipLocker.json``, which then holds the change
+(seen at a fleet carrier, where the locker emptied with bare lines only). The
+follower adds the file's content to such a line, on the same terms.
+
 The game writes whole lines, but a read can still fall in the middle of one: an
 incomplete line waits for the rest. A line that is not a journal entry is
 logged and skipped. The follower only reads; it never writes in the folder.
@@ -43,9 +48,11 @@ POLL_SECONDS = 1.0
 _VERSION_EVENTS = frozenset({"Fileheader", "LoadGame"})
 _HALF_WRITTEN = object()
 CARGO_FILE = "Cargo.json"
-CARGO_RETRY_SECONDS = 0.05
-CARGO_WAIT_SECONDS = 1.0
-"""How long ``Cargo.json`` may lag behind its journal line: far longer than ever seen."""
+SHIP_LOCKER_FILE = "ShipLocker.json"
+_LOCKER_SECTIONS = ("Items", "Components", "Consumables", "Data")
+FILE_RETRY_SECONDS = 0.05
+FILE_WAIT_SECONDS = 1.0
+"""How long such a file may lag behind its journal line: far longer than ever seen."""
 
 
 class JournalFollower:
@@ -114,7 +121,7 @@ class JournalFollower:
             entry = self._entry(line)
             if entry is not None:
                 self._note_version(entry)
-                self._on_entry(self._with_cargo(entry), self._beta)
+                self._on_entry(self._completed(entry), self._beta)
                 handed += 1
         return handed
 
@@ -132,37 +139,54 @@ class JournalFollower:
             return None
         return entry
 
-    def _with_cargo(self, entry: Entry) -> Entry:
-        """The ship's ``Cargo`` event with its list, from ``Cargo.json`` when it describes it."""
-        if entry["event"] != "Cargo" or entry.get("Vessel") != "Ship" or "Inventory" in entry:
-            return entry
+    def _completed(self, entry: Entry) -> Entry:
+        """The entry with what the game wrote in its file instead, when the file describes it."""
+        if entry["event"] == "Cargo" and entry.get("Vessel") == "Ship" and "Inventory" not in entry:
+            return self._from_file(
+                entry, CARGO_FILE, ("Inventory",), lambda data: data.get("Vessel") == "Ship"
+            )
+        if entry["event"] == "ShipLocker" and not any(name in entry for name in _LOCKER_SECTIONS):
+            return self._from_file(entry, SHIP_LOCKER_FILE, _LOCKER_SECTIONS, lambda _data: True)
+        return entry
+
+    def _from_file(
+        self,
+        entry: Entry,
+        name: str,
+        fields: tuple[str, ...],
+        describes: Callable[[dict[str, object]], bool],
+    ) -> Entry:
+        """Add the lists ``fields`` of the file ``name``, if it was written for this very entry."""
         timestamp = entry.get("timestamp")
-        for retry in range(round(CARGO_WAIT_SECONDS / CARGO_RETRY_SECONDS) + 1):
+        for retry in range(round(FILE_WAIT_SECONDS / FILE_RETRY_SECONDS) + 1):
             if retry:
-                self._sleep(CARGO_RETRY_SECONDS)
-            cargo = self._cargo_file()
-            if not isinstance(cargo, dict) or not isinstance(timestamp, str):
-                if cargo is _HALF_WRITTEN:
+                self._sleep(FILE_RETRY_SECONDS)
+            data = self._file_content(name)
+            if not isinstance(data, dict) or not isinstance(timestamp, str):
+                if data is _HALF_WRITTEN:
                     continue
                 return entry
-            written_at = cargo.get("timestamp")
+            written_at = data.get("timestamp")
             if isinstance(written_at, str) and written_at < timestamp:
                 # Still describing an earlier event: the game is about to rewrite it
                 continue
             if (
                 written_at != timestamp
-                or cargo.get("Vessel") != "Ship"
-                or not isinstance(cargo.get("Inventory"), list)
+                or not describes(data)
+                or not all(isinstance(data.get(field), list) for field in fields)
             ):
                 return entry
-            return {**entry, "Inventory": cargo["Inventory"]}
-        self._logger.warning("%s never described the Cargo event of %s", CARGO_FILE, timestamp)
+            return {**entry, **{field: data[field] for field in fields}}
+        self._logger.warning(
+            "%s never described the %s event of %s", name, entry["event"], timestamp
+        )
         return entry
 
-    def _cargo_file(self) -> object:
-        """What ``Cargo.json`` holds: ``None`` without one, ``_HALF_WRITTEN`` if unreadable."""
+    def _file_content(self, name: str) -> object:
+        """What a file next to the journal holds: ``None`` without one, ``_HALF_WRITTEN`` if
+        unreadable."""
         try:
-            text = (self.directory / CARGO_FILE).read_text(encoding="utf-8-sig")
+            text = (self.directory / name).read_text(encoding="utf-8-sig")
         except FileNotFoundError:
             return None
         except OSError:

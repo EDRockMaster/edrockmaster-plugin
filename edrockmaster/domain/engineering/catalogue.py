@@ -1,4 +1,4 @@
-"""The game data of ship engineering (ADR 0017): materials, blueprints, effects, engineers.
+"""The game data of engineering (ADR 0017, ADR 0027): materials, blueprints, effects, engineers.
 
 The journal names materials, blueprints and experimental effects, but does not
 give a material's grade or cap, the ingredients of a blueprint, or which
@@ -13,6 +13,10 @@ engineers offer a grade depends on the **module type**, which the journal
 names through an item (``int_powerdistributor_size7_class5``). An
 **experimental effect** has one set of ingredients.
 
+On foot (ADR 0027), an **on-foot material** is of a kind (item, component,
+data, consumable) and has no grade nor cap; the **on-foot engineers** are kept
+apart from the ship engineers.
+
 Names are in English; the plugin's catalogues translate them.
 """
 
@@ -23,7 +27,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
-FORMAT = 1
+FORMAT = 2
 """The version of ``catalogue.json`` this code reads."""
 
 GRADES = range(1, 6)
@@ -36,6 +40,14 @@ class MaterialCategory(StrEnum):
     RAW = "raw"
     MANUFACTURED = "manufactured"
     ENCODED = "encoded"
+
+
+class OnFootKind(StrEnum):
+    ITEM = "item"
+    COMPONENT = "component"
+    DATA = "data"
+    CONSUMABLE = "consumable"
+    """Medkits, energy cells, grenades: engineering does not use them."""
 
 
 type Ingredients = Mapping[str, int]
@@ -54,6 +66,14 @@ class Material:
     def cap(self) -> int:
         """The most a commander can hold; what is collected beyond it is lost."""
         return _CAPS[self.grade]
+
+
+@dataclass(frozen=True, slots=True)
+class OnFootMaterial:
+    symbol: str
+    """As the journal writes it, in lower case (``chemicalsample``)."""
+    kind: OnFootKind
+    english_name: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,6 +127,9 @@ class Catalogue:
     blueprints: Mapping[str, Blueprint]
     effects: Mapping[str, ExperimentalEffect]
     modules: Mapping[str, ModuleType]
+    on_foot_materials: Mapping[str, OnFootMaterial]
+    on_foot_engineers: Mapping[int, str]
+    """On-foot engineer names, by the id the journal gives (``EngineerID``)."""
 
     def module_of(self, item: str) -> ModuleType | None:
         """The module type of an item the journal names (``EngineerCraft.Module``)."""
@@ -166,6 +189,13 @@ class Catalogue:
                         tuple(entry["items"]),
                     )
                     for key, entry in data["modules"].items()
+                },
+                on_foot_materials={
+                    symbol: OnFootMaterial(symbol, OnFootKind(entry["kind"]), entry["name"])
+                    for symbol, entry in data["on_foot_materials"].items()
+                },
+                on_foot_engineers={
+                    int(id_): name for id_, name in data["on_foot_engineers"].items()
                 },
             )
         except (AttributeError, KeyError, TypeError, ValueError) as error:

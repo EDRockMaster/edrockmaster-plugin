@@ -22,6 +22,14 @@ ENGINEERS = """id,system_address,market_id,name
 300100,6681123623626,128676487,Felicity Farseer
 300260,3107576681170,128680583,Tod 'The Blaster' McQuinn
 300000,3932277478114,128673927,Didi Vatermann
+400002,5068464399785,128973159,Domino Green
+400011,38001031029322,128987099,Eleanor Bresa
+"""
+MICRORESOURCES = """id,symbol,category,English name
+128064021,graphene,Component,Graphene
+128672130,InternalCorrespondence,Data,Internal Correspondence
+128932270,healthpack,Consumable,Medkit
+128962581,ChemicalSample,Item,Chemical Sample
 """
 BLUEPRINTS: dict[str, Any] = {
     "FSD_LongRange": {
@@ -78,6 +86,7 @@ class Sources:
         self.files = {
             "material.csv": MATERIALS,
             "engineers.csv": ENGINEERS,
+            "microresources.csv": MICRORESOURCES,
             "modifications/blueprints.json": json.dumps(BLUEPRINTS),
             "modifications/modules.json": json.dumps(MODULES),
             "modifications/specials.json": json.dumps(EFFECTS),
@@ -133,6 +142,24 @@ def test_the_catalogue_keeps_what_the_plugin_uses(sources: Sources) -> None:
         "300260": "Tod 'The Blaster' McQuinn",
     }
     Catalogue.from_data(catalogue)
+
+
+def test_the_catalogue_has_the_on_foot_materials_and_engineers(sources: Sources) -> None:
+    catalogue = importer.build_catalogue(sources.read)
+    assert catalogue["on_foot_materials"] == {
+        "chemicalsample": {"kind": "item", "name": "Chemical Sample"},
+        "graphene": {"kind": "component", "name": "Graphene"},
+        "healthpack": {"kind": "consumable", "name": "Medkit"},
+        "internalcorrespondence": {"kind": "data", "name": "Internal Correspondence"},
+    }
+    assert catalogue["on_foot_engineers"] == {"400002": "Domino Green", "400011": "Eleanor Bresa"}
+    Catalogue.from_data(catalogue)
+
+
+def test_an_on_foot_material_of_an_unknown_kind_is_refused(sources: Sources) -> None:
+    sources.files["microresources.csv"] += "128000000,Mystery,Gadget,Mystery\n"
+    with pytest.raises(importer.ImportRefused, match="Mystery"):
+        importer.build_catalogue(sources.read)
 
 
 def test_the_sources_are_read_at_their_pinned_commits(sources: Sources) -> None:

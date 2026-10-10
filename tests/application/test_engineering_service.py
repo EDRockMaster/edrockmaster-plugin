@@ -106,3 +106,32 @@ def test_queries(service: EngineeringService) -> None:
     assert service.catalogue.materials["arsenic"].grade == 2
     assert service.stats.inventory_known
     assert service.handle_journal_entry({"timestamp": timestamp(1), "event": "Music"}) == []
+
+
+def test_on_foot_queries(service: EngineeringService) -> None:
+    service.handle_journal_entry(
+        {
+            "timestamp": timestamp(0),
+            "event": "ShipLocker",
+            "Items": [{"Name": "gmeds", "OwnerID": 0, "Count": 2}],
+            "Components": [],
+            "Consumables": [{"Name": "healthpack", "OwnerID": 0, "Count": 99}],
+            "Data": [],
+        }
+    )
+    service.handle_journal_entry(
+        {
+            "timestamp": timestamp(1),
+            "event": "BuyWeapon",
+            "Name": "wpn_s_pistol_plasma_charged",
+            "Class": 1,
+            "SuitModuleID": 7,
+            "WeaponMods": [],
+        }
+    )
+    inventory = service.on_foot_inventory
+    assert inventory is not None
+    assert [holding.symbol for holding in inventory] == ["gmeds", "healthpack"]
+    assert service.on_foot_held() == {"gmeds": 2}
+    assert list(service.equipment) == [7]
+    assert service.stats.on_foot_known

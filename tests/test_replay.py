@@ -31,8 +31,9 @@ from edrockmaster.domain.combat.session import (
 )
 from edrockmaster.domain.combat.sites import SiteType
 from edrockmaster.domain.commodities import Commodity
-from edrockmaster.domain.engineering.catalogue import MaterialCategory
+from edrockmaster.domain.engineering.catalogue import MaterialCategory, OnFootKind
 from edrockmaster.domain.engineering.goals import BlueprintGoal, Goal, GoalId
+from edrockmaster.domain.engineering.on_foot_journal import Suit
 from edrockmaster.domain.engineering.session import (
     CollectionEnded,
     CollectionEndReason,
@@ -588,3 +589,62 @@ def test_the_situation_at_the_end_of_the_engineering_session(engineering_session
     situation = engineering_session.companion.situation.situation
     assert (situation.system, situation.station) == ("Sirius", "Qwent Research Base")
     assert not situation.game_running
+
+
+# Engineering on foot (ADR 0027): a real evening, 2026-10-05, 19:37 to 23:28, at Yamatji:
+# five trips on foot from the ship and the SRV, materials picked up and downloaded (stolen
+# goods among them), then the locker emptied at a fleet carrier. Figures checked by hand
+# against the raw journal.
+
+YAMATJI = "yamatji-on-foot-collection-2026-10-05.jsonl"
+
+
+def test_after_boarding_the_on_foot_inventory_is_the_game_s_next_locker() -> None:
+    # Review criterion of ADR 0027. Compared at each boarding the journal tells all of: not
+    # after the bare ShipLocker lines of the fleet carrier, whose content was only in
+    # ShipLocker.json, which the desktop application reads but a fixture does not hold
+    replay = Replay(None)
+    compared = []
+    boarded: bool | None = None
+    blind = False
+    for record in records(YAMATJI):
+        entry = record["entry"]
+        if entry["event"] == "ShipLocker" and "Items" not in entry:
+            blind = True
+        if entry["event"] == "ShipLocker" and "Items" in entry:
+            if boarded is False:
+                stated = {
+                    item["Name"]: item["Count"]
+                    for section in ("Items", "Components", "Data")
+                    for item in entry[section]
+                }
+                assert replay.companion.engineering.on_foot_held() == stated
+                compared.append(entry["timestamp"])
+            boarded, blind = None, False
+        if entry["event"] == "Embark":
+            boarded = blind
+        replay.handle(entry, record["is_beta"])
+    assert compared == ["2026-10-05T21:27:06Z", "2026-10-05T21:32:23Z", "2026-10-05T23:16:11Z"]
+
+
+def test_the_on_foot_collection() -> None:
+    replay = Replay(YAMATJI, until="2026-10-05T23:28:06Z")
+    collection = replay.companion.engineering.stats.collection
+    assert collection is not None
+    # Every BackpackChange of the evening, consumables aside
+    assert collection.gained_on_foot == {
+        OnFootKind.COMPONENT: 66,
+        OnFootKind.ITEM: 42,
+        OnFootKind.DATA: 32,
+    }
+    assert collection.lost_on_foot == 0
+
+
+def test_the_equipment_worn_that_evening() -> None:
+    equipment = Replay(YAMATJI).companion.engineering.equipment
+    assert equipment[1878178949341729] == Suit(1878178949341729, "utilitysuit", 2, ())
+    assert {piece.symbol for piece in equipment.values()} == {
+        "utilitysuit",
+        "wpn_m_submachinegun_kinetic_fauto",
+        "wpn_s_pistol_plasma_charged",
+    }

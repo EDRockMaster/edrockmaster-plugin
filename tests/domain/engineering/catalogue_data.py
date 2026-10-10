@@ -5,7 +5,7 @@ from typing import Any
 from edrockmaster.domain.engineering.catalogue import Catalogue
 
 DATA: dict[str, Any] = {
-    "format": 1,
+    "format": 2,
     "sources": [
         {"repository": "EDCD/FDevIDs", "commit": "c356", "date": "2026-09-05"},
         {"repository": "EDCD/coriolis-data", "commit": "0db9", "date": "2026-04-24"},
@@ -41,6 +41,13 @@ DATA: dict[str, Any] = {
         },
         "bh": {"name": "Armour", "blueprints": {}, "effects": [], "items": []},
     },
+    "on_foot_materials": {
+        "chemicalsample": {"kind": "item", "name": "Chemical Sample"},
+        "graphene": {"kind": "component", "name": "Graphene"},
+        "healthpack": {"kind": "consumable", "name": "Medkit"},
+        "internalcorrespondence": {"kind": "data", "name": "Internal Correspondence"},
+    },
+    "on_foot_engineers": {"400002": "Domino Green"},
 }
 
 

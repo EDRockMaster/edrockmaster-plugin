@@ -11,6 +11,9 @@
   reset; death does not end it (materials survive it). It counts what was
   gained per category and what was used, and the materials that reached
   their cap.
+- **On foot** (ADR 0027, ``on_foot``): the ship locker and the backpack, and the
+  suits and weapons seen. The player's own materials brought into the backpack
+  count in the collection, by kind; what the backpack carried at a death is lost.
 - The **goals**: what each one still misses, with the inventory, and the
   unlocked engineers who offer it. A goal is **ready** when nothing is missing
   for it alone. A roll of a blueprint, at the goal's grade, on the goal's
@@ -31,7 +34,12 @@ from datetime import datetime
 from enum import Enum
 from typing import assert_never
 
-from edrockmaster.domain.engineering.catalogue import Catalogue, Ingredients, MaterialCategory
+from edrockmaster.domain.engineering.catalogue import (
+    Catalogue,
+    Ingredients,
+    MaterialCategory,
+    OnFootKind,
+)
 from edrockmaster.domain.engineering.goals import (
     BlueprintGoal,
     ExperimentalEffectGoal,
@@ -41,6 +49,7 @@ from edrockmaster.domain.engineering.goals import (
 from edrockmaster.domain.engineering.journal import (
     BlueprintApplied,
     ChangeCause,
+    CommanderDied,
     EngineerProgressed,
     EngineersStated,
     EngineerState,
@@ -50,6 +59,19 @@ from edrockmaster.domain.engineering.journal import (
     InventoryStated,
     MaterialChange,
     MaterialsChanged,
+)
+from edrockmaster.domain.engineering.on_foot import Equipment, OnFoot, OnFootHolding
+from edrockmaster.domain.engineering.on_foot_journal import (
+    BackpackChanged,
+    BackpackStated,
+    Boarded,
+    EquipmentSold,
+    LoadoutChosen,
+    LockerStated,
+    Stock,
+    SuitBought,
+    WeaponBought,
+    WeaponEquipped,
 )
 
 _GAINS = frozenset({ChangeCause.COLLECTED, ChangeCause.REWARDED})
@@ -70,6 +92,10 @@ class CollectionStats:
     """Materials spent: rolls, effects, synthesis, brokers, contributions, research."""
     capped: tuple[str, ...]
     """Materials that reached their cap during the collection, in that order."""
+    gained_on_foot: Mapping[OnFootKind, int] = field(default_factory=dict)
+    """The player's own on-foot materials brought into the backpack, by kind."""
+    lost_on_foot: int = 0
+    """The player's own on-foot materials the backpack carried at a death."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -94,6 +120,7 @@ class EngineeringStats:
     collection: CollectionStats | None
     goals: tuple[GoalProgress, ...]
     inventory_known: bool
+    on_foot_known: bool = False
 
     @property
     def goals_ready(self) -> int:
@@ -159,9 +186,18 @@ class _Collection:
     gained: Counter[MaterialCategory | None] = field(default_factory=Counter)
     used: int = 0
     capped: list[str] = field(default_factory=list)
+    gained_on_foot: Counter[OnFootKind] = field(default_factory=Counter)
+    lost_on_foot: int = 0
 
     def stats(self) -> CollectionStats:
-        return CollectionStats(self.started_at, dict(self.gained), self.used, tuple(self.capped))
+        return CollectionStats(
+            self.started_at,
+            dict(self.gained),
+            self.used,
+            tuple(self.capped),
+            dict(self.gained_on_foot),
+            self.lost_on_foot,
+        )
 
 
 class EngineeringTracker:
@@ -173,6 +209,7 @@ class EngineeringTracker:
         self._goals: list[Goal] = []
         self._collection: _Collection | None = None
         self._ready: set[GoalId] = set()
+        self._on_foot = OnFoot()
 
     @property
     def catalogue(self) -> Catalogue:
@@ -191,6 +228,20 @@ class EngineeringTracker:
     def goals(self) -> tuple[Goal, ...]:
         return tuple(self._goals)
 
+    @property
+    def on_foot_inventory(self) -> tuple[OnFootHolding, ...] | None:
+        """Each on-foot material held; ``None`` until the game states the ship locker."""
+        return self._on_foot.inventory()
+
+    def on_foot_held(self) -> Mapping[str, int]:
+        """The player's own on-foot materials, consumables aside: what counts towards goals."""
+        return self._on_foot.held()
+
+    @property
+    def equipment(self) -> Mapping[int, Equipment]:
+        """The suits and weapons the journal showed, by id, as last shown."""
+        return self._on_foot.equipment
+
     def name_of(self, symbol: str) -> str | None:
         """A material's name in the game's language, once the journal gave it."""
         return self._names.get(symbol)
@@ -200,6 +251,7 @@ class EngineeringTracker:
             self._collection.stats() if self._collection else None,
             tuple(self._progress(goal) for goal in self._goals),
             self._inventory is not None,
+            self._on_foot.known,
         )
 
     def shopping_list(self) -> Ingredients:
@@ -216,7 +268,7 @@ class EngineeringTracker:
 
     # The journal
 
-    def handle(self, fact: Fact) -> list[EngineeringNotification]:
+    def handle(self, fact: Fact) -> list[EngineeringNotification]:  # noqa: PLR0911 - a case a fact
         match fact:
             case InventoryStated():
                 self._inventory = {}
@@ -234,6 +286,14 @@ class EngineeringTracker:
                 return self._on_applied(fact)
             case GameClosed():
                 return self.end(fact.at, CollectionEndReason.GAME_CLOSED)
+            case (
+                LockerStated() | BackpackStated() | BackpackChanged() | Boarded() | CommanderDied()
+            ):
+                return self._on_foot_stock(fact)
+            case (
+                LoadoutChosen() | WeaponEquipped() | WeaponBought() | SuitBought() | EquipmentSold()
+            ):
+                return self._on_foot_equipment(fact)
             case _:  # pragma: no cover - exhaustiveness checked by mypy
                 assert_never(fact)
 
@@ -278,11 +338,7 @@ class EngineeringTracker:
         self, at: datetime, cause: ChangeCause, changes: tuple[MaterialChange, ...]
     ) -> list[EngineeringNotification]:
         """Count the changes in the collection, which starts if needed, and apply them."""
-        notifications: list[EngineeringNotification] = []
-        collection = self._collection
-        if collection is None:
-            collection = self._collection = _Collection(at)
-            notifications.append(CollectionStarted(at))
+        collection, notifications = self._collecting(at)
         for change in changes:
             if change.count > 0 and cause in _GAINS:
                 collection.gained[self._category(change.symbol)] += change.count
@@ -297,6 +353,66 @@ class EngineeringTracker:
             for symbol in capped
         ]
         return notifications
+
+    def _on_foot_stock(
+        self, fact: LockerStated | BackpackStated | BackpackChanged | Boarded | CommanderDied
+    ) -> list[EngineeringNotification]:
+        notifications: list[EngineeringNotification] = []
+        progressed = False
+        match fact:
+            case LockerStated():
+                self._name(fact.stock)
+                self._on_foot.state_locker(fact.stock)
+            case BackpackStated():
+                self._name(fact.stock)
+                self._on_foot.state_backpack(fact.stock)
+            case BackpackChanged():
+                self._name(fact.added + fact.removed)
+                gained = self._on_foot.change_backpack(fact.added, fact.removed)
+                if gained:
+                    collection, notifications = self._collecting(fact.at)
+                    collection.gained_on_foot.update(gained)
+                    progressed = True
+            case Boarded():
+                self._on_foot.board()
+            case CommanderDied():
+                lost = self._on_foot.die()
+                if lost:
+                    collection, notifications = self._collecting(fact.at)
+                    collection.lost_on_foot += lost
+                    progressed = True
+            case _:  # pragma: no cover - exhaustiveness checked by mypy
+                assert_never(fact)
+        return notifications + self._after(progressed)
+
+    def _on_foot_equipment(
+        self,
+        fact: LoadoutChosen | WeaponEquipped | WeaponBought | SuitBought | EquipmentSold,
+    ) -> list[EngineeringNotification]:
+        match fact:
+            case LoadoutChosen():
+                self._on_foot.show(fact.suit, *fact.weapons)
+            case WeaponEquipped() | WeaponBought():
+                self._on_foot.show(fact.weapon)
+            case SuitBought():
+                self._on_foot.show(fact.suit)
+            case EquipmentSold():
+                self._on_foot.sold(fact.id)
+            case _:  # pragma: no cover - exhaustiveness checked by mypy
+                assert_never(fact)
+        return self._after(progressed=False)
+
+    def _collecting(self, at: datetime) -> tuple[_Collection, list[EngineeringNotification]]:
+        """The collection, started if needed, and its start if it did."""
+        if self._collection is not None:
+            return self._collection, []
+        self._collection = _Collection(at)
+        return self._collection, [CollectionStarted(at)]
+
+    def _name(self, stock: Iterable[Stock]) -> None:
+        for item in stock:
+            if item.name:
+                self._names[item.symbol] = item.name
 
     def _on_applied(self, fact: BlueprintApplied) -> list[EngineeringNotification]:
         notifications = self._record(fact.at, ChangeCause.ENGINEERED, fact.spent)
