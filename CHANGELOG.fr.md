@@ -26,7 +26,9 @@ La première version d'**EDRockMaster Companion**, l'application de bureau, qui 
 
 - **Le plugin EDMC** (ADR 0024) : retiré avant d'avoir des joueurs. Sa dernière version, la 0.2.2, reste sur GitHub ; il n'en aura plus d'autre. Ses réglages ne sont pas importés : l'application a les siens.
 
-## [0.3.0] - 2026-10-06
+## [0.3.0] - non publiée
+
+Candidates seulement, de `0.3.0-rc.1` à `0.3.0-rc.3` (du 2026-10-05 au 2026-10-06), pour la recette par les testeurs : le plugin EDMC a été retiré avant que cette version n'arrive chez les joueurs (ADR 0024).
 
 ### Modifié
 
@@ -96,7 +98,6 @@ Première version, pour le premier essai en jeu. Le plugin fonctionne seul, sans
 - Pas encore vérifiés : le thème sombre d'EDMC, le son d'alerte sous Windows.
 
 [0.4.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.4.0
-[0.3.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.3.0
 [0.2.2]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.2
 [0.2.1]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.1
 [0.2.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.0
