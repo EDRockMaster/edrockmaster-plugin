@@ -3,8 +3,11 @@
 What ADR 0017 planned for a separate window, as a part of the live view: the
 inventory (by category and grade, count and cap), the ship engineers (status,
 rank), the goals (what each misses, the unlocked engineers offering it) and the
-shopping list. Names come in the player's language: materials as the game
-names them when the journal did, the rest translated from the catalogue.
+shopping list; and on foot (ADR 0027, ADR 0029), the materials held in the ship
+locker and the backpack, the on-foot engineers, the suits and weapons seen, and
+what moved to or from the player's fleet carrier. Names come in the player's
+language: materials as the game names them when the journal did, the rest
+translated from the catalogue.
 
 The goal form needs the catalogue (module types, their blueprints and grades,
 their experimental effects): it never changes, so the interface asks for it
@@ -15,10 +18,16 @@ the domain (``goal_from_request``).
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import UTC, datetime
 from typing import Any, assert_never
 
 from edrockmaster.application.engineering_service import EngineeringService
-from edrockmaster.domain.engineering.catalogue import Catalogue, Ingredients, MaterialCategory
+from edrockmaster.domain.engineering.catalogue import (
+    Catalogue,
+    Ingredients,
+    MaterialCategory,
+    OnFootKind,
+)
 from edrockmaster.domain.engineering.goals import (
     BlueprintGoal,
     ExperimentalEffectGoal,
@@ -26,6 +35,8 @@ from edrockmaster.domain.engineering.goals import (
     GoalId,
 )
 from edrockmaster.domain.engineering.journal import EngineerStatus
+from edrockmaster.domain.engineering.on_foot import CarrierMove
+from edrockmaster.domain.engineering.on_foot_journal import Suit
 from edrockmaster.domain.engineering.session import GoalProgress
 from edrockmaster.ui.engineering_names import EngineeringNames
 
@@ -34,6 +45,7 @@ _CATEGORY_ORDER = {
     MaterialCategory.MANUFACTURED: 1,
     MaterialCategory.ENCODED: 2,
 }
+_KIND_ORDER = {kind: index for index, kind in enumerate(OnFootKind)}
 BLUEPRINT = "blueprint"
 EFFECT = "effect"
 
@@ -48,7 +60,75 @@ def engineering_view(service: EngineeringService, names: EngineeringNames) -> di
         "goals": [_goal(progress, catalogue, names) for progress in service.stats.goals],
         "shoppingList": _ingredients(service.shopping_list(), inventory or {}, names),
         "catalogueDate": catalogue.date,
+        "onFoot": _on_foot(service, names),
     }
+
+
+def _on_foot(service: EngineeringService, names: EngineeringNames) -> dict[str, Any]:
+    inventory = service.on_foot_inventory
+    materials: list[dict[str, Any]] = [
+        {
+            "symbol": holding.symbol,
+            "name": names.material(holding.symbol),
+            "kind": holding.kind.value,
+            "locker": holding.locker,
+            "backpack": holding.backpack,
+            "mission": holding.mission,
+        }
+        for holding in inventory or ()
+    ]
+    materials.sort(key=lambda row: (_KIND_ORDER[OnFootKind(row["kind"])], row["name"].casefold()))
+    known = service.engineers
+    engineers = [
+        {
+            "id": engineer_id,
+            "name": names.engineer(engineer_id),
+            "status": _status(state.status) if (state := known.get(engineer_id)) else None,
+        }
+        for engineer_id in service.catalogue.on_foot_engineers
+    ]
+    equipment: list[dict[str, Any]] = [
+        {
+            "id": piece.id,
+            "kind": "suit",
+            "name": names.suit(piece.symbol),
+            "class": piece.suit_class,
+        }
+        if isinstance(piece, Suit)
+        else {
+            "id": piece.id,
+            "kind": "weapon",
+            "name": piece.name or piece.symbol,
+            "class": piece.weapon_class,
+        }
+        for piece in service.equipment.values()
+    ]
+    equipment.sort(key=lambda row: (row["kind"] != "suit", row["name"].casefold()))
+    return {
+        "known": inventory is not None,
+        "materials": materials,
+        "engineers": sorted(engineers, key=lambda row: row["name"].casefold()),
+        "equipment": equipment,
+        "carrierMoves": [_move(move, names) for move in service.carrier_moves],
+    }
+
+
+def _move(move: CarrierMove, names: EngineeringNames) -> dict[str, Any]:
+    return {
+        "dockedAt": _instant(move.docked_at),
+        "at": _instant(move.at),
+        "materials": sorted(
+            (
+                {"symbol": symbol, "name": names.material(symbol), "count": count}
+                for symbol, count in move.changes.items()
+            ),
+            key=lambda row: str(row["name"]).casefold(),
+        ),
+    }
+
+
+def _instant(at: datetime) -> str:
+    return at.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _materials(

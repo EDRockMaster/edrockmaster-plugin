@@ -4,17 +4,20 @@ from datetime import UTC, datetime, timedelta
 
 from edrockmaster.domain.engineering.catalogue import OnFootKind
 from edrockmaster.domain.engineering.journal import CommanderDied, GameClosed
-from edrockmaster.domain.engineering.on_foot import OnFootHolding
+from edrockmaster.domain.engineering.on_foot import CarrierMove, OnFootHolding
 from edrockmaster.domain.engineering.on_foot_journal import (
     BackpackChanged,
     BackpackStated,
     Boarded,
+    CarrierKnown,
+    DockedAt,
     EquipmentSold,
     LoadoutChosen,
     LockerStated,
     Stock,
     Suit,
     SuitBought,
+    Undocked,
     Weapon,
     WeaponBought,
     WeaponEquipped,
@@ -197,3 +200,72 @@ def test_the_equipment_seen_in_the_journal() -> None:
     assert tracker.equipment[TORMENTOR.id] == better
     tracker.handle(EquipmentSold(at(4), ECLIPSE.id))
     assert ECLIPSE.id not in tracker.equipment
+
+
+CARRIER = 3711717120
+
+
+def docked_at_the_carrier(tracker: EngineeringTracker) -> None:
+    tracker.handle(CarrierKnown(at(0), CARRIER))
+    tracker.handle(locker(Stock("gmeds", ITEM, 4), Stock("graphene", COMPONENT, 2)))
+    tracker.handle(DockedAt(at(1), CARRIER))
+
+
+def test_what_leaves_the_locker_at_the_player_s_carrier_is_a_move_counted_nowhere() -> None:
+    tracker = EngineeringTracker(catalogue())
+    docked_at_the_carrier(tracker)
+    tracker.handle(
+        locker(Stock("graphene", COMPONENT, 2), Stock("healthpack", CONSUMABLE, 9), minutes=3)
+    )
+    tracker.handle(locker(minutes=4))
+    assert tracker.carrier_moves == (CarrierMove(at(1), at(4), {"gmeds": -4, "graphene": -2}),)
+    assert tracker.on_foot_held() == {}
+
+
+def test_what_comes_back_from_the_carrier_is_a_move_too() -> None:
+    tracker = EngineeringTracker(catalogue())
+    docked_at_the_carrier(tracker)
+    tracker.handle(locker(Stock("gmeds", ITEM, 6), Stock("graphene", COMPONENT, 2), minutes=3))
+    tracker.handle(Undocked(at(5)))
+    # Undocked: a change of the locker elsewhere is no move
+    tracker.handle(locker(Stock("graphene", COMPONENT, 2), minutes=6))
+    assert tracker.carrier_moves == (CarrierMove(at(1), at(3), {"gmeds": 2}),)
+
+
+def test_the_backpack_brought_aboard_at_the_carrier_is_no_move() -> None:
+    tracker = EngineeringTracker(catalogue())
+    docked_at_the_carrier(tracker)
+    tracker.handle(added(Stock("ionbattery", COMPONENT, 1), minutes=2))
+    tracker.handle(Boarded(at(3)))
+    tracker.handle(
+        locker(
+            Stock("gmeds", ITEM, 4),
+            Stock("graphene", COMPONENT, 2),
+            Stock("ionbattery", COMPONENT, 1),
+            minutes=4,
+        )
+    )
+    assert tracker.carrier_moves == ()
+
+
+def test_another_carrier_or_an_unknown_one_is_no_move() -> None:
+    tracker = EngineeringTracker(catalogue())
+    tracker.handle(locker(Stock("gmeds", ITEM, 4)))
+    tracker.handle(DockedAt(at(1), CARRIER))  # the player's carrier is not known
+    tracker.handle(locker(minutes=2))
+    tracker.handle(CarrierKnown(at(3), CARRIER + 1))
+    tracker.handle(locker(Stock("gmeds", ITEM, 1), minutes=4))
+    assert tracker.carrier_moves == ()
+
+
+def test_each_docking_is_its_own_move() -> None:
+    tracker = EngineeringTracker(catalogue())
+    docked_at_the_carrier(tracker)
+    tracker.handle(locker(Stock("graphene", COMPONENT, 2), minutes=2))
+    tracker.handle(Undocked(at(3)))
+    tracker.handle(DockedAt(at(10), CARRIER))
+    tracker.handle(locker(Stock("graphene", COMPONENT, 2), Stock("gmeds", ITEM, 1), minutes=11))
+    assert tracker.carrier_moves == (
+        CarrierMove(at(1), at(2), {"gmeds": -4}),
+        CarrierMove(at(10), at(11), {"gmeds": 1}),
+    )

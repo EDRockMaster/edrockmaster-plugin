@@ -85,6 +85,9 @@ READ_BY_THE_PLUGIN = {
     "BuyWeapon",
     "SellSuit",
     "SellWeapon",
+    # the player's fleet carrier (ADR 0029)
+    "CarrierLocation",
+    "CarrierStats",
     # the commander's situation (ADR 0023)
     "Loadout",
     "ShipyardSwap",
@@ -122,6 +125,8 @@ REDUCED = {
         "GameMode",
     },
     "Loadout": {"timestamp", "event", "Ship"},
+    # the player's carrier: which one it is, not its finances, crew or name
+    "CarrierStats": {"timestamp", "event", "CarrierID", "CarrierType"},
     # a mission names factions, targets, passengers: only its materials matter
     "MissionCompleted": {"timestamp", "event", "MaterialsReward"},
 }

@@ -232,3 +232,135 @@ def test_a_goal_with_a_new_count() -> None:
     assert with_count(MASS_MANAGER, 2).applications == 2  # type: ignore[union-attr]
     with pytest.raises(ValueError, match="application"):
         with_count(MASS_MANAGER, 0)
+
+
+def on_foot(service: EngineeringService, *entries: dict[str, Any]) -> dict[str, Any]:
+    for entry in entries:
+        service.handle_journal_entry({"timestamp": T0, **entry})
+    part: dict[str, Any] = view(service)["onFoot"]
+    return part
+
+
+def test_on_foot_before_the_game_states_the_locker(service: EngineeringService) -> None:
+    part = on_foot(service)
+    assert part["known"] is False
+    assert part["materials"] == []
+    assert part["carrierMoves"] == []
+    # The 13 on-foot engineers, even before the game states them
+    assert len(part["engineers"]) == 13
+    assert {row["status"] for row in part["engineers"]} == {None}
+
+
+def test_on_foot_materials_held_by_kind_and_place(service: EngineeringService) -> None:
+    part = on_foot(
+        service,
+        {
+            "event": "ShipLocker",
+            "Items": [
+                {"Name": "gmeds", "Name_Localised": "Traitement gravitationnel", "Count": 3},
+                {"Name": "insight", "MissionID": 1, "Count": 1},
+            ],
+            "Components": [{"Name": "graphene", "Name_Localised": "Graphène", "Count": 2}],
+            "Consumables": [{"Name": "healthpack", "Name_Localised": "Médikit", "Count": 95}],
+            "Data": [],
+        },
+        {
+            "event": "BackpackChange",
+            "Added": [{"Name": "gmeds", "Count": 1, "Type": "Item"}],
+        },
+    )
+    assert part["known"] is True
+    assert part["materials"] == [
+        {
+            "symbol": "insight",
+            "name": "Insight",
+            "kind": "item",
+            "locker": 0,
+            "backpack": 0,
+            "mission": 1,
+        },
+        {
+            "symbol": "gmeds",
+            "name": "Traitement gravitationnel",
+            "kind": "item",
+            "locker": 3,
+            "backpack": 1,
+            "mission": 0,
+        },
+        {
+            "symbol": "graphene",
+            "name": "Graphène",
+            "kind": "component",
+            "locker": 2,
+            "backpack": 0,
+            "mission": 0,
+        },
+        {
+            "symbol": "healthpack",
+            "name": "Médikit",
+            "kind": "consumable",
+            "locker": 95,
+            "backpack": 0,
+            "mission": 0,
+        },
+    ]
+
+
+def test_on_foot_engineers_and_equipment(service: EngineeringService) -> None:
+    part = on_foot(
+        service,
+        {
+            "event": "EngineerProgress",
+            "Engineers": [
+                {"Engineer": "Domino Green", "EngineerID": 400002, "Progress": "Invited"},
+                {
+                    "Engineer": "Marco Qwent",
+                    "EngineerID": 300200,
+                    "Progress": "Unlocked",
+                    "Rank": 4,
+                },
+            ],
+        },
+        {
+            "event": "SuitLoadout",
+            "SuitID": 1,
+            "SuitName": "utilitysuit_class2",
+            "SuitMods": [],
+            "Modules": [
+                {
+                    "SlotName": "PrimaryWeapon1",
+                    "SuitModuleID": 2,
+                    "ModuleName": "wpn_m_submachinegun_kinetic_fauto",
+                    "ModuleName_Localised": "Karma C-44",
+                    "Class": 1,
+                    "WeaponMods": [],
+                }
+            ],
+        },
+    )
+    domino = next(row for row in part["engineers"] if row["id"] == 400002)
+    assert domino == {"id": 400002, "name": "Domino Green", "status": "invited"}
+    # Ship engineers stay in the ship part
+    assert all(row["id"] > 400000 for row in part["engineers"])
+    assert part["equipment"] == [
+        {"id": 1, "kind": "suit", "name": "Maverick suit", "class": 2},
+        {"id": 2, "kind": "weapon", "name": "Karma C-44", "class": 1},
+    ]
+
+
+def test_moves_to_the_player_s_carrier(service: EngineeringService) -> None:
+    locker = {"event": "ShipLocker", "Items": [], "Components": [], "Consumables": [], "Data": []}
+    part = on_foot(
+        service,
+        {"event": "CarrierLocation", "CarrierType": "FleetCarrier", "CarrierID": 7},
+        {**locker, "Items": [{"Name": "gmeds", "Name_Localised": "Traitement", "Count": 4}]},
+        {"event": "Docked", "StationType": "FleetCarrier", "MarketID": 7},
+        locker,
+    )
+    assert part["carrierMoves"] == [
+        {
+            "dockedAt": T0,
+            "at": T0,
+            "materials": [{"symbol": "gmeds", "name": "Traitement", "count": -4}],
+        }
+    ]

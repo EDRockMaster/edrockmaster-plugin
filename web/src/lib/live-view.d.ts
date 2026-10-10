@@ -121,10 +121,72 @@ export interface Engineering {
   }[];
   shoppingList: Ingredient[];
   catalogueDate: string;
+  onFoot: OnFoot;
 }
 export interface Ingredient {
   symbol: string;
   name: string;
   count: number;
   held: number;
+}
+/**
+ * On foot (ADR 0027, ADR 0029): materials held, on-foot engineers, suits and weapons seen, moves to or from the player's fleet carrier. Names in the player's language.
+ */
+export interface OnFoot {
+  /**
+   * False until the game states the ship locker.
+   */
+  known: boolean;
+  /**
+   * Materials held, by kind then name.
+   */
+  materials: {
+    symbol: string;
+    name: string;
+    kind: "item" | "component" | "data" | "consumable";
+    /**
+     * The player's own, in the ship locker.
+     */
+    locker: number;
+    /**
+     * The player's own, in the backpack.
+     */
+    backpack: number;
+    /**
+     * Held for missions, in either place.
+     */
+    mission: number;
+  }[];
+  engineers: {
+    id: number;
+    name: string;
+    status: "known" | "invited" | "acquainted" | "unlocked" | "barred" | null;
+  }[];
+  /**
+   * Suits first, then weapons.
+   */
+  equipment: {
+    id: number;
+    kind: "suit" | "weapon";
+    name: string;
+    /**
+     * 1 to 5; null for the flight suit.
+     */
+    class: number | null;
+  }[];
+  carrierMoves: {
+    dockedAt: string;
+    /**
+     * The last change of the locker during that docking.
+     */
+    at: string;
+    materials: {
+      symbol: string;
+      name: string;
+      /**
+       * Negative: moved to the carrier; positive: taken from it.
+       */
+      count: number;
+    }[];
+  }[];
 }

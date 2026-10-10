@@ -8,7 +8,7 @@ from edrockmaster.application.ports import Clock, GoalRepository
 from edrockmaster.domain.engineering.catalogue import Catalogue, Ingredients
 from edrockmaster.domain.engineering.goals import Goal, GoalId
 from edrockmaster.domain.engineering.journal import EngineerState, Fact, parse_entry
-from edrockmaster.domain.engineering.on_foot import Equipment, OnFootHolding
+from edrockmaster.domain.engineering.on_foot import CarrierMove, Equipment, OnFootHolding
 from edrockmaster.domain.engineering.session import (
     CollectionEndReason,
     EngineeringNotification,
@@ -65,6 +65,10 @@ class EngineeringService:
     @property
     def equipment(self) -> Mapping[int, Equipment]:
         return self._tracker.equipment
+
+    @property
+    def carrier_moves(self) -> tuple[CarrierMove, ...]:
+        return self._tracker.carrier_moves
 
     def name_of(self, symbol: str) -> str | None:
         return self._tracker.name_of(symbol)

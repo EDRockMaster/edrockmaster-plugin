@@ -15,6 +15,11 @@ What the player's journals show (survey of 30 September to 10 October 2026):
   ``SellWeapon`` one piece of equipment. The class of a suit is in its name
   (``tacticalsuit_class3``); the flight suit has none.
 
+- The player's own fleet carrier: ``CarrierLocation`` (at load, for its owner)
+  and ``CarrierStats`` give its id; ``Docked`` the ``MarketID`` of where the ship
+  docked, the carrier's id at a carrier (ADR 0029). A move of on-foot materials
+  to or from the carrier writes no event.
+
 ``CollectItems``, ``DropItems`` and ``UseConsumable`` are not read: the backpack's
 own events tell the same, and data downloads only show there.
 """
@@ -146,6 +151,26 @@ class EquipmentSold:
     id: int
 
 
+@dataclass(frozen=True, slots=True)
+class CarrierKnown:
+    """The player's own fleet carrier."""
+
+    at: datetime
+    carrier_id: int
+
+
+@dataclass(frozen=True, slots=True)
+class DockedAt:
+    at: datetime
+    market_id: int
+    """The carrier's id, when docked at a carrier."""
+
+
+@dataclass(frozen=True, slots=True)
+class Undocked:
+    at: datetime
+
+
 type OnFootFact = (
     LockerStated
     | BackpackStated
@@ -156,6 +181,9 @@ type OnFootFact = (
     | SuitBought
     | WeaponBought
     | EquipmentSold
+    | CarrierKnown
+    | DockedAt
+    | Undocked
 )
 
 
@@ -264,6 +292,21 @@ def _weapon_sold(entry: Entry, at: datetime) -> EquipmentSold:
     return EquipmentSold(at, required(entry, "SuitModuleID", int))
 
 
+def _carrier(entry: Entry, at: datetime) -> CarrierKnown | None:
+    # Older lines have no CarrierType; a squadron's carrier is not the player's own
+    if optional(entry, "CarrierType", str) not in (None, "FleetCarrier"):
+        return None
+    return CarrierKnown(at, required(entry, "CarrierID", int))
+
+
+def _docked(entry: Entry, at: datetime) -> DockedAt:
+    return DockedAt(at, required(entry, "MarketID", int))
+
+
+def _undocked(_entry: Entry, at: datetime) -> Undocked:
+    return Undocked(at)
+
+
 ON_FOOT_PARSERS: dict[str, Parser[OnFootFact | None]] = {
     "ShipLocker": _locker,
     "Backpack": _backpack,
@@ -277,4 +320,8 @@ ON_FOOT_PARSERS: dict[str, Parser[OnFootFact | None]] = {
     "BuyWeapon": _weapon_bought,
     "SellSuit": _suit_sold,
     "SellWeapon": _weapon_sold,
+    "CarrierLocation": _carrier,
+    "CarrierStats": _carrier,
+    "Docked": _docked,
+    "Undocked": _undocked,
 }

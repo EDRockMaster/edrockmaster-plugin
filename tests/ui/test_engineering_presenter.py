@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from edrockmaster.domain.engineering.catalogue import MaterialCategory
+from edrockmaster.domain.engineering.catalogue import MaterialCategory, OnFootKind
 from edrockmaster.domain.engineering.goals import BlueprintGoal, ExperimentalEffectGoal, GoalId
 from edrockmaster.domain.engineering.session import (
     CollectionEnded,
@@ -75,6 +75,23 @@ def test_a_collection_shows_gains_use_caps_and_goals() -> None:
     )
 
 
+def test_a_collection_on_foot_shows_its_kinds_and_its_losses() -> None:
+    presenter = EngineeringPresenter(names())
+    stats = collection(
+        gained={MaterialCategory.RAW: 2},
+        gained_on_foot={OnFootKind.DATA: 32, OnFootKind.ITEM: 42, OnFootKind.COMPONENT: 66},
+        lost_on_foot=5,
+    )
+    model = presenter.apply([CollectionStarted(T0), updated(stats)])
+    assert model.lines == (
+        StatLine("Raw gained", "2"),
+        StatLine("Items gained on foot", "42"),
+        StatLine("Components gained on foot", "66"),
+        StatLine("Data gained on foot", "32"),
+        StatLine("Lost on foot", "5"),
+    )
+
+
 def test_goals_without_inventory_say_so() -> None:
     model = EngineeringPresenter(names()).apply(
         [updated(None, progress(RANGE, False), known=False)]
@@ -131,3 +148,5 @@ def test_names_without_a_catalogue_or_unknown_to_it() -> None:
     assert full.effect("special_gone") == "special_gone"
     assert full.module("zz") == "zz"
     assert full.material("arsenic") == "Arsenic"
+    # On foot: the catalogue's name, as it is, when the game gave none (ADR 0027)
+    assert full.material("chemicalsample") == "Chemical Sample"

@@ -648,3 +648,24 @@ def test_the_equipment_worn_that_evening() -> None:
         "wpn_m_submachinegun_kinetic_fauto",
         "wpn_s_pistol_plasma_charged",
     }
+
+
+def test_the_materials_moved_to_the_player_s_carrier() -> None:
+    # ADR 0029's review criterion: while docked at the player's carrier, the locker emptied
+    # into it with no event; the moves are reported, and no goal counts them
+    engineering = Replay(YAMATJI).companion.engineering
+    moves = engineering.carrier_moves
+    assert [(m.docked_at, m.at) for m in moves] == [
+        (
+            datetime(2026, 10, 5, 21, 39, 26, tzinfo=UTC),
+            datetime(2026, 10, 5, 21, 45, 13, tzinfo=UTC),
+        ),
+        (
+            datetime(2026, 10, 5, 23, 22, 14, tzinfo=UTC),
+            datetime(2026, 10, 5, 23, 25, 10, tzinfo=UTC),
+        ),
+    ]
+    assert [(len(m.changes), sum(m.changes.values())) for m in moves] == [(7, -15), (65, -127)]
+    # The locker before the second move, all of it moved
+    assert moves[1].changes["gmeds"] == -4
+    assert engineering.on_foot_held() == {}

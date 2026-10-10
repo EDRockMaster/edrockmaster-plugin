@@ -11,6 +11,7 @@
   import { t, type Language } from "../lib/i18n";
   import type { Engineering } from "../lib/live-view";
   import GoalForm from "./GoalForm.svelte";
+  import OnFootView from "./OnFootView.svelte";
 
   let { engineering, language }: { engineering: Engineering; language: Language } = $props();
 
@@ -21,6 +22,8 @@
   );
   // A long list once the game has named them all: the player may fold it away
   let showEngineers = $state(true);
+  // Ship engineering, or on foot (ADR 0027)
+  let part = $state<"ship" | "onFoot">("ship");
 
   function changeCount(goalId: string, event: Event): void {
     const count = Number((event.currentTarget as HTMLInputElement).value);
@@ -29,157 +32,178 @@
 </script>
 
 <div class="engineering">
-  <section aria-labelledby="goals-title">
-    <h2 id="goals-title">{t(language, "engineering.goals")}</h2>
-    {#if goals.length === 0}
-      <p class="muted">{t(language, "engineering.noGoal")}</p>
-    {/if}
-    <ul class="goals">
-      {#each goals as goal (goal.id)}
-        <li class:ready={goal.ready}>
-          <div class="goal-head">
-            <strong>{goalTitle(goal, language)}</strong>
-            {#if goal.ready}<span class="badge">{t(language, "engineering.goal.ready")}</span>{/if}
-            <label class="count">
-              {t(
-                language,
-                goal.kind === "blueprint"
-                  ? "engineering.goal.rolls"
-                  : "engineering.goal.applications",
-              )}
-              <input
-                type="number"
-                min="1"
-                max="99"
-                value={goal.count}
-                aria-label={t(language, "engineering.goal.countLabel", {
+  <div class="parts" role="group" aria-label={t(language, "engineering.part.label")}>
+    <button type="button" aria-pressed={part === "ship"} onclick={() => (part = "ship")}>
+      {t(language, "engineering.part.ship")}
+    </button>
+    <button type="button" aria-pressed={part === "onFoot"} onclick={() => (part = "onFoot")}>
+      {t(language, "engineering.part.onFoot")}
+    </button>
+  </div>
+  {#if part === "onFoot"}
+    <OnFootView onFoot={engineering.onFoot} {language} />
+  {:else}
+    <section aria-labelledby="goals-title">
+      <h2 id="goals-title">{t(language, "engineering.goals")}</h2>
+      {#if goals.length === 0}
+        <p class="muted">{t(language, "engineering.noGoal")}</p>
+      {/if}
+      <ul class="goals">
+        {#each goals as goal (goal.id)}
+          <li class:ready={goal.ready}>
+            <div class="goal-head">
+              <strong>{goalTitle(goal, language)}</strong>
+              {#if goal.ready}<span class="badge">{t(language, "engineering.goal.ready")}</span
+                >{/if}
+              <label class="count">
+                {t(
+                  language,
+                  goal.kind === "blueprint"
+                    ? "engineering.goal.rolls"
+                    : "engineering.goal.applications",
+                )}
+                <input
+                  type="number"
+                  min="1"
+                  max="99"
+                  value={goal.count}
+                  aria-label={t(language, "engineering.goal.countLabel", {
+                    goal: goalTitle(goal, language),
+                  })}
+                  onchange={(event) => changeCount(goal.id, event)}
+                />
+              </label>
+              <button
+                type="button"
+                aria-label={t(language, "engineering.goal.removeLabel", {
                   goal: goalTitle(goal, language),
                 })}
-                onchange={(event) => changeCount(goal.id, event)}
-              />
-            </label>
-            <button
-              type="button"
-              aria-label={t(language, "engineering.goal.removeLabel", {
-                goal: goalTitle(goal, language),
-              })}
-              onclick={() => core()?.remove_goal(goal.id)}
-            >
-              {t(language, "engineering.goal.remove")}
-            </button>
-          </div>
-          {#if !goal.known}
-            <p class="alert">{t(language, "engineering.goal.unknown")}</p>
-          {:else if goal.missing === null}
-            <p class="muted">{t(language, "engineering.goal.unknownInventory")}</p>
-          {:else if goal.missing.length > 0}
-            <p>
-              {t(language, "engineering.goal.missing", { items: ingredientsText(goal.missing) })}
+                onclick={() => core()?.remove_goal(goal.id)}
+              >
+                {t(language, "engineering.goal.remove")}
+              </button>
+            </div>
+            {#if !goal.known}
+              <p class="alert">{t(language, "engineering.goal.unknown")}</p>
+            {:else if goal.missing === null}
+              <p class="muted">{t(language, "engineering.goal.unknownInventory")}</p>
+            {:else if goal.missing.length > 0}
+              <p>
+                {t(language, "engineering.goal.missing", { items: ingredientsText(goal.missing) })}
+              </p>
+            {/if}
+            <p class="muted">
+              {goal.engineers.length > 0
+                ? t(language, "engineering.goal.engineers", { names: goal.engineers.join(", ") })
+                : t(language, "engineering.goal.noEngineer")}
             </p>
-          {/if}
-          <p class="muted">
-            {goal.engineers.length > 0
-              ? t(language, "engineering.goal.engineers", { names: goal.engineers.join(", ") })
-              : t(language, "engineering.goal.noEngineer")}
-          </p>
-        </li>
-      {/each}
-    </ul>
-    <GoalForm {language} />
-  </section>
-
-  <section aria-labelledby="shopping-title">
-    <h2 id="shopping-title">{t(language, "engineering.shopping")}</h2>
-    {#if engineering.shoppingList.length === 0}
-      <p class="muted">{t(language, "engineering.shopping.empty")}</p>
-    {:else}
-      <dl class="pairs">
-        {#each engineering.shoppingList as item (item.symbol)}
-          <dt>{item.name}</dt>
-          <dd>
-            {t(language, "engineering.shopping.item", { count: item.count, held: item.held })}
-          </dd>
-        {/each}
-      </dl>
-    {/if}
-  </section>
-
-  <section aria-labelledby="inventory-title">
-    <h2 id="inventory-title">{t(language, "engineering.inventory")}</h2>
-    {#if !engineering.inventoryKnown}
-      <p class="muted">{t(language, "engineering.inventory.unknown")}</p>
-    {:else}
-      <div class="categories">
-        {#each groups as group (group.category)}
-          <div>
-            <h3>{group.title}</h3>
-            {#each group.grades as grade (grade.grade)}
-              {#if grade.grade !== null}
-                <h4>{t(language, "engineering.grade", { grade: grade.grade })}</h4>
-              {/if}
-              <ul class="materials">
-                {#each grade.materials as material (material.symbol)}
-                  <li class:capped={material.cap !== null && material.count >= material.cap}>
-                    <span>{material.name}</span>
-                    <span class="value">
-                      {material.cap === null
-                        ? material.count
-                        : t(language, "engineering.count", {
-                            count: material.count,
-                            cap: material.cap,
-                          })}
-                    </span>
-                    <span class="bar" style:width="{fill(material) * 100}%"></span>
-                  </li>
-                {/each}
-              </ul>
-            {/each}
-          </div>
-        {/each}
-      </div>
-    {/if}
-  </section>
-
-  <section aria-labelledby="engineers-title">
-    <div class="heading">
-      <h2 id="engineers-title">{t(language, "engineering.engineers")}</h2>
-      <span class="muted">
-        {t(language, "engineering.engineers.unlocked", {
-          unlocked,
-          total: engineering.engineers.length,
-        })}
-      </span>
-      <button
-        type="button"
-        aria-expanded={showEngineers}
-        aria-controls="engineers-list"
-        onclick={() => (showEngineers = !showEngineers)}
-      >
-        {t(language, showEngineers ? "engineering.engineers.hide" : "engineering.engineers.show")}
-      </button>
-    </div>
-    {#if showEngineers}
-      <ul id="engineers-list" class="engineers">
-        {#each engineering.engineers as engineer (engineer.id)}
-          <li class:unlocked={engineer.status === "unlocked"}>
-            <span>{engineer.name}</span>
-            <span class:muted={engineer.status !== "unlocked"}
-              >{statusText(engineer, language)}</span
-            >
           </li>
         {/each}
       </ul>
-    {/if}
-    <p class="muted small">
-      {t(language, "engineering.data", { date: engineering.catalogueDate })}
-    </p>
-  </section>
+      <GoalForm {language} />
+    </section>
+
+    <section aria-labelledby="shopping-title">
+      <h2 id="shopping-title">{t(language, "engineering.shopping")}</h2>
+      {#if engineering.shoppingList.length === 0}
+        <p class="muted">{t(language, "engineering.shopping.empty")}</p>
+      {:else}
+        <dl class="pairs">
+          {#each engineering.shoppingList as item (item.symbol)}
+            <dt>{item.name}</dt>
+            <dd>
+              {t(language, "engineering.shopping.item", { count: item.count, held: item.held })}
+            </dd>
+          {/each}
+        </dl>
+      {/if}
+    </section>
+
+    <section aria-labelledby="inventory-title">
+      <h2 id="inventory-title">{t(language, "engineering.inventory")}</h2>
+      {#if !engineering.inventoryKnown}
+        <p class="muted">{t(language, "engineering.inventory.unknown")}</p>
+      {:else}
+        <div class="categories">
+          {#each groups as group (group.category)}
+            <div>
+              <h3>{group.title}</h3>
+              {#each group.grades as grade (grade.grade)}
+                {#if grade.grade !== null}
+                  <h4>{t(language, "engineering.grade", { grade: grade.grade })}</h4>
+                {/if}
+                <ul class="materials">
+                  {#each grade.materials as material (material.symbol)}
+                    <li class:capped={material.cap !== null && material.count >= material.cap}>
+                      <span>{material.name}</span>
+                      <span class="value">
+                        {material.cap === null
+                          ? material.count
+                          : t(language, "engineering.count", {
+                              count: material.count,
+                              cap: material.cap,
+                            })}
+                      </span>
+                      <span class="bar" style:width="{fill(material) * 100}%"></span>
+                    </li>
+                  {/each}
+                </ul>
+              {/each}
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </section>
+
+    <section aria-labelledby="engineers-title">
+      <div class="heading">
+        <h2 id="engineers-title">{t(language, "engineering.engineers")}</h2>
+        <span class="muted">
+          {t(language, "engineering.engineers.unlocked", {
+            unlocked,
+            total: engineering.engineers.length,
+          })}
+        </span>
+        <button
+          type="button"
+          aria-expanded={showEngineers}
+          aria-controls="engineers-list"
+          onclick={() => (showEngineers = !showEngineers)}
+        >
+          {t(language, showEngineers ? "engineering.engineers.hide" : "engineering.engineers.show")}
+        </button>
+      </div>
+      {#if showEngineers}
+        <ul id="engineers-list" class="engineers">
+          {#each engineering.engineers as engineer (engineer.id)}
+            <li class:unlocked={engineer.status === "unlocked"}>
+              <span>{engineer.name}</span>
+              <span class:muted={engineer.status !== "unlocked"}
+                >{statusText(engineer, language)}</span
+              >
+            </li>
+          {/each}
+        </ul>
+      {/if}
+      <p class="muted small">
+        {t(language, "engineering.data", { date: engineering.catalogueDate })}
+      </p>
+    </section>
+  {/if}
 </div>
 
 <style>
   .engineering {
     display: grid;
     gap: var(--space-3);
+  }
+  .parts {
+    display: flex;
+    gap: var(--space-1);
+  }
+  .parts button[aria-pressed="true"] {
+    border-color: var(--colour-accent);
+    color: var(--colour-accent);
   }
   section {
     background: var(--colour-surface);

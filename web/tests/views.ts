@@ -1,4 +1,4 @@
-import type { Block, Engineering, LiveView, Situation } from "../src/lib/live-view";
+import type { Block, Engineering, LiveView, OnFoot, Situation } from "../src/lib/live-view";
 
 export function block(overrides: Partial<Block> = {}): Block {
   return {
@@ -52,6 +52,18 @@ export function engineering(overrides: Partial<Engineering> = {}): Engineering {
     goals: [],
     shoppingList: [],
     catalogueDate: "2026-09-05",
+    onFoot: onFoot(),
+    ...overrides,
+  };
+}
+
+export function onFoot(overrides: Partial<OnFoot> = {}): OnFoot {
+  return {
+    known: false,
+    materials: [],
+    engineers: [],
+    equipment: [],
+    carrierMoves: [],
     ...overrides,
   };
 }

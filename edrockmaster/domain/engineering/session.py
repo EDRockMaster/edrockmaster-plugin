@@ -60,16 +60,24 @@ from edrockmaster.domain.engineering.journal import (
     MaterialChange,
     MaterialsChanged,
 )
-from edrockmaster.domain.engineering.on_foot import Equipment, OnFoot, OnFootHolding
+from edrockmaster.domain.engineering.on_foot import (
+    CarrierMove,
+    Equipment,
+    OnFoot,
+    OnFootHolding,
+)
 from edrockmaster.domain.engineering.on_foot_journal import (
     BackpackChanged,
     BackpackStated,
     Boarded,
+    CarrierKnown,
+    DockedAt,
     EquipmentSold,
     LoadoutChosen,
     LockerStated,
     Stock,
     SuitBought,
+    Undocked,
     WeaponBought,
     WeaponEquipped,
 )
@@ -242,6 +250,11 @@ class EngineeringTracker:
         """The suits and weapons the journal showed, by id, as last shown."""
         return self._on_foot.equipment
 
+    @property
+    def carrier_moves(self) -> tuple[CarrierMove, ...]:
+        """On-foot materials moved to or from the player's carrier (ADR 0029)."""
+        return self._on_foot.carrier_moves
+
     def name_of(self, symbol: str) -> str | None:
         """A material's name in the game's language, once the journal gave it."""
         return self._names.get(symbol)
@@ -294,6 +307,15 @@ class EngineeringTracker:
                 LoadoutChosen() | WeaponEquipped() | WeaponBought() | SuitBought() | EquipmentSold()
             ):
                 return self._on_foot_equipment(fact)
+            case CarrierKnown():
+                self._on_foot.know_carrier(fact.carrier_id)
+                return []
+            case DockedAt():
+                self._on_foot.dock(fact.at, fact.market_id)
+                return []
+            case Undocked():
+                self._on_foot.undock()
+                return []
             case _:  # pragma: no cover - exhaustiveness checked by mypy
                 assert_never(fact)
 
@@ -362,7 +384,7 @@ class EngineeringTracker:
         match fact:
             case LockerStated():
                 self._name(fact.stock)
-                self._on_foot.state_locker(fact.stock)
+                self._on_foot.state_locker(fact.at, fact.stock)
             case BackpackStated():
                 self._name(fact.stock)
                 self._on_foot.state_backpack(fact.stock)

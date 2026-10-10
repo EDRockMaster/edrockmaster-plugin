@@ -2,7 +2,7 @@
 (ADR 0017).
 
 A material shows the game's own name when the journal gave it (the game's
-language), else the catalogue's English name, translated; the others always
+language), else the catalogue's English name, translated (on foot, as it is); the others always
 come from the catalogue, translated. A name the catalogue lacks shows as the
 journal writes it; so do all of them without a catalogue.
 """
@@ -15,6 +15,15 @@ from typing import assert_never
 from edrockmaster.domain.engineering.catalogue import Catalogue
 from edrockmaster.domain.engineering.goals import BlueprintGoal, ExperimentalEffectGoal, Goal
 from edrockmaster.ui.panel_model import Translate
+
+SUIT_NAMES = {
+    "flightsuit": "Flight suit",
+    "utilitysuit": "Maverick suit",
+    "tacticalsuit": "Dominator suit",
+    "explorationsuit": "Artemis suit",
+}
+"""English names of the suits, by journal symbol without class (ADR 0027): the journal names
+them by a key of the game's own (``$UtilitySuit_Class1_Name;``)."""
 
 
 class EngineeringNames:
@@ -32,7 +41,12 @@ class EngineeringNames:
         if name := self._game_name(symbol):
             return name
         material = self._catalogue.materials.get(symbol) if self._catalogue else None
-        return self._tl(material.english_name) if material else symbol
+        if material:
+            return self._tl(material.english_name)
+        # On foot (ADR 0027), the game names nearly every material in its language; those it
+        # leaves unnamed are proper names (Insight, Kompromat, RDX), kept as the catalogue has them
+        on_foot = self._catalogue.on_foot_materials.get(symbol) if self._catalogue else None
+        return on_foot.english_name if on_foot else symbol
 
     def blueprint(self, name: str) -> str:
         blueprint = self._catalogue.blueprints.get(name) if self._catalogue else None
@@ -49,7 +63,13 @@ class EngineeringNames:
     def engineer(self, engineer_id: int) -> str:
         """Most keep their name; a title is translated (``Professor Palin``)."""
         name = self._catalogue.engineers.get(engineer_id) if self._catalogue else None
+        if name is None and self._catalogue:
+            name = self._catalogue.on_foot_engineers.get(engineer_id)
         return self._tl(name) if name else str(engineer_id)
+
+    def suit(self, symbol: str) -> str:
+        name = SUIT_NAMES.get(symbol)
+        return self._tl(name) if name else symbol
 
     def goal(self, goal: Goal) -> str:
         """``Frame shift drive: Increased range, grade 5``."""

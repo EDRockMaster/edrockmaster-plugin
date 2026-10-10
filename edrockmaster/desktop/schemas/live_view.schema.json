@@ -280,7 +280,8 @@
         "engineers",
         "goals",
         "shoppingList",
-        "catalogueDate"
+        "catalogueDate",
+        "onFoot"
       ],
       "properties": {
         "inventoryKnown": {
@@ -452,6 +453,186 @@
         },
         "catalogueDate": {
           "type": "string"
+        },
+        "onFoot": {
+          "$ref": "#/$defs/onFoot"
+        }
+      }
+    },
+    "onFoot": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "On foot (ADR 0027, ADR 0029): materials held, on-foot engineers, suits and weapons seen, moves to or from the player's fleet carrier. Names in the player's language.",
+      "required": [
+        "known",
+        "materials",
+        "engineers",
+        "equipment",
+        "carrierMoves"
+      ],
+      "properties": {
+        "known": {
+          "type": "boolean",
+          "description": "False until the game states the ship locker."
+        },
+        "materials": {
+          "type": "array",
+          "description": "Materials held, by kind then name.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "symbol",
+              "name",
+              "kind",
+              "locker",
+              "backpack",
+              "mission"
+            ],
+            "properties": {
+              "symbol": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "item",
+                  "component",
+                  "data",
+                  "consumable"
+                ]
+              },
+              "locker": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "The player's own, in the ship locker."
+              },
+              "backpack": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "The player's own, in the backpack."
+              },
+              "mission": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Held for missions, in either place."
+              }
+            }
+          }
+        },
+        "engineers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "name",
+              "status"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "known",
+                  "invited",
+                  "acquainted",
+                  "unlocked",
+                  "barred",
+                  null
+                ]
+              }
+            }
+          }
+        },
+        "equipment": {
+          "type": "array",
+          "description": "Suits first, then weapons.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "kind",
+              "name",
+              "class"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "kind": {
+                "enum": [
+                  "suit",
+                  "weapon"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "class": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "1 to 5; null for the flight suit."
+              }
+            }
+          }
+        },
+        "carrierMoves": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "dockedAt",
+              "at",
+              "materials"
+            ],
+            "properties": {
+              "dockedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "The last change of the locker during that docking."
+              },
+              "materials": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "symbol",
+                    "name",
+                    "count"
+                  ],
+                  "properties": {
+                    "symbol": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "integer",
+                      "description": "Negative: moved to the carrier; positive: taken from it."
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }
