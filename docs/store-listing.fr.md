@@ -4,7 +4,7 @@
 
 Les textes à saisir dans Partner Center pour la fiche du Store (ADR 0022), gardés ici pour évoluer avec l'application. La fiche anglaise est dans [store-listing.md](store-listing.md).
 
-**Avant la première soumission** : l'application doit avoir un écran de réglages (seuils d'alerte, activités affichées, enregistrements du journal), que la fiche décrit ; aujourd'hui, seul le plugin, dans EDMC, en a un.
+Comment une version est soumise : [store-submission.fr.md](store-submission.fr.md).
 
 ## Propriétés
 

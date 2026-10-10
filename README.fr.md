@@ -33,7 +33,7 @@ Ce qui a changé à chaque version : [journal des modifications](CHANGELOG.fr.md
 ## Documentation
 
 - [Conception de l'application de bureau](docs/design.fr.md)
-- [Politique de confidentialité](docs/privacy.fr.md) et [fiche du Microsoft Store](docs/store-listing.fr.md)
+- [Politique de confidentialité](docs/privacy.fr.md), [fiche du Microsoft Store](docs/store-listing.fr.md) et [soumission au Store](docs/store-submission.fr.md)
 
 ## Développement
 

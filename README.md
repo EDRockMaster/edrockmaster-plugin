@@ -33,7 +33,7 @@ What changed in each version: [changelog](CHANGELOG.md). Privacy: [privacy polic
 ## Documentation
 
 - [Design of the desktop application](docs/design.md)
-- [Privacy policy](docs/privacy.md) and [Microsoft Store listing](docs/store-listing.md)
+- [Privacy policy](docs/privacy.md), [Microsoft Store listing](docs/store-listing.md) and [Store submission](docs/store-submission.md)
 
 ## Development
 
