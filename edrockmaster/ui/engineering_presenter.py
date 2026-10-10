@@ -2,7 +2,8 @@
 
 The panel block sums up the collection: materials gained per category, used,
 those at their cap, and the goals ready. Its alert is the last material that
-reached its cap, goal ready or goal done, until the next change without one.
+reached its cap, goal ready or goal done, until the next change without one; a
+ready goal's alert also goes when the goal is no longer among the goals.
 """
 
 from __future__ import annotations
@@ -71,7 +72,15 @@ class EngineeringPresenter:
             self._alert = None
         for notification in batch:
             self._apply(notification)
+        self._forget_removed_goal()
         return self.render()
+
+    def _forget_removed_goal(self) -> None:
+        """A ready goal the player removed no longer has anything to alert about."""
+        if isinstance(self._alert, GoalReady) and self._stats is not None:
+            kept = {progress.goal.id for progress in self._stats.goals}
+            if self._alert.goal.id not in kept:
+                self._alert = None
 
     def render(self) -> PanelModel:
         return PanelModel(
