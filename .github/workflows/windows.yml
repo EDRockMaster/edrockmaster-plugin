@@ -3,7 +3,8 @@
 # GitHub mirror only. Gitea reads .gitea/workflows, which runs the checks and gates merging, and
 # ignores this folder. Building uses no secret; the package identity is in repository variables.
 #
-# - every push: the portable zip and an MSIX to check the packaging, kept 14 days;
+# - every push of a branch that changes more than the documentation: the portable zip and an MSIX
+#   to check the packaging, kept 14 days; a newer push to the same branch cancels the older build;
 # - a tag vX.Y.Z-rc.N or vX.Y.Z: the MSIX to submit to the Store (package flight, then all),
 #   refused by the release plan as on Gitea (no production without a candidate on the commit).
 name: Windows build
@@ -12,7 +13,17 @@ on:
   push:
     branches: ["**"]
     tags: ["v*"]
+    # Documentation alone builds nothing; GitHub never applies path filters to tags
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".gitea/**"
   workflow_dispatch:
+
+# A tag's build is never cancelled: its MSIX is the one submitted to the Store
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 permissions:
   contents: read
