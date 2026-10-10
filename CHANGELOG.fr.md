@@ -4,6 +4,17 @@
 
 Les changements notables d'EDRockMaster Companion, l'application de bureau (jusqu'à la 0.3.0, le plugin EDMC). Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), et les versions suivent le [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [Non publié]
+
+### Ajouté
+
+- **L'ingénierie à pied** (ADR 0027, ADR 0029), première partie. L'onglet *Ingénierie* gagne une partie *À pied* : les matériaux à pied détenus (objets, composants, données, consommables), d'après le casier du vaisseau et le sac tels que le jeu les donne, avec ce qui est dans le sac et ce qui est détenu pour des missions à part ; les combinaisons et armes vues, avec leur classe ; les 13 ingénieurs à pied et leur statut. Le bloc des *Activités* compte les matériaux à pied gagnés, par sorte, et ceux perdus à une mort. Les objets volés comptent comme ceux du joueur. Sur une vraie soirée, l'inventaire après chaque retour à bord égale celui du jeu.
+- **Votre porte-vaisseaux** : les matériaux à pied déplacés entre le casier du vaisseau et votre propre porte-vaisseaux n'écrivent aucun événement dans le journal du jeu ; la partie *À pied* montre chaque déplacement, et rappelle que les matériaux déplacés ne comptent plus. Le contenu du porte-vaisseaux viendra de Frontier par les services d'EDRockMaster (ADR 0028).
+
+### Corrigé
+
+- Un casier du vaisseau que le jeu n'a écrit que dans `ShipLocker.json` est maintenant lu dans ce fichier, comme la soute l'est dans `Cargo.json`.
+
 ## [0.4.0] - 2026-10-10
 
 La première version d'**EDRockMaster Companion**, l'application de bureau, qui remplace le plugin EDMC.

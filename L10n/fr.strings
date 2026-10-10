@@ -134,6 +134,10 @@
 "Other materials gained" = "Autres matériaux gagnés";
 "Materials used" = "Matériaux utilisés";
 "At cap" = "Au plafond";
+"Items gained on foot" = "Objets gagnés à pied";
+"Components gained on foot" = "Composants gagnés à pied";
+"Data gained on foot" = "Données gagnées à pied";
+"Lost on foot" = "Perdus à pied";
 "Goals ready" = "Objectifs prêts";
 "{ready} of {total}" = "{ready} sur {total}";
 "inventory unknown" = "inventaire inconnu";
@@ -465,3 +469,24 @@
 "Tiana Fortune" = "Tiana Fortune";
 "Tod 'The Blaster' McQuinn" = "Tod 'The Blaster' McQuinn";
 "Zacariah Nemo" = "Zacariah Nemo";
+
+/* catalogue: on-foot engineers (ADR 0027): they keep their name */
+"Baltanos" = "Baltanos";
+"Domino Green" = "Domino Green";
+"Eleanor Bresa" = "Eleanor Bresa";
+"Hero Ferrari" = "Hero Ferrari";
+"Jude Navarro" = "Jude Navarro";
+"Kit Fowler" = "Kit Fowler";
+"Oden Geiger" = "Oden Geiger";
+"Rosa Dayette" = "Rosa Dayette";
+"Terra Velasquez" = "Terra Velasquez";
+"Uma Laszlo" = "Uma Laszlo";
+"Wellington Beck" = "Wellington Beck";
+"Yarden Bond" = "Yarden Bond";
+"Yi Shen" = "Yi Shen";
+
+/* ui/engineering_names.py: suits (ADR 0027), as the game names them in French */
+"Flight suit" = "Combinaison de vol";
+"Maverick suit" = "Combinaison Maverick";
+"Dominator suit" = "Combinaison Dominator";
+"Artemis suit" = "Combinaison Artemis";

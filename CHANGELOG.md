@@ -4,6 +4,17 @@
 
 All notable changes to EDRockMaster Companion, the desktop application (until 0.3.0, the EDMC plugin). The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Engineering on foot** (ADR 0027, ADR 0029), first part. The *Engineering* tab gets an *On foot* part: the on-foot materials held (items, components, data, consumables), from the ship locker and the backpack as the game states them, with what is in the backpack and what is held for missions apart; the suits and weapons seen, with their class; the 13 on-foot engineers and their status. The *Activities* block counts the on-foot materials gained, by kind, and those lost at a death. Stolen goods count as the player's own. On a real evening, the inventory after each return aboard equals the game's.
+- **Your fleet carrier**: on-foot materials moved between the ship locker and your own carrier write no event in the game's journal; the *On foot* part shows each move, and reminds that moved materials no longer count. What the carrier holds will come from Frontier through EDRockMaster's services (ADR 0028).
+
+### Fixed
+
+- A ship locker the game only wrote to `ShipLocker.json` is now read from it, as the cargo is from `Cargo.json`.
+
 ## [0.4.0] - 2026-10-10
 
 The first version of **EDRockMaster Companion**, the desktop application, which replaces the EDMC plugin.

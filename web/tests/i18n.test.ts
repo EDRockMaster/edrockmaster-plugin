@@ -14,6 +14,7 @@ const DYNAMIC_KEYS = [
   ...["known", "invited", "acquainted", "unlocked", "barred", "unknown"].map(
     (status) => `engineering.status.${status}`,
   ),
+  ...["item", "component", "data", "consumable"].map((kind) => `onFoot.kind.${kind}`),
 ];
 
 function sources(directory: string): string[] {
@@ -29,7 +30,8 @@ function sources(directory: string): string[] {
 function usedKeys(): Set<string> {
   const used = new Set<string>(DYNAMIC_KEYS);
   for (const source of sources("src")) {
-    for (const match of source.matchAll(/"([a-z]+\.[a-zA-Z.]+)"/g)) used.add(match[1] ?? "");
+    for (const match of source.matchAll(/"([a-z][a-zA-Z]*\.[a-zA-Z.]+)"/g))
+      used.add(match[1] ?? "");
   }
   return used;
 }

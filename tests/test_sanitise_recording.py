@@ -137,7 +137,8 @@ def test_fleet_carriers_are_anonymised() -> None:
             StarSystem="Sol",
         ),
     ]
-    drop, docked = kept(*records)
+    carrier, drop, docked = kept(*records)
+    assert carrier == {"timestamp": TS, "event": "CarrierStats", "CarrierID": 0}
     assert drop["Type"] == "Fleet carrier"
     assert (docked["StationName"], docked["MarketID"]) == ("Fleet carrier", 0)
     assert docked["StarSystem"] == "Sol"
@@ -303,4 +304,50 @@ def test_loadouts_on_foot_lose_the_name_the_player_gave_them(event: str) -> None
     loadout = record(event=event, SuitID=1, SuitName="flightsuit", LoadoutName="My loadout")
     assert kept(loadout) == [
         {"timestamp": TS, "event": event, "SuitID": 1, "SuitName": "flightsuit"}
+    ]
+
+
+def test_the_player_s_carrier_is_kept_under_a_neutral_id() -> None:
+    entries = kept(
+        record(
+            event="CarrierLocation",
+            CarrierType="FleetCarrier",
+            CarrierID=3711717120,
+            StarSystem="Yamatji",
+            SystemAddress=7780568142530,
+            BodyID=0,
+        ),
+        record(
+            event="CarrierStats",
+            CarrierID=3711717120,
+            CarrierType="FleetCarrier",
+            Callsign="TZF-66Z",
+            Name="MY CARRIER",
+            FuelLevel=803,
+            Finance={"CarrierBalance": 168415310},
+            Crew=[{"CrewRole": "Captain"}],
+        ),
+        record(
+            event="Docked", StationName="TZF-66Z", StationType="FleetCarrier", MarketID=3711717120
+        ),
+    )
+    assert entries == [
+        {
+            "timestamp": TS,
+            "event": "CarrierLocation",
+            "CarrierType": "FleetCarrier",
+            "CarrierID": 0,
+            "StarSystem": "Yamatji",
+            "SystemAddress": 7780568142530,
+            "BodyID": 0,
+        },
+        # Its finances and crew are the player's own business: only what tells the carrier
+        {"timestamp": TS, "event": "CarrierStats", "CarrierID": 0, "CarrierType": "FleetCarrier"},
+        {
+            "timestamp": TS,
+            "event": "Docked",
+            "StationName": "Fleet carrier",
+            "StationType": "FleetCarrier",
+            "MarketID": 0,
+        },
     ]

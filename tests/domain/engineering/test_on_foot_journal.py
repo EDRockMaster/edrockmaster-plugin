@@ -8,12 +8,15 @@ from edrockmaster.domain.engineering.on_foot_journal import (
     BackpackChanged,
     BackpackStated,
     Boarded,
+    CarrierKnown,
+    DockedAt,
     EquipmentSold,
     LoadoutChosen,
     LockerStated,
     Stock,
     Suit,
     SuitBought,
+    Undocked,
     Weapon,
     WeaponBought,
     WeaponEquipped,
@@ -255,3 +258,35 @@ def test_a_suit_and_a_weapon_bought_then_sold() -> None:
 )
 def test_a_malformed_on_foot_entry_is_ignored(malformed: Entry) -> None:
     assert parse_entry(malformed) is None
+
+
+def test_the_player_s_own_carrier() -> None:
+    assert parse_entry(
+        entry(
+            "CarrierLocation",
+            CarrierType="FleetCarrier",
+            CarrierID=3711717120,
+            StarSystem="Yamatji",
+            SystemAddress=7780568142530,
+            BodyID=0,
+        )
+    ) == CarrierKnown(AT, 3711717120)
+    assert parse_entry(
+        entry("CarrierStats", CarrierID=3711717120, CarrierType="FleetCarrier", FuelLevel=803)
+    ) == CarrierKnown(AT, 3711717120)
+    # A squadron's carrier is not the player's own
+    assert (
+        parse_entry(
+            entry("CarrierLocation", CarrierType="SquadronCarrier", CarrierID=1, StarSystem="X")
+        )
+        is None
+    )
+
+
+def test_docking_and_undocking() -> None:
+    assert parse_entry(
+        entry("Docked", StationName="TZF-66Z", StationType="FleetCarrier", MarketID=3711717120)
+    ) == DockedAt(AT, 3711717120)
+    assert parse_entry(entry("Undocked", StationName="TZF-66Z", MarketID=3711717120)) == Undocked(
+        AT
+    )

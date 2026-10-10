@@ -1,7 +1,8 @@
 """Engineering presenter: engineering notifications in, panel texts out (ADR 0017).
 
 The panel block sums up the collection: materials gained per category, used,
-those at their cap, and the goals ready. Its alert is the last material that
+those at their cap, on-foot materials gained per kind and lost at a death
+(ADR 0027), and the goals ready. Its alert is the last material that
 reached its cap, goal ready or goal done, until the next change without one; a
 ready goal's alert also goes when the goal is no longer among the goals.
 """
@@ -11,7 +12,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import assert_never
 
-from edrockmaster.domain.engineering.catalogue import MaterialCategory
+from edrockmaster.domain.engineering.catalogue import MaterialCategory, OnFootKind
 from edrockmaster.domain.engineering.session import (
     CollectionEnded,
     CollectionEndReason,
@@ -40,6 +41,11 @@ _GAINED = {
     MaterialCategory.MANUFACTURED: "Manufactured gained",
     MaterialCategory.ENCODED: "Encoded gained",
     None: "Other materials gained",
+}
+_GAINED_ON_FOOT = {
+    OnFootKind.ITEM: "Items gained on foot",
+    OnFootKind.COMPONENT: "Components gained on foot",
+    OnFootKind.DATA: "Data gained on foot",
 }
 _END_REASONS = {
     CollectionEndReason.GAME_CLOSED: "game closed",
@@ -125,6 +131,11 @@ class EngineeringPresenter:
             if collection.capped:
                 capped = ", ".join(self._names.material(symbol) for symbol in collection.capped)
                 yield StatLine(tl("At cap"), capped)
+            for kind, label in _GAINED_ON_FOOT.items():
+                if collection.gained_on_foot.get(kind):
+                    yield StatLine(tl(label), self._number(collection.gained_on_foot[kind], 0))
+            if collection.lost_on_foot:
+                yield StatLine(tl("Lost on foot"), self._number(collection.lost_on_foot, 0))
         if stats.goals:
             ready = tl("{ready} of {total}").format(ready=stats.goals_ready, total=len(stats.goals))
             if not stats.inventory_known:
