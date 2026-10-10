@@ -30,6 +30,7 @@ import webview
 
 from edrockmaster.desktop.core import DesktopCore, Push
 from edrockmaster.desktop.demo import write_demo_journal
+from edrockmaster.desktop.folder_opener import open_in_file_manager
 from edrockmaster.desktop.journal_folder import environment_override
 from edrockmaster.desktop.settings_view import LANGUAGES
 from edrockmaster.infrastructure.paths import data_directory
@@ -81,6 +82,10 @@ class InterfaceApi:
 
     def save_settings(self, request: dict[str, Any]) -> None:
         self._core.save_settings(request)
+
+    def open_folder(self, name: str) -> None:
+        """``recordings`` or ``logs``: any other name is refused by the core."""
+        self._core.open_folder(name)
 
 
 class _Window:
@@ -154,6 +159,8 @@ def main(
             push=push,
             language=language,
             logger=logger,
+            logs_directory=directory / "logs",
+            open_folder=open_in_file_manager,
         )
         window.window = gui.create_window(
             TITLE, html=INTERFACE.read_text(encoding="utf-8"), js_api=InterfaceApi(core), **WINDOW

@@ -69,7 +69,9 @@ def settings_view(
     preferences: DesktopPreferences,
     journal_in_use: Path | None,
     translate: Callable[[str], str],
+    folders: Mapping[str, Path],
 ) -> dict[str, Any]:
+    """``folders``: where the ``recordings`` and the ``logs`` are, which the form can open."""
     alerts = settings.alerts
     thresholds = {commodity.key: value for commodity, value in alerts.thresholds.items()}
     return {
@@ -90,6 +92,8 @@ def settings_view(
         "language": preferences.language,
         "journalFolder": preferences.journal_folder,
         "journalFolderInUse": str(journal_in_use) if journal_in_use else None,
+        "recordingsFolder": str(folders["recordings"]),
+        "logsFolder": str(folders["logs"]),
     }
 
 

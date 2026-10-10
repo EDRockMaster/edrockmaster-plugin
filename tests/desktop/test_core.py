@@ -51,6 +51,7 @@ class Desktop:
     def __init__(self, tmp_path: Path, journal: Path | None, language: str = "en") -> None:
         self.data = tmp_path / "data"
         self.views = Views()
+        self.opened: list[Path] = []
         self.core = DesktopCore(
             data_directory=self.data,
             journal_folder=journal,
@@ -59,6 +60,8 @@ class Desktop:
             logger=logger,
             poll_interval=0.01,
             usual_journal_folder=lambda: None,
+            logs_directory=tmp_path / "logs",
+            open_folder=self.opened.append,
         )
 
 
@@ -395,3 +398,46 @@ def test_the_journal_folder_of_the_settings_is_used_from_the_next_start(
 def test_settings_before_start_are_refused(tmp_path: Path) -> None:
     with pytest.raises(RuntimeError, match="not started"):
         Desktop(tmp_path, None).core.settings()
+
+
+def test_the_recordings_and_logs_folders_open_from_the_settings(tmp_path: Path) -> None:
+    desktop = Desktop(tmp_path, None)
+    desktop.core.start()
+    try:
+        shown = desktop.core.settings()
+        assert shown["recordingsFolder"] == str(tmp_path / "data" / "recordings")
+        assert shown["logsFolder"] == str(tmp_path / "logs")
+        desktop.core.open_folder("recordings")
+        desktop.core.open_folder("logs")
+    finally:
+        desktop.core.stop()
+    assert desktop.opened == [tmp_path / "data" / "recordings", tmp_path / "logs"]
+    # Before the first recording, its folder does not exist yet: it is made to be opened
+    assert (tmp_path / "data" / "recordings").is_dir()
+
+
+def test_only_the_application_s_folders_open(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    desktop = Desktop(tmp_path, None)
+
+    def broken(folder: Path) -> None:
+        raise OSError("no file manager")
+
+    desktop.core = DesktopCore(
+        data_directory=tmp_path / "data",
+        journal_folder=None,
+        push=desktop.views.push,
+        language="en",
+        logger=logger,
+        usual_journal_folder=lambda: None,
+        open_folder=broken,
+    )
+    desktop.core.start()
+    with caplog.at_level(logging.WARNING):
+        desktop.core.open_folder("C:/Windows")
+        desktop.core.open_folder("logs")
+        desktop.core.stop()
+    assert "Unknown folder to open: 'C:/Windows'" in caplog.text
+    assert "Could not open" in caplog.text
+    assert "no file manager" in caplog.text

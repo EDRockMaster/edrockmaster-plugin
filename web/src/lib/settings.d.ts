@@ -35,4 +35,12 @@ export interface Settings {
    * The folder read now (read only).
    */
   journalFolderInUse: string | null;
+  /**
+   * Where the journal recordings go (read only); the interface can open it.
+   */
+  recordingsFolder: string;
+  /**
+   * Where the application's log file is (read only); the interface can open it.
+   */
+  logsFolder: string;
 }

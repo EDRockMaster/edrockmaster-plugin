@@ -68,6 +68,8 @@ export const SETTINGS: Settings = {
   language: "auto",
   journalFolder: null,
   journalFolderInUse: "C:/Users/cmdr/Saved Games/Frontier Developments/Elite Dangerous",
+  recordingsFolder: "C:/Users/cmdr/AppData/Local/EDRockMaster/recordings",
+  logsFolder: "C:/Users/cmdr/AppData/Local/EDRockMaster/logs",
 };
 
 /** The core's API as pywebview exposes it, every call recorded. */
@@ -83,5 +85,6 @@ export function fakeCore(): CoreApi {
     remove_goal: vi.fn(async () => {}),
     settings: vi.fn(async () => structuredClone(SETTINGS)),
     save_settings: vi.fn(async () => {}),
+    open_folder: vi.fn(async () => {}),
   };
 }
