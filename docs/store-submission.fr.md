@@ -8,7 +8,8 @@ Comment une version d'EDRockMaster Companion arrive dans le Microsoft Store, à 
 
 - **Identité du paquet** : les variables du dépôt GitHub `EDROCKMASTER_MSIX_NAME`, `EDROCKMASTER_MSIX_PUBLISHER`, `EDROCKMASTER_MSIX_PUBLISHER_NAME` et `EDROCKMASTER_MSIX_DISPLAY_NAME` portent les valeurs de Partner Center (*Gestion du produit → Identité du produit*). Sans elles, le workflow construit une identité de développement, que Partner Center refuse.
 - **Fiche du Store** : les textes de [store-listing.md](store-listing.md) (anglais) et [store-listing.fr.md](store-listing.fr.md) (français), les captures d'écran, la politique de confidentialité ([privacy.fr.md](privacy.fr.md)).
-- **Testeurs** : une fois l'application publiée, un groupe d'utilisateurs connus « testers » (*Paramètres → Groupes d'utilisateurs connus* : les comptes Microsoft des testeurs) et un vol de paquets « testers » pour ce groupe (*Vols de paquets → Nouveau vol de paquets*).
+- **Testeurs** : un groupe d'utilisateurs connus « testers » (*Paramètres → Groupes d'utilisateurs connus* : les comptes Microsoft des testeurs), avant la première soumission ; une fois l'application publiée, un vol de paquets « testers » pour ce groupe (*Vols de paquets → Nouveau vol de paquets*).
+- **Première soumission** : les vols de paquets n'existent qu'une fois l'application publiée, donc la première soumission est celle de l'application elle-même, avec le MSIX de la première candidate (jamais un build de développement) et, dans *Tarification et disponibilité → Audience*, une **audience privée** limitée au groupe d'utilisateurs connus des testeurs : eux seuls la voient et l'installent. Elle passe en public avec la première production, ci-dessous.
 
 ## À chaque version
 
@@ -34,7 +35,7 @@ Comment une version d'EDRockMaster Companion arrive dans le Microsoft Store, à 
 ### 3. La soumission
 
 - **Candidate** : *Vols de paquets → testers → Créer une soumission* (ou *Mettre à jour*) ; dans *Paquets*, retirer le paquet précédent et envoyer le MSIX ; *Soumettre au Store*.
-- **Production** : *Démarrer la mise à jour* depuis la vue d'ensemble de l'application ; dans *Paquets*, retirer le paquet précédent et envoyer le MSIX ; dans chaque *Fiche du Store* (anglais, français), *Nouveautés de cette version* : la section de la version dans le journal des modifications, dans cette langue, sans les liens ; *Soumettre au Store*.
+- **Production** : *Démarrer la mise à jour* depuis la vue d'ensemble de l'application ; dans *Paquets*, retirer le paquet précédent et envoyer le MSIX ; dans chaque *Fiche du Store* (anglais, français), *Nouveautés de cette version* : la section de la version dans le journal des modifications, dans cette langue, sans les liens ; pour la première production, *Tarification et disponibilité → Audience* : **audience publique** ; *Soumettre au Store*.
 - Une soumission encore en certification bloque la suivante du même type : l'attendre, ou l'annuler d'abord dans Partner Center.
 - **Capacités restreintes** (*Options de soumission*) : `runFullTrust` et `unvirtualizedResources` demandent une justification, qu'une nouvelle soumission reprend en général. Si elle est redemandée (en anglais, pour l'équipe de certification) :
 
