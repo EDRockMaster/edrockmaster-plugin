@@ -2,6 +2,7 @@ import json
 import logging
 import threading
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -135,6 +136,128 @@ def test_an_unreadable_file_is_logged(
     with caplog.at_level(logging.WARNING):
         assert journal.follower.poll() == 0
     assert "locked" in caplog.text
+
+
+CARGO_AT = "2026-10-08T01:42:20Z"
+INVENTORY = [{"Name": "painite", "Name_Localised": "Painite", "Count": 12, "Stolen": 0}]
+
+
+def cargo_file(journal: Journal, timestamp: str = CARGO_AT, vessel: str = "Ship") -> None:
+    content = {"timestamp": timestamp, "event": "Cargo", "Vessel": vessel, "Count": 12}
+    (journal.directory / "Cargo.json").write_text(
+        json.dumps({**content, "Inventory": INVENTORY}), encoding="utf-8"
+    )
+
+
+def test_the_ship_s_cargo_comes_from_cargo_json_as_edmc_added_it(tmp_path: Path) -> None:
+    handed: list[Entry] = []
+    follower = JournalFollower(tmp_path, lambda entry, _beta: handed.append(entry), logger)
+    journal = Journal(tmp_path)
+    cargo_file(journal)
+    # Since 3.3, the journal's Cargo event lists the cargo only at load: the rest is in Cargo.json
+    journal.write(FIRST, line("Cargo", Vessel="Ship", Count=12))
+    follower.poll()
+    assert handed[0]["Inventory"] == INVENTORY
+    assert handed[0]["Count"] == 12
+
+
+@pytest.mark.parametrize("before", ["older", "half-written"])
+def test_the_game_may_write_cargo_json_just_after_the_line(tmp_path: Path, before: str) -> None:
+    handed: list[Entry] = []
+    waits: list[float] = []
+    journal = Journal(tmp_path)
+    # Seen in the game: Cargo.json written 22 ms after its journal line
+    if before == "older":
+        cargo_file(journal, timestamp="2026-10-08T01:00:00Z")
+    else:
+        (tmp_path / "Cargo.json").write_text('{"timestamp": "2026-10-08T01:4', encoding="utf-8")
+
+    def wait(seconds: float) -> None:
+        waits.append(seconds)
+        if len(waits) == 2:
+            cargo_file(journal)
+
+    follower = JournalFollower(
+        tmp_path, lambda entry, _beta: handed.append(entry), logger, sleep=wait
+    )
+    journal.write(FIRST, line("Cargo", Vessel="Ship", Count=12))
+    follower.poll()
+    assert handed[0]["Inventory"] == INVENTORY
+    assert len(waits) == 2
+
+
+def test_a_cargo_json_held_by_the_game_is_read_again(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    handed: list[Entry] = []
+    journal = Journal(tmp_path)
+    cargo_file(journal)
+    read_text = Path.read_text
+    refusals = iter([PermissionError("held")])
+
+    def held_once(path: Path, *args: Any, **kwargs: Any) -> str:
+        for refusal in refusals:
+            raise refusal
+        return read_text(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", held_once)
+    follower = JournalFollower(
+        tmp_path, lambda entry, _beta: handed.append(entry), logger, sleep=lambda _s: None
+    )
+    journal.write(FIRST, line("Cargo", Vessel="Ship", Count=12))
+    follower.poll()
+    assert handed[0]["Inventory"] == INVENTORY
+
+
+@pytest.mark.parametrize("left", ["older", "invalid"])
+def test_a_cargo_json_that_never_comes_is_waited_for_a_moment_only(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture, left: str
+) -> None:
+    handed: list[Entry] = []
+    waits: list[float] = []
+    journal = Journal(tmp_path)
+    if left == "older":
+        cargo_file(journal, timestamp="2026-10-08T01:00:00Z")
+    else:
+        (tmp_path / "Cargo.json").write_text("[1, 2", encoding="utf-8")
+    follower = JournalFollower(
+        tmp_path, lambda entry, _beta: handed.append(entry), logger, sleep=waits.append
+    )
+    journal.write(FIRST, line("Cargo", Vessel="Ship", Count=12))
+    with caplog.at_level(logging.WARNING):
+        follower.poll()
+    assert "Inventory" not in handed[0]
+    assert waits == [0.05] * 20
+    assert "Cargo.json" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("event", "cargo"),
+    [
+        # An older event, read at start: Cargo.json describes a later one
+        (line("Cargo", Vessel="Ship", Count=3).replace(CARGO_AT, "2026-10-08T01:00:00Z"), "ship"),
+        # The SRV's cargo is not the ship's
+        (line("Cargo", Vessel="SRV", Count=2), "srv"),
+        # The event already lists it: the file is not needed
+        (line("Cargo", Vessel="Ship", Count=1, Inventory=[]), "ship"),
+        # No file
+        (line("Cargo", Vessel="Ship", Count=12), "missing"),
+    ],
+)
+def test_otherwise_the_cargo_event_is_left_as_it_is(tmp_path: Path, event: str, cargo: str) -> None:
+    handed: list[Entry] = []
+    waits: list[float] = []
+    follower = JournalFollower(
+        tmp_path, lambda entry, _beta: handed.append(entry), logger, sleep=waits.append
+    )
+    journal = Journal(tmp_path)
+    if cargo in {"ship", "srv"}:
+        cargo_file(journal, vessel="SRV" if cargo == "srv" else "Ship")
+    journal.write(FIRST, event)
+    follower.poll()
+    assert handed == [json.loads(event)]
+    # Nothing to wait for: the file describes a later event, or is not the ship's, or is missing
+    assert waits == []
 
 
 def test_the_watcher_polls_on_its_own_thread_until_stopped(journal: Journal) -> None:
