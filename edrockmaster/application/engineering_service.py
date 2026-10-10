@@ -1,4 +1,4 @@
-"""Use cases of engineering (ADR 0017): the journal, the player's goals, their storage."""
+"""Use cases of engineering (ADR 0017, ADR 0027): the journal, the player's goals, their storage."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from edrockmaster.application.ports import Clock, GoalRepository
 from edrockmaster.domain.engineering.catalogue import Catalogue, Ingredients
 from edrockmaster.domain.engineering.goals import Goal, GoalId
 from edrockmaster.domain.engineering.journal import EngineerState, Fact, parse_entry
+from edrockmaster.domain.engineering.on_foot import Equipment, OnFootHolding
 from edrockmaster.domain.engineering.session import (
     CollectionEndReason,
     EngineeringNotification,
@@ -53,6 +54,17 @@ class EngineeringService:
 
     def shopping_list(self) -> Ingredients:
         return self._tracker.shopping_list()
+
+    @property
+    def on_foot_inventory(self) -> tuple[OnFootHolding, ...] | None:
+        return self._tracker.on_foot_inventory
+
+    def on_foot_held(self) -> Mapping[str, int]:
+        return self._tracker.on_foot_held()
+
+    @property
+    def equipment(self) -> Mapping[int, Equipment]:
+        return self._tracker.equipment
 
     def name_of(self, symbol: str) -> str | None:
         return self._tracker.name_of(symbol)

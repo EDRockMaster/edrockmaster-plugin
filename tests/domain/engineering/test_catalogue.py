@@ -7,6 +7,7 @@ from edrockmaster.domain.engineering.catalogue import (
     Catalogue,
     CatalogueError,
     MaterialCategory,
+    OnFootKind,
 )
 from tests.domain.engineering.catalogue_data import DATA
 
@@ -32,6 +33,16 @@ def test_a_catalogue_is_read_with_its_journal_names() -> None:
     assert catalogue.engineers == {300100: "Felicity Farseer"}
 
 
+def test_a_catalogue_has_the_on_foot_materials_and_engineers() -> None:
+    catalogue = Catalogue.from_data(DATA)
+    sample = catalogue.on_foot_materials["chemicalsample"]
+    assert (sample.kind, sample.english_name) == (OnFootKind.ITEM, "Chemical Sample")
+    assert catalogue.on_foot_materials["internalcorrespondence"].kind is OnFootKind.DATA
+    assert catalogue.on_foot_engineers == {400002: "Domino Green"}
+    # The ship engineers stay apart: the engineering view lists them on their own
+    assert 400002 not in catalogue.engineers
+
+
 def test_the_engineers_offering_a_grade_depend_on_the_module() -> None:
     fsd = Catalogue.from_data(DATA).modules["fsd"]
     assert fsd.engineers("FSD_LongRange", 5) == (300100,)
@@ -53,7 +64,9 @@ def test_the_date_of_the_data_is_the_most_recent_source() -> None:
 @pytest.mark.parametrize(
     ("path", "value", "message"),
     [
-        (("format",), 2, "format"),
+        (("format",), 1, "format"),
+        (("on_foot_materials", "graphene", "kind"), "gadget", "malformed"),
+        (("on_foot_engineers",), None, "malformed"),
         (("materials", "arsenic", "grade"), 6, "grade 6"),
         (("materials", "arsenic", "category"), "odyssey", "malformed"),
         (("blueprints", "FSD_LongRange", "grades"), {"6": {"arsenic": 1}}, "grade 6"),

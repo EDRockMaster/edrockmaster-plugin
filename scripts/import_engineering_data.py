@@ -1,6 +1,6 @@
-"""Import the game data of ship engineering into the plugin (ADR 0017).
+"""Import the game data of engineering into the plugin (ADR 0017, ADR 0027).
 
-Reads EDCD/FDevIDs (materials, engineers) and EDCD/coriolis-data (blueprints,
+Reads EDCD/FDevIDs (materials, on-foot materials, engineers) and EDCD/coriolis-data (blueprints,
 experimental effects, which engineer offers which grade on which module, the
 items of each module type) at the pinned commits below, keeps the fields the plugin uses, maps every
 ingredient to its journal symbol, and writes
@@ -30,7 +30,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-FORMAT = 1
+FORMAT = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,6 +45,14 @@ FDEVIDS = Source("EDCD/FDevIDs", "c35612952dd6a547d1a7ac4cffab9c7051e86579", "20
 CORIOLIS = Source("EDCD/coriolis-data", "0db9234b5b9ce8c939ea84133d7ce336eea88e27", "2026-04-24")
 
 CATEGORIES = {"Raw": "raw", "Manufactured": "manufactured", "Encoded": "encoded"}
+ON_FOOT_KINDS = {
+    "Item": "item",
+    "Component": "component",
+    "Data": "data",
+    "Consumable": "consumable",
+}
+ON_FOOT_ENGINEERS = 400000
+"""FDevIDs numbers the on-foot engineers from 400001, the ship engineers from 300000."""
 
 INGREDIENT_FIXES = {
     # Misspelt in coriolis-data (FDevIDs and the game: "Encryptors")
@@ -155,6 +163,21 @@ def _engineers(read: Read) -> dict[str, int]:
     return {row["name"].strip(): int(row["id"]) for row in rows}
 
 
+def _on_foot_materials(read: Read) -> dict[str, dict[str, str]]:
+    """On-foot materials by journal symbol (ADR 0027)."""
+    materials = {}
+    for row in csv.DictReader(io.StringIO(read(FDEVIDS, "microresources.csv"))):
+        symbol = row["symbol"].strip()
+        kind = row["category"].strip()
+        if kind not in ON_FOOT_KINDS:
+            raise ImportRefused(f"on-foot material {symbol!r} is of an unknown kind {kind!r}")
+        materials[symbol.lower()] = {
+            "kind": ON_FOOT_KINDS[kind],
+            "name": row["English name"].strip(),
+        }
+    return dict(sorted(materials.items()))
+
+
 def _items(read: Read, keys: set[str]) -> dict[str, list[str]]:
     """The journal symbols (lower case) of the items of each module type."""
     files = {
@@ -258,6 +281,9 @@ def build_catalogue(read: Read) -> dict[str, Any]:
     engineers = {
         str(id_): name for name, id_ in sorted(engineer_ids.items()) if id_ in used_engineers
     }
+    on_foot_engineers = {
+        str(id_): name for name, id_ in engineer_ids.items() if id_ > ON_FOOT_ENGINEERS
+    }
     return {
         "format": FORMAT,
         "sources": [
@@ -269,6 +295,8 @@ def build_catalogue(read: Read) -> dict[str, Any]:
         "blueprints": blueprints,
         "effects": effects,
         "modules": modules,
+        "on_foot_materials": _on_foot_materials(read),
+        "on_foot_engineers": dict(sorted(on_foot_engineers.items(), key=lambda item: int(item[0]))),
     }
 
 
@@ -311,7 +339,9 @@ def main(argv: list[str], read: Read = read_github) -> int:
     print(
         f"{output}: {len(catalogue['materials'])} materials, "
         f"{len(catalogue['blueprints'])} blueprints, {len(catalogue['effects'])} effects, "
-        f"{len(catalogue['modules'])} modules, {len(catalogue['engineers'])} engineers"
+        f"{len(catalogue['modules'])} modules, {len(catalogue['engineers'])} engineers, "
+        f"{len(catalogue['on_foot_materials'])} on-foot materials, "
+        f"{len(catalogue['on_foot_engineers'])} on-foot engineers"
     )
     return 0
 

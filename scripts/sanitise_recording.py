@@ -73,6 +73,18 @@ READ_BY_THE_PLUGIN = {
     "MissionCompleted",
     "EngineerCraft",
     "EngineerProgress",
+    # engineering on foot (ADR 0027)
+    "ShipLocker",
+    "Backpack",
+    "BackpackChange",
+    "SuitLoadout",
+    "SwitchSuitLoadout",
+    "CreateSuitLoadout",
+    "LoadoutEquipModule",
+    "BuySuit",
+    "BuyWeapon",
+    "SellSuit",
+    "SellWeapon",
     # the commander's situation (ADR 0023)
     "Loadout",
     "ShipyardSwap",
@@ -124,6 +136,11 @@ PERSONAL_FIELDS = {
     "CommitCrime": {"Victim", "Victim_Localised"},
     # the killers of the commander: other commanders, in player versus player
     "Died": {"KillerName", "KillerName_Localised", "KillerRank", "Killers"},
+    # the name the player gave a loadout on foot: free text
+    "SuitLoadout": {"LoadoutName"},
+    "SwitchSuitLoadout": {"LoadoutName"},
+    "CreateSuitLoadout": {"LoadoutName"},
+    "LoadoutEquipModule": {"LoadoutName"},
 }
 """Fields the plugin does not read that describe people, per event. Per event: the same
 name elsewhere may be needed (``RedeemVoucher.Factions`` is what was redeemed)."""

@@ -1,8 +1,8 @@
 """Translation of raw journal entries into facts of the engineering domain (ADR 0017).
 
 The engineering context's anti-corruption layer for the game journal, built on
-the tolerant helpers of the shared kernel (``journal_reading``). Ship materials
-only: Odyssey's on-foot materials have their own events, for a later ADR.
+the tolerant helpers of the shared kernel (``journal_reading``). The on-foot
+events (ADR 0027) are read by ``on_foot_journal``; ``parse_entry`` reads both.
 
 Materials are named by their journal symbol in lower case (``chemicalmanipulators``);
 the catalogue gives their category and grade, so the categories the journal
@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 
+from edrockmaster.domain.engineering.on_foot_journal import ON_FOOT_PARSERS, OnFootFact
 from edrockmaster.domain.journal_reading import (
     Entry,
     MalformedEntryError,
@@ -119,6 +120,13 @@ class EngineerProgressed:
 
 
 @dataclass(frozen=True, slots=True)
+class CommanderDied:
+    """Ship materials survive a death; what the backpack carried on foot does not."""
+
+    at: datetime
+
+
+@dataclass(frozen=True, slots=True)
 class GameClosed:
     at: datetime
 
@@ -129,7 +137,9 @@ type Fact = (
     | BlueprintApplied
     | EngineersStated
     | EngineerProgressed
+    | CommanderDied
     | GameClosed
+    | OnFootFact
 )
 
 
@@ -258,6 +268,10 @@ def _progress(entry: Entry, at: datetime) -> EngineersStated | EngineerProgresse
     return EngineerProgressed(at, _engineer(entry))
 
 
+def _died(_entry: Entry, at: datetime) -> CommanderDied:
+    return CommanderDied(at)
+
+
 def _closed(_entry: Entry, at: datetime) -> GameClosed:
     return GameClosed(at)
 
@@ -274,5 +288,7 @@ _PARSERS: dict[str, Parser[Fact | None]] = {
     "MissionCompleted": _rewarded,
     "EngineerCraft": _applied,
     "EngineerProgress": _progress,
+    "Died": _died,
     "Shutdown": _closed,
+    **ON_FOOT_PARSERS,
 }

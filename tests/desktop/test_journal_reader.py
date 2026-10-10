@@ -260,6 +260,69 @@ def test_otherwise_the_cargo_event_is_left_as_it_is(tmp_path: Path, event: str, 
     assert waits == []
 
 
+LOCKER = {
+    "Items": [{"Name": "hush", "OwnerID": 0, "Count": 3}],
+    "Components": [],
+    "Consumables": [{"Name": "healthpack", "OwnerID": 0, "Count": 95}],
+    "Data": [],
+}
+
+
+def locker_file(journal: Journal, timestamp: str = CARGO_AT) -> None:
+    content = {"timestamp": timestamp, "event": "ShipLocker", **LOCKER}
+    (journal.directory / "ShipLocker.json").write_text(json.dumps(content), encoding="utf-8")
+
+
+def test_a_ship_locker_without_its_content_gets_it_from_ship_locker_json(tmp_path: Path) -> None:
+    handed: list[Entry] = []
+    follower = JournalFollower(tmp_path, lambda entry, _beta: handed.append(entry), logger)
+    journal = Journal(tmp_path)
+    locker_file(journal)
+    # Seen at a fleet carrier: the locker emptied with only bare ShipLocker lines (ADR 0027)
+    journal.write(FIRST, line("ShipLocker"))
+    follower.poll()
+    assert handed == [{"timestamp": CARGO_AT, "event": "ShipLocker", **LOCKER}]
+
+
+def test_a_ship_locker_json_written_after_its_line_is_waited_for(tmp_path: Path) -> None:
+    handed: list[Entry] = []
+    journal = Journal(tmp_path)
+    locker_file(journal, timestamp="2026-10-08T01:00:00Z")
+
+    def wait(_seconds: float) -> None:
+        locker_file(journal)
+
+    follower = JournalFollower(
+        tmp_path, lambda entry, _beta: handed.append(entry), logger, sleep=wait
+    )
+    journal.write(FIRST, line("ShipLocker"))
+    follower.poll()
+    assert handed[0]["Items"] == LOCKER["Items"]
+
+
+@pytest.mark.parametrize(
+    ("event", "file"),
+    [
+        # An older bare line, read at start: the file describes a later one
+        (line("ShipLocker").replace(CARGO_AT, "2026-10-08T01:00:00Z"), True),
+        # The line holds the locker already
+        (line("ShipLocker", **LOCKER), True),
+        (line("ShipLocker"), False),
+    ],
+)
+def test_otherwise_the_ship_locker_is_left_as_it_is(tmp_path: Path, event: str, file: bool) -> None:
+    handed: list[Entry] = []
+    follower = JournalFollower(
+        tmp_path, lambda entry, _beta: handed.append(entry), logger, sleep=lambda _s: None
+    )
+    journal = Journal(tmp_path)
+    if file:
+        locker_file(journal)
+    journal.write(FIRST, event)
+    follower.poll()
+    assert handed == [json.loads(event)]
+
+
 def test_the_watcher_polls_on_its_own_thread_until_stopped(journal: Journal) -> None:
     seen = threading.Event()
     threads: list[str] = []
