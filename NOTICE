@@ -14,7 +14,7 @@ The file is written by scripts/import_engineering_data.py from community sources
 commits it records:
 
 - EDCD/FDevIDs (https://github.com/EDCD/FDevIDs): material.csv, engineers.csv,
-  microresources.csv.
+  microresources.csv, shipyard.csv.
 - EDCD/coriolis-data (https://github.com/EDCD/coriolis-data): modifications/blueprints.json,
   modifications/modules.json, modifications/specials.json.
 

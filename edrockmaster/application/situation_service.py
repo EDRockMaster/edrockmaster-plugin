@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.situation.journal import parse_entry
 from edrockmaster.domain.situation.situation import Situation, SituationChanged, SituationTracker
@@ -10,8 +12,8 @@ from edrockmaster.domain.situation.situation import Situation, SituationChanged,
 class SituationService:
     """Called on the core's thread only; pure computation."""
 
-    def __init__(self) -> None:
-        self._tracker = SituationTracker()
+    def __init__(self, ship_names: Mapping[str, str] | None = None) -> None:
+        self._tracker = SituationTracker(ship_names)
 
     @property
     def situation(self) -> Situation:

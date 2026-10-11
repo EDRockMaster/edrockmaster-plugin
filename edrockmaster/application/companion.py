@@ -6,6 +6,7 @@ owns what they share: the settings and the journal recorder.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import assert_never
 
 from edrockmaster.application.activity import Activity
@@ -51,6 +52,7 @@ class Companion:
         clock: Clock,
         catalogue: Catalogue,
         goals: GoalRepository,
+        ship_names: Mapping[str, str] | None = None,
     ) -> None:
         self._store = settings_store
         self._recorder = recorder
@@ -59,7 +61,7 @@ class Companion:
         self.combat = CombatService(clock)
         self.trade = TradeService(clock)
         self.engineering = EngineeringService(catalogue, goals, clock)
-        self.situation = SituationService()
+        self.situation = SituationService(ship_names)
 
     @property
     def settings(self) -> PluginSettings:
