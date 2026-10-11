@@ -14,7 +14,8 @@ export interface CoreApi {
   /** What the goal form offers; it never changes (ADR 0017). */
   catalogue(): Promise<GoalCatalogue>;
   add_goal(request: GoalRequest): Promise<void>;
-  /** A new number of rolls (blueprint) or applications (effect). */
+  /** A new number of rolls (blueprint) or applications (effect), or the class aimed at (class
+   * upgrade). */
   change_goal(goalId: string, count: number): Promise<void>;
   remove_goal(goalId: string): Promise<void>;
   /** What the settings form shows (ADR 0020). */
@@ -25,12 +26,23 @@ export interface CoreApi {
 }
 
 /** A goal the player asks for; the core checks it against the catalogue. */
-export interface GoalRequest {
+export type GoalRequest = ShipGoalRequest | ClassUpgradeRequest;
+
+export interface ShipGoalRequest {
   kind: "blueprint" | "effect";
   module: string;
   name: string;
   grade?: number;
   count: number;
+}
+
+/** A class upgrade of one of the player's items (from its class), or of a type (ADR 0027). */
+export interface ClassUpgradeRequest {
+  kind: "classUpgrade";
+  item: string;
+  toClass: number;
+  equipmentId?: number;
+  fromClass?: number;
 }
 
 declare global {

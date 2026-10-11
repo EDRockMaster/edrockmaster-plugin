@@ -1,5 +1,6 @@
-// The on-foot part of the engineering view (ADR 0027, ADR 0029), kept out of the markup to be
-// tested alone.
+// The on-foot part of the engineering view (ADR 0027, ADR 0029, ADR 0030), kept out of the markup
+// to be tested alone.
+import type { GoalCatalogue } from "./goal-catalogue";
 import { t, type Language } from "./i18n";
 import type { OnFoot } from "./live-view";
 
@@ -70,4 +71,54 @@ export function dockedText(move: CarrierMove, language: Language): string {
     new Date(move.dockedAt),
   );
   return t(language, "onFoot.carrier.move", { time });
+}
+
+// Class upgrades (ADR 0027, ADR 0030)
+
+export type ClassGoal = OnFoot["goals"][number];
+export type OnFootItem = GoalCatalogue["onFootItems"][number];
+
+const MAX_CLASS = 5;
+
+export function classGoalTitle(goal: ClassGoal, language: Language): string {
+  return t(language, "onFoot.goal.title", {
+    item: goal.title,
+    from: goal.fromClass,
+    to: goal.toClass,
+  });
+}
+
+export function creditsText(credits: number, language: Language): string {
+  return new Intl.NumberFormat(language).format(credits);
+}
+
+/** What the player should know about a goal's recipe: unknown steps, steps not seen in game. */
+export function goalNotes(goal: ClassGoal, language: Language): string[] {
+  const notes: string[] = [];
+  if (goal.unknownClasses.length > 0) {
+    const classes = goal.unknownClasses.join(", ");
+    notes.push(t(language, "onFoot.goal.unknownClasses", { classes }));
+  }
+  if (goal.unverified) notes.push(t(language, "onFoot.goal.unverified"));
+  return notes;
+}
+
+/** The classes a goal can aim at, above the one it starts from. */
+export function classesAbove(fromClass: number): number[] {
+  return Array.from({ length: MAX_CLASS - fromClass }, (_, index) => fromClass + 1 + index);
+}
+
+/** The player's suits and weapons a class upgrade can start from: known to the catalogue,
+ * with a class below the highest. */
+export function upgradable(equipment: Equipment[], items: OnFootItem[]): Equipment[] {
+  const known = new Set(items.map((item) => item.symbol));
+  return equipment.filter(
+    (piece) => known.has(piece.symbol) && piece.class !== null && piece.class < MAX_CLASS,
+  );
+}
+
+/** The types a class upgrade can be set on without one of the player's items: all but the flight
+ * suit, which has no class. */
+export function upgradableTypes(items: OnFootItem[]): OnFootItem[] {
+  return items.filter((item) => item.upgrades.length > 0);
 }
