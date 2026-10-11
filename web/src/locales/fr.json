@@ -3,6 +3,7 @@
   "activity.combat": "Combat",
   "activity.trade": "Commerce",
   "activity.engineering": "Ingénierie",
+  "activity.communityGoals": "Objectifs communautaires",
   "activity.reset": "Réinitialiser",
   "activity.running": "Session en cours",
   "app.loading": "Démarrage…",
@@ -194,5 +195,10 @@
   "unlock.notCounted": "Certaines conditions ne sont pas des matériaux : vérifiez-les en jeu.",
   "unlock.heading": "Déblocages d'ingénieurs",
   "engineer.aim": "Viser son déblocage",
-  "engineer.aimed": "Objectif fixé"
+  "engineer.aimed": "Objectif fixé",
+  "countdown.endsIn": "se termine dans {time}",
+  "countdown.ended": "terminé",
+  "countdown.days": "{days} j {hours} h",
+  "countdown.hours": "{hours} h {minutes} min",
+  "countdown.minutes": "{minutes} min"
 }

@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import assert_never
 
-from edrockmaster.domain.combat.journal import CommunityGoal
 from edrockmaster.domain.combat.session import (
     CombatEnded,
     CombatEndReason,
@@ -13,7 +12,6 @@ from edrockmaster.domain.combat.session import (
     CombatStarted,
     CombatStats,
     CombatUpdated,
-    CommunityGoalsChanged,
     SegmentStats,
     SiteAverage,
     Tally,
@@ -31,9 +29,6 @@ from edrockmaster.ui.panel_model import (
     format_duration,
     identity,
 )
-
-GOAL_TITLE_LENGTH = 32
-"""Community goal titles can be long: beyond this, they would widen the block."""
 
 # English source strings, translated at render time
 _END_REASONS = {
@@ -66,7 +61,6 @@ class CombatPresenter:
         self._ended: CombatEndReason | None = None
         self._stats: CombatStats | None = None
         self._vouchers: Vouchers | None = None
-        self._goals: tuple[CommunityGoal, ...] = ()
 
     def apply(self, notifications: Iterable[CombatNotification]) -> PanelModel:
         for notification in notifications:
@@ -77,7 +71,6 @@ class CombatPresenter:
         lines = list(self._session_lines(self._stats)) if self._stats else []
         if self._vouchers is not None and self._vouchers.total:
             lines.append(StatLine(self._tl("Unredeemed"), self._credits(self._vouchers.total)))
-        lines += [StatLine(_shorten(goal.title), self._goal_text(goal)) for goal in self._goals]
         return PanelModel(
             status=self._status(), lines=tuple(lines), alert=None, can_reset=self._running
         )
@@ -92,8 +85,6 @@ class CombatPresenter:
                 self._running, self._ended, self._stats = False, reason, stats
             case VouchersUpdated(vouchers=vouchers):
                 self._vouchers = vouchers
-            case CommunityGoalsChanged(goals=goals):
-                self._goals = goals
             case _:  # pragma: no cover - exhaustiveness checked by mypy
                 assert_never(notification)
 
@@ -155,21 +146,5 @@ class CombatPresenter:
             kills=self._number(tally.kills, 0), credits=self._credits(tally.credits)
         )
 
-    def _goal_text(self, goal: CommunityGoal) -> str:
-        tl = self._tl
-        parts = [self._number(goal.contribution, 0)]
-        if goal.percentile_band is not None:
-            parts.append(tl("top {band} %").format(band=goal.percentile_band))
-        if goal.tier_reached:
-            parts.append(goal.tier_reached)
-        text = ", ".join(parts)
-        return tl("{goal} (complete)").format(goal=text) if goal.complete else text
-
     def _credits(self, credits: float) -> str:
         return format_credits(credits, self._tl, self._number)
-
-
-def _shorten(title: str) -> str:
-    if len(title) <= GOAL_TITLE_LENGTH:
-        return title
-    return title[: GOAL_TITLE_LENGTH - 1].rstrip() + "…"

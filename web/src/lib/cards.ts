@@ -13,7 +13,10 @@ export interface ViewLayout {
 
 /** The first layout, as the core has it: used until the core's arrives, or without a core. */
 export const FIRST_LAYOUT: Layout = {
-  activities: { order: ["mining", "combat", "trade", "engineering"], folded: [] },
+  activities: {
+    order: ["mining", "combat", "trade", "engineering", "communityGoals"],
+    folded: [],
+  },
   engineering: { order: ["goals", "shopping", "inventory", "engineers"], folded: [] },
   onFoot: {
     order: ["goals", "shopping", "inventory", "carrier", "equipment", "engineers"],

@@ -23,7 +23,7 @@ SCHEMAS = SCHEMA.parent
 
 
 def test_the_cards_of_each_view_in_their_first_order() -> None:
-    assert CARDS["activities"] == ("mining", "combat", "trade", "engineering")
+    assert CARDS["activities"] == ("mining", "combat", "trade", "engineering", "communityGoals")
     assert CARDS["engineering"] == ("goals", "shopping", "inventory", "engineers")
     assert CARDS["onFoot"] == (
         "goals",

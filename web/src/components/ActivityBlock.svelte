@@ -1,5 +1,6 @@
 <script lang="ts">
   // What an activity's card shows (ADR 0013): its status, its alert, its statistics as tiles.
+  import { timeLeft } from "../lib/countdown";
   import { t, type Language } from "../lib/i18n";
   import type { Block } from "../lib/live-view";
 
@@ -8,6 +9,16 @@
     language,
     onreset,
   }: { block: Block; language: Language; onreset: (activity: string) => void } = $props();
+
+  // A line may count down to a moment (a community goal's expiry): the clock ticks only then
+  let now = $state(Date.now());
+  const counting = $derived(block.lines.some((line) => line.until));
+  $effect(() => {
+    if (!counting) return;
+    now = Date.now();
+    const clock = setInterval(() => (now = Date.now()), 30_000);
+    return () => clearInterval(clock);
+  });
 </script>
 
 <div class="state">
@@ -25,11 +36,14 @@
   <p class="alert" role="status">{block.alert}</p>
 {/if}
 {#if block.lines.length}
-  <dl>
+  <dl class:wide={counting}>
     {#each block.lines as line, index (index)}
       <div class="tile">
         <dt>{line.label}</dt>
         <dd>{line.value}</dd>
+        {#if line.until}
+          <dd class="until">{timeLeft(line.until, now, language)}</dd>
+        {/if}
       </div>
     {/each}
   </dl>
@@ -65,6 +79,10 @@
     gap: var(--space-2) var(--space-3);
     margin: var(--space-2) 0 0;
   }
+  /* A community goal's title is long: its tiles are wider */
+  dl.wide {
+    grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  }
   .tile {
     display: flex;
     flex-direction: column;
@@ -81,5 +99,9 @@
     margin: 0;
     font-size: 1.05rem;
     font-variant-numeric: tabular-nums;
+  }
+  dd.until {
+    color: var(--colour-text-muted);
+    font-size: 0.85rem;
   }
 </style>

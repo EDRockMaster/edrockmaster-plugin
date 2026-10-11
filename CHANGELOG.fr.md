@@ -8,6 +8,7 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ### Modifié
 
+- Les **objectifs communautaires** ont leur propre carte dans *Activités* (ADR 0032), et non plus celle du combat : un objectif communautaire peut porter sur le commerce, le minage ou l'exploration. La carte n'apparaît que tant qu'un objectif est rejoint, une tuile par objectif : son titre complet et son système, la contribution, la tranche de percentile, le palier atteint sur le palier le plus haut (`palier 3 sur 5`), et le temps restant avant l'échéance, décompté par l'interface, ou *Terminé : récompense à toucher*. On peut la masquer dans *Réglages*, et elle ne prend jamais le panneau en mode « dernière active ». Dans la démo, l'objectif se termine aussi longtemps après maintenant qu'après l'enregistrement.
 - La carte de l'ingénierie dans *Activités* affiche les matériaux à pied en une seule tuile, gagnés et perdus à une mort (`+140, 5 perdus`), au lieu d'une tuile par type et d'une pour les pertes : les types sont dans la partie *À pied* de l'onglet *Ingénierie*.
 
 ### Corrigé

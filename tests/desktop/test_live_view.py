@@ -1,13 +1,16 @@
 """The live view, as its schema describes it (ADR 0020, ADR 0023)."""
 
 import json
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 import jsonschema
 
+from edrockmaster.application.activity import Activity
 from edrockmaster.desktop.live_view import SCHEMA, live_view
 from edrockmaster.domain.situation.journal import GameMode, Ship
 from edrockmaster.domain.situation.situation import Situation
+from edrockmaster.ui.panel_model import ActivityBlock, PanelModel, StatLine
 
 EMPTY_ENGINEERING: dict[str, object] = {
     "inventoryKnown": False,
@@ -33,11 +36,11 @@ EMPTY_ENGINEERING: dict[str, object] = {
 VALIDATOR = jsonschema.Draft202012Validator(json.loads(SCHEMA.read_text(encoding="utf-8")))
 
 
-def view(situation: Situation) -> dict[str, object]:
+def view(situation: Situation, blocks: tuple[ActivityBlock, ...] = ()) -> dict[str, object]:
     built = live_view(
         language="fr",
         current="mining",
-        blocks=(),
+        blocks=blocks,
         notice=None,
         journal_folder=Path("journal"),
         journal_file=None,
@@ -89,3 +92,25 @@ def test_an_unknown_situation() -> None:
 def test_the_application_s_version_in_the_view() -> None:
     # The full version of the build file (ADR 0016), shown beside the application's name
     assert view(Situation())["application"] == {"version": "0.4.0-rc.1"}
+
+
+def test_a_line_counts_down_to_its_moment_in_utc() -> None:
+    # A community goal's expiry (ADR 0032): the interface counts it down
+    paris = timezone(timedelta(hours=2))
+    lines = (
+        StatLine(
+            "Satellite launch, HIP 74116", "1,240", until=datetime(2026, 10, 15, 9, 0, tzinfo=paris)
+        ),
+        StatLine("Raw gained", "2"),
+    )
+    model = PanelModel("Goals joined: 1", lines, None, False)
+    built = view(Situation(), (ActivityBlock(Activity.COMMUNITY_GOALS, model),))
+    activities = built["activities"]
+    assert isinstance(activities, list)
+    [block] = activities
+    assert block["activity"] == "communityGoals"
+    assert block["lines"] == [
+        {"label": "Satellite launch, HIP 74116", "value": "1,240", "until": "2026-10-15T07:00:00Z"},
+        {"label": "Raw gained", "value": "2"},
+    ]
+    assert datetime.fromisoformat(block["lines"][0]["until"]).tzinfo == UTC

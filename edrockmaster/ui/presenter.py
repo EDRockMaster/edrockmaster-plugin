@@ -5,11 +5,13 @@ up to date. The player chooses the activities shown and the mode:
 
 - **last active**: one block, the last shown activity whose session progressed:
   for combat, a session or a segment that starts or ends, a reward or a crime.
-  Vouchers and community goals update the combat presenter without switching.
+  Vouchers update the combat presenter without switching.
   For trade, a session that starts or ends, a purchase, a sale or a loss
   (ADR 0014);
   For engineering, a collection that starts or ends, a change of materials in
   game, a material at its cap, or a goal ready (ADR 0017);
+  Community goals never switch: they are not a session (ADR 0032), and their
+  block is left out while no goal is joined;
 - **stacked**: one block per activity shown, in display order.
 """
 
@@ -25,9 +27,9 @@ from edrockmaster.domain.combat.session import (
     CombatEnded,
     CombatStarted,
     CombatUpdated,
-    CommunityGoalsChanged,
     VouchersUpdated,
 )
+from edrockmaster.domain.community_goals.goals import CommunityGoalsChanged
 from edrockmaster.domain.engineering.session import (
     CollectionEnded,
     CollectionStarted,
@@ -41,6 +43,7 @@ from edrockmaster.domain.engineering.session import (
 from edrockmaster.domain.situation.situation import SituationChanged
 from edrockmaster.domain.trade.session import TradeEnded, TradeStarted, TradeUpdated
 from edrockmaster.ui.combat_presenter import CombatPresenter
+from edrockmaster.ui.community_goals_presenter import CommunityGoalsPresenter
 from edrockmaster.ui.engineering_names import EngineeringNames
 from edrockmaster.ui.engineering_presenter import EngineeringPresenter
 from edrockmaster.ui.mining_presenter import MiningPresenter
@@ -54,7 +57,7 @@ from edrockmaster.ui.panel_model import (
 )
 from edrockmaster.ui.trade_presenter import TradePresenter
 
-_COMBAT = (CombatStarted, CombatUpdated, CombatEnded, VouchersUpdated, CommunityGoalsChanged)
+_COMBAT = (CombatStarted, CombatUpdated, CombatEnded, VouchersUpdated)
 _COMBAT_PROGRESS = (CombatStarted, CombatUpdated, CombatEnded)
 _TRADE = (TradeStarted, TradeUpdated, TradeEnded)
 _ENGINEERING = (
@@ -83,6 +86,7 @@ class ActivityPresenter:
         self._engineering = EngineeringPresenter(
             engineering_names or EngineeringNames(None, translate), translate, format_number
         )
+        self._community_goals = CommunityGoalsPresenter(translate, format_number)
         self._display = display or DisplaySettings()
         self.current = self._display.activities[0]
         """The activity shown in the last active mode."""
@@ -105,6 +109,8 @@ class ActivityPresenter:
             elif isinstance(notification, _TRADE):
                 self._trade.apply([notification])
                 self._progressed(Activity.TRADE)
+            elif isinstance(notification, CommunityGoalsChanged):
+                self._community_goals.apply([notification])
             elif isinstance(notification, _ENGINEERING):
                 engineering.append(notification)
             else:
@@ -129,7 +135,11 @@ class ActivityPresenter:
     def blocks_of(self, activities: Iterable[Activity]) -> tuple[ActivityBlock, ...]:
         """The blocks of these activities, whatever the display mode (ADR 0020: the desktop
         application has room for all of them)."""
-        return tuple(ActivityBlock(activity, self._model(activity)) for activity in activities)
+        return tuple(
+            ActivityBlock(activity, model)
+            for activity in activities
+            if (model := self._model(activity)).lines or activity is not Activity.COMMUNITY_GOALS
+        )
 
     def _progressed(self, activity: Activity) -> None:
         if activity in self._display.activities:
@@ -145,6 +155,8 @@ class ActivityPresenter:
                 return self._trade.render()
             case Activity.ENGINEERING:
                 return self._engineering.render()
+            case Activity.COMMUNITY_GOALS:
+                return self._community_goals.render()
             case _:  # pragma: no cover - exhaustiveness checked by mypy
                 assert_never(activity)
 

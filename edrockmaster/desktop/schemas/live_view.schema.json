@@ -96,7 +96,8 @@
         "mining",
         "combat",
         "trade",
-        "engineering"
+        "engineering",
+        "communityGoals"
       ]
     },
     "block": {
@@ -131,6 +132,11 @@
               },
               "value": {
                 "type": "string"
+              },
+              "until": {
+                "type": "string",
+                "format": "date-time",
+                "description": "A moment the interface counts down to, after the value (a community goal's expiry, ADR 0032)."
               }
             }
           }

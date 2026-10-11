@@ -25,7 +25,10 @@ export interface Settings {
   /**
    * @minItems 1
    */
-  activities: ["mining" | "combat" | "trade" | "engineering", ...("mining" | "combat" | "trade" | "engineering")[]];
+  activities: [
+    "mining" | "combat" | "trade" | "engineering" | "communityGoals",
+    ...("mining" | "combat" | "trade" | "engineering" | "communityGoals")[]
+  ];
   language: "auto" | "en" | "fr";
   /**
    * Set by hand; null: where the game usually writes it. Used from the next start.

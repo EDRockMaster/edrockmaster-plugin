@@ -83,7 +83,7 @@ describe("SettingsView", () => {
       },
       sound: false,
       recordJournal: true,
-      activities: ["mining", "trade", "engineering"],
+      activities: ["mining", "trade", "engineering", "communityGoals"],
       language: "fr",
       journalFolder: "D:/Journal",
     });
@@ -100,7 +100,7 @@ describe("SettingsView", () => {
     await fireEvent.input(screen.getByLabelText(/Minimum proportion of Painite/), {
       target: { value: "35" },
     });
-    for (const name of ["Mining", "Combat", "Trade", "Engineering"]) {
+    for (const name of ["Mining", "Combat", "Trade", "Engineering", "Community goals"]) {
       await fireEvent.click(screen.getByLabelText(name));
     }
     await fireEvent.click(screen.getByRole("button", { name: "Save" }));

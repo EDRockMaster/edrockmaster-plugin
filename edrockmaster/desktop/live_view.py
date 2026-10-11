@@ -7,11 +7,12 @@ status) come from its catalogues, in the same language (ADR 0021).
 
 from __future__ import annotations
 
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 
 from edrockmaster.domain.situation.situation import Situation
-from edrockmaster.ui.panel_model import ActivityBlock, LocalDataNotice
+from edrockmaster.ui.panel_model import ActivityBlock, LocalDataNotice, StatLine
 
 VERSION = 1
 SCHEMA = Path(__file__).with_name("schemas") / "live_view.schema.json"
@@ -38,7 +39,7 @@ def live_view(  # noqa: PLR0913 - one argument per part of the view
             {
                 "activity": block.activity.value,
                 "status": block.model.status,
-                "lines": [{"label": line.label, "value": line.value} for line in block.model.lines],
+                "lines": [_line(line) for line in block.model.lines],
                 "alert": block.model.alert,
                 "canReset": block.model.can_reset,
             }
@@ -52,6 +53,13 @@ def live_view(  # noqa: PLR0913 - one argument per part of the view
         "situation": _situation(situation),
         "engineering": engineering,
     }
+
+
+def _line(line: StatLine) -> dict[str, Any]:
+    shown: dict[str, Any] = {"label": line.label, "value": line.value}
+    if line.until is not None:
+        shown["until"] = line.until.astimezone(UTC).isoformat().replace("+00:00", "Z")
+    return shown
 
 
 def _situation(situation: Situation) -> dict[str, Any]:

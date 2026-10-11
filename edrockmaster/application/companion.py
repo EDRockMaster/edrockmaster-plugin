@@ -11,6 +11,7 @@ from typing import assert_never
 
 from edrockmaster.application.activity import Activity
 from edrockmaster.application.combat_service import CombatService
+from edrockmaster.application.community_goals_service import CommunityGoalsService
 from edrockmaster.application.engineering_service import EngineeringService
 from edrockmaster.application.mining_service import MiningNotification, MiningService
 from edrockmaster.application.ports import (
@@ -24,6 +25,7 @@ from edrockmaster.application.settings import PluginSettings
 from edrockmaster.application.situation_service import SituationService
 from edrockmaster.application.trade_service import TradeService
 from edrockmaster.domain.combat.session import CombatNotification
+from edrockmaster.domain.community_goals.goals import CommunityGoalsNotification
 from edrockmaster.domain.engineering.catalogue import Catalogue
 from edrockmaster.domain.engineering.session import EngineeringNotification
 from edrockmaster.domain.journal_reading import Entry
@@ -35,6 +37,7 @@ type Notification = (
     | CombatNotification
     | TradeNotification
     | EngineeringNotification
+    | CommunityGoalsNotification
     | SituationChanged
 )
 """What the presentation layer is told after each use case."""
@@ -61,6 +64,7 @@ class Companion:
         self.combat = CombatService(clock)
         self.trade = TradeService(clock)
         self.engineering = EngineeringService(catalogue, goals, clock)
+        self.community_goals = CommunityGoalsService()
         self.situation = SituationService(ship_names)
 
     @property
@@ -75,6 +79,7 @@ class Companion:
         notifications += self.combat.handle_journal_entry(entry)
         notifications += self.trade.handle_journal_entry(entry)
         notifications += self.engineering.handle_journal_entry(entry)
+        notifications += self.community_goals.handle_journal_entry(entry)
         notifications += self.situation.handle_journal_entry(entry)
         return notifications
 
@@ -89,6 +94,8 @@ class Companion:
                 return list(self.trade.reset_session())
             case Activity.ENGINEERING:
                 return list(self.engineering.reset_session())
+            case Activity.COMMUNITY_GOALS:
+                return []  # not a session: nothing to reset
             case _:  # pragma: no cover - exhaustiveness checked by mypy
                 assert_never(activity)
 

@@ -7,7 +7,6 @@ from edrockmaster.domain.combat.session import (
     CombatStarted,
     CombatStats,
     CombatUpdated,
-    CommunityGoalsChanged,
     Crimes,
     SegmentStats,
     Tally,
@@ -15,6 +14,8 @@ from edrockmaster.domain.combat.session import (
     VouchersUpdated,
 )
 from edrockmaster.domain.combat.sites import SiteType
+from edrockmaster.domain.community_goals.goals import CommunityGoalsChanged
+from edrockmaster.domain.community_goals.journal import CommunityGoal
 from edrockmaster.domain.engineering.session import (
     CollectionStarted,
     EngineeringStats,
@@ -68,6 +69,24 @@ def test_vouchers_and_goals_do_not_switch_the_activity() -> None:
     presenter.apply([SessionStarted(T0, None, None)])
     presenter.apply([VouchersUpdated(VOUCHERS), CommunityGoalsChanged(())])
     assert presenter.current is Activity.MINING
+
+
+GOAL = CommunityGoal(861, "Satellite launch", "HIP 74116", None, False, 1_240, 25, None, None)
+
+
+def test_the_community_goals_block_shows_only_with_a_goal_joined() -> None:
+    presenter = ActivityPresenter(display=STACKED)
+    assert Activity.COMMUNITY_GOALS not in [block.activity for block in presenter.blocks()]
+    presenter.apply([CommunityGoalsChanged((GOAL,))])
+    assert statuses(presenter)[-1] == (Activity.COMMUNITY_GOALS, "Goals joined: 1")
+    presenter.apply([CommunityGoalsChanged(())])
+    assert Activity.COMMUNITY_GOALS not in [block.activity for block in presenter.blocks()]
+
+
+def test_a_community_goal_never_takes_the_panel() -> None:
+    presenter = ActivityPresenter()
+    presenter.apply([CombatStarted(T0), CommunityGoalsChanged((GOAL,))])
+    assert presenter.current is Activity.COMBAT
 
 
 def test_hidden_activity_keeps_up_to_date() -> None:
