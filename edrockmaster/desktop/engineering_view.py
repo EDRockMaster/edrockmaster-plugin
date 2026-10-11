@@ -27,6 +27,7 @@ from typing import Any, assert_never
 from edrockmaster.application.engineering_service import EngineeringService
 from edrockmaster.domain.engineering.catalogue import (
     Catalogue,
+    EngineerDetails,
     Ingredients,
     MaterialCategory,
     OnFootKind,
@@ -97,7 +98,6 @@ def _on_foot(service: EngineeringService, names: EngineeringNames) -> dict[str, 
             "id": engineer_id,
             "name": names.engineer(engineer_id),
             "status": _status(state.status) if (state := known.get(engineer_id)) else None,
-            "sheet": _sheet(service.catalogue, engineer_id, names),
         }
         for engineer_id in service.catalogue.on_foot_engineers
     ]
@@ -240,19 +240,23 @@ def _engineers(service: EngineeringService, names: EngineeringNames) -> list[dic
                 "name": names.engineer(engineer_id),
                 "status": _status(state.status) if state else None,
                 "rank": state.rank if state else None,
-                "sheet": _sheet(service.catalogue, engineer_id, names),
             }
         )
     return sorted(rows, key=lambda row: row["name"].casefold())
 
 
+def _sheets(catalogue: Catalogue, names: EngineeringNames) -> list[dict[str, Any]]:
+    """Where each engineer is and how to unlock them (ADR 0031): with the catalogue, asked once,
+    since they never change."""
+    return [
+        _sheet(catalogue, engineer_id, details, names)
+        for engineer_id, details in sorted(catalogue.engineer_details.items())
+    ]
+
+
 def _sheet(
-    catalogue: Catalogue, engineer_id: int, names: EngineeringNames
-) -> dict[str, Any] | None:
-    """Where an engineer is and how to unlock them (ADR 0031); ``None`` without a sheet."""
-    details = catalogue.engineer_details.get(engineer_id)
-    if details is None:
-        return None
+    catalogue: Catalogue, engineer_id: int, details: EngineerDetails, names: EngineeringNames
+) -> dict[str, Any]:
     refers = sorted(
         (
             names.engineer(other)
@@ -262,6 +266,7 @@ def _sheet(
         key=str.casefold,
     )
     return {
+        "id": engineer_id,
         "system": details.system,
         "base": details.base,
         "referredBy": [names.engineer(id_) for id_ in details.referred_by],
@@ -369,6 +374,7 @@ def catalogue_view(catalogue: Catalogue, names: EngineeringNames) -> dict[str, A
         "modules": sorted(modules, key=lambda row: row["name"].casefold()),
         "onFootItems": _on_foot_items(catalogue, names),
         "onFootModifications": _on_foot_modifications(catalogue, names),
+        "engineerSheets": _sheets(catalogue, names),
     }
 
 

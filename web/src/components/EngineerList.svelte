@@ -1,5 +1,7 @@
 <script lang="ts" module>
-  import type { EngineerSheet } from "../lib/live-view";
+  import type { GoalCatalogue } from "../lib/goal-catalogue";
+
+  export type EngineerSheet = GoalCatalogue["engineerSheets"][number];
 
   export interface EngineerRow {
     id: number;
@@ -7,17 +9,25 @@
     unlocked: boolean;
     /** The status, in the player's language. */
     status: string;
-    sheet: EngineerSheet;
   }
 </script>
 
 <script lang="ts">
   // The engineers, name and status side by side in short rows; a click unfolds an engineer's
   // sheet (ADR 0031): where they are, the system copied in one click, and how to unlock them.
+  import { loadCatalogue } from "../lib/catalogue";
   import { copyText } from "../lib/clipboard";
   import { t, type Language } from "../lib/i18n";
 
   let { engineers, language }: { engineers: EngineerRow[]; language: Language } = $props();
+
+  // The sheets never change: they come with the catalogue, asked once (ADR 0031)
+  let sheets = $state<Map<number, EngineerSheet>>(new Map());
+  $effect(() => {
+    void loadCatalogue(language)?.then((catalogue) => {
+      sheets = new Map(catalogue.engineerSheets.map((sheet) => [sheet.id, sheet]));
+    });
+  });
 
   let open = $state<number | null>(null);
   let copied = $state<number | null>(null);
@@ -33,22 +43,22 @@
 
 <ul class="engineers">
   {#each engineers as engineer (engineer.id)}
+    {@const sheet = sheets.get(engineer.id)}
     <li>
       <button
         type="button"
         class="row"
         class:unlocked={engineer.unlocked}
         class:open={open === engineer.id}
-        aria-expanded={engineer.sheet === null ? undefined : open === engineer.id}
-        aria-controls={engineer.sheet === null ? undefined : `sheet-${engineer.id}`}
-        disabled={engineer.sheet === null}
+        aria-expanded={sheet === undefined ? undefined : open === engineer.id}
+        aria-controls={sheet === undefined ? undefined : `sheet-${engineer.id}`}
+        disabled={sheet === undefined}
         onclick={() => (open = open === engineer.id ? null : engineer.id)}
       >
         <span>{engineer.name}</span>
         <span class="status" class:muted={!engineer.unlocked}>{engineer.status}</span>
       </button>
-      {#if engineer.sheet !== null && open === engineer.id}
-        {@const sheet = engineer.sheet}
+      {#if sheet !== undefined && open === engineer.id}
         <div class="sheet" id="sheet-{engineer.id}">
           <dl>
             <dt>{t(language, "engineer.system")}</dt>

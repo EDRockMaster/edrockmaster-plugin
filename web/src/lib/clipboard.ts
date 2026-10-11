@@ -21,7 +21,6 @@ function copyByCommand(text: string, document: Document): boolean {
   field.select();
   try {
     // Deprecated, but still the only copy a page has where the asynchronous clipboard is refused
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
     return document.execCommand("copy");
   } catch {
     return false;

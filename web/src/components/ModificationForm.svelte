@@ -2,6 +2,7 @@
   // A modification goal (ADR 0027): one of the player's suits or weapons, or any of a type, and a
   // modification of its kind it does not have yet; one whose recipe is not known can be set too.
   import { core, type ModificationRequest } from "../lib/bridge";
+  import { loadCatalogue } from "../lib/catalogue";
   import type { GoalCatalogue } from "../lib/goal-catalogue";
   import { t, type Language } from "../lib/i18n";
   import {
@@ -19,13 +20,11 @@
   let choice = $state("");
   let modification = $state("");
 
-  // The catalogue never changes: asked once, when the form first shows
+  // Asked once per language: the catalogue is named in the core's language
   $effect(() => {
-    void core()
-      ?.catalogue()
-      .then((received) => {
-        catalogue = received;
-      });
+    void loadCatalogue(language)?.then((received) => {
+      catalogue = received;
+    });
   });
 
   const items = $derived(catalogue?.onFootItems ?? []);

@@ -1,37 +1,6 @@
 /* Generated from edrockmaster/desktop/schemas/live_view.schema.json by 'pnpm types': do not edit. */
 
 export type Activity = "mining" | "combat" | "trade" | "engineering";
-/**
- * Where an engineer is and how to unlock them (ADR 0031); null when the catalogue has no sheet. Texts in the player's language.
- */
-export type EngineerSheet = null | {
-  /**
-   * As the game writes it: copied to paste into the galaxy map.
-   */
-  system: string;
-  base: string;
-  /**
-   * The engineers who make this one known; empty, known from the start.
-   */
-  referredBy: string[];
-  /**
-   * The engineers this one makes known.
-   */
-  refers: string[];
-  /**
-   * What makes a ship engineer invite the player; null on foot.
-   */
-  invitation: string | null;
-  unlock: string;
-  /**
-   * An on-foot engineer's task to refer the next ones.
-   */
-  referral: string | null;
-  /**
-   * Read from public sources, not checked in game (ADR 0030).
-   */
-  unverified: boolean;
-};
 
 /**
  * What the core shows of the activities, pushed to the interface after each change (ADR 0020, ADR 0021). Texts of the blocks are already in the player's language.
@@ -131,7 +100,6 @@ export interface Engineering {
     name: string;
     status: "known" | "invited" | "acquainted" | "unlocked" | "barred" | null;
     rank: number | null;
-    sheet: EngineerSheet;
   }[];
   goals: {
     id: string;
@@ -193,7 +161,6 @@ export interface OnFoot {
     id: number;
     name: string;
     status: "known" | "invited" | "acquainted" | "unlocked" | "barred" | null;
-    sheet: EngineerSheet;
   }[];
   /**
    * Suits first, then weapons.

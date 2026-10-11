@@ -252,7 +252,8 @@
 {#snippet engineers()}
   <EngineerList
     engineers={onFoot.engineers.map((engineer) => ({
-      ...engineer,
+      id: engineer.id,
+      name: engineer.name,
       unlocked: engineer.status === "unlocked",
       status: statusText({ ...engineer, rank: null }, language),
     }))}

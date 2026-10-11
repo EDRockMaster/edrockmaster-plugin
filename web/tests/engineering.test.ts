@@ -92,7 +92,7 @@ describe("EngineeringView", () => {
       engineering: engineering({
         inventoryKnown: true,
         materials: [material({ symbol: "sulphur", name: "Sulphur", count: 300, cap: 300 })],
-        engineers: [{ id: 300200, name: "Marco Qwent", status: "unlocked", rank: 5, sheet: null }],
+        engineers: [{ id: 300200, name: "Marco Qwent", status: "unlocked", rank: 5 }],
         goals: [
           goal({
             id: "pd",
@@ -212,7 +212,7 @@ describe("edges", () => {
           material({ name: "Iron", count: 300, cap: 300 }),
           material({ symbol: "y", name: "Odd", category: null, grade: null, cap: null, count: 7 }),
         ],
-        engineers: [{ id: 1, name: "Elvira Martuuk", status: "invited", rank: null, sheet: null }],
+        engineers: [{ id: 1, name: "Elvira Martuuk", status: "invited", rank: null }],
         goals: [goal({ engineers: [] })],
       }),
     });
@@ -228,8 +228,8 @@ describe("edges", () => {
       language: "en",
       engineering: engineering({
         engineers: [
-          { id: 1, name: "Elvira Martuuk", status: "invited", rank: null, sheet: null },
-          { id: 2, name: "Marco Qwent", status: "unlocked", rank: 5, sheet: null },
+          { id: 1, name: "Elvira Martuuk", status: "invited", rank: null },
+          { id: 2, name: "Marco Qwent", status: "unlocked", rank: 5 },
         ],
       }),
     });

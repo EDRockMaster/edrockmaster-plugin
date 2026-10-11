@@ -197,7 +197,8 @@
 {#snippet engineers()}
   <EngineerList
     engineers={engineering.engineers.map((engineer) => ({
-      ...engineer,
+      id: engineer.id,
+      name: engineer.name,
       unlocked: engineer.status === "unlocked",
       status: statusText(engineer, language),
     }))}

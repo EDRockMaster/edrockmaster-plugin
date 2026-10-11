@@ -1,5 +1,6 @@
 <script lang="ts">
   import { core } from "../lib/bridge";
+  import { loadCatalogue } from "../lib/catalogue";
   import {
     defaultRecipe,
     inventoryOf,
@@ -26,12 +27,9 @@
 
   // The catalogue is named in the core's language: asked again when the language changes
   $effect(() => {
-    void language;
-    void core()
-      ?.catalogue()
-      .then((received) => {
-        catalogue = received;
-      });
+    void loadCatalogue(language)?.then((received) => {
+      catalogue = received;
+    });
   });
 
   const matches = $derived(catalogue === null ? [] : searchCatalogue(catalogue, search, moduleKey));

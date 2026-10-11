@@ -1,6 +1,5 @@
 """The engineering view and the goal form's catalogue (ADR 0017, ADR 0020), real catalogue."""
 
-import dataclasses
 import json
 from datetime import UTC, datetime
 from typing import Any
@@ -163,9 +162,14 @@ def test_goals_what_they_miss_and_who_offers_them(service: EngineeringService) -
     assert ordered == sorted(ordered, key=str.casefold)
 
 
-def test_an_engineer_s_sheet(service: EngineeringService) -> None:
-    engineers = {row["name"]: row for row in view(service)["engineers"]}
-    qwent = engineers["Marco Qwent"]["sheet"]
+def test_the_engineer_sheets_come_with_the_catalogue(service: EngineeringService) -> None:
+    built = catalogue_view(CATALOGUE, names(service))
+    GOAL_CATALOGUE.validate(built)
+    sheets = {sheet["id"]: sheet for sheet in built["engineerSheets"]}
+    # Every engineer has one (ADR 0031); the live view keeps their name and status only
+    assert set(sheets) == set(CATALOGUE.engineers) | set(CATALOGUE.on_foot_engineers)
+    assert "sheet" not in view(service)["engineers"][0]
+    qwent = sheets[300200]
     assert (qwent["system"], qwent["base"]) == ("Sirius", "Qwent Research Base")
     assert qwent["referredBy"] == ["Elvira Martuuk"]
     assert qwent["refers"] == ["Chloe Sedesi", "Lori Jameson", "Professeur Palin"]
@@ -173,14 +177,18 @@ def test_an_engineer_s_sheet(service: EngineeringService) -> None:
         "Atteindre Allié avec Sirius Corporation ; Sirius demande un permis."
     )
     assert qwent["referral"] is None
-
-
-def test_an_engineer_without_a_sheet() -> None:
-    bare = dataclasses.replace(CATALOGUE, engineer_details={})
-    service = EngineeringService(bare, FakeGoalRepository(), FixedClock(NOW))
-    built = engineering_view(service, EngineeringNames(bare, french, service.name_of))
-    ENGINEERING.validate(built)
-    assert {row["sheet"] for row in built["engineers"]} == {None}
+    # Domino Green: known from the start, she refers Kit Fowler after a task
+    assert sheets[400002] == {
+        "id": 400002,
+        "system": "Orishis",
+        "base": "The Jackrabbit",
+        "referredBy": [],
+        "refers": ["Kit Fowler"],
+        "invitation": None,
+        "unlock": "Travel at least 100 ly in shuttles.",
+        "referral": "Give 5 Push.",
+        "unverified": True,
+    }
 
 
 def test_an_engineer_s_name(service: EngineeringService) -> None:
@@ -634,17 +642,6 @@ def test_on_foot_engineers_and_equipment(service: EngineeringService) -> None:
     )
     domino = next(row for row in part["engineers"] if row["id"] == 400002)
     assert (domino["name"], domino["status"]) == ("Domino Green", "invited")
-    # Her sheet (ADR 0031): known from the start, she refers Kit Fowler after a task
-    assert domino["sheet"] == {
-        "system": "Orishis",
-        "base": "The Jackrabbit",
-        "referredBy": [],
-        "refers": ["Kit Fowler"],
-        "invitation": None,
-        "unlock": "Travel at least 100 ly in shuttles.",
-        "referral": "Give 5 Push.",
-        "unverified": True,
-    }
     # Ship engineers stay in the ship part
     assert all(row["id"] > 400000 for row in part["engineers"])
     assert part["equipment"] == [
