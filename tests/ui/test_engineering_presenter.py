@@ -1,5 +1,7 @@
 from datetime import UTC, datetime
 
+import pytest
+
 from edrockmaster.domain.engineering.catalogue import MaterialCategory, OnFootKind
 from edrockmaster.domain.engineering.goals import (
     BlueprintGoal,
@@ -82,7 +84,8 @@ def test_a_collection_shows_gains_use_caps_and_goals() -> None:
     )
 
 
-def test_a_collection_on_foot_shows_its_kinds_and_its_losses() -> None:
+def test_a_collection_on_foot_shows_one_tile_with_its_losses() -> None:
+    # The kinds are in the On foot view: the card only sums them up
     presenter = EngineeringPresenter(names())
     stats = collection(
         gained={MaterialCategory.RAW: 2},
@@ -92,11 +95,21 @@ def test_a_collection_on_foot_shows_its_kinds_and_its_losses() -> None:
     model = presenter.apply([CollectionStarted(T0), updated(stats)])
     assert model.lines == (
         StatLine("Raw gained", "2"),
-        StatLine("Items gained on foot", "42"),
-        StatLine("Components gained on foot", "66"),
-        StatLine("Data gained on foot", "32"),
-        StatLine("Lost on foot", "5"),
+        StatLine("On-foot materials", "+140, 5 lost"),
     )
+
+
+@pytest.mark.parametrize(
+    ("gained", "lost", "text"),
+    [({OnFootKind.ITEM: 3}, 0, "+3"), ({}, 7, "+0, 7 lost")],
+)
+def test_the_on_foot_tile_says_only_what_happened(
+    gained: dict[OnFootKind, int], lost: int, text: str
+) -> None:
+    model = EngineeringPresenter(names()).apply(
+        [updated(collection(gained_on_foot=gained, lost_on_foot=lost))]
+    )
+    assert model.lines == (StatLine("On-foot materials", text),)
 
 
 def test_goals_without_inventory_say_so() -> None:

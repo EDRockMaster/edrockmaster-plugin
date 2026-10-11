@@ -134,10 +134,8 @@
 "Other materials gained" = "Autres matériaux gagnés";
 "Materials used" = "Matériaux utilisés";
 "At cap" = "Au plafond";
-"Items gained on foot" = "Objets gagnés à pied";
-"Components gained on foot" = "Composants gagnés à pied";
-"Data gained on foot" = "Données gagnées à pied";
-"Lost on foot" = "Perdus à pied";
+"On-foot materials" = "Matériaux à pied";
+"{gained}, {lost} lost" = "{gained}, {lost} perdus";
 "Goals ready" = "Objectifs prêts";
 "{ready} of {total}" = "{ready} sur {total}";
 "inventory unknown" = "inventaire inconnu";

@@ -46,7 +46,6 @@ def source_strings() -> set[str]:
     strings |= set(combat_presenter.SITE_NAMES.values())
     strings |= set(trade_presenter._END_REASONS.values())
     strings |= set(engineering_presenter._GAINED.values())
-    strings |= set(engineering_presenter._GAINED_ON_FOOT.values())
     strings |= set(engineering_presenter._END_REASONS.values())
     strings |= set(trade_presenter._TRANSFER_LABELS.values())
     # Names of the game data, shown in the player's language (ADR 0017)

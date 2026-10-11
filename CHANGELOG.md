@@ -6,6 +6,10 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
+### Changed
+
+- The engineering card in *Activities* shows the on-foot materials in one tile, gained and lost at a death (`+140, 5 lost`), instead of one tile per kind and one for the losses: the kinds are in the *On foot* part of the *Engineering* tab.
+
 ### Fixed
 
 - A community goal no longer stays in the combat block once its reward is collected or the goal discarded: the game then writes no new list of goals, the application now reads `CommunityGoalReward` and `CommunityGoalDiscard`. The recording sanitiser keeps both events.
