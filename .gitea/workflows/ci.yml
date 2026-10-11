@@ -1,5 +1,6 @@
 # CI on Gitea Actions (the cluster's runner). The GitHub mirror runs only the Windows build of the
-# desktop application (.github/workflows/windows.yml, ADR 0022).
+# desktop application (.github/workflows/windows.yml, ADR 0022), whose result the windows job
+# below waits for (ADR 0034).
 # Release channels (ADR 0012, ADR 0022, ADR 0024): the Windows workflow on GitHub builds the
 # packages; this one gates merging and publishes the release notes.
 # - candidate: a vX.Y.Z-rc.N tag publishes a private pre-release on Gitea (notes only); its
@@ -52,6 +53,21 @@ jobs:
       - run: corepack pnpm build
       - name: Licences of what the interface ships
         run: corepack pnpm licenses list --prod
+
+  windows:
+    # The Windows build on the GitHub mirror gates merging too (ADR 0034): this waits for the
+    # run of the same commit there and takes its result. Required by the protection of main.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # the ancestors and the base branch decide which run counts
+      - name: Windows build on the GitHub mirror
+        env:
+          GH_ACTIONS_READ_TOKEN: ${{ secrets.GH_ACTIONS_READ_TOKEN }}
+          COMMIT: ${{ gitea.event.pull_request.head.sha || gitea.sha }}
+          REF: ${{ startsWith(gitea.ref, 'refs/tags/') && gitea.ref_name || '' }}
+        run: python3 scripts/windows_build_gate.py "$COMMIT" ${REF:+--ref "$REF"}
 
   release:
     needs: test
