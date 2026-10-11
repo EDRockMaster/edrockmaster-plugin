@@ -1,0 +1,562 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://edrm.space/schemas/desktop/mining.schema.json",
+  "title": "MiningTab",
+  "description": "The Mining tab (ADR 0040): mining_options() returns MiningOptions; find_hotspots(HotspotRequest) returns HotspotsAnswer; find_buyers(BuyersRequest) returns BuyersAnswer; estimate_cargo() returns CargoEstimateAnswer. Names in the player's language.",
+  "type": "object",
+  "properties": {
+    "MiningOptions": {
+      "$ref": "#/$defs/MiningOptions"
+    },
+    "HotspotRequest": {
+      "$ref": "#/$defs/HotspotRequest"
+    },
+    "HotspotsAnswer": {
+      "$ref": "#/$defs/HotspotsAnswer"
+    },
+    "BuyersRequest": {
+      "$ref": "#/$defs/BuyersRequest"
+    },
+    "BuyersAnswer": {
+      "$ref": "#/$defs/BuyersAnswer"
+    },
+    "CargoEstimateAnswer": {
+      "$ref": "#/$defs/CargoEstimateAnswer"
+    }
+  },
+  "$defs": {
+    "MiningOptions": {
+      "title": "MiningOptions",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "commodities",
+        "system",
+        "pad",
+        "sources"
+      ],
+      "properties": {
+        "commodities": {
+          "type": "array",
+          "description": "The commodities with hotspots.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "commodity",
+              "name"
+            ],
+            "properties": {
+              "commodity": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "system": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The commander's current system, if known."
+        },
+        "pad": {
+          "enum": [
+            "small",
+            "medium",
+            "large",
+            null
+          ],
+          "description": "The pad the current ship needs, if known."
+        },
+        "sources": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "spansh",
+            "ardent"
+          ],
+          "properties": {
+            "spansh": {
+              "type": "boolean"
+            },
+            "ardent": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "HotspotRequest": {
+      "title": "HotspotRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "commodity",
+        "system",
+        "minimumCount",
+        "reserves",
+        "maxDistance",
+        "page"
+      ],
+      "properties": {
+        "commodity": {
+          "type": "string"
+        },
+        "system": {
+          "type": "string"
+        },
+        "minimumCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reserves": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "pristine",
+              "major",
+              "common",
+              "low",
+              "depleted"
+            ]
+          },
+          "description": "Empty: any."
+        },
+        "maxDistance": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "refresh": {
+          "type": "boolean",
+          "description": "Ask the source even with a fresh cached answer."
+        }
+      }
+    },
+    "HotspotsAnswer": {
+      "title": "HotspotsAnswer",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "source",
+        "readAt",
+        "unavailable",
+        "total",
+        "hasMore",
+        "rings"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "found",
+            "off",
+            "busy",
+            "down",
+            "invalid",
+            "noSystem",
+            "empty"
+          ],
+          "description": "found: the source answered (now or from the cache); off, busy, down: it gave nothing (ADR 0039); invalid: the form was refused; noSystem: the current system is not known yet; empty: no cargo to estimate."
+        },
+        "source": {
+          "enum": [
+            "spansh",
+            "ardent",
+            null
+          ],
+          "description": "The source that answered, or would have."
+        },
+        "readAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "When the source was read (UTC): now, or when the cached answer was."
+        },
+        "unavailable": {
+          "enum": [
+            "off",
+            "busy",
+            "down",
+            null
+          ],
+          "description": "Set when the source failed and the cache answered, or when part of an estimate could not be priced."
+        },
+        "total": {
+          "type": "integer"
+        },
+        "hasMore": {
+          "type": "boolean"
+        },
+        "rings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "system",
+              "body",
+              "ring",
+              "ringType",
+              "reserve",
+              "count",
+              "others",
+              "distance",
+              "arrival",
+              "seen"
+            ],
+            "properties": {
+              "system": {
+                "type": "string"
+              },
+              "body": {
+                "type": "string"
+              },
+              "ring": {
+                "type": "string"
+              },
+              "ringType": {
+                "type": "string",
+                "description": "As the game names it in English: Metal Rich, Metallic, Rocky, Icy."
+              },
+              "reserve": {
+                "enum": [
+                  "pristine",
+                  "major",
+                  "common",
+                  "low",
+                  "depleted",
+                  null
+                ]
+              },
+              "count": {
+                "type": "integer",
+                "description": "Hotspots of the commodity searched."
+              },
+              "others": {
+                "type": "array",
+                "description": "The ring's other hotspots.",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "commodity",
+                    "name",
+                    "count"
+                  ],
+                  "properties": {
+                    "commodity": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              },
+              "distance": {
+                "type": "number",
+                "description": "Light years from the reference system."
+              },
+              "arrival": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "Light seconds from the arrival point."
+              },
+              "seen": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time",
+                "description": "When the source last saw the hotspots (UTC)."
+              }
+            }
+          }
+        }
+      }
+    },
+    "BuyersRequest": {
+      "title": "BuyersRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "commodity",
+        "system",
+        "maxDistance",
+        "pad",
+        "carriers"
+      ],
+      "properties": {
+        "commodity": {
+          "type": "string"
+        },
+        "system": {
+          "type": "string"
+        },
+        "maxDistance": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 500
+        },
+        "pad": {
+          "enum": [
+            "small",
+            "medium",
+            "large",
+            null
+          ],
+          "description": "The pad the ship needs; null: any market."
+        },
+        "carriers": {
+          "type": "boolean"
+        },
+        "refresh": {
+          "type": "boolean"
+        }
+      }
+    },
+    "BuyersAnswer": {
+      "title": "BuyersAnswer",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "source",
+        "readAt",
+        "unavailable",
+        "offers"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "found",
+            "off",
+            "busy",
+            "down",
+            "invalid",
+            "noSystem",
+            "empty"
+          ],
+          "description": "found: the source answered (now or from the cache); off, busy, down: it gave nothing (ADR 0039); invalid: the form was refused; noSystem: the current system is not known yet; empty: no cargo to estimate."
+        },
+        "source": {
+          "enum": [
+            "spansh",
+            "ardent",
+            null
+          ],
+          "description": "The source that answered, or would have."
+        },
+        "readAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "When the source was read (UTC): now, or when the cached answer was."
+        },
+        "unavailable": {
+          "enum": [
+            "off",
+            "busy",
+            "down",
+            null
+          ],
+          "description": "Set when the source failed and the cache answered, or when part of an estimate could not be priced."
+        },
+        "offers": {
+          "type": "array",
+          "description": "Best price first.",
+          "items": {
+            "$ref": "#/$defs/MarketOffer"
+          }
+        }
+      }
+    },
+    "MarketOffer": {
+      "title": "MarketOffer",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "station",
+        "system",
+        "stationType",
+        "pad",
+        "arrival",
+        "price",
+        "demand",
+        "distance",
+        "updated",
+        "carrier"
+      ],
+      "properties": {
+        "station": {
+          "type": "string"
+        },
+        "system": {
+          "type": "string"
+        },
+        "stationType": {
+          "type": "string",
+          "description": "As the source names it: Coriolis, Orbis, Outpost, FleetCarrier\u2026"
+        },
+        "pad": {
+          "enum": [
+            "small",
+            "medium",
+            "large",
+            null
+          ],
+          "description": "The largest landing pad; null when the source does not say."
+        },
+        "arrival": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Light seconds from the arrival point."
+        },
+        "price": {
+          "type": "integer",
+          "description": "Credits per tonne."
+        },
+        "demand": {
+          "type": "integer"
+        },
+        "distance": {
+          "type": "number",
+          "description": "Light years from the reference system."
+        },
+        "updated": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the source last saw the price (UTC)."
+        },
+        "carrier": {
+          "type": "boolean"
+        }
+      }
+    },
+    "CargoEstimateAnswer": {
+      "title": "CargoEstimateAnswer",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "source",
+        "readAt",
+        "unavailable",
+        "system",
+        "lines",
+        "total"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "found",
+            "off",
+            "busy",
+            "down",
+            "invalid",
+            "noSystem",
+            "empty"
+          ],
+          "description": "found: the source answered (now or from the cache); off, busy, down: it gave nothing (ADR 0039); invalid: the form was refused; noSystem: the current system is not known yet; empty: no cargo to estimate."
+        },
+        "source": {
+          "enum": [
+            "spansh",
+            "ardent",
+            null
+          ],
+          "description": "The source that answered, or would have."
+        },
+        "readAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "When the source was read (UTC): now, or when the cached answer was."
+        },
+        "unavailable": {
+          "enum": [
+            "off",
+            "busy",
+            "down",
+            null
+          ],
+          "description": "Set when the source failed and the cache answered, or when part of an estimate could not be priced."
+        },
+        "system": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The system the markets are searched around."
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "commodity",
+              "name",
+              "tons",
+              "value",
+              "offer"
+            ],
+            "properties": {
+              "commodity": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "tons": {
+                "type": "integer"
+              },
+              "value": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "Credits at the best market; null if none found."
+              },
+              "offer": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/MarketOffer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "total": {
+          "type": "integer",
+          "description": "What the priced lines are worth together."
+        }
+      }
+    }
+  }
+}

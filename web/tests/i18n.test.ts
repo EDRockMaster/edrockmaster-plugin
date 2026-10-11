@@ -11,7 +11,7 @@ const DYNAMIC_KEYS = [
   ...["mining", "combat", "trade", "engineering", "communityGoals"].map(
     (activity) => `activity.${activity}`,
   ),
-  ...["activities", "engineering", "blueprints", "settings"].map((tab) => `tab.${tab}`),
+  ...["activities", "mining", "engineering", "blueprints", "settings"].map((tab) => `tab.${tab}`),
   ...["raw", "manufactured", "encoded", "other"].map((c) => `engineering.category.${c}`),
   ...["known", "invited", "acquainted", "unlocked", "barred", "unknown"].map(
     (status) => `engineering.status.${status}`,

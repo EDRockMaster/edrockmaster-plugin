@@ -6,6 +6,12 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
+### Ajouté
+
+- **L'onglet Minage** (décisions de conception ADR 0039 et ADR 0040). *Où miner* : les anneaux avec des hotspots d'une marchandise autour d'un système (l'actuel par défaut), du plus proche au plus loin, avec leur type, leur réserve, leurs autres hotspots, la distance et l'âge des données, filtrés par nombre de hotspots, niveau de réserve et distance ; un bouton copie le nom du système pour la carte de la galaxie. *Où vendre* : les marchés qui achètent la marchandise autour d'un système ou d'un anneau de la liste, du meilleur prix au moins bon, avec la demande, la distance, la piste d'atterrissage et l'âge du prix ; par défaut, seulement les pistes que votre vaisseau peut utiliser, carriers exclus. Les anneaux viennent de **Spansh**, les marchés d'**Ardent Insight**, deux outils communautaires alimentés par EDDN, interrogés seulement quand vous cherchez ; leurs réponses sont gardées un temps (un jour pour les anneaux, une heure pour les marchés), et montrées, avec leur âge, quand la source ne répond pas.
+- **Estimer la soute** : un bouton sous la carte de minage évalue la cargaison minée et pas encore vendue au meilleur marché autour de votre système actuel, marchandise par marchandise.
+- **Sources communautaires** dans les *Réglages* : Spansh et Ardent Insight se désactivent chacun ; la politique de confidentialité dit ce qu'ils reçoivent.
+
 ## [0.5.0] - 2026-10-11
 
 La première version publiée d'**EDRockMaster Companion**, l'application de bureau, qui remplace le plugin EDMC.

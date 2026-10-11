@@ -50,14 +50,17 @@ class _Response(Protocol):
 type Opener = Callable[[urllib.request.Request, float], _Response]
 
 
-def _open(request: urllib.request.Request, timeout: float) -> _Response:
+def open_url(request: urllib.request.Request, timeout: float) -> _Response:
     response: _Response = urllib.request.urlopen(request, timeout=timeout)
     return response
 
 
 def user_agent(build: BuildInfo, system: str | None = None) -> str:
     """``EDRockMaster/<full version> (<channel>; <system> <version>) +https://edrm.space``."""
-    system = system or f"{platform.system()} {platform.version()}".strip()
+    if system is None:
+        name = platform.system()
+        # Windows gives its build as its version (10.0.19045); elsewhere, the release is enough
+        system = f"{name} {platform.version() if name == 'Windows' else platform.release()}"
     return f"EDRockMaster/{build.version} ({build.channel.value}; {system}) +{SITE}"
 
 
@@ -66,7 +69,7 @@ class SourceClient:
         self,
         user_agent: str,
         *,
-        opener: Opener = _open,
+        opener: Opener = open_url,
         clock: Callable[[], float] = time.monotonic,
         sleep: Callable[[float], None] = time.sleep,
         interval: float = INTERVAL,

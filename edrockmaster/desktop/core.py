@@ -16,13 +16,16 @@ from __future__ import annotations
 import logging
 import sys
 from collections.abc import Callable, Mapping, Sequence
+from concurrent.futures import Future
 from pathlib import Path
 from typing import Any
 
 from edrockmaster import VERSION
 from edrockmaster.application.activity import Activity
 from edrockmaster.application.build import BuildInfo
+from edrockmaster.application.community import Source
 from edrockmaster.application.companion import Companion, Notification
+from edrockmaster.application.mining_search import MiningSearch
 from edrockmaster.application.ports import Clock
 from edrockmaster.desktop.engineering_view import (
     catalogue_view,
@@ -42,6 +45,16 @@ from edrockmaster.desktop.layout import (
     view_layout_from_request,
 )
 from edrockmaster.desktop.live_view import live_view
+from edrockmaster.desktop.mining_view import (
+    buyers_view,
+    estimate_view,
+    hotspot_query,
+    hotspots_view,
+    options_view,
+    refresh,
+    refused,
+    sale_query,
+)
 from edrockmaster.desktop.settings_view import (
     DesktopPreferences,
     DesktopPreferencesStore,
@@ -51,6 +64,7 @@ from edrockmaster.desktop.settings_view import (
 )
 from edrockmaster.domain.engineering.goals import GoalId
 from edrockmaster.domain.journal_reading import Entry
+from edrockmaster.domain.ships import needed_pad
 from edrockmaster.infrastructure.build_file import load_build
 from edrockmaster.infrastructure.catalogue_file import load_catalogue
 from edrockmaster.infrastructure.clock import SystemClock
@@ -63,6 +77,11 @@ from edrockmaster.infrastructure.settings_file import JsonFileConfig
 from edrockmaster.infrastructure.settings_store import KeyValueSettingsStore
 from edrockmaster.infrastructure.ship_names_file import load_ship_names
 from edrockmaster.infrastructure.sound import SoundNotifier
+from edrockmaster.infrastructure.sources.ardent import ArdentMarkets
+from edrockmaster.infrastructure.sources.http import Opener, SourceClient, user_agent
+from edrockmaster.infrastructure.sources.http import open_url as default_opener
+from edrockmaster.infrastructure.sources.source import CommunitySource
+from edrockmaster.infrastructure.sources.spansh import SpanshCatalogue
 from edrockmaster.infrastructure.strings_catalogue import number_format, translator
 from edrockmaster.infrastructure.worker import IoWorker
 from edrockmaster.ui.engineering_names import EngineeringNames
@@ -74,6 +93,8 @@ if sys.platform == "win32":  # pragma: no cover
 
 CORE_THREAD = "EDRockMaster core"
 RECORDINGS_DIRECTORY = "recordings"
+SEARCH_TIMEOUT = 60.0
+"""Seconds a search of the Mining tab waits for its sources (one second apart, 15 at most each)."""
 PACKAGE_DIRECTORY = Path(__file__).resolve().parents[1]
 
 type Push = Callable[[dict[str, Any]], None]
@@ -99,6 +120,7 @@ class DesktopCore:
         usual_journal_folder: Callable[[], Path | None] = default_journal_folder,
         logs_directory: Path | None = None,
         open_folder: Callable[[Path], None] = open_in_file_manager,
+        http_opener: Opener = default_opener,
     ) -> None:
         """``journal_folder``: set by the environment, before the settings' and the usual one;
         ``language``: the system's, unless the settings choose another; ``logs_directory``:
@@ -109,6 +131,7 @@ class DesktopCore:
             "logs": logs_directory or data_directory / "logs",
         }
         self._open_folder = open_folder
+        self._http_opener = http_opener
         self._journal_override = journal_folder
         self._usual_journal_folder = usual_journal_folder
         self._journal_folder: Path | None = journal_folder
@@ -134,6 +157,8 @@ class DesktopCore:
         self._notice: LocalDataNotice | None = None
         self._names: EngineeringNames | None = None
         self._catalogue_view: dict[str, Any] | None = None
+        self._search: MiningSearch | None = None
+        self._sources: dict[Source, CommunitySource] = {}
         self._interface_ready = False
         """Set once the interface asked for the view: until then, nothing is pushed, since a
         push to a window not yet loaded would wait for it."""
@@ -188,6 +213,7 @@ class DesktopCore:
         self._presenter = ActivityPresenter(
             self._tl, self._format_number, companion.settings.display, names
         )
+        self._search = self._mining_search(companion, database)
         companion.engineering.load_goals(self._apply)
         if self._journal_folder is not None:
             follower = self._follower = JournalFollower(
@@ -264,6 +290,12 @@ class DesktopCore:
             except SettingsError as error:
                 self._logger.warning("Settings refused: %s", error)
                 return
+            for source, turned_off in (
+                (Source.SPANSH, companion.settings.sources.spansh and not settings.sources.spansh),
+                (Source.ARDENT, companion.settings.sources.ardent and not settings.sources.ardent),
+            ):
+                if turned_off:
+                    self._sources[source].clear()
             companion.change_settings(settings)
             if preferences != self._preferences:
                 assert self._preferences_store is not None, "created at start, with the companion"
@@ -379,6 +411,110 @@ class DesktopCore:
 
         self._core.submit(reorder)
 
+    # The Mining tab (ADR 0040): each call waits for the sources' answer, on the caller's thread
+
+    def mining_options(self) -> dict[str, Any]:
+        """What the tab's forms start from. Reads immutable objects only: any thread."""
+        companion = self._require_companion()
+        situation = companion.situation.situation
+        pad = needed_pad(situation.ship.symbol) if situation.ship else None
+        return options_view(situation.system, pad, companion.settings.sources, self._tl)
+
+    def find_hotspots(self, request: Mapping[str, Any]) -> dict[str, Any]:
+        try:
+            query = hotspot_query(request)
+        except ValueError as error:
+            self._logger.warning("Hotspot search refused: %s", error)
+            return refused("hotspots", "invalid")
+        return self._wait(
+            "hotspots",
+            lambda done: self._require_search().find_hotspots(
+                query,
+                lambda answer: done(hotspots_view(answer, self._tl)),
+                refresh=refresh(request),
+            ),
+        )
+
+    def find_buyers(self, request: Mapping[str, Any]) -> dict[str, Any]:
+        try:
+            query = sale_query(request)
+        except ValueError as error:
+            self._logger.warning("Market search refused: %s", error)
+            return refused("buyers", "invalid")
+        return self._wait(
+            "buyers",
+            lambda done: self._require_search().find_buyers(
+                query, lambda answer: done(buyers_view(answer)), refresh=refresh(request)
+            ),
+        )
+
+    def estimate_cargo(self) -> dict[str, Any]:
+        """The unsold cargo of the mining session, at the best market around the system."""
+
+        def start(done: Callable[[dict[str, Any]], None]) -> None:
+            companion = self._require_companion()
+            situation = companion.situation.situation
+            if situation.system is None:
+                done(refused("estimate", "noSystem"))
+                return
+            stats = companion.mining.current_stats
+            cargo = {c.key: tons for c, tons in (stats.unsold_tons if stats else {}).items()}
+            if not cargo:
+                done(refused("estimate", "empty"))
+                return
+            system = situation.system
+            self._require_search().estimate_cargo(
+                cargo,
+                system,
+                needed_pad(situation.ship.symbol) if situation.ship else None,
+                lambda answer: done(estimate_view(answer, system, self._tl)),
+            )
+
+        return self._wait("estimate", start)
+
+    def _wait(
+        self, answer_kind: str, start: Callable[[Callable[[dict[str, Any]], None]], None]
+    ) -> dict[str, Any]:
+        """Run ``start`` on the core thread, and wait for the view it hands to ``done``; an empty
+        ``answer_kind`` answer if it does not come in time."""
+        answer: Future[dict[str, Any]] = Future()
+
+        def job() -> None:
+            try:
+                start(answer.set_result)
+            except Exception as error:
+                answer.set_exception(error)
+
+        self._core.submit(job)
+        try:
+            return answer.result(timeout=SEARCH_TIMEOUT)
+        except TimeoutError:
+            self._logger.warning("No answer from the sources in %.0f s", SEARCH_TIMEOUT)
+            return refused(answer_kind, "down")
+
+    def _mining_search(self, companion: Companion, database: LocalDatabase) -> MiningSearch:
+        agent = user_agent(self.build)
+
+        def source(name: Source, enabled: Callable[[], bool]) -> CommunitySource:
+            return CommunitySource(
+                name,
+                database,
+                enabled=enabled,
+                submit=self._io.submit,
+                dispatch=self._core.submit,
+                now=self._clock.now,
+                logger=self._logger,
+            )
+
+        spansh = source(Source.SPANSH, lambda: companion.settings.sources.spansh)
+        ardent = source(Source.ARDENT, lambda: companion.settings.sources.ardent)
+        self._sources = {Source.SPANSH: spansh, Source.ARDENT: ardent}
+        return MiningSearch(
+            SpanshCatalogue(spansh, SourceClient(agent, opener=self._http_opener), self._logger),
+            ArdentMarkets(ardent, SourceClient(agent, opener=self._http_opener)),
+            self._clock,
+        )
+
     # The core thread
 
     def _on_entry(self, entry: Entry, is_beta: bool) -> None:
@@ -456,6 +592,11 @@ class DesktopCore:
         if self._names is None:
             raise RuntimeError("the desktop core has not started")
         return self._names
+
+    def _require_search(self) -> MiningSearch:
+        if self._search is None:
+            raise RuntimeError("the desktop core has not started")
+        return self._search
 
     def _require_companion(self) -> Companion:
         if self._companion is None:

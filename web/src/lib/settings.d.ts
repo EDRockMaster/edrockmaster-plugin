@@ -46,4 +46,17 @@ export interface Settings {
    * Where the application's log file is (read only); the interface can open it.
    */
   logsFolder: string;
+  /**
+   * The community sources the application may ask, on the player's action only (ADR 0039).
+   */
+  sources: {
+    /**
+     * Spansh: rings and their hotspots.
+     */
+    spansh: boolean;
+    /**
+     * Ardent Insight: the markets that buy a commodity.
+     */
+    ardent: boolean;
+  };
 }

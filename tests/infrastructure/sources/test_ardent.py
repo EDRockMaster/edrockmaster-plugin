@@ -6,7 +6,8 @@ from pathlib import Path
 from typing import Any
 
 from edrockmaster.application.community import Answer, Found, Source
-from edrockmaster.domain.mining.markets import MarketOffer, PadSize, SaleQuery
+from edrockmaster.domain.mining.markets import MarketOffer, SaleQuery
+from edrockmaster.domain.ships import PadSize
 from edrockmaster.infrastructure.sources.ardent import ArdentMarkets, nearby_imports, read_offers
 
 FIXTURE = (

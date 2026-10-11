@@ -2,7 +2,81 @@ import { vi } from "vitest";
 import type { CoreApi } from "../src/lib/bridge";
 import { FIRST_LAYOUT } from "../src/lib/cards";
 import type { GoalCatalogue } from "../src/lib/goal-catalogue";
+import type {
+  BuyersAnswer,
+  CargoEstimateAnswer,
+  HotspotsAnswer,
+  MarketOffer,
+  MiningOptions,
+} from "../src/lib/mining";
 import type { Settings } from "../src/lib/settings";
+
+export const MINING_OPTIONS: MiningOptions = {
+  commodities: [
+    { commodity: "painite", name: "Painite" },
+    { commodity: "platinum", name: "Platinum" },
+  ],
+  system: "Borann",
+  pad: "large",
+  sources: { spansh: true, ardent: true },
+};
+
+export const HOTSPOTS: HotspotsAnswer = {
+  status: "found",
+  source: "spansh",
+  readAt: "2026-10-12T08:00:00+00:00",
+  unavailable: null,
+  total: 12,
+  hasMore: true,
+  rings: [
+    {
+      system: "Borann",
+      body: "Borann A 2",
+      ring: "Borann A 2 A Ring",
+      ringType: "Metal Rich",
+      reserve: "pristine",
+      count: 10,
+      others: [{ commodity: "platinum", name: "Platinum", count: 3 }],
+      distance: 0,
+      arrival: 901.7,
+      seen: "2022-06-17T01:31:28+00:00",
+    },
+  ],
+};
+
+export const OFFER: MarketOffer = {
+  station: "Borisenko's Folly",
+  system: "Arouca",
+  stationType: "CraterPort",
+  pad: "large",
+  arrival: 83.9,
+  price: 91254,
+  demand: 95,
+  distance: 20,
+  updated: "2026-10-11T10:11:18+00:00",
+  carrier: false,
+};
+
+export const BUYERS: BuyersAnswer = {
+  status: "found",
+  source: "ardent",
+  readAt: "2026-10-12T08:00:00+00:00",
+  unavailable: null,
+  offers: [OFFER],
+};
+
+export const ESTIMATE: CargoEstimateAnswer = {
+  status: "found",
+  source: "ardent",
+  readAt: "2026-10-12T08:00:00+00:00",
+  unavailable: "busy",
+  system: "Borann",
+  lines: [
+    { commodity: "painite", name: "Painite", tons: 3, value: 273762, offer: OFFER },
+    { commodity: "opal", name: "Void Opals", tons: 1, value: null, offer: null },
+  ],
+  total: 273762,
+};
 
 export const GOAL_CATALOGUE: GoalCatalogue = {
   date: "2026-09-05",
@@ -131,6 +205,7 @@ export const SETTINGS: Settings = {
   journalFolderInUse: "C:/Users/cmdr/Saved Games/Frontier Developments/Elite Dangerous",
   recordingsFolder: "C:/Users/cmdr/AppData/Local/EDRockMaster/recordings",
   logsFolder: "C:/Users/cmdr/AppData/Local/EDRockMaster/logs",
+  sources: { spansh: true, ardent: true },
 };
 
 /** The core's API as pywebview exposes it, every call recorded. */
@@ -150,5 +225,9 @@ export function fakeCore(): CoreApi {
     open_folder: vi.fn(async () => {}),
     layout: vi.fn(async () => structuredClone(FIRST_LAYOUT)),
     save_layout: vi.fn(async () => {}),
+    mining_options: vi.fn(async () => structuredClone(MINING_OPTIONS)),
+    find_hotspots: vi.fn(async () => structuredClone(HOTSPOTS)),
+    find_buyers: vi.fn(async () => structuredClone(BUYERS)),
+    estimate_cargo: vi.fn(async () => structuredClone(ESTIMATE)),
   };
 }

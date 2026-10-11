@@ -98,6 +98,21 @@ class InterfaceApi:
     def save_layout(self, view: str, layout: dict[str, Any]) -> None:
         self._core.save_layout(view, layout)
 
+    # The Mining tab (ADR 0040): pywebview runs each call on a thread of its own, so these may
+    # wait for the community sources; the page gets their answer as the call's result
+
+    def mining_options(self) -> dict[str, Any]:
+        return self._core.mining_options()
+
+    def find_hotspots(self, request: dict[str, Any]) -> dict[str, Any]:
+        return self._core.find_hotspots(request)
+
+    def find_buyers(self, request: dict[str, Any]) -> dict[str, Any]:
+        return self._core.find_buyers(request)
+
+    def estimate_cargo(self) -> dict[str, Any]:
+        return self._core.estimate_cargo()
+
 
 class _Window:
     """The pywebview window, known once created: the core's pushes go to it."""

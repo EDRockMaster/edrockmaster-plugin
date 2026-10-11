@@ -14,7 +14,8 @@
     "journalFolder",
     "journalFolderInUse",
     "recordingsFolder",
-    "logsFolder"
+    "logsFolder",
+    "sources"
   ],
   "properties": {
     "alerts": {
@@ -124,6 +125,25 @@
     "logsFolder": {
       "type": "string",
       "description": "Where the application's log file is (read only); the interface can open it."
+    },
+    "sources": {
+      "type": "object",
+      "description": "The community sources the application may ask, on the player's action only (ADR 0039).",
+      "additionalProperties": false,
+      "required": [
+        "spansh",
+        "ardent"
+      ],
+      "properties": {
+        "spansh": {
+          "type": "boolean",
+          "description": "Spansh: rings and their hotspots."
+        },
+        "ardent": {
+          "type": "boolean",
+          "description": "Ardent Insight: the markets that buy a commodity."
+        }
+      }
     }
   }
 }

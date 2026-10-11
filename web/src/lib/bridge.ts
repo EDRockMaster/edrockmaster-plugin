@@ -4,6 +4,14 @@
 import type { GoalCatalogue } from "./goal-catalogue";
 import type { Layout } from "./layout";
 import type { LiveView } from "./live-view";
+import type {
+  BuyersAnswer,
+  BuyersRequest,
+  CargoEstimateAnswer,
+  HotspotRequest,
+  HotspotsAnswer,
+  MiningOptions,
+} from "./mining";
 import type { Settings } from "./settings";
 
 export interface CoreApi {
@@ -29,6 +37,14 @@ export interface CoreApi {
   /** The order of each view's cards, and those folded (ADR 0021). */
   layout(): Promise<Layout>;
   save_layout(view: keyof Layout, layout: { order: string[]; folded: string[] }): Promise<void>;
+  /** What the Mining tab's forms start from (ADR 0040). */
+  mining_options(): Promise<MiningOptions>;
+  /** Where to mine: asks Spansh, or its cached answer (ADR 0039). */
+  find_hotspots(request: HotspotRequest): Promise<HotspotsAnswer>;
+  /** Where to sell: asks Ardent Insight, or its cached answer. */
+  find_buyers(request: BuyersRequest): Promise<BuyersAnswer>;
+  /** The mining cargo at the best markets around the current system. */
+  estimate_cargo(): Promise<CargoEstimateAnswer>;
 }
 
 /** A goal the player asks for; the core checks it against the catalogue. */

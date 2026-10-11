@@ -1,8 +1,10 @@
 <script lang="ts">
   import ActivityBlock from "./components/ActivityBlock.svelte";
   import BlueprintsView from "./components/BlueprintsView.svelte";
+  import CargoEstimate from "./components/CargoEstimate.svelte";
   import CardStack from "./components/CardStack.svelte";
   import EngineeringView from "./components/EngineeringView.svelte";
+  import MiningView from "./components/MiningView.svelte";
   import SettingsView from "./components/SettingsView.svelte";
   import SituationBanner from "./components/SituationBanner.svelte";
   import { connect, core } from "./lib/bridge";
@@ -11,8 +13,8 @@
 
   let view = $state<LiveView | null>(null);
   const language: Language = $derived(view?.language ?? "en");
-  type Tab = "activities" | "engineering" | "blueprints" | "settings";
-  const TABS: Tab[] = ["activities", "engineering", "blueprints", "settings"];
+  type Tab = "activities" | "mining" | "engineering" | "blueprints" | "settings";
+  const TABS: Tab[] = ["activities", "mining", "engineering", "blueprints", "settings"];
   let tab = $state<Tab>("activities");
   // Each activity block is a card the player can move and fold
   const activityCards = $derived(
@@ -75,8 +77,13 @@
               {language}
               onreset={(activity) => core()?.reset(activity)}
             />
+            {#if card.block.activity === "mining"}
+              <CargoEstimate {language} />
+            {/if}
           {/snippet}
         </CardStack>
+      {:else if tab === "mining"}
+        <MiningView {language} />
       {:else if tab === "engineering"}
         <EngineeringView engineering={view.engineering} {language} />
       {:else if tab === "blueprints"}

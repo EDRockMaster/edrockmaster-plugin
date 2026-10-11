@@ -246,6 +246,8 @@ The data is Frontier's, not under the application's licence: `NOTICE`, shipped w
 
 **Activities** tab: one block per activity shown. For mining: status (no session, mining in a ring, session ended and why), the last prospector alert, highlighted, until the next asteroid is prospected, then the statistics: active time, refined tons, rate, tons per commodity, asteroids prospected and, once known, cores, limpets, cargo and sales. The statistics of an ended session stay displayed, and its sales are added to them. A **Reset** button ends the running session. Numbers are written as the interface's language writes them.
 
+**Mining** tab (ADR 0040): *where to mine* and *where to sell*, asked of the community sources when the player searches (see Community sources); the mining card gets an *Estimate the cargo* button. The core answers these calls on pywebview's thread, waiting at most 60 seconds for the sources (`DesktopCore.find_hotspots`, `find_buyers`, `estimate_cargo`), as `schemas/mining.schema.json` describes.
+
 The other tabs (*Engineering*, *Blueprints*, *Settings*) and the banner of the commander's situation are described below (Desktop application).
 
 ## Settings

@@ -3,7 +3,14 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from edrockmaster.domain.mining.markets import MarketOffer, PadSize, SaleQuery, select_offers
+from edrockmaster.domain.mining.markets import (
+    CargoEstimate,
+    CargoLine,
+    MarketOffer,
+    SaleQuery,
+    select_offers,
+)
+from edrockmaster.domain.ships import PadSize
 
 NOW = datetime(2026, 10, 11, 12, 0, tzinfo=UTC)
 
@@ -33,15 +40,6 @@ CARRIER = replace(
 )
 OLD = replace(ORBIS, station="Old", market_id=3, price=200000, updated=NOW - timedelta(days=31))
 FAR = replace(ORBIS, station="Far", market_id=4, price=250000, distance=80.0)
-
-
-def test_pad_sizes_by_their_number_and_what_fits() -> None:
-    assert PadSize.from_number(1) is PadSize.SMALL
-    assert PadSize.from_number(3) is PadSize.LARGE
-    assert PadSize.from_number(None) is None
-    assert PadSize.from_number(9) is None
-    assert PadSize.LARGE.fits(PadSize.MEDIUM)
-    assert not PadSize.MEDIUM.fits(PadSize.LARGE)
 
 
 def test_the_best_price_first_within_the_query() -> None:
@@ -76,3 +74,16 @@ def test_a_sale_query_keeps_its_bounds() -> None:
     with pytest.raises(ValueError, match="distance"):
         SaleQuery("painite", "Borann", max_distance=501)
     assert SaleQuery(" painite ", " Borann ").reference == "Borann"
+
+
+def test_a_cargo_estimate_adds_up_the_lines_priced() -> None:
+    estimate = CargoEstimate(
+        (
+            CargoLine("painite", 10, ORBIS),
+            CargoLine("platinum", 4, None),
+            CargoLine("opal", 2, OUTPOST),
+        )
+    )
+    assert [line.value for line in estimate.lines] == [912540, None, 240000]
+    assert estimate.total == 1152540
+    assert CargoEstimate(()).total == 0

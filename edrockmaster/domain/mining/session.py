@@ -85,6 +85,20 @@ class SessionStats:
         return sum(self.tons_by_commodity.values())
 
     @property
+    def unsold_tons(self) -> dict[Commodity, int]:
+        """Tons of each commodity mined and neither ejected nor sold yet: the cargo to sell."""
+        return {
+            commodity: left
+            for commodity, tons in self.tons_by_commodity.items()
+            if (
+                left := tons
+                - self.ejected_tons.get(commodity, 0)
+                - self.sold_tons.get(commodity, 0)
+            )
+            > 0
+        }
+
+    @property
     def prospected_total(self) -> int:
         return sum(self.prospected_by_content.values())
 
