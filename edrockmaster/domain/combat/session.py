@@ -1,4 +1,4 @@
-"""Combat sessions by site segments, vouchers, crimes and community goals (ADR 0013).
+"""Combat sessions by site segments, vouchers and crimes (ADR 0013).
 
 ``CombatTracker`` is the aggregate root of the combat context. Durations come
 from journal timestamps, never from the wall clock, so that a replayed journal
@@ -40,9 +40,6 @@ from edrockmaster.domain.combat.journal import (
     BountyAwarded,
     CombatBondAwarded,
     CommanderDied,
-    CommunityGoal,
-    CommunityGoalLeft,
-    CommunityGoalsUpdated,
     CrimeCommitted,
     DestinationDropped,
     Embarked,
@@ -243,14 +240,7 @@ class VouchersUpdated:
     vouchers: Vouchers
 
 
-@dataclass(frozen=True, slots=True)
-class CommunityGoalsChanged:
-    goals: tuple[CommunityGoal, ...]
-
-
-type CombatNotification = (
-    CombatStarted | CombatUpdated | CombatEnded | VouchersUpdated | CommunityGoalsChanged
-)
+type CombatNotification = CombatStarted | CombatUpdated | CombatEnded | VouchersUpdated
 
 
 @dataclass(slots=True)
@@ -347,7 +337,7 @@ type _Segment = tuple[SiteType, datetime, str | None]
 
 
 class CombatTracker:
-    """Aggregate root: follows the commander's combat, vouchers, crimes and community goals."""
+    """Aggregate root: follows the commander's combat, vouchers and crimes."""
 
     def __init__(self) -> None:
         self._session: CombatSession | None = None
@@ -360,7 +350,6 @@ class CombatTracker:
         self._mining_here = False
         self._bounties: Counter[str] = Counter()
         self._bonds: Counter[str] = Counter()
-        self._goals: tuple[CommunityGoal, ...] = ()
 
     @property
     def session(self) -> CombatSession | None:
@@ -372,10 +361,6 @@ class CombatTracker:
             bounties=MappingProxyType(dict(+self._bounties)),
             combat_bonds=MappingProxyType(dict(+self._bonds)),
         )
-
-    @property
-    def community_goals(self) -> tuple[CommunityGoal, ...]:
-        return self._goals
 
     def handle(self, fact: Fact) -> list[CombatNotification]:
         match fact:
@@ -393,8 +378,8 @@ class CombatTracker:
                 return self._on_move(fact)
             case MiningSeen() | CrimeCommitted():
                 return self._on_conduct(fact)
-            case VouchersRedeemed() | CommunityGoalsUpdated() | CommunityGoalLeft():
-                return self._on_records(fact)
+            case VouchersRedeemed():
+                return self._on_redeemed(fact)
             case CommanderDied() | GameClosed():
                 return self._on_exit(fact)
             case _:  # pragma: no cover - exhaustiveness checked by mypy
@@ -459,25 +444,10 @@ class CombatTracker:
         self._session.record_crime(fact)
         return [CombatUpdated(self._session.stats)]
 
-    def _on_records(
-        self, fact: VouchersRedeemed | CommunityGoalsUpdated | CommunityGoalLeft
-    ) -> list[CombatNotification]:
-        if isinstance(fact, CommunityGoalsUpdated):
-            self._goals = fact.goals
-            return [CommunityGoalsChanged(fact.goals)]
-        if isinstance(fact, CommunityGoalLeft):
-            return self._leave_goal(fact.cgid)
+    def _on_redeemed(self, fact: VouchersRedeemed) -> list[CombatNotification]:
         vouchers = self._bonds if fact.kind is VoucherKind.COMBAT_BOND else self._bounties
         self._redeem(vouchers, fact.by_faction)
         return [VouchersUpdated(self.vouchers)]
-
-    def _leave_goal(self, cgid: int) -> list[CombatNotification]:
-        """The game sends no new list once a goal is left: it goes here."""
-        kept = tuple(goal for goal in self._goals if goal.cgid != cgid)
-        if kept == self._goals:
-            return []
-        self._goals = kept
-        return [CommunityGoalsChanged(kept)]
 
     def _on_exit(self, fact: CommanderDied | GameClosed) -> list[CombatNotification]:
         if isinstance(fact, CommanderDied):

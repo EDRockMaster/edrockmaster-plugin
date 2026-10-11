@@ -3,14 +3,12 @@ from types import MappingProxyType
 
 import pytest
 
-from edrockmaster.domain.combat.journal import CommunityGoal
 from edrockmaster.domain.combat.session import (
     CombatEnded,
     CombatEndReason,
     CombatStarted,
     CombatStats,
     CombatUpdated,
-    CommunityGoalsChanged,
     Crimes,
     SegmentStats,
     Tally,
@@ -56,22 +54,6 @@ def vouchers(bounties: int = 0, bonds: int = 0) -> Vouchers:
         bounties=MappingProxyType({"Federation": bounties} if bounties else {}),
         combat_bonds=MappingProxyType({"Federation": bonds} if bonds else {}),
     )
-
-
-def goal(**changes: object) -> CommunityGoal:
-    values: dict[str, object] = {
-        "cgid": 812,
-        "title": "Defend the Sirius Gate",
-        "system": "Sirius",
-        "expiry": None,
-        "complete": False,
-        "contribution": 25_000_000,
-        "percentile_band": 25,
-        "tier_reached": "Tier 4",
-        "top_tier": "Tier 8",
-    }
-    values.update(changes)
-    return CommunityGoal(**values)  # type: ignore[arg-type]
 
 
 def value(model: PanelModel, label: str) -> str:
@@ -196,34 +178,9 @@ def test_unredeemed_vouchers_are_shown_while_there_are_some(presenter: CombatPre
     assert "Unredeemed" not in labels(presenter.apply([VouchersUpdated(vouchers())]))
 
 
-def test_community_goals_are_listed(presenter: CombatPresenter) -> None:
-    model = presenter.apply([CommunityGoalsChanged((goal(),))])
-    assert value(model, "Defend the Sirius Gate") == "25,000,000, top 25 %, Tier 4"
-
-
-def test_community_goal_with_little_known(presenter: CombatPresenter) -> None:
-    model = presenter.apply(
-        [CommunityGoalsChanged((goal(percentile_band=None, tier_reached=None, contribution=0),))]
-    )
-    assert value(model, "Defend the Sirius Gate") == "0"
-
-
-def test_completed_community_goals_are_marked(presenter: CombatPresenter) -> None:
-    model = presenter.apply([CommunityGoalsChanged((goal(complete=True),))])
-    assert value(model, "Defend the Sirius Gate").endswith("(complete)")
-
-
 def test_render_rebuilds_texts_in_the_current_language() -> None:
     language = {"prefix": ""}
     presenter = CombatPresenter(translate=lambda text: language["prefix"] + text)
     presenter.apply([CombatStarted(T0), CombatUpdated(stats())])
     language["prefix"] = "fr:"
     assert presenter.render().status == "fr:RES, hazardous"
-
-
-def test_long_community_goal_titles_are_shortened(presenter: CombatPresenter) -> None:
-    title = "Defend the Sirius Gate against the Thargoid incursion"
-    [line] = presenter.apply([CommunityGoalsChanged((goal(title=title),))]).lines
-    assert len(line.label) <= 32
-    assert line.label.endswith("…")
-    assert title.startswith(line.label[:-1])

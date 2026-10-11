@@ -3,6 +3,7 @@
   "activity.combat": "Combat",
   "activity.trade": "Trade",
   "activity.engineering": "Engineering",
+  "activity.communityGoals": "Community goals",
   "activity.reset": "Reset",
   "activity.running": "Session running",
   "app.loading": "Starting…",
@@ -194,5 +195,10 @@
   "unlock.notCounted": "Some conditions are not materials: check them in game.",
   "unlock.heading": "Engineer unlocks",
   "engineer.aim": "Aim at unlocking",
-  "engineer.aimed": "Aimed at"
+  "engineer.aimed": "Aimed at",
+  "countdown.endsIn": "ends in {time}",
+  "countdown.ended": "ended",
+  "countdown.days": "{days} d {hours} h",
+  "countdown.hours": "{hours} h {minutes} min",
+  "countdown.minutes": "{minutes} min"
 }

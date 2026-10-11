@@ -1,6 +1,6 @@
 /* Generated from edrockmaster/desktop/schemas/live_view.schema.json by 'pnpm types': do not edit. */
 
-export type Activity = "mining" | "combat" | "trade" | "engineering";
+export type Activity = "mining" | "combat" | "trade" | "engineering" | "communityGoals";
 /**
  * An engineer unlock goal (ADR 0027, ADR 0031); its conditions are in the catalogue's engineer sheets.
  */
@@ -50,7 +50,7 @@ export interface LiveView {
   /**
    * The last activity that progressed.
    */
-  current: "mining" | "combat" | "trade" | "engineering";
+  current: "mining" | "combat" | "trade" | "engineering" | "communityGoals";
   /**
    * The activities the player shows, in display order.
    */
@@ -78,6 +78,10 @@ export interface Block {
   lines: {
     label: string;
     value: string;
+    /**
+     * A moment the interface counts down to, after the value (a community goal's expiry, ADR 0032).
+     */
+    until?: string;
   }[];
   alert: string | null;
   canReset: boolean;

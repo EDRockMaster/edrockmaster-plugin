@@ -27,7 +27,8 @@
               "mining",
               "combat",
               "trade",
-              "engineering"
+              "engineering",
+              "communityGoals"
             ]
           },
           "uniqueItems": true
@@ -39,7 +40,8 @@
               "mining",
               "combat",
               "trade",
-              "engineering"
+              "engineering",
+              "communityGoals"
             ]
           },
           "uniqueItems": true

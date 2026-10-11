@@ -115,6 +115,39 @@ describe("ActivityBlock", () => {
   });
 });
 
+describe("ActivityBlock of community goals", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("counts down to a goal's expiry, minute after minute", () => {
+    vi.useFakeTimers({ now: Date.parse("2026-10-15T06:00:00Z") });
+    render(ActivityBlock, {
+      block: block({
+        activity: "communityGoals",
+        status: "Goals joined: 1",
+        lines: [
+          {
+            label: "Satellite launch, HIP 74116",
+            value: "1,240, top 25 %, tier 3 of 5",
+            until: "2026-10-15T07:00:00Z",
+          },
+        ],
+        canReset: false,
+      }),
+      language: "en",
+      onreset: vi.fn(),
+    });
+    expect(screen.getByText("ends in 1 h 00 min")).toBeInTheDocument();
+    flushSync(() => vi.advanceTimersByTime(30 * 60_000));
+    expect(screen.getByText("ends in 30 min")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("shows no countdown on a line without a moment", () => {
+    render(ActivityBlock, { block: block(), language: "en", onreset: vi.fn() });
+    expect(document.querySelector(".until")).toBeNull();
+  });
+});
+
 describe("ActivityBlock of an ended session", () => {
   it("has neither badge nor reset button", () => {
     render(ActivityBlock, {

@@ -25,12 +25,12 @@ from edrockmaster.domain.combat.session import (
     CombatEnded,
     CombatEndReason,
     CombatStats,
-    CommunityGoalsChanged,
     Tally,
     VouchersUpdated,
 )
 from edrockmaster.domain.combat.sites import SiteType
 from edrockmaster.domain.commodities import Commodity
+from edrockmaster.domain.community_goals.goals import CommunityGoalsChanged
 from edrockmaster.domain.engineering.catalogue import MaterialCategory, OnFootKind
 from edrockmaster.domain.engineering.goals import BlueprintGoal, Goal, GoalId
 from edrockmaster.domain.engineering.on_foot_journal import Suit
@@ -146,7 +146,7 @@ def test_conflict_zone_redemption_includes_bonds_earned_before_edmc(
 
 
 def test_conflict_zone_community_goal(conflict_zone: Replay) -> None:
-    [goal] = conflict_zone.companion.combat.community_goals
+    [goal] = conflict_zone.companion.community_goals.goals
     assert (goal.cgid, goal.contribution, goal.percentile_band) == (860, 2_408_404, 50)
     # The game localises the tier names in the updates written from the station's tab
     # ("Tier 5" before, "Niveau 5" after): they are shown as the journal gives them
@@ -179,7 +179,14 @@ def test_conflict_zone_panel_shows_the_combat(conflict_zone: Replay) -> None:
     lines = conflict_zone.lines()
     assert ("Combat bonds", "224,467 CR") in lines
     assert ("Conflict zone, unknown intensity", "13.8 kills/h, 515,358 CR/h") in lines
-    assert ("Éliminez les pilotes criminels…", "2,408,404, top 50 %") in lines
+    assert not [line for line in lines if line[0].startswith("Éliminez")]
+
+
+def test_conflict_zone_community_goal_has_its_own_card(conflict_zone: Replay) -> None:
+    [block] = conflict_zone.presenter.blocks_of((Activity.COMMUNITY_GOALS,))
+    [line] = block.model.lines
+    assert line.label == "Éliminez les pilotes criminels dans le système Redonesses"
+    assert line.value == "2,408,404, top 50 %"
 
 
 def test_conflict_zone_panel_does_not_show_empty_bounties(conflict_zone: Replay) -> None:

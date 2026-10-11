@@ -100,7 +100,7 @@ describe("activity cards", () => {
     await fireEvent.click(screen.getByRole("button", { name: "Move Mining down" }));
     expect(titles().slice(0, 2)).toEqual(["Trade", "Mining"]);
     expect(api.save_layout).toHaveBeenLastCalledWith("activities", {
-      order: ["combat", "trade", "mining", "engineering"],
+      order: ["combat", "trade", "mining", "engineering", "communityGoals"],
       folded: [],
     });
     await fireEvent.click(screen.getByRole("button", { name: "Move Mining up" }));

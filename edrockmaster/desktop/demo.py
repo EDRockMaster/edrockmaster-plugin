@@ -71,6 +71,10 @@ def write_demo_journal(
     shift = now.replace(tzinfo=None, microsecond=0) - times[-1]
     for entry, at in zip(entries, times, strict=True):
         entry["timestamp"] = (at + shift).strftime(_GAME_TIME)
+        for goal in entry.get("CurrentGoals", ()):
+            if "Expiry" in goal:  # a community goal ends as long after now as after the recording
+                expiry = datetime.strptime(goal["Expiry"], _GAME_TIME) + shift
+                goal["Expiry"] = expiry.strftime(_GAME_TIME)
     folder.mkdir(parents=True, exist_ok=True)
     journal = folder / f"Journal.{times[0] + shift:%Y-%m-%dT%H%M%S}.01.log"
     lines = (json.dumps(entry, ensure_ascii=False) + "\r\n" for entry in entries)

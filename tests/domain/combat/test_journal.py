@@ -6,9 +6,6 @@ from edrockmaster.domain.combat.journal import (
     BountyAwarded,
     CombatBondAwarded,
     CommanderDied,
-    CommunityGoal,
-    CommunityGoalLeft,
-    CommunityGoalsUpdated,
     CrimeCommitted,
     DestinationDropped,
     Embarked,
@@ -171,88 +168,12 @@ def test_game_exit_is_parsed(event: str) -> None:
     assert parse_entry({"timestamp": TS, "event": event}) == GameClosed(AT)
 
 
-def test_community_goals_are_parsed() -> None:
-    fact = parse_entry(
-        {
-            "timestamp": TS,
-            "event": "CommunityGoal",
-            "CurrentGoals": [
-                {
-                    "CGID": 812,
-                    "Title": "Defend the Sirius Gate",
-                    "SystemName": "Sirius",
-                    "MarketName": "Patterson Enterprise",
-                    "Expiry": "2026-10-08T06:00:00Z",
-                    "IsComplete": False,
-                    "CurrentTotal": 9876543210,
-                    "PlayerContribution": 25000000,
-                    "NumContributors": 4321,
-                    "TopTier": {"Name": "Tier 8", "Bonus": ""},
-                    "TopRankSize": 10,
-                    "PlayerInTopRank": False,
-                    "TierReached": "Tier 4",
-                    "PlayerPercentileBand": 25,
-                    "Bonus": 0,
-                }
-            ],
-        }
-    )
-    assert fact == CommunityGoalsUpdated(
-        at=AT,
-        goals=(
-            CommunityGoal(
-                cgid=812,
-                title="Defend the Sirius Gate",
-                system="Sirius",
-                expiry=datetime(2026, 10, 8, 6, 0, tzinfo=UTC),
-                complete=False,
-                contribution=25000000,
-                percentile_band=25,
-                tier_reached="Tier 4",
-                top_tier="Tier 8",
-            ),
-        ),
-    )
-
-
-def test_community_goal_with_minimal_fields() -> None:
-    fact = parse_entry(
-        {
-            "timestamp": TS,
-            "event": "CommunityGoal",
-            "CurrentGoals": [{"CGID": 1, "Title": "Goal", "PlayerContribution": 0}],
-        }
-    )
-    assert isinstance(fact, CommunityGoalsUpdated)
-    [goal] = fact.goals
-    assert (goal.system, goal.expiry, goal.percentile_band, goal.tier_reached) == (
-        None,
-        None,
-        None,
-        None,
-    )
-
-
 @pytest.mark.parametrize(
     ("raw", "name"),
     [("$faction_Federation;", "Federation"), ("Sirius Corporation", "Sirius Corporation")],
 )
 def test_superpower_symbols_are_normalised(raw: str, name: str) -> None:
     assert faction_name(raw) == name
-
-
-@pytest.mark.parametrize("event", ["CommunityGoalReward", "CommunityGoalDiscard"])
-def test_leaving_a_community_goal_is_parsed(event: str) -> None:
-    # The game writes no new CommunityGoal once the reward is collected or the goal discarded
-    entry = {
-        "timestamp": TS,
-        "event": event,
-        "CGID": 861,
-        "Name": "Brewer Corporation Hyperspace Satellite Launch",
-        "System": "HIP 74116",
-        "Reward": 200000000,
-    }
-    assert parse_entry(entry) == CommunityGoalLeft(AT, cgid=861)
 
 
 @pytest.mark.parametrize(
@@ -262,13 +183,6 @@ def test_leaving_a_community_goal_is_parsed(event: str) -> None:
         {"timestamp": TS, "event": "Bounty", "Target": "x"},
         {"timestamp": TS, "event": "FactionKillBond", "Reward": "1"},
         {"timestamp": TS, "event": "RedeemVoucher", "Type": "bounty"},
-        {"timestamp": TS, "event": "CommunityGoal", "CurrentGoals": [{"Title": "x"}]},
-        {
-            "timestamp": TS,
-            "event": "CommunityGoal",
-            "CurrentGoals": [{"CGID": 1, "Title": "x", "Expiry": "soon"}],
-        },
-        {"timestamp": TS, "event": "CommunityGoalReward", "Name": "x"},
         {"timestamp": TS, "event": "Music", "MusicTrack": "Combat_Dogfight"},
         {"timestamp": TS, "event": "SupercruiseDestinationDrop"},
         {"timestamp": TS, "event": "CommitCrime", "CrimeType": "assault", "Fine": "100"},

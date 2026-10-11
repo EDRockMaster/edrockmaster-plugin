@@ -8,6 +8,7 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ### Changed
 
+- **Community goals** have a card of their own in *Activities* (ADR 0032), no longer the combat card: a community goal can be about trade, mining or exploration. The card shows only while a goal is joined, one tile per goal: its full title and system, the contribution, the percentile band, the tier reached out of the top tier (`tier 3 of 5`), and the time left before its expiry, counted down by the interface, or *Complete: reward to collect*. It can be hidden in *Settings*, and never takes the panel in the last active mode. In the demo, the goal expires as long after now as after the recording.
 - The engineering card in *Activities* shows the on-foot materials in one tile, gained and lost at a death (`+140, 5 lost`), instead of one tile per kind and one for the losses: the kinds are in the *On foot* part of the *Engineering* tab.
 
 ### Fixed

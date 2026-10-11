@@ -112,7 +112,9 @@ def test_the_interface_gets_the_current_view_when_ready(tmp_path: Path) -> None:
     finally:
         desktop.core.stop()
     assert view["journal"] == {"folder": None, "file": None}
-    assert [block["activity"] for block in view["activities"]] == [a.value for a in Activity]
+    # No community goal joined: its card is left out (ADR 0032)
+    shown = [a.value for a in Activity if a is not Activity.COMMUNITY_GOALS]
+    assert [block["activity"] for block in view["activities"]] == shown
     assert view["notice"] is None
 
 

@@ -91,7 +91,8 @@
           "mining",
           "combat",
           "trade",
-          "engineering"
+          "engineering",
+          "communityGoals"
         ]
       }
     },

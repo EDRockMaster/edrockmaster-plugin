@@ -72,7 +72,10 @@
 
 /* ui/combat_presenter.py: community goal: contribution, percentile band, tier */
 "top {band} %" = "top {band} %";
-"{goal} (complete)" = "{goal} (terminé)";
+"No community goal joined" = "Aucun objectif communautaire rejoint";
+"Goals joined: {count}" = "Objectifs rejoints : {count}";
+"tier {tier} of {top}" = "palier {tier} sur {top}";
+"{goal}. Complete: reward to collect" = "{goal}. Terminé : récompense à toucher";
 
 /* ui/trade_presenter.py: panel status */
 "No trade session" = "Aucune session de commerce";

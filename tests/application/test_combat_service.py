@@ -8,7 +8,6 @@ from edrockmaster.domain.combat.session import (
     CombatEndReason,
     CombatStarted,
     CombatUpdated,
-    CommunityGoalsChanged,
     VouchersUpdated,
 )
 from edrockmaster.domain.journal_reading import Entry
@@ -16,7 +15,6 @@ from tests.fakes import FixedClock
 from tests.journal_entries import (
     T0,
     bounty_entry,
-    community_goal_entry,
     redeem_entry,
     refined_entry,
     timestamp,
@@ -52,12 +50,6 @@ def test_redeemed_vouchers(service: CombatService) -> None:
     [updated] = service.handle_journal_entry(redeem_entry(5, 120_000))
     assert isinstance(updated, VouchersUpdated)
     assert service.vouchers.total == 0
-
-
-def test_community_goals(service: CombatService) -> None:
-    [changed] = service.handle_journal_entry(community_goal_entry(0))
-    assert isinstance(changed, CommunityGoalsChanged)
-    assert service.community_goals[0].title == "Defend the Sirius Gate"
 
 
 def test_reset_ends_the_session_at_the_current_time(

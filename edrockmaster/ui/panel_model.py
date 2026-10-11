@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import Enum
 
 from edrockmaster.application.activity import Activity
@@ -32,6 +32,8 @@ def identity(text: str) -> str:
 class StatLine:
     label: str
     value: str
+    until: datetime | None = None
+    """A moment the interface counts down to, after the value (a community goal's expiry)."""
 
 
 @dataclass(frozen=True, slots=True)

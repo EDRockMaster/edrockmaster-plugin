@@ -109,7 +109,7 @@ def test_display_is_stored_as_text() -> None:
     assert config.values["edrockmaster.display.mode"] == "stacked"
     assert (
         config.values["edrockmaster.display.offered"]
-        == '["mining", "combat", "trade", "engineering"]'
+        == '["mining", "combat", "trade", "engineering", "communityGoals"]'
     )
 
 
@@ -118,7 +118,12 @@ def test_an_activity_the_tab_did_not_offer_is_shown() -> None:
     config = FakeConfig()
     config.values["edrockmaster.display.activities"] = '["combat"]'
     display = KeyValueSettingsStore(config, logger).load().display
-    assert display.activities == (Activity.COMBAT, Activity.TRADE, Activity.ENGINEERING)
+    assert display.activities == (
+        Activity.COMBAT,
+        Activity.TRADE,
+        Activity.ENGINEERING,
+        Activity.COMMUNITY_GOALS,
+    )
 
 
 def test_engineering_is_shown_to_players_who_chose_before_it_existed() -> None:
@@ -126,15 +131,25 @@ def test_engineering_is_shown_to_players_who_chose_before_it_existed() -> None:
     config.values["edrockmaster.display.activities"] = '["combat"]'
     config.values["edrockmaster.display.offered"] = '["mining", "combat", "trade"]'
     display = KeyValueSettingsStore(config, logger).load().display
-    assert display.activities == (Activity.COMBAT, Activity.ENGINEERING)
+    assert display.activities == (Activity.COMBAT, Activity.ENGINEERING, Activity.COMMUNITY_GOALS)
 
 
 def test_an_activity_hidden_after_it_was_offered_stays_hidden() -> None:
     config = FakeConfig()
     config.values["edrockmaster.display.activities"] = '["combat"]'
-    config.values["edrockmaster.display.offered"] = '["mining", "combat", "trade", "engineering"]'
+    config.values["edrockmaster.display.offered"] = (
+        '["mining", "combat", "trade", "engineering", "communityGoals"]'
+    )
     display = KeyValueSettingsStore(config, logger).load().display
     assert display.activities == (Activity.COMBAT,)
+
+
+def test_community_goals_are_shown_to_players_who_chose_before_they_existed() -> None:
+    config = FakeConfig()
+    config.values["edrockmaster.display.activities"] = '["combat"]'
+    config.values["edrockmaster.display.offered"] = '["mining", "combat", "trade", "engineering"]'
+    display = KeyValueSettingsStore(config, logger).load().display
+    assert display.activities == (Activity.COMBAT, Activity.COMMUNITY_GOALS)
 
 
 def test_an_invalid_list_of_offered_activities_is_the_one_of_0_3_0() -> None:
@@ -142,4 +157,9 @@ def test_an_invalid_list_of_offered_activities_is_the_one_of_0_3_0() -> None:
     config.values["edrockmaster.display.activities"] = '["mining"]'
     config.values["edrockmaster.display.offered"] = "trade"
     display = KeyValueSettingsStore(config, logger).load().display
-    assert display.activities == (Activity.MINING, Activity.TRADE, Activity.ENGINEERING)
+    assert display.activities == (
+        Activity.MINING,
+        Activity.TRADE,
+        Activity.ENGINEERING,
+        Activity.COMMUNITY_GOALS,
+    )

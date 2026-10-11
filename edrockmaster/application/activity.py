@@ -10,3 +10,5 @@ class Activity(Enum):
     COMBAT = "combat"
     TRADE = "trade"
     ENGINEERING = "engineering"
+    COMMUNITY_GOALS = "communityGoals"
+    """Not a session: the goals joined (ADR 0032)."""

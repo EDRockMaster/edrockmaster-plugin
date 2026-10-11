@@ -125,7 +125,7 @@ export const SETTINGS: Settings = {
   },
   sound: true,
   recordJournal: false,
-  activities: ["mining", "combat", "trade", "engineering"],
+  activities: ["mining", "combat", "trade", "engineering", "communityGoals"],
   language: "auto",
   journalFolder: null,
   journalFolderInUse: "C:/Users/cmdr/Saved Games/Frontier Developments/Elite Dangerous",

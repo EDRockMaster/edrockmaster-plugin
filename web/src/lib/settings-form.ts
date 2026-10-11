@@ -2,7 +2,13 @@
 import type { Settings } from "./settings";
 
 export type Activity = Settings["activities"][number];
-export const ACTIVITIES: Activity[] = ["mining", "combat", "trade", "engineering"];
+export const ACTIVITIES: Activity[] = [
+  "mining",
+  "combat",
+  "trade",
+  "engineering",
+  "communityGoals",
+];
 
 /** A percentage typed in the form: `null` when empty, `undefined` when not one. */
 export function percent(text: string): number | null | undefined {

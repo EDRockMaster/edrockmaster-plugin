@@ -8,8 +8,8 @@ export interface Layout {
     /**
      * Every card of the view, top to bottom.
      */
-    order: ("mining" | "combat" | "trade" | "engineering")[];
-    folded: ("mining" | "combat" | "trade" | "engineering")[];
+    order: ("mining" | "combat" | "trade" | "engineering" | "communityGoals")[];
+    folded: ("mining" | "combat" | "trade" | "engineering" | "communityGoals")[];
   };
   engineering: {
     /**

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from edrockmaster.application.ports import Clock
-from edrockmaster.domain.combat.journal import CommunityGoal, parse_entry
+from edrockmaster.domain.combat.journal import parse_entry
 from edrockmaster.domain.combat.session import (
     CombatNotification,
     CombatStats,
@@ -28,10 +28,6 @@ class CombatService:
     @property
     def vouchers(self) -> Vouchers:
         return self._tracker.vouchers
-
-    @property
-    def community_goals(self) -> tuple[CommunityGoal, ...]:
-        return self._tracker.community_goals
 
     def handle_journal_entry(self, entry: Entry) -> list[CombatNotification]:
         fact = parse_entry(entry)

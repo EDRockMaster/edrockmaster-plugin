@@ -71,6 +71,28 @@ def test_materials_are_named_by_the_catalogue_in_a_demo_in_english(tmp_path: Pat
     assert "Carbone" in json.dumps([e for e in french if e["event"] == "Materials"])
 
 
+def test_community_goals_expire_as_long_after_now_as_after_the_recording(
+    tmp_path: Path,
+) -> None:
+    # Else the demo's goal would have ended long ago (ADR 0032)
+    source = tmp_path / "demo.jsonl"
+    goal = {"CGID": 860, "Title": "x", "Expiry": "2026-10-08T10:00:00Z"}
+    source.write_text(
+        json.dumps(
+            {
+                "timestamp": "2026-10-04T02:00:00Z",
+                "event": "CommunityGoal",
+                "CurrentGoals": [goal, {"CGID": 1, "Title": "y"}],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    [entry] = _lines(write_demo_journal(tmp_path / "journal", NOW, "fr", source))
+    assert entry["CurrentGoals"][0]["Expiry"] == "2026-10-14T05:30:15Z"
+    assert "Expiry" not in entry["CurrentGoals"][1]
+
+
 def test_a_short_journal(tmp_path: Path) -> None:
     source = tmp_path / "demo.jsonl"
     source.write_text(
