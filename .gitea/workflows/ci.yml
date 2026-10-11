@@ -26,6 +26,8 @@ jobs:
           # The runner's cache server (actions/cache); uv's own default is GitHub-hosted only
           enable-cache: true
           cache-dependency-glob: uv.lock
+          # Our own cache server: keep the downloaded wheels too, not only those built
+          prune-cache: false
       - run: uv sync
       - run: uv run ruff check .
       - run: uv run ruff format --check .
