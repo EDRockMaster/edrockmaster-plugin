@@ -22,6 +22,10 @@ VALIDATOR = jsonschema.Draft202012Validator(json.loads(SCHEMA.read_text(encoding
 TRADE = "amano-verne-trade-2026-10-04.jsonl"
 
 
+WAIT = 20
+"""Seconds a test waits for a view before failing."""
+
+
 class Views:
     def __init__(self) -> None:
         self.received: list[dict[str, Any]] = []
@@ -35,7 +39,9 @@ class Views:
             self.threads.add(threading.current_thread().name)
 
     def wait_for(self, condition: Callable[[dict[str, Any]], bool]) -> dict[str, Any]:
-        deadline = time.monotonic() + 5
+        # Generous: a busy Windows runner may take seconds to replay a journal; only a failure
+        # waits that long
+        deadline = time.monotonic() + WAIT
         while time.monotonic() < deadline:
             with self._lock:
                 found: dict[str, Any] | None = next(
