@@ -5,7 +5,35 @@ import type { Settings } from "../src/lib/settings";
 
 export const GOAL_CATALOGUE: GoalCatalogue = {
   date: "2026-09-05",
-  onFootItems: [],
+  onFootItems: [
+    { symbol: "flightsuit", kind: "suit", name: "Flight suit", upgrades: [] },
+    {
+      symbol: "tacticalsuit",
+      kind: "suit",
+      name: "Dominator suit",
+      upgrades: [
+        {
+          toClass: 2,
+          credits: 600000,
+          confidence: "game",
+          ingredients: [{ symbol: "graphene", name: "Graphene", count: 2 }],
+        },
+      ],
+    },
+    {
+      symbol: "wpn_m_submachinegun_laser_fauto",
+      kind: "weapon",
+      name: "TK Eclipse",
+      upgrades: [
+        {
+          toClass: 2,
+          credits: 300000,
+          confidence: "game",
+          ingredients: [{ symbol: "ionisedgas", name: "Ionised Gas", count: 1 }],
+        },
+      ],
+    },
+  ],
   modules: [
     {
       key: "fsd",

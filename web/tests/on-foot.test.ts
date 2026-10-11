@@ -1,14 +1,24 @@
-import { fireEvent, render, screen } from "@testing-library/svelte";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
+import { afterEach, describe, expect, it } from "vitest";
 import EngineeringView from "../src/components/EngineeringView.svelte";
+import type { OnFoot } from "../src/lib/live-view";
 import {
+  classesAbove,
+  classGoalTitle,
+  creditsText,
   equipmentText,
+  goalNotes,
   groupByKind,
   heldDetail,
   moveLines,
   total,
+  upgradable,
+  upgradableTypes,
+  type ClassGoal,
+  type Equipment,
   type OnFootMaterial,
 } from "../src/lib/on-foot";
+import { fakeCore, GOAL_CATALOGUE } from "./core";
 import { engineering, onFoot } from "./views";
 
 function material(overrides: Partial<OnFootMaterial>): OnFootMaterial {
@@ -110,7 +120,8 @@ describe("EngineeringView on foot", () => {
     );
     expect(screen.getByText("Matériaux à pied")).toBeTruthy();
     expect(screen.getByText("Graphène")).toBeTruthy();
-    expect(screen.getByText("3")).toBeTruthy();
+    const inventory = screen.getByRole("region", { name: "Matériaux à pied" });
+    expect(within(inventory).getByText("3")).toBeTruthy();
     expect(screen.getByText("1 dans le sac")).toBeTruthy();
     expect(screen.getByText("Domino Green")).toBeTruthy();
     expect(screen.getByText("Invité")).toBeTruthy();
@@ -136,5 +147,171 @@ describe("EngineeringView on foot", () => {
     });
     await fireEvent.click(screen.getByRole("button", { name: "On foot" }));
     expect(screen.getByText(/No on-foot material/)).toBeTruthy();
+  });
+});
+
+function classGoal(overrides: Partial<ClassGoal> = {}): ClassGoal {
+  return {
+    id: "up",
+    item: "tacticalsuit",
+    title: "Combinaison Dominator",
+    equipmentId: null,
+    fromClass: 2,
+    toClass: 5,
+    known: false,
+    unknownClasses: [5],
+    unverified: true,
+    credits: 6750000,
+    ready: false,
+    missing: [{ symbol: "graphene", name: "Graphène", count: 7, held: 0 }],
+    ...overrides,
+  };
+}
+
+const DOMINATOR: Equipment = {
+  id: 7,
+  kind: "suit",
+  symbol: "tacticalsuit",
+  name: "Combinaison Dominator",
+  class: 2,
+};
+
+function withCore() {
+  const api = fakeCore();
+  window.pywebview = { api };
+  return api;
+}
+
+afterEach(() => {
+  delete window.pywebview;
+});
+
+describe("class upgrade logic", () => {
+  it("titles a goal, formats its credits and says what is not sure", () => {
+    expect(classGoalTitle(classGoal(), "fr")).toBe("Combinaison Dominator : classe 2 à 5");
+    expect(creditsText(6750000, "en")).toBe("6,750,000");
+    expect(goalNotes(classGoal(), "en")).toEqual([
+      "Recipe not known yet for class 5: what it takes is not counted.",
+      "Part of the recipe is not checked in game yet.",
+    ]);
+    expect(goalNotes(classGoal({ unknownClasses: [], unverified: false }), "en")).toEqual([]);
+  });
+
+  it("offers the classes above, and the items that can rise", () => {
+    expect(classesAbove(2)).toEqual([3, 4, 5]);
+    expect(classesAbove(5)).toEqual([]);
+    const items = GOAL_CATALOGUE.onFootItems;
+    const flight: Equipment = { ...DOMINATOR, id: 1, symbol: "flightsuit", class: null };
+    const top: Equipment = { ...DOMINATOR, id: 2, class: 5 };
+    const unknown: Equipment = { ...DOMINATOR, id: 3, symbol: "wpn_new" };
+    expect(upgradable([DOMINATOR, flight, top, unknown], items)).toEqual([DOMINATOR]);
+    expect(upgradableTypes(items).map((item) => item.symbol)).toEqual([
+      "tacticalsuit",
+      "wpn_m_submachinegun_laser_fauto",
+    ]);
+  });
+});
+
+describe("class upgrades on foot", () => {
+  async function onFootPart(part: Partial<OnFoot>, language: "en" | "fr" = "fr") {
+    render(EngineeringView, { engineering: engineering({ onFoot: onFoot(part) }), language });
+    await fireEvent.click(
+      screen.getByRole("button", { name: language === "fr" ? "À pied" : "On foot" }),
+    );
+  }
+
+  it("shows each goal, what it misses, its credits and what is not sure", async () => {
+    const api = withCore();
+    await onFootPart({
+      known: true,
+      goals: [classGoal({ equipmentId: 7 }), classGoal({ id: "ok", ready: true, missing: [] })],
+      shoppingList: [{ symbol: "graphene", name: "Graphène", count: 7, held: 0 }],
+      credits: 13500000,
+    });
+    const goals = screen
+      .getAllByRole("listitem")
+      .filter((item) => item.textContent?.includes("classe 2 à 5"));
+    // Ready goals first
+    expect(goals[0]?.textContent).toContain("Prêt");
+    expect(screen.getByText("Manque : Graphène ×7")).toBeTruthy();
+    expect(screen.getAllByText(/6\s750\s000 crédits/).length).toBe(2);
+    expect(screen.getByText(/Suit votre équipement/)).toBeTruthy();
+    expect(screen.getAllByText(/Recette pas encore connue pour la classe 5/).length).toBe(2);
+    expect(screen.getByText("Liste de courses à pied")).toBeTruthy();
+    expect(screen.getByText("7 (en stock : 0)")).toBeTruthy();
+    expect(screen.getByText(/toutes les montées de classe : 13\s500\s000/)).toBeTruthy();
+    // The ready goal comes first
+    const target = screen.getAllByLabelText(/Classe visée pour/)[0] as HTMLSelectElement;
+    await fireEvent.change(target, { target: { value: "4" } });
+    expect(api.change_goal).toHaveBeenCalledWith("ok", 4);
+    const remove = screen.getAllByRole("button", {
+      name: /Supprimer l'objectif/,
+    })[0] as HTMLElement;
+    await fireEvent.click(remove);
+    expect(api.remove_goal).toHaveBeenCalledWith("ok");
+  });
+
+  it("says when there is no goal, and when the locker is unknown", async () => {
+    await onFootPart({ goals: [classGoal({ missing: null })] }, "en");
+    expect(screen.getByText(/once the game states the ship locker\.$/)).toBeTruthy();
+    expect(screen.getByText("Nothing missing.")).toBeTruthy();
+  });
+
+  it("has no shopping list without a goal", async () => {
+    await onFootPart({}, "en");
+    expect(screen.getByText(/No class upgrade yet/)).toBeTruthy();
+    expect(screen.queryByText("On-foot shopping list")).toBeNull();
+  });
+
+  it("adds a class upgrade of one of the player's items, from its class", async () => {
+    const api = withCore();
+    await onFootPart({ equipment: [DOMINATOR] }, "en");
+    const form = screen.getByRole("form", { name: "Add a class upgrade" });
+    const add = within(form).getByRole("button", { name: "Add" });
+    await waitFor(() => expect(within(form).getByLabelText("Suit or weapon")).toBeEnabled());
+    expect(add).toBeDisabled();
+    await fireEvent.change(within(form).getByLabelText("Suit or weapon"), {
+      target: { value: "own:7" },
+    });
+    // Its class is known: no class to start from, and up to class 5 by default
+    expect(within(form).queryByLabelText("From class")).toBeNull();
+    expect(within(form).getByLabelText("To class")).toHaveValue("5");
+    await fireEvent.change(within(form).getByLabelText("To class"), { target: { value: "4" } });
+    await fireEvent.click(add);
+    expect(api.add_goal).toHaveBeenCalledWith({
+      kind: "classUpgrade",
+      item: "tacticalsuit",
+      toClass: 4,
+      equipmentId: 7,
+    });
+  });
+
+  it("adds a class upgrade of a type, from the class the player says", async () => {
+    const api = withCore();
+    await onFootPart({}, "en");
+    const form = screen.getByRole("form", { name: "Add a class upgrade" });
+    await waitFor(() => expect(within(form).getByLabelText("Suit or weapon")).toBeEnabled());
+    expect(within(form).queryByRole("group", { name: "Yours" })).toBeNull();
+    await fireEvent.change(within(form).getByLabelText("Suit or weapon"), {
+      target: { value: "type:wpn_m_submachinegun_laser_fauto" },
+    });
+    await fireEvent.change(within(form).getByLabelText("From class"), { target: { value: "3" } });
+    expect(
+      [...within(form).getByLabelText<HTMLSelectElement>("To class").options].map((o) => o.value),
+    ).toEqual(["4", "5"]);
+    await fireEvent.submit(form);
+    expect(api.add_goal).toHaveBeenCalledWith({
+      kind: "classUpgrade",
+      item: "wpn_m_submachinegun_laser_fauto",
+      toClass: 5,
+      fromClass: 3,
+    });
+  });
+
+  it("does not submit without an item", async () => {
+    const api = withCore();
+    await onFootPart({}, "en");
+    await fireEvent.submit(screen.getByRole("form", { name: "Add a class upgrade" }));
+    expect(api.add_goal).not.toHaveBeenCalled();
   });
 });
