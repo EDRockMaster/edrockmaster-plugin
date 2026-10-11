@@ -2,7 +2,9 @@
 
 The panel block sums up the collection: materials gained per category, used,
 those at their cap, on-foot materials gained and lost at a death in one tile
-(ADR 0027; their kinds are in the On foot view), and the goals ready. Its
+(ADR 0027; their kinds are in the On foot view), and the goals ready, then
+the first goals in the player's priority, each ready or what it misses
+(ADR 0033), and how many more. Its
 alert is the last material that reached its cap, goal ready or goal done, until
 the next change without one; a ready goal's alert also goes when the goal is no
 longer among the goals.
@@ -23,6 +25,7 @@ from edrockmaster.domain.engineering.session import (
     EngineeringStats,
     EngineeringUpdated,
     GoalDone,
+    GoalProgress,
     GoalProgressed,
     GoalReady,
     MaterialCapped,
@@ -44,6 +47,9 @@ _GAINED = {
     MaterialCategory.ENCODED: "Encoded gained",
     None: "Other materials gained",
 }
+SUMMARISED_GOALS = 3
+"""The goals the card names, first in the priority; the others are counted."""
+
 _END_REASONS = {
     CollectionEndReason.GAME_CLOSED: "game closed",
     CollectionEndReason.MANUAL: "reset",
@@ -136,6 +142,25 @@ class EngineeringPresenter:
             if not stats.inventory_known:
                 ready = tl("inventory unknown")
             yield StatLine(tl("Goals ready"), ready)
+            for progress in stats.goals[:SUMMARISED_GOALS]:
+                yield StatLine(self._names.goal(progress.goal), self._goal_text(progress))
+            if len(stats.goals) > SUMMARISED_GOALS:
+                more = len(stats.goals) - SUMMARISED_GOALS
+                yield StatLine(tl("Other goals"), self._number(more, 0))
+
+    def _goal_text(self, progress: GoalProgress) -> str:
+        state = self._goal_state(progress)
+        if state is not None or progress.missing is None:
+            return state or self._tl("inventory unknown")
+        units = self._number(sum(progress.missing.values()), 0)
+        if len(progress.missing) == 1:
+            [symbol] = progress.missing
+            return self._tl("missing {count} {material}").format(
+                count=units, material=self._names.material(symbol)
+            )
+        return self._tl("missing {units} units of {materials} materials").format(
+            units=units, materials=len(progress.missing)
+        )
 
     def _on_foot_text(self, collection: CollectionStats) -> str:
         """One tile: the kinds are in the On foot view."""
@@ -145,6 +170,19 @@ class EngineeringPresenter:
         return self._tl("{gained}, {lost} lost").format(
             gained=text, lost=self._number(collection.lost_on_foot, 0)
         )
+
+    def _goal_state(self, progress: GoalProgress) -> str | None:
+        """What a goal is, when it is not what it misses."""
+        tl = self._tl
+        if progress.ready:
+            return tl("ready")
+        if not progress.known:
+            return tl("recipe unknown")
+        if not progress.counted:
+            return tl("conditions to meet in game")
+        if progress.ready_alone and progress.missing is not None:
+            return tl("taken by a goal above")
+        return None
 
     def _alert_text(self) -> str | None:
         tl = self._tl

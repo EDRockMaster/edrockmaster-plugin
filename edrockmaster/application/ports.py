@@ -5,7 +5,7 @@ The server link of step 1B will add ``UploadQueue`` and ``Authenticator`` here.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import datetime
 from typing import Protocol
 
@@ -45,7 +45,7 @@ class GoalRepository(Protocol):
     """The player's engineering goals, kept across restarts (ADR 0017, ADR 0018).
 
     No method blocks: the storage works on the I/O thread. The goals are listed
-    in the order they were added.
+    in the player's order, their priority (ADR 0033); a new goal comes last.
     """
 
     def load(self, on_loaded: Callable[[tuple[Goal, ...]], None]) -> None:
@@ -59,3 +59,7 @@ class GoalRepository(Protocol):
         ...
 
     def remove(self, goal_id: GoalId) -> None: ...
+
+    def reorder(self, order: Sequence[GoalId]) -> None:
+        """Store the player's priority (ADR 0033): every goal, first to last."""
+        ...

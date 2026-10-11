@@ -200,5 +200,9 @@
   "countdown.ended": "terminé",
   "countdown.days": "{days} j {hours} h",
   "countdown.hours": "{hours} h {minutes} min",
-  "countdown.minutes": "{minutes} min"
+  "countdown.minutes": "{minutes} min",
+  "goal.up": "Monter {goal} dans la priorité",
+  "goal.down": "Descendre {goal} dans la priorité",
+  "goal.drag": "Glisser {goal} sur un autre objectif pour prendre sa place",
+  "goal.takenAbove": "Prêt à lui seul : un objectif au-dessus prend les matériaux. Remontez-le pour qu'il soit prêt."
 }

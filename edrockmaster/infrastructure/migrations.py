@@ -85,6 +85,28 @@ MIGRATIONS: tuple[Migration, ...] = (
             """,
         ),
     ),
+    Migration(
+        5,
+        (
+            # The player's priority over all the goals, whatever their kind (ADR 0033): the
+            # goals stored keep the order they were read in, ship goals first
+            """
+            CREATE TABLE goal_priority (
+                goal_id TEXT PRIMARY KEY,
+                rank INTEGER NOT NULL UNIQUE
+            ) STRICT
+            """,
+            """
+            INSERT INTO goal_priority (goal_id, rank)
+            SELECT id, row_number() OVER (ORDER BY kind, position) FROM (
+                SELECT id, 1 AS kind, position FROM engineering_goal
+                UNION ALL SELECT id, 2, position FROM class_upgrade_goal
+                UNION ALL SELECT id, 3, position FROM modification_goal
+                UNION ALL SELECT id, 4, position FROM engineer_unlock_goal
+            )
+            """,
+        ),
+    ),
 )
 
 LATEST_VERSION = MIGRATIONS[-1].version

@@ -288,7 +288,8 @@
         "shoppingList",
         "catalogueDate",
         "onFoot",
-        "unlocks"
+        "unlocks",
+        "priority"
       ],
       "properties": {
         "inventoryKnown": {
@@ -393,6 +394,7 @@
               "count",
               "known",
               "ready",
+              "readyAlone",
               "missing",
               "engineers"
             ],
@@ -427,6 +429,10 @@
               },
               "ready": {
                 "type": "boolean"
+              },
+              "readyAlone": {
+                "type": "boolean",
+                "description": "It would be ready without the goals above it in the priority (ADR 0033)."
               },
               "missing": {
                 "oneOf": [
@@ -466,6 +472,13 @@
         },
         "unlocks": {
           "$ref": "#/$defs/engineerUnlock"
+        },
+        "priority": {
+          "type": "array",
+          "description": "Every goal's id, ship and on foot, in the player's priority (ADR 0033).",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -680,6 +693,7 @@
               "unverified",
               "credits",
               "ready",
+              "readyAlone",
               "missing"
             ],
             "properties": {
@@ -735,6 +749,10 @@
               "ready": {
                 "type": "boolean"
               },
+              "readyAlone": {
+                "type": "boolean",
+                "description": "It would be ready without the goals above it in the priority (ADR 0033)."
+              },
               "missing": {
                 "oneOf": [
                   {
@@ -769,6 +787,7 @@
               "unverified",
               "credits",
               "ready",
+              "readyAlone",
               "missing",
               "engineers"
             ],
@@ -814,6 +833,10 @@
               },
               "ready": {
                 "type": "boolean"
+              },
+              "readyAlone": {
+                "type": "boolean",
+                "description": "It would be ready without the goals above it in the priority (ADR 0033)."
               },
               "missing": {
                 "oneOf": [
@@ -871,6 +894,7 @@
           "counted",
           "unverified",
           "ready",
+          "readyAlone",
           "needed",
           "missing"
         ],
@@ -908,6 +932,10 @@
           },
           "ready": {
             "type": "boolean"
+          },
+          "readyAlone": {
+            "type": "boolean",
+            "description": "It would be ready without the goals above it in the priority (ADR 0033)."
           },
           "needed": {
             "type": "array",

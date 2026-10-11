@@ -584,6 +584,7 @@ def test_the_engineering_block_before_the_game_closes() -> None:
         ("Encoded gained", "3"),
         ("Materials used", "8"),
         ("Goals ready", "1 of 1"),
+        ("Power distributor: High charge capacity, grade 1", "ready"),
     ]
     assert replay.presenter.render().alert == (
         "Goal done: Power distributor: High charge capacity, grade 2"

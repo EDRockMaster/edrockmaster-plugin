@@ -15,10 +15,15 @@
   suits and weapons seen. The player's own materials brought into the backpack
   count in the collection, by kind; what the backpack carried at a death is lost.
 - The **goals**: what each one still misses, with the inventory, and the
-  unlocked engineers who offer it. A goal is **ready** when nothing is missing
-  for it alone. A roll of a blueprint, at the goal's grade, on the goal's
-  module type, takes one roll off the first matching goal; an experimental
-  effect, one application. A goal with nothing left is done and removed.
+  unlocked engineers who offer it. They come in the player's order, their
+  **priority** (ADR 0033): the materials held go to the goals in that order,
+  the ship's and the on-foot ones apart, each goal taking what it needs of what
+  is left, even when it cannot be completed. A goal is **ready** when nothing is
+  missing once the goals above it have taken their share; one ready **alone**
+  but not after them says so. A goal that does not count materials takes none.
+  A roll of a blueprint, at the goal's grade, on the goal's module type, takes
+  one roll off the first matching goal; an experimental effect, one
+  application. A goal with nothing left is done and removed.
 - **Class upgrades** on foot (ADR 0027, ADR 0030): every step's ingredients
   and credits, against the on-foot materials held; a step the catalogue does
   not know is said, and the goal is then never ready. When the journal shows
@@ -153,6 +158,8 @@ class GoalProgress:
     counted: bool = True
     """``False`` when what is left to do is not only materials held: a rank, a reputation, a
     commodity (an engineer unlock); the goal is then never ready."""
+    ready_alone: bool = False
+    """It would be ready without the goals above it in the priority (ADR 0033)."""
 
     @property
     def ready(self) -> bool:
@@ -298,7 +305,7 @@ class EngineeringTracker:
     def stats(self) -> EngineeringStats:
         return EngineeringStats(
             self._collection.stats() if self._collection else None,
-            tuple(self._progress(goal) for goal in self._goals),
+            self._reserved(),
             self._inventory is not None,
             self._on_foot.known,
         )
@@ -392,6 +399,15 @@ class EngineeringTracker:
     def remove_goal(self, goal_id: GoalId) -> list[EngineeringNotification]:
         self._goals = [goal for goal in self._goals if goal.id != goal_id]
         self._ready.discard(goal_id)
+        return self._after(progressed=False)
+
+    def order_goals(self, order: Iterable[GoalId]) -> list[EngineeringNotification]:
+        """The player's new priority (ADR 0033): the goals it names first, in its order, then
+        the others as they were; an id no goal has is ignored."""
+        by_id = {goal.id: goal for goal in self._goals}
+        named = list(dict.fromkeys(goal_id for goal_id in order if goal_id in by_id))
+        rest = [goal for goal in self._goals if goal.id not in named]
+        self._goals = [by_id[goal_id] for goal_id in named] + rest
         return self._after(progressed=False)
 
     # Rules
@@ -624,6 +640,23 @@ class EngineeringTracker:
             return GoalProgress(goal, {}, None, (), known=False)
         missing = None if self._inventory is None else _missing(needed, self._inventory)
         return GoalProgress(goal, needed, missing, self._engineers_for(goal))
+
+    def _reserved(self) -> tuple[GoalProgress, ...]:
+        """Each goal's progress once the goals above it took their share (ADR 0033)."""
+        ship = dict(self._inventory or {})
+        on_foot = dict(self._on_foot.held())
+        reserved = []
+        for goal in self._goals:
+            alone = self._progress(goal)
+            if alone.missing is None or not alone.known or not alone.counted:
+                reserved.append(alone)  # nothing it can count: it takes nothing
+                continue
+            left = ship if isinstance(goal, BlueprintGoal | ExperimentalEffectGoal) else on_foot
+            missing = _missing(alone.needed, left)
+            for symbol, count in alone.needed.items():
+                left[symbol] = max(0, left.get(symbol, 0) - count)
+            reserved.append(replace(alone, missing=missing, ready_alone=alone.ready))
+        return tuple(reserved)
 
     def _on_foot_goals(self) -> list[OnFootGoal | EngineerUnlockGoal]:
         """The goals that take on-foot materials."""

@@ -109,17 +109,17 @@ def test_a_removed_goal_is_gone_and_new_ones_come_last(storage: Storage) -> None
     assert storage.loaded() == (MASS_MANAGER, DIRTY, RANGE)
 
 
-def test_class_upgrades_are_stored_and_listed_after_the_ship_goals(storage: Storage) -> None:
+def test_class_upgrades_are_stored_among_the_ship_goals(storage: Storage) -> None:
     for goal in (DOMINATOR, RANGE, ECLIPSE):
         storage.repository.add(goal)
-    assert storage.loaded() == (RANGE, DOMINATOR, ECLIPSE)
+    assert storage.loaded() == (DOMINATOR, RANGE, ECLIPSE)
     started_higher = ClassUpgradeGoal(DOMINATOR.id, "tacticalsuit", 3, 4, SET_AT, 1878707285049801)
     storage.repository.replace(started_higher)
     storage.repository.remove(ECLIPSE.id)
-    assert storage.loaded() == (RANGE, started_higher)
+    assert storage.loaded() == (started_higher, RANGE)
 
 
-def test_modifications_are_stored_and_listed_after_the_class_upgrades(storage: Storage) -> None:
+def test_modifications_are_stored_among_the_other_goals(storage: Storage) -> None:
     backpack = ModificationGoal(
         GoalId("m1"), "utilitysuit", "suit_backpackcapacity", SET_AT, 1878707285049801
     )
@@ -128,22 +128,41 @@ def test_modifications_are_stored_and_listed_after_the_class_upgrades(storage: S
     )
     for goal in (backpack, DOMINATOR, stability, RANGE):
         storage.repository.add(goal)
-    assert storage.loaded() == (RANGE, DOMINATOR, backpack, stability)
+    assert storage.loaded() == (backpack, DOMINATOR, stability, RANGE)
     on_another = ModificationGoal(backpack.id, "utilitysuit", "suit_backpackcapacity", SET_AT, 42)
     storage.repository.replace(on_another)
     storage.repository.remove(stability.id)
-    assert storage.loaded() == (RANGE, DOMINATOR, on_another)
+    assert storage.loaded() == (on_another, DOMINATOR, RANGE)
 
 
-def test_engineer_unlocks_are_stored_and_listed_last(storage: Storage) -> None:
+def test_engineer_unlocks_are_stored_among_the_other_goals(storage: Storage) -> None:
     kit = EngineerUnlockGoal(GoalId("u1"), 400004)
     farseer = EngineerUnlockGoal(GoalId("u2"), 300100)
     for goal in (kit, RANGE, farseer):
         storage.repository.add(goal)
-    assert storage.loaded() == (RANGE, kit, farseer)
+    assert storage.loaded() == (kit, RANGE, farseer)
     storage.repository.replace(EngineerUnlockGoal(kit.id, 400005))
     storage.repository.remove(farseer.id)
-    assert storage.loaded() == (RANGE, EngineerUnlockGoal(kit.id, 400005))
+    assert storage.loaded() == (EngineerUnlockGoal(kit.id, 400005), RANGE)
+
+
+def test_the_player_s_priority_is_kept_whatever_the_goals_kinds(storage: Storage) -> None:
+    kit = EngineerUnlockGoal(GoalId("u1"), 400004)
+    for goal in (RANGE, DOMINATOR, kit, MASS_MANAGER):
+        storage.repository.add(goal)
+    storage.repository.reorder((kit.id, MASS_MANAGER.id, RANGE.id, DOMINATOR.id))
+    assert storage.loaded() == (kit, MASS_MANAGER, RANGE, DOMINATOR)
+    # A new goal comes last; a removed one leaves no gap
+    storage.repository.remove(MASS_MANAGER.id)
+    storage.repository.add(DIRTY)
+    assert storage.loaded() == (kit, RANGE, DOMINATOR, DIRTY)
+
+
+def test_an_order_without_some_goals_puts_them_last(storage: Storage) -> None:
+    for goal in (RANGE, MASS_MANAGER, DIRTY):
+        storage.repository.add(goal)
+    storage.repository.reorder((DIRTY.id, GoalId("gone")))
+    assert storage.loaded() == (DIRTY, RANGE, MASS_MANAGER)
 
 
 def test_the_time_a_goal_was_set_is_kept_in_utc(storage: Storage) -> None:

@@ -114,6 +114,12 @@ class EngineeringService:
         self._goals.remove(goal_id)
         return self._tracker.remove_goal(goal_id)
 
+    def order_goals(self, order: Sequence[GoalId]) -> list[EngineeringNotification]:
+        """The player's priority (ADR 0033): the goals it names first, then the others."""
+        notifications = self._tracker.order_goals(order)
+        self._goals.reorder(tuple(goal.id for goal in self._tracker.goals))
+        return notifications
+
     def _stored(
         self, notifications: Iterable[EngineeringNotification]
     ) -> list[EngineeringNotification]:

@@ -18,26 +18,25 @@
     total,
   } from "../lib/on-foot";
   import CardStack from "./CardStack.svelte";
+  import GoalMove from "./GoalMove.svelte";
+  import { draggableGoal } from "../lib/goal-order";
   import EngineerList from "./EngineerList.svelte";
   import UnlockList from "./UnlockList.svelte";
   import ClassUpgradeForm from "./ClassUpgradeForm.svelte";
   import ModificationForm from "./ModificationForm.svelte";
 
-  let { onFoot, language }: { onFoot: OnFoot; language: Language } = $props();
+  let { onFoot, priority, language }: { onFoot: OnFoot; priority: string[]; language: Language } =
+    $props();
 
   const groups = $derived(groupByKind(onFoot.materials, language));
-  // Ready goals first, then in the order the player added them, as on the ship
-  const modifications = $derived([
-    ...onFoot.modifications.filter((goal) => goal.ready),
-    ...onFoot.modifications.filter((goal) => !goal.ready),
-  ]);
+  // In the player's priority (ADR 0033), as the core gives them, each list moving its own
+  const modifications = $derived(onFoot.modifications);
+  const modificationIds = $derived(modifications.map((goal) => goal.id));
   const noGoal = $derived(
     onFoot.goals.length === 0 && onFoot.modifications.length === 0 && onFoot.unlocks.length === 0,
   );
-  const goals = $derived([
-    ...onFoot.goals.filter((goal) => goal.ready),
-    ...onFoot.goals.filter((goal) => !goal.ready),
-  ]);
+  const goals = $derived(onFoot.goals);
+  const goalIds = $derived(goals.map((goal) => goal.id));
 
   // The shopping list shows once there is a goal
   const cards = $derived(
@@ -86,8 +85,15 @@
   <h3>{t(language, "onFoot.classUpgrades")}</h3>
   <ul class="goals">
     {#each goals as goal (goal.id)}
-      <li class:ready={goal.ready}>
+      <li class:ready={goal.ready} use:draggableGoal={{ goal: goal.id, list: goalIds, priority }}>
         <div class="goal-head">
+          <GoalMove
+            goal={goal.id}
+            list={goalIds}
+            {priority}
+            title={classGoalTitle(goal, language)}
+            {language}
+          />
           <strong>{classGoalTitle(goal, language)}</strong>
           {#if goal.ready}<span class="badge">{t(language, "engineering.goal.ready")}</span>{/if}
           <label class="to">
@@ -118,6 +124,7 @@
           <p class="muted">{t(language, "onFoot.goal.unknownLocker")}</p>
         {:else if goal.missing.length > 0}
           <p>{t(language, "engineering.goal.missing", { items: ingredientsText(goal.missing) })}</p>
+          {#if goal.readyAlone}<p class="note">{t(language, "goal.takenAbove")}</p>{/if}
         {/if}
         <p class="muted">
           {t(language, "onFoot.goal.credits", { credits: creditsText(goal.credits, language) })}
@@ -133,8 +140,18 @@
   <h3 class="part">{t(language, "onFoot.modifications")}</h3>
   <ul class="goals">
     {#each modifications as goal (goal.id)}
-      <li class:ready={goal.ready}>
+      <li
+        class:ready={goal.ready}
+        use:draggableGoal={{ goal: goal.id, list: modificationIds, priority }}
+      >
         <div class="goal-head">
+          <GoalMove
+            goal={goal.id}
+            list={modificationIds}
+            {priority}
+            title={modificationGoalTitle(goal, language)}
+            {language}
+          />
           <strong>{modificationGoalTitle(goal, language)}</strong>
           {#if goal.ready}<span class="badge">{t(language, "engineering.goal.ready")}</span>{/if}
           <button
@@ -155,6 +172,7 @@
             <p>
               {t(language, "engineering.goal.missing", { items: ingredientsText(goal.missing) })}
             </p>
+            {#if goal.readyAlone}<p class="note">{t(language, "goal.takenAbove")}</p>{/if}
           {/if}
           <p class="muted">
             {t(language, "onFoot.goal.credits", { credits: creditsText(goal.credits, language) })}
@@ -177,7 +195,7 @@
   <ModificationForm equipment={onFoot.equipment} {language} />
   {#if onFoot.unlocks.length > 0}
     <h3 class="part">{t(language, "unlock.heading")}</h3>
-    <UnlockList unlocks={onFoot.unlocks} {language} />
+    <UnlockList unlocks={onFoot.unlocks} {priority} {language} />
   {/if}
 {/snippet}
 

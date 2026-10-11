@@ -16,6 +16,7 @@ from edrockmaster.infrastructure.database import (
     LocalDatabase,
     WrongThreadError,
 )
+from edrockmaster.infrastructure.goal_repository import read_goals
 from edrockmaster.infrastructure.migrations import LATEST_VERSION, MIGRATIONS, Migration
 
 FIXTURES = Path(__file__).resolve().parent.parent / "fixtures" / "database"
@@ -66,6 +67,8 @@ MODIFICATIONS = 3
 """The schema version that added the modification goals (ADR 0027)."""
 UNLOCKS = 4
 """The schema version that added the engineer unlock goals (ADR 0027)."""
+PRIORITY = 5
+"""The schema version that gave all the goals one order, the player's priority (ADR 0033)."""
 
 
 def fixture_versions() -> list[int]:
@@ -138,6 +141,16 @@ def test_each_past_version_opens_at_the_latest_and_keeps_its_data(
         count = db.connection().execute("SELECT count(*) FROM engineer_unlock_goal").fetchone()
         assert count == (1,)
     db.close()
+
+
+def test_the_goals_get_one_order_ship_goals_first_as_they_were_read(tmp_path: Path) -> None:
+    load_fixture(PRIORITY - 1, tmp_path / FILE_NAME)
+    db = database(tmp_path)
+    assert db.open().available
+    ids = [goal.id.value for goal in read_goals(db.connection())]
+    db.close()
+    # Ship goals, class upgrades, modifications, then engineer unlocks
+    assert ids == ["5b0f6c1d", "9e2a7d4c", "7c3e1a9b", "2d8f5e0a", "6a1c9e3f"]
 
 
 def test_a_migration_copies_the_file_first_and_keeps_the_last_copy_only(tmp_path: Path) -> None:

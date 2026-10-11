@@ -138,6 +138,13 @@
 "Materials used" = "Matériaux utilisés";
 "At cap" = "Au plafond";
 "On-foot materials" = "Matériaux à pied";
+"Other goals" = "Autres objectifs";
+"ready" = "prêt";
+"recipe unknown" = "recette inconnue";
+"conditions to meet in game" = "conditions à remplir en jeu";
+"taken by a goal above" = "pris par un objectif au-dessus";
+"missing {count} {material}" = "manque {count} {material}";
+"missing {units} units of {materials} materials" = "manque {units} unités de {materials} matériaux";
 "{gained}, {lost} lost" = "{gained}, {lost} perdus";
 "Goals ready" = "Objectifs prêts";
 "{ready} of {total}" = "{ready} sur {total}";

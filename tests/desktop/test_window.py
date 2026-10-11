@@ -49,6 +49,7 @@ class FakeGui:
         api.add_goal({"kind": "effect", "module": "fsd", "name": "special_fsd_heavy"})
         api.change_goal("nowhere", 2)
         api.remove_goal("nowhere")
+        api.order_goals(["nowhere"])
         settings = api.settings()
         api.save_settings(settings)
         api.open_folder("logs")

@@ -23,6 +23,10 @@ export type EngineerUnlock = {
   unverified: boolean;
   ready: boolean;
   /**
+   * It would be ready without the goals above it in the priority (ADR 0033).
+   */
+  readyAlone: boolean;
+  /**
    * The on-foot materials the steps left take.
    */
   needed: Ingredient[];
@@ -145,6 +149,10 @@ export interface Engineering {
     known: boolean;
     ready: boolean;
     /**
+     * It would be ready without the goals above it in the priority (ADR 0033).
+     */
+    readyAlone: boolean;
+    /**
      * What the inventory lacks for the goal; null while the inventory is unknown.
      */
     missing: null | Ingredient[];
@@ -157,6 +165,10 @@ export interface Engineering {
   catalogueDate: string;
   onFoot: OnFoot;
   unlocks: EngineerUnlock;
+  /**
+   * Every goal's id, ship and on foot, in the player's priority (ADR 0033).
+   */
+  priority: string[];
 }
 export interface Ingredient {
   symbol: string;
@@ -266,6 +278,10 @@ export interface OnFoot {
     credits: number;
     ready: boolean;
     /**
+     * It would be ready without the goals above it in the priority (ADR 0033).
+     */
+    readyAlone: boolean;
+    /**
      * What the on-foot materials held lack for the known steps; null while the ship locker is unknown.
      */
     missing: null | Ingredient[];
@@ -308,6 +324,10 @@ export interface OnFoot {
      */
     credits: number;
     ready: boolean;
+    /**
+     * It would be ready without the goals above it in the priority (ADR 0033).
+     */
+    readyAlone: boolean;
     /**
      * What the on-foot materials held lack for it; null while the ship locker or its recipe is unknown.
      */

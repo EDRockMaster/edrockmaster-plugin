@@ -1,12 +1,11 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App.svelte";
 import EngineeringView from "../src/components/EngineeringView.svelte";
 import {
   fill,
   goalTitle,
   groupMaterials,
-  orderedGoals,
   statusText,
   type Goal,
   type Material,
@@ -29,6 +28,7 @@ function goal(overrides: Partial<Goal>): Goal {
     count: 2,
     known: true,
     ready: false,
+    readyAlone: false,
     missing: [],
     engineers: [],
     ...overrides,
@@ -70,7 +70,7 @@ describe("engineering logic", () => {
     expect(fill(material({ count: 4, cap: null }))).toBe(0);
   });
 
-  it("titles goals and engineers, ready goals first", () => {
+  it("titles goals and engineers", () => {
     expect(goalTitle(goal({}), "fr")).toBe("Frame shift drive : Increased range, grade 5");
     expect(goalTitle(goal({ kind: "effect", grade: null, title: "Mass Manager" }), "en")).toBe(
       "Frame shift drive: Mass Manager (experimental effect)",
@@ -79,8 +79,6 @@ describe("engineering logic", () => {
     const engineer = { id: 1, name: "Marco Qwent", status: "unlocked" as const, rank: 5 };
     expect(statusText(engineer, "fr")).toBe("Débloqué, rang 5");
     expect(statusText({ ...engineer, status: null, rank: null }, "en")).toBe("Not met yet");
-    const [first] = orderedGoals([goal({ id: "a" }), goal({ id: "b", ready: true })]);
-    expect(first?.id).toBe("b");
   });
 });
 
@@ -139,6 +137,78 @@ describe("EngineeringView", () => {
     expect(api.change_goal).toHaveBeenCalledTimes(1);
     await fireEvent.click(screen.getByRole("button", { name: /Remove the goal/ }));
     expect(api.remove_goal).toHaveBeenCalledWith("pd");
+  });
+
+  it("moves a goal in the priority with its arrows, among the goals of its list", async () => {
+    const api = withCore();
+    render(EngineeringView, {
+      language: "en",
+      engineering: engineering({
+        goals: [goal({ id: "a", title: "Increased range" }), goal({ id: "b", title: "Clean" })],
+        // An on-foot goal sits between them: it keeps its place
+        priority: ["a", "suit", "b"],
+      }),
+    });
+    expect(screen.getByRole("button", { name: /Raise .*Increased range/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Lower .*Clean/ })).toBeDisabled();
+    await fireEvent.click(screen.getByRole("button", { name: /Lower .*Increased range/ }));
+    expect(api.order_goals).toHaveBeenCalledWith(["suit", "b", "a"]);
+    await fireEvent.click(screen.getByRole("button", { name: /Raise .*Clean/ }));
+    expect(api.order_goals).toHaveBeenLastCalledWith(["b", "a", "suit"]);
+  });
+
+  it("moves a goal by dragging its handle onto another goal of its list", async () => {
+    const api = withCore();
+    render(EngineeringView, {
+      language: "en",
+      engineering: engineering({
+        goals: [goal({ id: "a", title: "Increased range" }), goal({ id: "b", title: "Clean" })],
+        priority: ["a", "b"],
+      }),
+    });
+    const [first, second] = screen.getAllByRole("listitem").slice(0, 2) as [
+      HTMLElement,
+      HTMLElement,
+    ];
+    // Not draggable until its handle is held: its inputs stay usable
+    expect(first.draggable).toBe(false);
+    await fireEvent.dragOver(second); // nothing dragged yet
+    expect(second).not.toHaveClass("over");
+    await fireEvent.pointerDown(first.querySelector("[data-grip]") as Element);
+    expect(first.draggable).toBe(true);
+    await fireEvent.dragStart(first, { dataTransfer: { effectAllowed: "", setData: vi.fn() } });
+    expect(first).toHaveClass("dragging");
+    await fireEvent.dragOver(first); // onto itself: nothing
+    expect(first).not.toHaveClass("over");
+    await fireEvent.dragOver(second);
+    expect(second).toHaveClass("over");
+    await fireEvent.dragLeave(second);
+    expect(second).not.toHaveClass("over");
+    await fireEvent.drop(second);
+    await fireEvent.dragEnd(first);
+    expect(api.order_goals).toHaveBeenCalledWith(["b", "a"]);
+    expect(first.draggable).toBe(false);
+    expect(first).not.toHaveClass("dragging");
+  });
+
+  it("says a goal ready on its own waits for a goal above", () => {
+    withCore();
+    render(EngineeringView, {
+      language: "en",
+      engineering: engineering({
+        goals: [
+          goal({
+            id: "a",
+            readyAlone: true,
+            missing: [{ symbol: "arsenic", name: "Arsenic", count: 2, held: 3 }],
+          }),
+        ],
+        priority: ["a"],
+      }),
+    });
+    expect(screen.getByText(/a goal above takes the materials/)).toBeInTheDocument();
+    // A goal alone in its list has nothing to move
+    expect(screen.queryByRole("button", { name: /Raise/ })).toBeNull();
   });
 
   it("adds a blueprint goal and an experimental effect goal", async () => {

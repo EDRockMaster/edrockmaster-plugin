@@ -52,6 +52,7 @@ export function engineering(overrides: Partial<Engineering> = {}): Engineering {
     goals: [],
     shoppingList: [],
     unlocks: [],
+    priority: [],
     catalogueDate: "2026-09-05",
     onFoot: onFoot(),
     ...overrides,

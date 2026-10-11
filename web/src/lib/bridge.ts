@@ -19,6 +19,8 @@ export interface CoreApi {
    * upgrade). */
   change_goal(goalId: string, count: number): Promise<void>;
   remove_goal(goalId: string): Promise<void>;
+  /** The player's priority (ADR 0033): every goal's id, first to last. */
+  order_goals(order: string[]): Promise<void>;
   /** What the settings form shows (ADR 0020). */
   settings(): Promise<Settings>;
   save_settings(settings: Settings): Promise<void>;

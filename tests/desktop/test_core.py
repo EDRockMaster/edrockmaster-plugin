@@ -301,6 +301,19 @@ def test_goals_added_changed_and_removed_from_the_interface(desktop: Desktop) ->
     desktop.views.wait_for(lambda v: goals(v) == [])
 
 
+def test_the_player_s_priority_reaches_the_view(desktop: Desktop) -> None:
+    desktop.core.ready()
+    desktop.core.add_goal(FSD_GOAL)
+    desktop.core.add_goal({"kind": "effect", "module": "fsd", "name": "special_fsd_heavy"})
+    view = desktop.views.wait_for(lambda v: len(goals(v)) == 2)
+    first, second = (goal["id"] for goal in goals(view))
+    assert view["engineering"]["priority"] == [first, second]
+    desktop.core.order_goals([second, "nowhere"])
+    view = desktop.views.wait_for(lambda v: v["engineering"]["priority"] == [second, first])
+    assert [goal["id"] for goal in goals(view)] == [second, first]
+    assert [goal["readyAlone"] for goal in goals(view)] == [False, False]
+
+
 def test_goal_requests_that_cannot_be_done_are_logged(
     desktop: Desktop, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -309,6 +322,7 @@ def test_goal_requests_that_cannot_be_done_are_logged(
         desktop.core.add_goal({**FSD_GOAL, "grade": 9})
         desktop.core.change_goal("nowhere", 2)
         desktop.core.remove_goal("nowhere")
+        desktop.core.order_goals("nowhere")  # type: ignore[arg-type]
         desktop.core.add_goal(FSD_GOAL)
         [goal] = goals(desktop.views.wait_for(lambda v: len(goals(v)) == 1))
         desktop.core.change_goal(goal["id"], 0)
@@ -318,6 +332,7 @@ def test_goal_requests_that_cannot_be_done_are_logged(
     assert "Goal refused" in caplog.text
     assert "No goal 'nowhere' to change" in caplog.text
     assert "No goal 'nowhere' to remove" in caplog.text
+    assert "Goal order refused" in caplog.text
     assert "Goal change refused" in caplog.text
 
 

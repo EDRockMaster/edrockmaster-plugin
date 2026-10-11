@@ -6,6 +6,11 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
+### Ajouté
+
+- **Une priorité sur les objectifs d'ingénierie** (ADR 0033). Les objectifs, de vaisseau et à pied, viennent dans un seul ordre choisi par le joueur : des flèches sur chaque objectif, ou en glissant sa poignée sur un autre objectif de la même liste. Les matériaux en stock vont aux objectifs dans cet ordre : deux objectifs qui demandent les mêmes matériaux ne sont plus prêts tous les deux quand un seul peut être fait. Un objectif est prêt quand il ne lui manque rien une fois que les objectifs au-dessus ont pris leur part, et celui qui serait prêt à lui seul dit qu'un objectif au-dessus prend ses matériaux. Un nouvel objectif arrive en dernier ; les objectifs déjà posés gardent leur ordre (objectifs de vaisseau, montées de classe, modifications, déblocages d'ingénieurs), dans une nouvelle table de la base locale (schéma version 5). La liste de courses ne change pas.
+- **Un résumé des objectifs dans la carte de l'ingénierie** d'*Activités* : après *Objectifs prêts : 1 sur 3*, les trois premiers objectifs dans la priorité, chacun *prêt* ou ce qui lui manque (`manque 2 Arsenic`, `manque 5 unités de 2 matériaux`, *pris par un objectif au-dessus*), puis combien d'autres.
+
 ### Modifié
 
 - Les **objectifs communautaires** ont leur propre carte dans *Activités* (ADR 0032), et non plus celle du combat : un objectif communautaire peut porter sur le commerce, le minage ou l'exploration. La carte n'apparaît que tant qu'un objectif est rejoint, une tuile par objectif : son titre complet et son système, la contribution, la tranche de percentile, le palier atteint sur le palier le plus haut (`palier 3 sur 5`), et le temps restant avant l'échéance, décompté par l'interface, ou *Terminé : récompense à toucher*. On peut la masquer dans *Réglages*, et elle ne prend jamais le panneau en mode « dernière active ». Dans la démo, l'objectif se termine aussi longtemps après maintenant qu'après l'enregistrement.

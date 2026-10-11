@@ -200,5 +200,9 @@
   "countdown.ended": "ended",
   "countdown.days": "{days} d {hours} h",
   "countdown.hours": "{hours} h {minutes} min",
-  "countdown.minutes": "{minutes} min"
+  "countdown.minutes": "{minutes} min",
+  "goal.up": "Raise {goal} in the priority",
+  "goal.down": "Lower {goal} in the priority",
+  "goal.drag": "Drag {goal} onto another goal to take its place",
+  "goal.takenAbove": "Ready on its own: a goal above takes the materials. Raise it to make it ready."
 }

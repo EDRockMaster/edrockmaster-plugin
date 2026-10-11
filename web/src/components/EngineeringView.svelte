@@ -1,25 +1,22 @@
 <script lang="ts">
   import { core } from "../lib/bridge";
-  import {
-    fill,
-    goalTitle,
-    groupMaterials,
-    ingredientsText,
-    orderedGoals,
-    statusText,
-  } from "../lib/engineering";
+  import { fill, goalTitle, groupMaterials, ingredientsText, statusText } from "../lib/engineering";
   import { t, type Language } from "../lib/i18n";
   import type { Engineering } from "../lib/live-view";
   import CardStack from "./CardStack.svelte";
   import EngineerList from "./EngineerList.svelte";
   import UnlockList from "./UnlockList.svelte";
   import GoalForm from "./GoalForm.svelte";
+  import GoalMove from "./GoalMove.svelte";
+  import { draggableGoal } from "../lib/goal-order";
   import OnFootView from "./OnFootView.svelte";
 
   let { engineering, language }: { engineering: Engineering; language: Language } = $props();
 
   const groups = $derived(groupMaterials(engineering.materials, language));
-  const goals = $derived(orderedGoals(engineering.goals));
+  // In the player's priority (ADR 0033), as the core gives them
+  const goals = $derived(engineering.goals);
+  const ids = $derived(goals.map((goal) => goal.id));
   const unlocked = $derived(
     engineering.engineers.filter((engineer) => engineer.status === "unlocked").length,
   );
@@ -52,7 +49,7 @@
     </button>
   </div>
   {#if part === "onFoot"}
-    <OnFootView onFoot={engineering.onFoot} {language} />
+    <OnFootView onFoot={engineering.onFoot} priority={engineering.priority} {language} />
   {:else}
     <CardStack view="engineering" {cards} {language}>
       {#snippet extra(card)}
@@ -86,8 +83,18 @@
   {/if}
   <ul class="goals">
     {#each goals as goal (goal.id)}
-      <li class:ready={goal.ready}>
+      <li
+        class:ready={goal.ready}
+        use:draggableGoal={{ goal: goal.id, list: ids, priority: engineering.priority }}
+      >
         <div class="goal-head">
+          <GoalMove
+            goal={goal.id}
+            list={ids}
+            priority={engineering.priority}
+            title={goalTitle(goal, language)}
+            {language}
+          />
           <strong>{goalTitle(goal, language)}</strong>
           {#if goal.ready}<span class="badge">{t(language, "engineering.goal.ready")}</span>{/if}
           <label class="count">
@@ -126,6 +133,7 @@
           <p>
             {t(language, "engineering.goal.missing", { items: ingredientsText(goal.missing) })}
           </p>
+          {#if goal.readyAlone}<p class="note">{t(language, "goal.takenAbove")}</p>{/if}
         {/if}
         <p class="muted">
           {goal.engineers.length > 0
@@ -138,7 +146,7 @@
   <GoalForm {language} />
   {#if engineering.unlocks.length > 0}
     <h3 class="part">{t(language, "unlock.heading")}</h3>
-    <UnlockList unlocks={engineering.unlocks} {language} />
+    <UnlockList unlocks={engineering.unlocks} priority={engineering.priority} {language} />
   {/if}
 {/snippet}
 
@@ -286,6 +294,12 @@
   }
   .alert {
     color: var(--colour-alert);
+  }
+  /* Said, without alarming */
+  .note {
+    font-size: 0.85rem;
+    color: var(--colour-text-muted);
+    font-style: italic;
   }
   .muted {
     color: var(--colour-text-muted);

@@ -80,6 +80,17 @@ def test_the_player_changes_are_stored(
     assert repository.stored == [one]
 
 
+def test_the_player_s_priority_is_stored(
+    service: EngineeringService, repository: FakeGoalRepository
+) -> None:
+    loaded(service)
+    other = BlueprintGoal(GoalId.new(), "FSD_LongRange", "fsd", grade=5)
+    service.add_goal(other)
+    [update] = [n for n in service.order_goals([other.id]) if isinstance(n, EngineeringUpdated)]
+    assert [progress.goal for progress in update.stats.goals] == [other, RANGE]
+    assert repository.stored == [other, RANGE]
+
+
 def test_reset_ends_the_collection(service: EngineeringService) -> None:
     assert service.reset_session() == []
     service.handle_journal_entry(

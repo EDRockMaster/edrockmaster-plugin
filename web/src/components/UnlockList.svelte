@@ -7,8 +7,17 @@
   import type { GoalCatalogue } from "../lib/goal-catalogue";
   import { t, type Language } from "../lib/i18n";
   import type { EngineerUnlock } from "../lib/live-view";
+  import { draggableGoal } from "../lib/goal-order";
+  import GoalMove from "./GoalMove.svelte";
 
-  let { unlocks, language }: { unlocks: EngineerUnlock; language: Language } = $props();
+  let {
+    unlocks,
+    priority,
+    language,
+  }: { unlocks: EngineerUnlock; priority: string[]; language: Language } = $props();
+
+  // In the player's priority (ADR 0033), as the core gives them
+  const ids = $derived(unlocks.map((goal) => goal.id));
 
   type Sheet = GoalCatalogue["engineerSheets"][number];
   let sheets = $state<Map<number, Sheet>>(new Map());
@@ -23,8 +32,9 @@
   {#each unlocks as goal (goal.id)}
     {@const sheet = sheets.get(goal.engineerId)}
     {@const title = t(language, "unlock.title", { engineer: goal.name })}
-    <li class:ready={goal.ready}>
+    <li class:ready={goal.ready} use:draggableGoal={{ goal: goal.id, list: ids, priority }}>
       <div class="goal-head">
+        <GoalMove goal={goal.id} list={ids} {priority} {title} {language} />
         <strong>{title}</strong>
         {#if goal.ready}<span class="badge">{t(language, "engineering.goal.ready")}</span>{/if}
         <button
@@ -53,6 +63,7 @@
           <p>
             {t(language, "engineering.goal.missing", { items: ingredientsText(goal.missing) })}
           </p>
+          {#if goal.readyAlone}<p class="note">{t(language, "goal.takenAbove")}</p>{/if}
         {/if}
       {/if}
       {#if !goal.known}

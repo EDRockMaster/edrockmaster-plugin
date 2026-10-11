@@ -81,6 +81,8 @@ def test_a_collection_shows_gains_use_caps_and_goals() -> None:
         StatLine("Materials used", "7"),
         StatLine("At cap", "Arsenic (game), Datamined Wake Exceptions"),
         StatLine("Goals ready", "1 of 2"),
+        StatLine("Frame shift drive: Increased range, grade 5", "ready"),
+        StatLine("Frame shift drive: Mass Manager", "missing 1 Arsenic (game)"),
     )
 
 
@@ -114,9 +116,12 @@ def test_the_on_foot_tile_says_only_what_happened(
 
 def test_goals_without_inventory_say_so() -> None:
     model = EngineeringPresenter(names()).apply(
-        [updated(None, progress(RANGE, False), known=False)]
+        [updated(None, GoalProgress(RANGE, {"arsenic": 1}, None, ()), known=False)]
     )
-    assert model.lines == (StatLine("Goals ready", "inventory unknown"),)
+    assert model.lines == (
+        StatLine("Goals ready", "inventory unknown"),
+        StatLine("Frame shift drive: Increased range, grade 5", "inventory unknown"),
+    )
 
 
 def test_alerts_last_until_a_change_without_one() -> None:
@@ -146,7 +151,10 @@ def test_a_ready_goal_s_alert_goes_with_the_goal() -> None:
     # The player removed it: nothing left to alert about
     removed = presenter.apply([updated(collection(), progress(MASS, False), progressed=False)])
     assert removed.alert is None
-    assert removed.lines == (StatLine("Goals ready", "0 of 1"),)
+    assert removed.lines == (
+        StatLine("Goals ready", "0 of 1"),
+        StatLine("Frame shift drive: Mass Manager", "missing 1 Arsenic"),
+    )
 
 
 def test_the_end_of_a_collection() -> None:
@@ -184,3 +192,42 @@ def test_names_of_suits_weapons_and_class_upgrades() -> None:
     assert EngineeringNames(None, identity).modification("weapon_handling") == "weapon_handling"
     # On foot: the catalogue's name, as it is, when the game gave none (ADR 0027)
     assert full.material("chemicalsample") == "Chemical Sample"
+
+
+# The goals' summary (ADR 0033): the first three in the player's priority
+
+
+def goal_lines(*goals: GoalProgress) -> list[tuple[str, str]]:
+    model = EngineeringPresenter(names()).apply([updated(None, *goals)])
+    return [(line.label, line.value) for line in model.lines[1:]]
+
+
+def test_a_goal_says_what_it_misses_in_materials_and_units() -> None:
+    missing = GoalProgress(RANGE, {}, {"arsenic": 3, "dataminedwake": 2}, ())
+    assert goal_lines(missing) == [
+        ("Frame shift drive: Increased range, grade 5", "missing 5 units of 2 materials")
+    ]
+
+
+def test_a_goal_ready_alone_says_a_goal_above_took_its_materials() -> None:
+    taken = GoalProgress(MASS, {}, {"arsenic": 2}, (), ready_alone=True)
+    assert goal_lines(taken) == [("Frame shift drive: Mass Manager", "taken by a goal above")]
+
+
+def test_a_goal_without_a_recipe_or_counted_otherwise_says_so() -> None:
+    unknown = GoalProgress(RANGE, {}, None, (), known=False)
+    unlock = GoalProgress(EngineerUnlockGoal(GoalId("unlock"), 300100), {}, {}, (), counted=False)
+    assert goal_lines(unknown, unlock) == [
+        ("Frame shift drive: Increased range, grade 5", "recipe unknown"),
+        ("Unlock Felicity Farseer", "conditions to meet in game"),
+    ]
+
+
+def test_only_the_first_three_goals_are_listed_then_how_many_more() -> None:
+    goals = [
+        GoalProgress(BlueprintGoal(GoalId(f"g{n}"), "FSD_LongRange", "fsd", grade=5), {}, {}, ())
+        for n in range(5)
+    ]
+    lines = goal_lines(*goals)
+    assert len(lines) == 4
+    assert lines[-1] == ("Other goals", "2")

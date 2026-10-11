@@ -76,6 +76,10 @@ class InterfaceApi:
     def remove_goal(self, goal_id: str) -> None:
         self._core.remove_goal(goal_id)
 
+    def order_goals(self, order: list[str]) -> None:
+        """The player's priority (ADR 0033): goal ids, first to last."""
+        self._core.order_goals(order)
+
     def settings(self) -> dict[str, Any]:
         """Returned to the page: what the settings form shows."""
         return self._core.settings()
