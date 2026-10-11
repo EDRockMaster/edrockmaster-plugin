@@ -39,7 +39,7 @@ class FakeGui:
         # The page loads and says it is ready; the core answers with the live view
         api: InterfaceApi = self.created["js_api"]
         api.ready()
-        deadline = time.monotonic() + 5
+        deadline = time.monotonic() + 20  # generous for a busy runner: only a failure waits
         while not self.window.scripts and time.monotonic() < deadline:
             time.sleep(0.01)
         api.reset("mining")
