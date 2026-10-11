@@ -12,6 +12,10 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 - **Your fleet carrier**: on-foot materials moved between the ship locker and your own carrier write no event in the game's journal; the *On foot* part shows each move, and reminds that moved materials no longer count. What the carrier holds will come from Frontier through EDRockMaster's services (ADR 0028).
 - **Class upgrade goals of suits and weapons** (ADR 0027, ADR 0030). In the *On foot* part, choose one of your suits or weapons (or any of a type, from the class you say) and the class to reach: the goal adds up the materials and credits of every step, against your ship locker and backpack, with its own shopping list. When the game shows the item at a higher class, the goal moves on, and goes once reached. The recipes of the 3 suits and 11 weapons were read in game, on 11 October 2026, up to class 4: those not seen on screen but deduced from what was are marked *not checked in game*, and the upgrades to class 5, not seen yet, are said to be unknown.
 
+### Changed
+
+- **Cards you arrange**: the activities and the parts of the *Engineering* tab are now cards, one below the other, each as wide as the window. Drag a card by its handle to move it (or use its arrows), and fold the ones you do not need; their order and those folded are kept from one session to the next. An activity's statistics show as tiles side by side, and the inventory shows each material category on its own row, its grades side by side, with each grade's cap at the top.
+
 ### Fixed
 
 - A ship locker the game only wrote to `ShipLocker.json` is now read from it, as the cargo is from `Cargo.json`.

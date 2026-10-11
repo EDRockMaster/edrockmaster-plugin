@@ -1,89 +1,85 @@
 <script lang="ts">
+  // What an activity's card shows (ADR 0013): its status, its alert, its statistics as tiles.
   import { t, type Language } from "../lib/i18n";
   import type { Block } from "../lib/live-view";
 
   let {
     block,
     language,
-    current,
     onreset,
-  }: { block: Block; language: Language; current: boolean; onreset: (activity: string) => void } =
-    $props();
+  }: { block: Block; language: Language; onreset: (activity: string) => void } = $props();
 </script>
 
-<section class="block" class:current aria-labelledby="title-{block.activity}">
-  <header>
-    <h2 id="title-{block.activity}">{t(language, `activity.${block.activity}`)}</h2>
-    <!-- A session runs: the badge says so, and only then can it be reset. The last activity
-         that progressed has the accent border, running or not. -->
-    {#if block.canReset}
-      <span class="badge">{t(language, "activity.running")}</span>
-      <button type="button" onclick={() => onreset(block.activity)}>
-        {t(language, "activity.reset")}
-      </button>
-    {/if}
-  </header>
-  <p class="status">{block.status}</p>
-  {#if block.alert}
-    <p class="alert" role="status">{block.alert}</p>
+<div class="state">
+  <span class="status">{block.status}</span>
+  <!-- A session runs: the badge says so, and only then can it be reset. The last activity
+       that progressed is the current card, running or not. -->
+  {#if block.canReset}
+    <span class="badge">{t(language, "activity.running")}</span>
+    <button type="button" onclick={() => onreset(block.activity)}>
+      {t(language, "activity.reset")}
+    </button>
   {/if}
-  {#if block.lines.length}
-    <dl>
-      {#each block.lines as line, index (index)}
+</div>
+{#if block.alert}
+  <p class="alert" role="status">{block.alert}</p>
+{/if}
+{#if block.lines.length}
+  <dl>
+    {#each block.lines as line, index (index)}
+      <div class="tile">
         <dt>{line.label}</dt>
         <dd>{line.value}</dd>
-      {/each}
-    </dl>
-  {/if}
-</section>
+      </div>
+    {/each}
+  </dl>
+{/if}
 
 <style>
-  .block {
-    background: var(--colour-surface);
-    border: 1px solid var(--colour-border);
-    border-radius: var(--radius);
-    padding: var(--space-3);
-  }
-  .current {
-    background: var(--colour-surface-current);
-    border-color: var(--colour-accent);
-  }
-  header {
+  .state {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--space-1) var(--space-2);
   }
-  h2 {
-    margin: 0;
-    font-size: 1.1rem;
-  }
-  header button {
-    margin-left: auto;
+  .status {
+    color: var(--colour-text-muted);
   }
   .badge {
     color: var(--colour-accent);
     font-size: 0.85rem;
     white-space: nowrap;
   }
-  .status {
-    color: var(--colour-text-muted);
-    margin: var(--space-2) 0;
+  .state button {
+    margin-left: auto;
   }
   .alert {
     color: var(--colour-alert);
     font-weight: 600;
-    margin: var(--space-2) 0;
+    margin: var(--space-2) 0 0;
   }
+  /* The card is as wide as the window: the statistics sit side by side, as tiles */
   dl {
     display: grid;
-    grid-template-columns: 1fr auto;
-    gap: var(--space-1) var(--space-3);
-    margin: 0;
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: var(--space-2) var(--space-3);
+    margin: var(--space-2) 0 0;
+  }
+  .tile {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-1) var(--space-2);
+    background: var(--colour-background);
+    border-radius: var(--radius);
+  }
+  dt {
+    color: var(--colour-text-muted);
+    font-size: 0.8rem;
   }
   dd {
     margin: 0;
-    text-align: right;
+    font-size: 1.05rem;
     font-variant-numeric: tabular-nums;
   }
 </style>

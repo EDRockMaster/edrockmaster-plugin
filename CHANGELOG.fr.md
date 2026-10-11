@@ -12,6 +12,10 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 - **Votre porte-vaisseaux** : les matériaux à pied déplacés entre le casier du vaisseau et votre propre porte-vaisseaux n'écrivent aucun événement dans le journal du jeu ; la partie *À pied* montre chaque déplacement, et rappelle que les matériaux déplacés ne comptent plus. Le contenu du porte-vaisseaux viendra de Frontier par les services d'EDRockMaster (ADR 0028).
 - **Objectifs de montée de classe des combinaisons et des armes** (ADR 0027, ADR 0030). Dans la partie *À pied*, choisissez l'une de vos combinaisons ou de vos armes (ou n'importe laquelle d'un type, depuis la classe que vous indiquez) et la classe à atteindre : l'objectif additionne les matériaux et les crédits de chaque palier, face au casier du vaisseau et au sac, avec sa propre liste de courses. Quand le jeu montre l'équipement à une classe plus haute, l'objectif avance, et disparaît une fois atteint. Les recettes des 3 combinaisons et des 11 armes ont été relevées en jeu le 11 octobre 2026, jusqu'à la classe 4 : celles qui n'ont pas été vues à l'écran mais déduites de celles qui l'ont été sont marquées *non vérifiée en jeu*, et les montées en classe 5, pas encore vues, sont signalées inconnues.
 
+### Modifié
+
+- **Des cartes à votre main** : les activités et les parties de l'onglet *Ingénierie* sont maintenant des cartes, les unes sous les autres, chacune aussi large que la fenêtre. Faites glisser une carte par sa poignée pour la déplacer (ou utilisez ses flèches), et repliez celles dont vous n'avez pas besoin ; leur ordre et celles repliées sont gardés d'une session à l'autre. Les statistiques d'une activité s'affichent en tuiles côte à côte, et l'inventaire montre chaque catégorie de matériaux sur sa propre ligne, ses grades côte à côte, avec le plafond de chaque grade en haut.
+
 ### Corrigé
 
 - Un casier du vaisseau que le jeu n'a écrit que dans `ShipLocker.json` est maintenant lu dans ce fichier, comme la soute l'est dans `Cargo.json`.

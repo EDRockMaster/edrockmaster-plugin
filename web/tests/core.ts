@@ -1,5 +1,6 @@
 import { vi } from "vitest";
 import type { CoreApi } from "../src/lib/bridge";
+import { FIRST_LAYOUT } from "../src/lib/cards";
 import type { GoalCatalogue } from "../src/lib/goal-catalogue";
 import type { Settings } from "../src/lib/settings";
 
@@ -116,5 +117,7 @@ export function fakeCore(): CoreApi {
     settings: vi.fn(async () => structuredClone(SETTINGS)),
     save_settings: vi.fn(async () => {}),
     open_folder: vi.fn(async () => {}),
+    layout: vi.fn(async () => structuredClone(FIRST_LAYOUT)),
+    save_layout: vi.fn(async () => {}),
   };
 }

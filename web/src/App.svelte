@@ -1,6 +1,7 @@
 <script lang="ts">
   import ActivityBlock from "./components/ActivityBlock.svelte";
   import BlueprintsView from "./components/BlueprintsView.svelte";
+  import CardStack from "./components/CardStack.svelte";
   import EngineeringView from "./components/EngineeringView.svelte";
   import SettingsView from "./components/SettingsView.svelte";
   import SituationBanner from "./components/SituationBanner.svelte";
@@ -13,6 +14,14 @@
   type Tab = "activities" | "engineering" | "blueprints" | "settings";
   const TABS: Tab[] = ["activities", "engineering", "blueprints", "settings"];
   let tab = $state<Tab>("activities");
+  // Each activity block is a card the player can move and fold
+  const activityCards = $derived(
+    (view?.activities ?? []).map((block) => ({
+      key: block.activity,
+      title: t(language, `activity.${block.activity}`),
+      block,
+    })),
+  );
 
   connect((next) => {
     // Optional call: a missing method must never keep the view from showing
@@ -59,16 +68,15 @@
     </div>
     <div role="tabpanel" id="panel-{tab}" aria-labelledby="tab-{tab}">
       {#if tab === "activities"}
-        <div class="activities">
-          {#each view.activities as block (block.activity)}
+        <CardStack view="activities" cards={activityCards} {language} current={view.current}>
+          {#snippet body(card)}
             <ActivityBlock
-              {block}
+              block={card.block}
               {language}
-              current={block.activity === view.current}
               onreset={(activity) => core()?.reset(activity)}
             />
-          {/each}
-        </div>
+          {/snippet}
+        </CardStack>
       {:else if tab === "engineering"}
         <EngineeringView engineering={view.engineering} {language} />
       {:else if tab === "blueprints"}
@@ -132,10 +140,5 @@
   .tabs button[aria-selected="true"] {
     color: var(--colour-text);
     border-bottom-color: var(--colour-accent);
-  }
-  .activities {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
-    gap: var(--space-3);
   }
 </style>

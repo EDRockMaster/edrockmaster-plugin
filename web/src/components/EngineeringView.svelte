@@ -10,6 +10,7 @@
   } from "../lib/engineering";
   import { t, type Language } from "../lib/i18n";
   import type { Engineering } from "../lib/live-view";
+  import CardStack from "./CardStack.svelte";
   import GoalForm from "./GoalForm.svelte";
   import OnFootView from "./OnFootView.svelte";
 
@@ -20,10 +21,18 @@
   const unlocked = $derived(
     engineering.engineers.filter((engineer) => engineer.status === "unlocked").length,
   );
-  // A long list once the game has named them all: the player may fold it away
-  let showEngineers = $state(true);
   // Ship engineering, or on foot (ADR 0027)
   let part = $state<"ship" | "onFoot">("ship");
+  const cards = $derived(
+    (
+      [
+        ["goals", "engineering.goals"],
+        ["shopping", "engineering.shopping"],
+        ["inventory", "engineering.inventory"],
+        ["engineers", "engineering.engineers"],
+      ] as const
+    ).map(([key, title]) => ({ key, title: t(language, title) })),
+  );
 
   function changeCount(goalId: string, event: Event): void {
     const count = Number((event.currentTarget as HTMLInputElement).value);
@@ -43,154 +52,160 @@
   {#if part === "onFoot"}
     <OnFootView onFoot={engineering.onFoot} {language} />
   {:else}
-    <section aria-labelledby="goals-title">
-      <h2 id="goals-title">{t(language, "engineering.goals")}</h2>
-      {#if goals.length === 0}
-        <p class="muted">{t(language, "engineering.noGoal")}</p>
-      {/if}
-      <ul class="goals">
-        {#each goals as goal (goal.id)}
-          <li class:ready={goal.ready}>
-            <div class="goal-head">
-              <strong>{goalTitle(goal, language)}</strong>
-              {#if goal.ready}<span class="badge">{t(language, "engineering.goal.ready")}</span
-                >{/if}
-              <label class="count">
-                {t(
-                  language,
-                  goal.kind === "blueprint"
-                    ? "engineering.goal.rolls"
-                    : "engineering.goal.applications",
-                )}
-                <input
-                  type="number"
-                  min="1"
-                  max="99"
-                  value={goal.count}
-                  aria-label={t(language, "engineering.goal.countLabel", {
-                    goal: goalTitle(goal, language),
-                  })}
-                  onchange={(event) => changeCount(goal.id, event)}
-                />
-              </label>
-              <button
-                type="button"
-                aria-label={t(language, "engineering.goal.removeLabel", {
-                  goal: goalTitle(goal, language),
-                })}
-                onclick={() => core()?.remove_goal(goal.id)}
-              >
-                {t(language, "engineering.goal.remove")}
-              </button>
-            </div>
-            {#if !goal.known}
-              <p class="alert">{t(language, "engineering.goal.unknown")}</p>
-            {:else if goal.missing === null}
-              <p class="muted">{t(language, "engineering.goal.unknownInventory")}</p>
-            {:else if goal.missing.length > 0}
-              <p>
-                {t(language, "engineering.goal.missing", { items: ingredientsText(goal.missing) })}
-              </p>
-            {/if}
-            <p class="muted">
-              {goal.engineers.length > 0
-                ? t(language, "engineering.goal.engineers", { names: goal.engineers.join(", ") })
-                : t(language, "engineering.goal.noEngineer")}
-            </p>
-          </li>
-        {/each}
-      </ul>
-      <GoalForm {language} />
-    </section>
+    <CardStack view="engineering" {cards} {language}>
+      {#snippet extra(card)}
+        {#if card.key === "engineers"}
+          <span class="muted">
+            {t(language, "engineering.engineers.unlocked", {
+              unlocked,
+              total: engineering.engineers.length,
+            })}
+          </span>
+        {/if}
+      {/snippet}
+      {#snippet body(card)}
+        {#if card.key === "goals"}
+          {@render goalList()}
+        {:else if card.key === "shopping"}
+          {@render shopping()}
+        {:else if card.key === "inventory"}
+          {@render inventory()}
+        {:else}
+          {@render engineers()}
+        {/if}
+      {/snippet}
+    </CardStack>
+  {/if}
+</div>
 
-    <section aria-labelledby="shopping-title">
-      <h2 id="shopping-title">{t(language, "engineering.shopping")}</h2>
-      {#if engineering.shoppingList.length === 0}
-        <p class="muted">{t(language, "engineering.shopping.empty")}</p>
-      {:else}
-        <dl class="pairs">
-          {#each engineering.shoppingList as item (item.symbol)}
-            <dt>{item.name}</dt>
-            <dd>
-              {t(language, "engineering.shopping.item", { count: item.count, held: item.held })}
-            </dd>
-          {/each}
-        </dl>
-      {/if}
-    </section>
+{#snippet goalList()}
+  {#if goals.length === 0}
+    <p class="muted">{t(language, "engineering.noGoal")}</p>
+  {/if}
+  <ul class="goals">
+    {#each goals as goal (goal.id)}
+      <li class:ready={goal.ready}>
+        <div class="goal-head">
+          <strong>{goalTitle(goal, language)}</strong>
+          {#if goal.ready}<span class="badge">{t(language, "engineering.goal.ready")}</span>{/if}
+          <label class="count">
+            {t(
+              language,
+              goal.kind === "blueprint"
+                ? "engineering.goal.rolls"
+                : "engineering.goal.applications",
+            )}
+            <input
+              type="number"
+              min="1"
+              max="99"
+              value={goal.count}
+              aria-label={t(language, "engineering.goal.countLabel", {
+                goal: goalTitle(goal, language),
+              })}
+              onchange={(event) => changeCount(goal.id, event)}
+            />
+          </label>
+          <button
+            type="button"
+            aria-label={t(language, "engineering.goal.removeLabel", {
+              goal: goalTitle(goal, language),
+            })}
+            onclick={() => core()?.remove_goal(goal.id)}
+          >
+            {t(language, "engineering.goal.remove")}
+          </button>
+        </div>
+        {#if !goal.known}
+          <p class="alert">{t(language, "engineering.goal.unknown")}</p>
+        {:else if goal.missing === null}
+          <p class="muted">{t(language, "engineering.goal.unknownInventory")}</p>
+        {:else if goal.missing.length > 0}
+          <p>
+            {t(language, "engineering.goal.missing", { items: ingredientsText(goal.missing) })}
+          </p>
+        {/if}
+        <p class="muted">
+          {goal.engineers.length > 0
+            ? t(language, "engineering.goal.engineers", { names: goal.engineers.join(", ") })
+            : t(language, "engineering.goal.noEngineer")}
+        </p>
+      </li>
+    {/each}
+  </ul>
+  <GoalForm {language} />
+{/snippet}
 
-    <section aria-labelledby="inventory-title">
-      <h2 id="inventory-title">{t(language, "engineering.inventory")}</h2>
-      {#if !engineering.inventoryKnown}
-        <p class="muted">{t(language, "engineering.inventory.unknown")}</p>
-      {:else}
-        <div class="categories">
-          {#each groups as group (group.category)}
-            <div>
-              <h3>{group.title}</h3>
-              {#each group.grades as grade (grade.grade)}
+{#snippet shopping()}
+  {#if engineering.shoppingList.length === 0}
+    <p class="muted">{t(language, "engineering.shopping.empty")}</p>
+  {:else}
+    <dl class="pairs">
+      {#each engineering.shoppingList as item (item.symbol)}
+        <dt>{item.name}</dt>
+        <dd>
+          {t(language, "engineering.shopping.item", { count: item.count, held: item.held })}
+        </dd>
+      {/each}
+    </dl>
+  {/if}
+{/snippet}
+
+{#snippet inventory()}
+  {#if !engineering.inventoryKnown}
+    <p class="muted">{t(language, "engineering.inventory.unknown")}</p>
+  {:else}
+    <!-- Each category on its own row, its grades side by side (ADR 0021) -->
+    <div class="categories">
+      {#each groups as group (group.category)}
+        <div>
+          <h3>{group.title}</h3>
+          <div class="grades">
+            {#each group.grades as grade (grade.grade)}
+              <div class="grade">
                 {#if grade.grade !== null}
-                  <h4>{t(language, "engineering.grade", { grade: grade.grade })}</h4>
+                  <h4>
+                    <span>{t(language, "engineering.grade", { grade: grade.grade })}</span>
+                    {#if grade.materials[0]?.cap}
+                      <span
+                        >{t(language, "engineering.grade.cap", {
+                          cap: grade.materials[0].cap,
+                        })}</span
+                      >
+                    {/if}
+                  </h4>
                 {/if}
                 <ul class="materials">
                   {#each grade.materials as material (material.symbol)}
                     <li class:capped={material.cap !== null && material.count >= material.cap}>
                       <span>{material.name}</span>
-                      <span class="value">
-                        {material.cap === null
-                          ? material.count
-                          : t(language, "engineering.count", {
-                              count: material.count,
-                              cap: material.cap,
-                            })}
-                      </span>
+                      <span class="value">{material.count}</span>
                       <span class="bar" style:width="{fill(material) * 100}%"></span>
                     </li>
                   {/each}
                 </ul>
-              {/each}
-            </div>
-          {/each}
+              </div>
+            {/each}
+          </div>
         </div>
-      {/if}
-    </section>
-
-    <section aria-labelledby="engineers-title">
-      <div class="heading">
-        <h2 id="engineers-title">{t(language, "engineering.engineers")}</h2>
-        <span class="muted">
-          {t(language, "engineering.engineers.unlocked", {
-            unlocked,
-            total: engineering.engineers.length,
-          })}
-        </span>
-        <button
-          type="button"
-          aria-expanded={showEngineers}
-          aria-controls="engineers-list"
-          onclick={() => (showEngineers = !showEngineers)}
-        >
-          {t(language, showEngineers ? "engineering.engineers.hide" : "engineering.engineers.show")}
-        </button>
-      </div>
-      {#if showEngineers}
-        <ul id="engineers-list" class="engineers">
-          {#each engineering.engineers as engineer (engineer.id)}
-            <li class:unlocked={engineer.status === "unlocked"}>
-              <span>{engineer.name}</span>
-              <span class:muted={engineer.status !== "unlocked"}
-                >{statusText(engineer, language)}</span
-              >
-            </li>
-          {/each}
-        </ul>
-      {/if}
-      <p class="muted small">
-        {t(language, "engineering.data", { date: engineering.catalogueDate })}
-      </p>
-    </section>
+      {/each}
+    </div>
   {/if}
-</div>
+{/snippet}
+
+{#snippet engineers()}
+  <ul class="engineers">
+    {#each engineering.engineers as engineer (engineer.id)}
+      <li class:unlocked={engineer.status === "unlocked"}>
+        <span>{engineer.name}</span>
+        <span class:muted={engineer.status !== "unlocked"}>{statusText(engineer, language)}</span>
+      </li>
+    {/each}
+  </ul>
+  <p class="muted small">
+    {t(language, "engineering.data", { date: engineering.catalogueDate })}
+  </p>
+{/snippet}
 
 <style>
   .engineering {
@@ -205,25 +220,18 @@
     border-color: var(--colour-accent);
     color: var(--colour-accent);
   }
-  section {
-    background: var(--colour-surface);
-    border: 1px solid var(--colour-border);
-    border-radius: var(--radius);
-    padding: var(--space-3);
-  }
-  h2 {
-    margin: 0 0 var(--space-2);
-    font-size: 1.1rem;
-  }
   h3 {
-    margin: var(--space-2) 0 var(--space-1);
+    margin: 0 0 var(--space-1);
     font-size: 1rem;
   }
   h4 {
-    margin: var(--space-2) 0 var(--space-1);
-    font-size: 0.85rem;
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-1);
+    font-size: 0.8rem;
     color: var(--colour-text-muted);
-    font-weight: normal;
+    font-weight: 600;
   }
   ul {
     list-style: none;
@@ -284,19 +292,6 @@
     margin: 0;
     text-align: right;
   }
-  .heading {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: var(--space-1) var(--space-3);
-    margin-bottom: var(--space-2);
-  }
-  .heading h2 {
-    margin: 0;
-  }
-  .heading button {
-    margin-left: auto;
-  }
   /* Name and status side by side in short rows, so that the eye does not cross the screen */
   .engineers {
     display: grid;
@@ -325,23 +320,38 @@
     outline: 1px solid var(--colour-border);
   }
   .categories {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    display: flex;
+    flex-direction: column;
     gap: var(--space-3);
+  }
+  .grades {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: var(--space-2);
+  }
+  .grade {
+    background: var(--colour-background);
+    border-radius: var(--radius);
+    padding: var(--space-2);
   }
   .materials li {
     position: relative;
     display: flex;
     justify-content: space-between;
     gap: var(--space-2);
-    padding: 2px var(--space-1);
-    font-size: 0.9rem;
+    padding: 3px var(--space-1);
+    font-size: 0.85rem;
+    overflow: hidden;
   }
   .materials li.capped {
     color: var(--colour-alert);
   }
   .value {
     font-variant-numeric: tabular-nums;
+    color: var(--colour-text-muted);
+  }
+  .capped .value {
+    color: var(--colour-alert);
   }
   .bar {
     position: absolute;

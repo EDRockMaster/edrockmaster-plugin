@@ -63,11 +63,8 @@
   "engineering.category.encoded": "Encodés",
   "engineering.category.other": "Autres",
   "engineering.grade": "Grade {grade}",
-  "engineering.count": "{count} / {cap}",
   "engineering.engineers": "Ingénieurs",
   "engineering.engineers.unlocked": "{unlocked} débloqués sur {total}",
-  "engineering.engineers.hide": "Masquer",
-  "engineering.engineers.show": "Afficher",
   "engineering.status.known": "Connu",
   "engineering.status.invited": "Invité",
   "engineering.status.acquainted": "Rencontré",
@@ -161,5 +158,13 @@
   "onFoot.add.yours": "Les vôtres",
   "onFoot.add.any": "N'importe laquelle",
   "onFoot.add.from": "De la classe",
-  "onFoot.add.to": "À la classe"
+  "onFoot.add.to": "À la classe",
+  "cards.move": "Glisser pour déplacer {card}",
+  "cards.up": "Monter {card}",
+  "cards.down": "Descendre {card}",
+  "cards.fold": "Replier",
+  "cards.unfold": "Déplier",
+  "cards.foldLabel": "Replier {card}",
+  "cards.unfoldLabel": "Déplier {card}",
+  "engineering.grade.cap": "max {cap}"
 }

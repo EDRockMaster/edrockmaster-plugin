@@ -356,6 +356,39 @@ def test_settings_saved_from_the_interface_apply_and_are_kept(tmp_path: Path) ->
     assert stored["edrockmaster.sound"] is False
 
 
+def test_the_layout_saved_from_the_interface_is_kept(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    desktop = Desktop(tmp_path, None)
+    desktop.core.start()
+    try:
+        assert desktop.core.layout()["engineering"]["order"][0] == "goals"
+        with caplog.at_level(logging.WARNING):
+            desktop.core.save_layout("blueprints", {"order": [], "folded": []})
+            desktop.core.save_layout(
+                "engineering", {"order": ["inventory"], "folded": ["engineers"]}
+            )
+            # Unchanged: nothing written again
+            desktop.core.save_layout(
+                "engineering", {"order": ["inventory"], "folded": ["engineers"]}
+            )
+            desktop.core.ready()
+            desktop.views.wait_for(lambda v: True)
+        assert "Layout refused: unknown view 'blueprints'" in caplog.text
+        assert desktop.core.layout()["engineering"] == {
+            "order": ["inventory", "goals", "shopping", "engineers"],
+            "folded": ["engineers"],
+        }
+    finally:
+        desktop.core.stop()
+    again = Desktop(tmp_path, None)
+    again.core.start()
+    try:
+        assert again.core.layout()["engineering"]["folded"] == ["engineers"]
+    finally:
+        again.core.stop()
+
+
 def test_invalid_settings_are_logged_and_change_nothing(
     desktop: Desktop, caplog: pytest.LogCaptureFixture
 ) -> None:
