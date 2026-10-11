@@ -15,6 +15,7 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 ### Corrigé
 
 - Un casier du vaisseau que le jeu n'a écrit que dans `ShipLocker.json` est maintenant lu dans ce fichier, comme la soute l'est dans `Cargo.json`.
+- En français, les opales du vide portent leur nom du jeu : *Opales du vide*.
 
 ## [0.4.0] - 2026-10-10
 
