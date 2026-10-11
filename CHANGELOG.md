@@ -6,31 +6,13 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
-### Added
+## [0.5.0] - 2026-10-11
 
-- **Engineering on foot** (ADR 0027, ADR 0029), first part. The *Engineering* tab gets an *On foot* part: the on-foot materials held (items, components, data, consumables), from the ship locker and the backpack as the game states them, with what is in the backpack and what is held for missions apart; the suits and weapons seen, with their class; the 13 on-foot engineers and their status. The *Activities* block counts the on-foot materials gained, by kind, and those lost at a death. Stolen goods count as the player's own. On a real evening, the inventory after each return aboard equals the game's.
-- **Your fleet carrier**: on-foot materials moved between the ship locker and your own carrier write no event in the game's journal; the *On foot* part shows each move, and reminds that moved materials no longer count. What the carrier holds will come from Frontier through EDRockMaster's services (ADR 0028).
-- **Class upgrade goals of suits and weapons** (ADR 0027, ADR 0030). In the *On foot* part, choose one of your suits or weapons (or any of a type, from the class you say) and the class to reach: the goal adds up the materials and credits of every step, against your ship locker and backpack, with its own shopping list. When the game shows the item at a higher class, the goal moves on, and goes once reached. The recipes of the 3 suits and 11 weapons were read in game, on 11 October 2026, up to class 4: those not seen on screen but deduced from what was are marked *not checked in game*, and the upgrades to class 5, not seen yet, are said to be unknown.
-- **Modification goals of suits and weapons** (ADR 0027, ADR 0030). In the *Goals* card of the *On foot* part, choose one of your suits or weapons (or any of a type) and a modification it does not have yet: the goal shows what it takes against your ship locker and backpack, its credits and the unlocked engineers offering it, and goes once the game shows the item with the modification. The first recipes were read in game at Domino Green's, on 11 October 2026: three modifications of the Maverick suit and two of the TK Eclipse. A recipe is known only on the suit or weapon it was read on; elsewhere, the goal can be set and says that its recipe is not known yet.
-- **Engineer sheets** (ADR 0031). Click an engineer, ship or on foot, to see their system and base, who makes them known, what gets you invited and what unlocks them, and, on foot, the task that refers the next ones. A click on the system copies its name, ready to paste into the galaxy map. The 38 sheets were written from public sources on 11 October 2026, marked *not checked in game* until read in game.
-- **Engineer unlock goals** (ADR 0027, ADR 0031). From an engineer's sheet, aim at unlocking them: the *Goals* card of their part says what is left to do (referral, invitation, unlock). The on-foot materials a task asks you to give or sell (5 Push for Domino Green's referral, 5 Opinion Polls to unlock Kit Fowler…) are counted against your ship locker and backpack and join the on-foot shopping list; ranks, reputations and commodities are not, and are said so. The goal goes once the game states the engineer unlocked.
-
-### Changed
-
-- **Cards you arrange**: the activities and the parts of the *Engineering* tab are now cards, one below the other, each as wide as the window. Drag a card by its handle to move it (or use its arrows), and fold the ones you do not need; their order and those folded are kept from one session to the next. An activity's statistics show as tiles side by side, and the inventory shows each material category on its own row, its grades side by side, with each grade's cap at the top.
-
-### Fixed
-
-- A ship locker the game only wrote to `ShipLocker.json` is now read from it, as the cargo is from `Cargo.json`.
-- In French, void opals are named as in the game: *Opales du vide*.
-
-## [0.4.0] - 2026-10-10
-
-The first version of **EDRockMaster Companion**, the desktop application, which replaces the EDMC plugin.
+The first published version of **EDRockMaster Companion**, the desktop application, which replaces the EDMC plugin.
 
 ### Added
 
-- **The desktop application** (design decisions ADR 0020 and ADR 0021): EDRockMaster in a window of its own, without EDMC. It reads the game journal itself, from the beginning of the current file, so that it reaches the same figures as if it had run since the game started, and follows the game as it writes. Its full version shows beside its name (`0.4.0`, `0.4.0-rc.1` for a candidate). Tabs *Activities*, *Engineering*, *Blueprints* and *Settings*; English and French, in the system's language or the one chosen; nothing listens on the network and nothing is sent anywhere. Distributed through the Microsoft Store (ADR 0022), and as a portable zip for testers.
+- **The desktop application** (design decisions ADR 0020 and ADR 0021): EDRockMaster in a window of its own, without EDMC. It reads the game journal itself, from the beginning of the current file, so that it reaches the same figures as if it had run since the game started, and follows the game as it writes. Its full version shows beside its name (`0.5.0`, `0.5.0-rc.1` for a candidate). Tabs *Activities*, *Engineering*, *Blueprints* and *Settings*; English and French, in the system's language or the one chosen; nothing listens on the network and nothing is sent anywhere. Distributed through the Microsoft Store (ADR 0022), and as a portable zip for testers.
 - **The commander's situation** (ADR 0023): a banner with the commander, the ship (type, name and registration), the system and the station, the game mode with the private group's name, and the wing.
 - **Trade** (ADR 0014): a new activity. A trade session starts with the first purchase. Its profit is the game's own, `(SellPrice - AvgPricePaid) × Count`, even for goods bought before the journal file began; its rates count the **flight time** only, from undocking to the next docking, when a trade follows. Its block shows the profit, the profit per hour, the tons sold, the cost of the cargo bought, and one line per route (commodity, market of purchase, market of sale). On a real session of three round trips between Amano Terminal and Verne Venture: 164,316,218 CR in 1 h 21 min 50 s of flight, 120.5 M CR/h. Goods sold that were not bought are kept apart: **refined commodities** (their profit stays with mining) and **other goods**; bought goods ejected or lost with the ship are a loss.
 - **Fleet carrier transfers** (ADR 0019): deposits and withdrawals per commodity, with the number of transfers, so that a deposit the game did not take (a known game bug) shows at once. A transfer starts a trade session and counts its flight; goods deposited are not counted as lost if the ship is destroyed afterwards.
@@ -41,10 +23,25 @@ The first version of **EDRockMaster Companion**, the desktop application, which 
 - **Local database** (ADR 0018): `edrockmaster.sqlite3` in the data directory, for what must be kept across restarts, starting with the engineering goals. Its schema is migrated at start, after a copy of the file. A file the application cannot read, because it is damaged or written by a newer version, is kept aside as `edrockmaster.sqlite3.unreadable-<date>`, a new one is created, and the interface says so until dismissed.
 - **Demo mode** (`--demo`, `--demo=en`, `--demo=fr`): a sample journal under the fictional Commander Jameson, for screenshots or to discover the application without playing; the player's settings and goals are not touched.
 - The recording sanitiser keeps purchases, cargo transfers, the materials and engineers events, and reduces a completed mission to its materials reward.
+- **Engineering on foot** (ADR 0027, ADR 0029). The *Engineering* tab gets an *On foot* part: the on-foot materials held (items, components, data, consumables), from the ship locker and the backpack as the game states them, with what is in the backpack and what is held for missions apart; the suits and weapons seen, with their class; the 13 on-foot engineers and their status. The *Activities* block counts the on-foot materials gained, by kind, and those lost at a death. Stolen goods count as the player's own. On a real evening, the inventory after each return aboard equals the game's.
+- **Your fleet carrier**: on-foot materials moved between the ship locker and your own carrier write no event in the game's journal; the *On foot* part shows each move, and reminds that moved materials no longer count. What the carrier holds will come from Frontier through EDRockMaster's services (ADR 0028).
+- **Class upgrade goals of suits and weapons** (ADR 0027, ADR 0030). In the *On foot* part, choose one of your suits or weapons (or any of a type, from the class you say) and the class to reach: the goal adds up the materials and credits of every step, against your ship locker and backpack, with its own shopping list. When the game shows the item at a higher class, the goal moves on, and goes once reached. The recipes of the 3 suits and 11 weapons were read in game, on 11 October 2026, up to class 4: those not seen on screen but deduced from what was are marked *not checked in game*, and the upgrades to class 5, not seen yet, are said to be unknown.
+- **Modification goals of suits and weapons** (ADR 0027, ADR 0030). In the *Goals* card of the *On foot* part, choose one of your suits or weapons (or any of a type) and a modification it does not have yet: the goal shows what it takes against your ship locker and backpack, its credits and the unlocked engineers offering it, and goes once the game shows the item with the modification. The first recipes were read in game at Domino Green's, on 11 October 2026: three modifications of the Maverick suit and two of the TK Eclipse. A recipe is known only on the suit or weapon it was read on; elsewhere, the goal can be set and says that its recipe is not known yet.
+- **Engineer sheets** (ADR 0031). Click an engineer, ship or on foot, to see their system and base, who makes them known, what gets you invited and what unlocks them, and, on foot, the task that refers the next ones. A click on the system copies its name, ready to paste into the galaxy map. The 38 sheets were written from public sources on 11 October 2026, marked *not checked in game* until read in game.
+- **Engineer unlock goals** (ADR 0027, ADR 0031). From an engineer's sheet, aim at unlocking them: the *Goals* card of their part says what is left to do (referral, invitation, unlock). The on-foot materials a task asks you to give or sell (5 Push for Domino Green's referral, 5 Opinion Polls to unlock Kit Fowler…) are counted against your ship locker and backpack and join the on-foot shopping list; ranks, reputations and commodities are not, and are said so. The goal goes once the game states the engineer unlocked.
+- **Cards you arrange**: the activities and the parts of the *Engineering* tab are cards, one below the other, each as wide as the window. Drag a card by its handle to move it (or use its arrows), and fold the ones you do not need; their order and those folded are kept from one session to the next. An activity's statistics show as tiles side by side, and the inventory shows each material category on its own row, its grades side by side, with each grade's cap at the top.
+
+### Fixed
+
+- In French, void opals are named as in the game: *Opales du vide*.
 
 ### Removed
 
 - **The EDMC plugin** (ADR 0024): retired before it had players. Its last release, 0.2.2, stays on GitHub; it gets no further release. Its settings are not imported: the application has its own.
+
+## [0.4.0] - not released
+
+Candidates only, `0.4.0-rc.1` and `0.4.0-rc.2` (2026-10-10), kept as a demonstration; their content is part of 0.5.0.
 
 ## [0.3.0] - not released
 
@@ -117,7 +114,7 @@ First version, for the first in-game test. The plugin works on its own, without 
 - No estimated value of the cargo: it needs the server's prices.
 - Not checked yet: EDMC's dark theme, the alert sound on Windows.
 
-[0.4.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.4.0
+[0.5.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.5.0
 [0.2.2]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.2
 [0.2.1]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.1
 [0.2.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.0
