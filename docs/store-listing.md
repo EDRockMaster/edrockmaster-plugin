@@ -12,7 +12,7 @@ How a release is submitted: [store-submission.md](store-submission.md).
 - **Privacy policy URL**: https://github.com/EDRockMaster/edrockmaster-plugin/blob/main/docs/privacy.md (until edrm.space hosts it).
 - **Website**: https://github.com/EDRockMaster/edrockmaster-plugin
 - **Support contact**: contact@edrm.space.
-- **Publisher display name** (Partner Center, account settings): DamScan, a personal and non-commercial project; it must equal the GitHub variable `EDROCKMASTER_MSIX_PUBLISHER_NAME`, or the package is refused ([store-submission.md](store-submission.md)). **Trader status** (EU Digital Services Act): not a trader.
+- **Publisher display name** (Partner Center, account settings): Nexagone, the name of a personal and non-commercial project, published from an individual account; it must equal the GitHub variable `EDROCKMASTER_MSIX_PUBLISHER_NAME`, or the package is refused ([store-submission.md](store-submission.md)). **Trader status** (EU Digital Services Act): not a trader.
 - **Personal information**: *yes*, the application accesses personal information: it reads the game journal, which names the commander and other players; it keeps it on the computer and sends nothing (see the privacy policy).
 - **System requirements**: Windows 10 version 21H1 or Windows 11, 64-bit; Elite Dangerous on the same computer.
 
