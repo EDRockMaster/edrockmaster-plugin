@@ -144,6 +144,7 @@ export function fakeCore(): CoreApi {
     add_goal: vi.fn(async () => {}),
     change_goal: vi.fn(async () => {}),
     remove_goal: vi.fn(async () => {}),
+    order_goals: vi.fn(async () => {}),
     settings: vi.fn(async () => structuredClone(SETTINGS)),
     save_settings: vi.fn(async () => {}),
     open_folder: vi.fn(async () => {}),

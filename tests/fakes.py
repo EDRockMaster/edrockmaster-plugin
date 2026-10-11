@@ -90,3 +90,7 @@ class FakeGoalRepository:
 
     def remove(self, goal_id: GoalId) -> None:
         self.stored = [goal for goal in self.stored if goal.id != goal_id]
+
+    def reorder(self, order: Sequence[GoalId]) -> None:
+        by_id = {goal.id: goal for goal in self.stored}
+        self.stored = [by_id[goal_id] for goal_id in order if goal_id in by_id]

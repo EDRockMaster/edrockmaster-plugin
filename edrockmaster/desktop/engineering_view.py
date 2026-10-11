@@ -75,6 +75,7 @@ def engineering_view(service: EngineeringService, names: EngineeringNames) -> di
         ],
         "shoppingList": _ingredients(service.shopping_list(), inventory or {}, names),
         "unlocks": _unlocks(service, names, on_foot=False),
+        "priority": [progress.goal.id.value for progress in service.stats.goals],
         "catalogueDate": catalogue.date,
         "onFoot": _on_foot(service, names),
     }
@@ -162,6 +163,7 @@ def _class_upgrade(
         "unverified": progress.unverified,
         "credits": progress.credits,
         "ready": progress.ready,
+        "readyAlone": progress.ready_alone,
         "missing": None if progress.missing is None else _ingredients(progress.missing, {}, names),
     }
 
@@ -180,6 +182,7 @@ def _modification(
         "unverified": progress.unverified,
         "credits": progress.credits,
         "ready": progress.ready,
+        "readyAlone": progress.ready_alone,
         "missing": None if progress.missing is None else _ingredients(progress.missing, {}, names),
         "engineers": [names.engineer(id_) for id_ in progress.engineers],
     }
@@ -188,8 +191,8 @@ def _modification(
 def _unlocks(
     service: EngineeringService, names: EngineeringNames, *, on_foot: bool
 ) -> list[dict[str, Any]]:
-    """The engineer unlocks of one part (ADR 0027, ADR 0031), ready first; their conditions are
-    in the catalogue's sheets."""
+    """The engineer unlocks of one part (ADR 0027, ADR 0031), in the priority (ADR 0033); their
+    conditions are in the catalogue's sheets."""
     rows = []
     for progress in service.stats.goals:
         goal = progress.goal
@@ -208,13 +211,14 @@ def _unlocks(
                 "counted": progress.counted,
                 "unverified": progress.unverified,
                 "ready": progress.ready,
+                "readyAlone": progress.ready_alone,
                 "needed": _ingredients(progress.needed, {}, names),
                 "missing": None
                 if progress.missing is None
                 else _ingredients(progress.missing, {}, names),
             }
         )
-    return sorted(rows, key=lambda row: not row["ready"])
+    return rows
 
 
 def _move(move: CarrierMove, names: EngineeringNames) -> dict[str, Any]:
@@ -344,6 +348,7 @@ def _goal(progress: GoalProgress, names: EngineeringNames) -> dict[str, Any]:
         "count": count,
         "known": progress.known,
         "ready": progress.ready,
+        "readyAlone": progress.ready_alone,
         "missing": None if progress.missing is None else _ingredients(progress.missing, {}, names),
         "engineers": [names.engineer(id_) for id_ in progress.engineers],
     }

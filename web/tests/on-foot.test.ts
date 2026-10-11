@@ -176,6 +176,7 @@ function classGoal(overrides: Partial<ClassGoal> = {}): ClassGoal {
     unverified: true,
     credits: 6750000,
     ready: false,
+    readyAlone: false,
     missing: [{ symbol: "graphene", name: "Graphène", count: 7, held: 0 }],
     ...overrides,
   };
@@ -245,8 +246,8 @@ describe("class upgrades on foot", () => {
     const goals = screen
       .getAllByRole("listitem")
       .filter((item) => item.textContent?.includes("classe 2 à 5"));
-    // Ready goals first
-    expect(goals[0]?.textContent).toContain("Prêt");
+    // In the player's priority, as the core gives them (ADR 0033)
+    expect(goals[1]?.textContent).toContain("Prêt");
     expect(screen.getByText("Manque : Graphène ×7")).toBeTruthy();
     expect(screen.getAllByText(/6\s750\s000 crédits/).length).toBe(2);
     expect(screen.getByText(/Suit votre équipement/)).toBeTruthy();
@@ -254,13 +255,13 @@ describe("class upgrades on foot", () => {
     expect(screen.getByText("Liste de courses à pied")).toBeTruthy();
     expect(screen.getByText("7 (en stock : 0)")).toBeTruthy();
     expect(screen.getByText(/tous les objectifs : 13\s500\s000/)).toBeTruthy();
-    // The ready goal comes first
-    const target = screen.getAllByLabelText(/Classe visée pour/)[0] as HTMLSelectElement;
+    // The ready goal comes second, as in the priority
+    const target = screen.getAllByLabelText(/Classe visée pour/)[1] as HTMLSelectElement;
     await fireEvent.change(target, { target: { value: "4" } });
     expect(api.change_goal).toHaveBeenCalledWith("ok", 4);
     const remove = screen.getAllByRole("button", {
       name: /Supprimer l'objectif/,
-    })[0] as HTMLElement;
+    })[1] as HTMLElement;
     await fireEvent.click(remove);
     expect(api.remove_goal).toHaveBeenCalledWith("ok");
   });
@@ -342,6 +343,7 @@ function modificationGoal(overrides: Partial<ModificationGoal> = {}): Modificati
     unverified: false,
     credits: 750000,
     ready: false,
+    readyAlone: false,
     missing: [{ symbol: "graphene", name: "Graphène", count: 3, held: 0 }],
     engineers: ["Domino Green"],
     ...overrides,
@@ -419,9 +421,9 @@ describe("modifications on foot", () => {
     const rows = screen
       .getAllByRole("listitem")
       .filter((item) => item.textContent?.includes("Combinaison Dominator :"));
-    // Ready goals first
-    expect(rows[0]?.textContent).toContain("Prêt");
-    expect(rows[0]?.textContent).toContain("Aucun ingénieur débloqué ne le propose");
+    // In the player's priority, as the core gives them (ADR 0033)
+    expect(rows[1]?.textContent).toContain("Prêt");
+    expect(rows[1]?.textContent).toContain("Aucun ingénieur débloqué ne le propose");
     expect(screen.getAllByText("Manque : Graphène ×3").length).toBe(1);
     expect(screen.getAllByText(/Ingénieurs : Domino Green/).length).toBe(3);
     expect(screen.getByText(/Recette pas encore connue sur cette combinaison/)).toBeTruthy();

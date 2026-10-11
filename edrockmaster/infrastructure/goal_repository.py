@@ -3,13 +3,17 @@
 ``SqliteGoalRepository`` implements the application's ``GoalRepository``: each
 call becomes a job of the I/O thread, and the goals read are handed back to the
 core thread. The functions below are the SQL, run on the I/O thread only.
+
+Each kind of goal has its table; their order, the player's priority (ADR 0033),
+is ``goal_priority``: one rank per goal, whatever its kind, a new goal last.
 """
 
 from __future__ import annotations
 
 import logging
 import sqlite3
-from collections.abc import Callable
+from collections.abc import Callable, Iterator, Sequence
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from typing import assert_never
 
@@ -97,9 +101,33 @@ def _modification_goal(row: _ModificationRow) -> ModificationGoal:
     )
 
 
+@contextmanager
+def _transaction(connection: sqlite3.Connection) -> Iterator[None]:
+    """The connection commits each statement: several go together here."""
+    connection.execute("BEGIN")
+    try:
+        yield
+    except BaseException:
+        connection.execute("ROLLBACK")
+        raise
+    connection.execute("COMMIT")
+
+
 def read_goals(connection: sqlite3.Connection) -> tuple[Goal, ...]:
-    """The ship goals, the class upgrades, the modifications, then the engineer unlocks, each in
-    the order they were added."""
+    """Every goal, in the player's priority."""
+    ranked = [
+        goal_id
+        for (goal_id,) in connection.execute("SELECT goal_id FROM goal_priority ORDER BY rank")
+    ]
+    goals = {goal.id.value: goal for goal in _read_each_kind(connection)}
+    # A goal without a rank cannot be stored: it would come last
+    return (
+        *(goals.pop(goal_id) for goal_id in ranked if goal_id in goals),
+        *goals.values(),
+    )
+
+
+def _read_each_kind(connection: sqlite3.Connection) -> tuple[Goal, ...]:
     rows = connection.execute(
         "SELECT id, kind, name, module, grade, count FROM engineering_goal ORDER BY position"
     )
@@ -123,6 +151,17 @@ def read_goals(connection: sqlite3.Connection) -> tuple[Goal, ...]:
 
 
 def insert_goal(connection: sqlite3.Connection, goal: Goal) -> None:
+    """The goal, last in the priority."""
+    with _transaction(connection):
+        _insert(connection, goal)
+        connection.execute(
+            "INSERT INTO goal_priority (goal_id, rank) "
+            "SELECT ?, coalesce(max(rank), 0) + 1 FROM goal_priority",
+            (goal.id.value,),
+        )
+
+
+def _insert(connection: sqlite3.Connection, goal: Goal) -> None:
     if isinstance(goal, ClassUpgradeGoal):
         connection.execute(
             "INSERT INTO class_upgrade_goal "
@@ -185,10 +224,28 @@ def update_goal(connection: sqlite3.Connection, goal: Goal) -> None:
 
 
 def delete_goal(connection: sqlite3.Connection, goal_id: GoalId) -> None:
-    connection.execute("DELETE FROM engineering_goal WHERE id = ?", (goal_id.value,))
-    connection.execute("DELETE FROM class_upgrade_goal WHERE id = ?", (goal_id.value,))
-    connection.execute("DELETE FROM modification_goal WHERE id = ?", (goal_id.value,))
-    connection.execute("DELETE FROM engineer_unlock_goal WHERE id = ?", (goal_id.value,))
+    with _transaction(connection):
+        connection.execute("DELETE FROM engineering_goal WHERE id = ?", (goal_id.value,))
+        connection.execute("DELETE FROM class_upgrade_goal WHERE id = ?", (goal_id.value,))
+        connection.execute("DELETE FROM modification_goal WHERE id = ?", (goal_id.value,))
+        connection.execute("DELETE FROM engineer_unlock_goal WHERE id = ?", (goal_id.value,))
+        connection.execute("DELETE FROM goal_priority WHERE goal_id = ?", (goal_id.value,))
+
+
+def reorder_goals(connection: sqlite3.Connection, order: Sequence[GoalId]) -> None:
+    """The goals the order names first, in its order, then the others as they were."""
+    with _transaction(connection):
+        ranked = [
+            goal_id
+            for (goal_id,) in connection.execute("SELECT goal_id FROM goal_priority ORDER BY rank")
+        ]
+        named = [goal_id.value for goal_id in dict.fromkeys(order) if goal_id.value in ranked]
+        ordered = named + [goal_id for goal_id in ranked if goal_id not in named]
+        connection.execute("DELETE FROM goal_priority")
+        connection.executemany(
+            "INSERT INTO goal_priority (goal_id, rank) VALUES (?, ?)",
+            [(goal_id, rank) for rank, goal_id in enumerate(ordered, start=1)],
+        )
 
 
 class SqliteGoalRepository:
@@ -223,6 +280,9 @@ class SqliteGoalRepository:
 
     def remove(self, goal_id: GoalId) -> None:
         self._write("removed", lambda connection: delete_goal(connection, goal_id))
+
+    def reorder(self, order: Sequence[GoalId]) -> None:
+        self._write("priority", lambda connection: reorder_goals(connection, order))
 
     def _write(self, what: str, write: Callable[[sqlite3.Connection], None]) -> None:
         def job() -> None:

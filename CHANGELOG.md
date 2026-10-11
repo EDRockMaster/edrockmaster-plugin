@@ -6,6 +6,11 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
+### Added
+
+- **A priority over the engineering goals** (ADR 0033). The goals, ship and on foot, come in one order the player chooses: arrows on each goal, or drag its handle onto another goal of the same list. The materials held go to the goals in that order, so two goals after the same materials are no longer both ready when only one can be done: a goal is ready when nothing is missing once the goals above it have taken their share, and one that would be ready on its own says that a goal above takes its materials. A new goal comes last; the goals already set keep their order (ship goals, class upgrades, modifications, engineer unlocks), in a new table of the local database (schema version 5). The shopping list is unchanged.
+- **A summary of the goals in the engineering card** of *Activities*: after *Goals ready: 1 of 3*, the first three goals in the priority, each *ready* or what it misses (`missing 2 Arsenic`, `missing 5 units of 2 materials`, *taken by a goal above*), then how many others.
+
 ### Changed
 
 - **Community goals** have a card of their own in *Activities* (ADR 0032), no longer the combat card: a community goal can be about trade, mining or exploration. The card shows only while a goal is joined, one tile per goal: its full title and system, the contribution, the percentile band, the tier reached out of the top tier (`tier 3 of 5`), and the time left before its expiry, counted down by the interface, or *Complete: reward to collect*. It can be hidden in *Settings*, and never takes the panel in the last active mode. In the demo, the goal expires as long after now as after the recording.

@@ -19,6 +19,7 @@ EMPTY_ENGINEERING: dict[str, object] = {
     "goals": [],
     "shoppingList": [],
     "unlocks": [],
+    "priority": [],
     "catalogueDate": "2026-09-05",
     "onFoot": {
         "known": False,

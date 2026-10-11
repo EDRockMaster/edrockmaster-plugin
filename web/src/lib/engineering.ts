@@ -65,8 +65,3 @@ export function statusText(
     ? status
     : `${status}, ${t(language, "engineering.rank", { rank: engineer.rank })}`;
 }
-
-/** Ready goals first, then in the order the player added them (ADR 0017). */
-export function orderedGoals(goals: Goal[]): Goal[] {
-  return [...goals.filter((goal) => goal.ready), ...goals.filter((goal) => !goal.ready)];
-}

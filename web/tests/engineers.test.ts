@@ -158,11 +158,13 @@ describe("engineer unlock goals", () => {
       counted: false,
       unverified: true,
       ready: false,
+      readyAlone: false,
       needed: [],
       missing: [],
     };
     render(UnlockList, {
       language: "en",
+      priority: ["kit", "domino", "locker"],
       unlocks: [
         unlock,
         {
@@ -174,6 +176,7 @@ describe("engineer unlock goals", () => {
           counted: true,
           unverified: false,
           ready: true,
+          readyAlone: false,
           needed: [{ symbol: "push", name: "Push", count: 5, held: 5 }],
         },
         {
@@ -226,6 +229,7 @@ describe("engineer unlocks in each part", () => {
       counted: false,
       unverified: false,
       ready: false,
+      readyAlone: false,
       needed: [],
       missing: [],
     };

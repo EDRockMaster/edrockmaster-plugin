@@ -367,6 +367,18 @@ class DesktopCore:
 
         self._core.submit(remove)
 
+    def order_goals(self, order: list[str]) -> None:
+        """The player's priority (ADR 0033): the goals it names first, then the others."""
+
+        def reorder() -> None:
+            if not isinstance(order, list) or not all(isinstance(id_, str) for id_ in order):
+                self._logger.warning("Goal order refused: %r", order)
+                return
+            engineering = self._require_companion().engineering
+            self._apply(engineering.order_goals([GoalId(goal_id) for goal_id in order]))
+
+        self._core.submit(reorder)
+
     # The core thread
 
     def _on_entry(self, entry: Entry, is_beta: bool) -> None:
