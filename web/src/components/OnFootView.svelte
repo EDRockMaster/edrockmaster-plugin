@@ -18,6 +18,7 @@
     total,
   } from "../lib/on-foot";
   import CardStack from "./CardStack.svelte";
+  import EngineerList from "./EngineerList.svelte";
   import ClassUpgradeForm from "./ClassUpgradeForm.svelte";
   import ModificationForm from "./ModificationForm.svelte";
 
@@ -249,16 +250,14 @@
 {/snippet}
 
 {#snippet engineers()}
-  <ul class="engineers">
-    {#each onFoot.engineers as engineer (engineer.id)}
-      <li class:unlocked={engineer.status === "unlocked"}>
-        <span>{engineer.name}</span>
-        <span class:muted={engineer.status !== "unlocked"}
-          >{statusText({ ...engineer, rank: null }, language)}</span
-        >
-      </li>
-    {/each}
-  </ul>
+  <EngineerList
+    engineers={onFoot.engineers.map((engineer) => ({
+      ...engineer,
+      unlocked: engineer.status === "unlocked",
+      status: statusText({ ...engineer, rank: null }, language),
+    }))}
+    {language}
+  />
 {/snippet}
 
 <style>
@@ -353,23 +352,5 @@
   .equipment li {
     padding: var(--space-1) 0;
     border-bottom: 1px solid var(--colour-border);
-  }
-  /* As the ship engineers: name and status side by side in short rows */
-  .engineers {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
-    gap: var(--space-1) var(--space-3);
-  }
-  .engineers li {
-    display: flex;
-    justify-content: space-between;
-    gap: var(--space-2);
-    padding: var(--space-1) var(--space-2);
-    border-radius: var(--radius);
-    background: var(--colour-surface-current);
-    font-size: 0.9rem;
-  }
-  .engineers li.unlocked {
-    border-left: 3px solid var(--colour-accent);
   }
 </style>

@@ -1,0 +1,400 @@
+# Where the engineers are and how to unlock them, written by the project (ADR 0031).
+#
+# Read by scripts/import_engineering_data.py, which writes them into catalogue.json by engineer
+# id. One entry per engineer, by name as FDevIDs' engineers.csv writes it.
+#
+# - `system`, `base`: as the game names them.
+# - `referred_by`: the engineers who make this one known; none, known from the start. A ship
+#   engineer refers the next once the player reaches grade 3 with them; an on-foot engineer,
+#   once the player has done their `referral` task.
+# - `invitation`: what makes the engineer invite the player (ship engineers only);
+#   `unlock`: what to deliver or do. In English, in the project's own words: facts and figures
+#   only, no text taken from a source. Translated in L10n/fr.strings.
+# - `confidence`, as for the recipes (ADR 0030): "game" (read in game, `read` its date) or
+#   "web" (`sources` and `read`). The game wins; when sources disagree, the most recent wins.
+#
+# The game confirmed two bases, the player having docked there (journal `Docked`, its market id
+# that of FDevIDs): Qwent Research Base in Sirius (2026-10-08) and The Jackrabbit in Orishis
+# (2026-10-11).
+
+[sources]
+ship = [
+    "https://edfieldmanual.com/wiki/Engineers (updated 2026-09-10)",
+    "https://edblackbox.com/guides/engineering/engineering-manuals/checklist.html (updated 2026-07-01)",
+]
+on_foot = "https://edfieldmanual.com/wiki/<engineer> (updated 2026-09-11 to 2026-09-12)"
+
+# Ship engineers, in the Bubble: known from the start
+
+[engineers."Felicity Farseer"]
+system = "Deciat"
+base = "Farseer Inc"
+invitation = "Reach the exploration rank of Scout."
+unlock = "Deliver 1 Meta-Alloys."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Elvira Martuuk"]
+system = "Khun"
+base = "Long Sight Base"
+invitation = "Travel at least 300 ly from where you started."
+unlock = "Deliver 3 Soontill Relics."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."The Dweller"]
+system = "Wyrd"
+base = "Black Hide"
+invitation = "Sell at 5 different black markets."
+unlock = "Pay 500,000 CR."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Tod 'The Blaster' McQuinn"]
+system = "Wolf 397"
+base = "Trophy Camp"
+invitation = "Earn more than 15 bounty vouchers."
+unlock = "Hand in 100,000 CR of bounty vouchers."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Liz Ryder"]
+system = "Eurybia"
+base = "Demolition Unlimited"
+invitation = "Reach Cordial with Eurybia Blue Mafia."
+unlock = "Deliver 200 Landmines."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+# Ship engineers, in the Bubble: referred
+
+[engineers."Juri Ishmaak"]
+system = "Giryak"
+base = "Pater's Memorial"
+referred_by = ["Felicity Farseer"]
+invitation = "Earn more than 50 Federal combat bonds."
+unlock = "Hand in Federal combat bonds worth the amount the invitation states: 100,000 or 1,000,000 CR."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Selene Jean"]
+system = "Kuk"
+base = "Prospector's Rest"
+referred_by = ["Tod 'The Blaster' McQuinn"]
+invitation = "Refine 500 t of ore."
+unlock = "Deliver 10 Painite."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Hera Tani"]
+system = "Kuwemaki"
+base = "The Jet's Hole"
+referred_by = ["Liz Ryder"]
+invitation = "Reach the Imperial Navy rank of Outsider."
+unlock = "Deliver 50 Kamitra Cigars."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Lei Cheung"]
+system = "Laksak"
+base = "Trader's Rest"
+referred_by = ["The Dweller"]
+invitation = "Trade at 50 different markets."
+unlock = "Deliver 200 Gold."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Marco Qwent"]
+system = "Sirius"
+base = "Qwent Research Base"
+referred_by = ["Elvira Martuuk"]
+invitation = "Reach Allied with Sirius Corporation; Sirius needs a permit."
+unlock = "Deliver 25 Modular Terminals."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."The Sarge"]
+system = "Beta-3 Tucani"
+base = "The Beach"
+referred_by = ["Juri Ishmaak"]
+invitation = "Reach the Federal Navy rank of Midshipman."
+unlock = "Deliver 50 Aberrant Shield Pattern Analysis."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Colonel Bris Dekker"]
+system = "Sol"
+base = "Dekker's Yard"
+referred_by = ["Juri Ishmaak"]
+invitation = "Reach Friendly with the Federation; Sol needs a permit."
+unlock = "Hand in Federal combat bonds worth the amount the invitation states: 1,000,000 or 10,000,000 CR."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Didi Vatermann"]
+system = "Leesti"
+base = "Vatermann LLC"
+referred_by = ["Selene Jean"]
+invitation = "Reach the trade rank of Merchant."
+unlock = "Deliver 50 Lavian Brandy."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Bill Turner"]
+system = "Alioth"
+base = "Turner Metallics Inc"
+referred_by = ["Selene Jean"]
+invitation = "Reach Allied with Alioth Independents; Alioth needs a permit."
+unlock = "Deliver 50 Bromellite."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Broo Tarquin"]
+system = "Muang"
+base = "Broo's Legacy"
+referred_by = ["Hera Tani"]
+invitation = "Reach the combat rank of Competent."
+unlock = "Deliver 50 Fujin Tea."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Tiana Fortune"]
+system = "Achenar"
+base = "Fortune's Loss"
+referred_by = ["Hera Tani"]
+invitation = "Reach Friendly with the Empire; Achenar needs a permit."
+unlock = "Deliver 50 Decoded Emission Data."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Ram Tah"]
+system = "Meene"
+base = "Phoenix Base"
+referred_by = ["Lei Cheung"]
+invitation = "Reach the exploration rank of Surveyor."
+unlock = "Deliver 50 Classified Scan Databanks."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Professor Palin"]
+system = "Arque"
+base = "Abel Laboratory"
+referred_by = ["Marco Qwent"]
+invitation = "Travel at least 5,000 ly from where you started."
+unlock = "Deliver 25 Sensor Fragments."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Lori Jameson"]
+system = "Shinrarta Dezhra"
+base = "Jameson Base"
+referred_by = ["Marco Qwent"]
+invitation = "Reach the combat rank of Dangerous; Shinrarta Dezhra needs a permit."
+unlock = "Deliver 25 Kongga Ale."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Chloe Sedesi"]
+system = "Shenve"
+base = "Cinder Dock"
+referred_by = ["Marco Qwent"]
+invitation = "Travel at least 5,000 ly from where you started."
+unlock = "Deliver 25 Sensor Fragments."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+# Ship engineers, in Colonia
+
+[engineers."Petra Olmanova"]
+system = "Asura"
+base = "Sanctuary"
+referred_by = ["Tod 'The Blaster' McQuinn"]
+invitation = "Reach the combat rank of Expert."
+unlock = "Deliver 200 Progenitor Cells."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Mel Brandon"]
+system = "Luchtaine"
+base = "The Brig"
+referred_by = ["Elvira Martuuk"]
+invitation = "Reach Friendly with the Colonia Council."
+unlock = "Hand in 100,000 CR of bounty vouchers."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Zacariah Nemo"]
+system = "Yoru"
+base = "Nemo Cyber Party Base"
+referred_by = ["Elvira Martuuk"]
+invitation = "Reach Friendly with the Party of Yoru."
+unlock = "Deliver 25 Xihe Biomorphic Companions."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Etienne Dorn"]
+system = "Los"
+base = "Kraken's Retreat"
+referred_by = ["Liz Ryder"]
+invitation = "Reach the trade rank of Dealer."
+unlock = "Deliver 25 Occupied Escape Pods."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Marsha Hicks"]
+system = "Tir"
+base = "The Watchtower"
+referred_by = ["The Dweller"]
+invitation = "Reach the exploration rank of Surveyor."
+unlock = "Deliver 10 Osmium you mined yourself."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+# On-foot engineers, in the Bubble
+
+[engineers."Domino Green"]
+system = "Orishis"
+base = "The Jackrabbit"
+unlock = "Travel at least 100 ly in shuttles."
+referral = "Give 5 Push."
+confidence = "web"
+sources = ["on_foot"]
+read = 2026-10-11
+
+[engineers."Kit Fowler"]
+system = "Capoya"
+base = "The Last Call"
+referred_by = ["Domino Green"]
+unlock = "Sell 5 Opinion Polls to bartenders."
+referral = "Give 5 Surveillance Equipment."
+confidence = "web"
+sources = ["on_foot"]
+read = 2026-10-11
+
+[engineers."Yarden Bond"]
+system = "Bayan"
+base = "Salamander Bank"
+referred_by = ["Kit Fowler"]
+unlock = "Sell 5 Smear Campaign Plans to bartenders."
+confidence = "web"
+sources = ["on_foot"]
+read = 2026-10-11
+
+[engineers."Hero Ferrari"]
+system = "Siris"
+base = "Nevermore Terrace"
+unlock = "Complete 10 surface conflict zones."
+referral = "Give 5 Settlement Defence Plans."
+confidence = "web"
+sources = ["on_foot"]
+read = 2026-10-11
+
+[engineers."Wellington Beck"]
+system = "Jolapa"
+base = "Beck Facility"
+referred_by = ["Hero Ferrari"]
+unlock = "Sell 15 Multimedia Entertainment, Classic Entertainment or Cat Media, in any mix, to bartenders."
+referral = "Give 5 Insight Entertainment Suites."
+confidence = "web"
+sources = ["on_foot"]
+read = 2026-10-11
+
+[engineers."Uma Laszlo"]
+system = "Xuane"
+base = "Laszlo's Resolve"
+referred_by = ["Wellington Beck"]
+unlock = "Fall to Unfriendly or lower with Sirius Corporation."
+confidence = "web"
+sources = ["on_foot"]
+read = 2026-10-11
+
+[engineers."Jude Navarro"]
+system = "Aurai"
+base = "Marshall's Drift"
+unlock = "Complete 10 restore or reactivation missions."
+referral = "Give 5 Genetic Repair Meds."
+confidence = "web"
+sources = ["on_foot"]
+read = 2026-10-11
+
+[engineers."Terra Velasquez"]
+system = "Shou Xing"
+base = "Rascal's Choice"
+referred_by = ["Jude Navarro"]
+unlock = "Complete 6 covert theft or covert heist missions."
+referral = "Give 15 Financial Projections."
+confidence = "web"
+sources = ["on_foot"]
+read = 2026-10-11
+
+[engineers."Oden Geiger"]
+system = "Candiaei"
+base = "Ankh's Promise"
+referred_by = ["Terra Velasquez"]
+unlock = "Sell 20 Biological Samples, Employee Genetic Data or Genetic Research, in any mix, to bartenders."
+confidence = "web"
+sources = ["on_foot"]
+read = 2026-10-11
+
+# On-foot engineers, in Colonia
+
+[engineers."Baltanos"]
+system = "Deriso"
+base = "The Divine Apparatus"
+unlock = "Reach Friendly with the Colonia Council."
+referral = "Give 10 Faction Associates."
+confidence = "web"
+sources = ["on_foot"]
+read = 2026-10-11
+
+[engineers."Eleanor Bresa"]
+system = "Desy"
+base = "Bresa Modifications"
+unlock = "Visit 5 settlements in the Colonia system."
+referral = "Give 10 Digital Designs."
+confidence = "web"
+sources = ["on_foot"]
+read = 2026-10-11
+
+[engineers."Rosa Dayette"]
+system = "Kojeara"
+base = "Rosa's Shop"
+unlock = "Sell 10 Culinary Recipes or Cocktail Recipes, in any mix, in the Colonia system."
+referral = "Give 10 Manufacturing Instructions."
+confidence = "web"
+sources = ["on_foot"]
+read = 2026-10-11
+
+[engineers."Yi Shen"]
+system = "Einheriar"
+base = "Eidolon Hold"
+referred_by = ["Baltanos", "Eleanor Bresa", "Rosa Dayette"]
+unlock = "Nothing more: the three referrals are enough."
+confidence = "web"
+sources = ["on_foot"]
+read = 2026-10-11

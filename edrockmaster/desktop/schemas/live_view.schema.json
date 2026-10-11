@@ -344,7 +344,8 @@
               "id",
               "name",
               "status",
-              "rank"
+              "rank",
+              "sheet"
             ],
             "properties": {
               "id": {
@@ -368,6 +369,9 @@
                   "integer",
                   "null"
                 ]
+              },
+              "sheet": {
+                "$ref": "#/$defs/engineerSheet"
               }
             }
           }
@@ -534,7 +538,8 @@
             "required": [
               "id",
               "name",
-              "status"
+              "status",
+              "sheet"
             ],
             "properties": {
               "id": {
@@ -552,6 +557,9 @@
                   "barred",
                   null
                 ]
+              },
+              "sheet": {
+                "$ref": "#/$defs/engineerSheet"
               }
             }
           }
@@ -841,6 +849,72 @@
           "description": "Credits of every class upgrade: shown, not counted."
         }
       }
+    },
+    "engineerSheet": {
+      "description": "Where an engineer is and how to unlock them (ADR 0031); null when the catalogue has no sheet. Texts in the player's language.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "system",
+            "base",
+            "referredBy",
+            "refers",
+            "invitation",
+            "unlock",
+            "referral",
+            "unverified"
+          ],
+          "properties": {
+            "system": {
+              "type": "string",
+              "description": "As the game writes it: copied to paste into the galaxy map."
+            },
+            "base": {
+              "type": "string"
+            },
+            "referredBy": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "The engineers who make this one known; empty, known from the start."
+            },
+            "refers": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "The engineers this one makes known."
+            },
+            "invitation": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "What makes a ship engineer invite the player; null on foot."
+            },
+            "unlock": {
+              "type": "string"
+            },
+            "referral": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "An on-foot engineer's task to refer the next ones."
+            },
+            "unverified": {
+              "type": "boolean",
+              "description": "Read from public sources, not checked in game (ADR 0030)."
+            }
+          }
+        }
+      ]
     }
   }
 }

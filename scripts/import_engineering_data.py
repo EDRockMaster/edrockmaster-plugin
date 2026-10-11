@@ -1,9 +1,10 @@
-"""Import the game data of engineering into the plugin (ADR 0017, ADR 0027, ADR 0030).
+"""Import the game data of engineering into the plugin (ADR 0017, ADR 0027, ADR 0030, ADR 0031).
 
 Reads EDCD/FDevIDs (materials, on-foot materials, engineers) and EDCD/coriolis-data (blueprints,
 experimental effects, which engineer offers which grade on which module, the
 items of each module type) at the pinned commits below, and the project's own
-on-foot recipes (``data/odyssey/recipes.toml``: class upgrades and modifications); keeps the
+on-foot recipes (``data/odyssey/recipes.toml``: class upgrades and modifications) and engineer
+sheets (``data/engineers.toml``: where each engineer is, how to unlock them); keeps the
 fields the plugin uses, maps every ingredient to its journal symbol, and writes
 ``edrockmaster/domain/engineering/catalogue.json``.
 
@@ -35,7 +36,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-FORMAT = 4
+FORMAT = 5
 
 
 @dataclass(frozen=True, slots=True)
@@ -336,6 +337,67 @@ def on_foot_modifications(
     return modifications
 
 
+def _text(what: str, entry: Mapping[str, Any], field: str, *, required: bool) -> str | None:
+    value = entry.get(field)
+    if value is None and not required:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise ImportRefused(f"{what}: no {field}")
+    return value
+
+
+def _details_proof(what: str, entry: Mapping[str, Any], named: Mapping[str, Any]) -> str:
+    """The confidence of an engineer's details, once it has its proof (ADR 0030, ADR 0031)."""
+    confidence = entry.get("confidence")
+    if confidence not in ("game", "web"):
+        raise ImportRefused(f"{what}: confidence {confidence!r}")
+    if not isinstance(entry.get("read"), datetime.date):
+        raise ImportRefused(f"{what}: a {confidence} entry needs the date it was read")
+    if confidence == "web":
+        cited = entry.get("sources") or []
+        if not cited:
+            raise ImportRefused(f"{what}: a web entry needs its sources")
+        for source in cited:
+            if source not in named and not str(source).startswith("https://"):
+                raise ImportRefused(f"{what}: unknown source {source!r}")
+    return str(confidence)
+
+
+def engineer_details(text: str, engineers: Mapping[str, int]) -> dict[str, dict[str, Any]]:
+    """Where each engineer is and how to unlock them, by engineer id (ADR 0031).
+
+    ``engineers``: the catalogue's engineers, ship and on foot, id by name."""
+    if not text:
+        return {}
+    data = tomllib.loads(text)
+    named: Mapping[str, Any] = data.get("sources", {})
+    entries: Mapping[str, Mapping[str, Any]] = data.get("engineers", {})
+    details: dict[int, dict[str, Any]] = {}
+    for name, entry in entries.items():
+        what = f"engineer {name!r}"
+        if name not in engineers:
+            raise ImportRefused(f"{what} is not an engineer of the catalogue")
+        on_foot = engineers[name] > ON_FOOT_ENGINEERS
+        referred_by = []
+        for referrer in entry.get("referred_by", []):
+            if referrer not in entries or referrer not in engineers:
+                raise ImportRefused(f"{what}: referred by an unknown engineer {referrer!r}")
+            referred_by.append(engineers[referrer])
+        invitation = _text(what, entry, "invitation", required=not on_foot)
+        if on_foot and invitation is not None:
+            raise ImportRefused(f"{what}: an on-foot engineer sends no invitation")
+        details[engineers[name]] = {
+            "system": _text(what, entry, "system", required=True),
+            "base": _text(what, entry, "base", required=True),
+            "referred_by": sorted(referred_by),
+            "invitation": invitation,
+            "unlock": _text(what, entry, "unlock", required=True),
+            "referral": _text(what, entry, "referral", required=False),
+            "confidence": _details_proof(what, entry, named),
+        }
+    return {str(id_): details[id_] for id_ in sorted(details)}
+
+
 def _items(read: Read, keys: set[str]) -> dict[str, list[str]]:
     """The journal symbols (lower case) of the items of each module type."""
     files = {
@@ -380,7 +442,7 @@ def _engineer_ids(names: list[str], engineers: Mapping[str, int]) -> list[int]:
     return sorted(ids)
 
 
-def build_catalogue(read: Read, recipes: str) -> dict[str, Any]:
+def build_catalogue(read: Read, recipes: str, sheets: str = "") -> dict[str, Any]:
     materials, symbols = _materials(read)
     engineer_ids = _engineers(read)
     blueprints_data = json.loads(read(CORIOLIS, "modifications/blueprints.json"))
@@ -458,6 +520,10 @@ def build_catalogue(read: Read, recipes: str) -> dict[str, Any]:
         "on_foot_engineers": dict(sorted(on_foot_engineers.items(), key=lambda item: int(item[0]))),
         "on_foot_items": on_foot_items(recipes, on_foot_materials),
         "on_foot_modifications": on_foot_modifications(recipes, on_foot_materials, engineer_ids),
+        "engineer_details": engineer_details(
+            sheets,
+            {name: int(id_) for id_, name in (*engineers.items(), *on_foot_engineers.items())},
+        ),
     }
 
 
@@ -484,9 +550,15 @@ def render(catalogue: Mapping[str, Any]) -> str:
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_OUTPUT = ROOT / "edrockmaster/domain/engineering/catalogue.json"
 DEFAULT_RECIPES = ROOT / "data/odyssey/recipes.toml"
+DEFAULT_ENGINEERS = ROOT / "data/engineers.toml"
 
 
-def main(argv: list[str], read: Read = read_github, recipes: str | None = None) -> int:
+def main(
+    argv: list[str],
+    read: Read = read_github,
+    recipes: str | None = None,
+    sheets: str | None = None,
+) -> int:
     if len(argv) > 2:
         print(__doc__.strip().splitlines()[-1], file=sys.stderr)
         return 2
@@ -494,7 +566,9 @@ def main(argv: list[str], read: Read = read_github, recipes: str | None = None) 
     try:
         if recipes is None:
             recipes = DEFAULT_RECIPES.read_text(encoding="utf-8")
-        catalogue = build_catalogue(read, recipes)
+        if sheets is None:
+            sheets = DEFAULT_ENGINEERS.read_text(encoding="utf-8")
+        catalogue = build_catalogue(read, recipes, sheets)
     except ImportRefused as refusal:
         print(f"refused: {refusal}", file=sys.stderr)
         return 1
@@ -506,7 +580,8 @@ def main(argv: list[str], read: Read = read_github, recipes: str | None = None) 
         f"{len(catalogue['on_foot_materials'])} on-foot materials, "
         f"{len(catalogue['on_foot_engineers'])} on-foot engineers, "
         f"{len(catalogue['on_foot_items'])} suits and weapons, "
-        f"{len(catalogue['on_foot_modifications'])} modifications"
+        f"{len(catalogue['on_foot_modifications'])} modifications, "
+        f"{len(catalogue['engineer_details'])} engineer sheets"
     )
     return 0
 

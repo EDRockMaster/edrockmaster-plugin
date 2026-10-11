@@ -173,5 +173,17 @@
   "onFoot.mod.unknown": "Recette pas encore connue sur cette combinaison ou cette arme : ce qu'elle demande n'est pas compté.",
   "onFoot.addMod": "Ajouter une modification",
   "onFoot.addMod.modification": "Modification",
-  "onFoot.addMod.unknownRecipe": "{name} (recette inconnue)"
+  "onFoot.addMod.unknownRecipe": "{name} (recette inconnue)",
+  "engineer.system": "Système",
+  "engineer.copy": "Copier {system}",
+  "engineer.copied": "Copié",
+  "engineer.base": "Base",
+  "engineer.referredBy": "Connu par",
+  "engineer.known": "Connu dès le départ",
+  "engineer.invitation": "Invitation",
+  "engineer.unlock": "Déblocage",
+  "engineer.referral": "Recommandation",
+  "engineer.referralTask": "{task} → {names}",
+  "engineer.refers": "Recommande",
+  "engineer.unverified": "Pas encore vérifié en jeu."
 }

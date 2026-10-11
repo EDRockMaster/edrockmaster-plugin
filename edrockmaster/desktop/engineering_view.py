@@ -30,6 +30,7 @@ from edrockmaster.domain.engineering.catalogue import (
     Ingredients,
     MaterialCategory,
     OnFootKind,
+    RecipeConfidence,
 )
 from edrockmaster.domain.engineering.goals import (
     BlueprintGoal,
@@ -96,6 +97,7 @@ def _on_foot(service: EngineeringService, names: EngineeringNames) -> dict[str, 
             "id": engineer_id,
             "name": names.engineer(engineer_id),
             "status": _status(state.status) if (state := known.get(engineer_id)) else None,
+            "sheet": _sheet(service.catalogue, engineer_id, names),
         }
         for engineer_id in service.catalogue.on_foot_engineers
     ]
@@ -238,9 +240,37 @@ def _engineers(service: EngineeringService, names: EngineeringNames) -> list[dic
                 "name": names.engineer(engineer_id),
                 "status": _status(state.status) if state else None,
                 "rank": state.rank if state else None,
+                "sheet": _sheet(service.catalogue, engineer_id, names),
             }
         )
     return sorted(rows, key=lambda row: row["name"].casefold())
+
+
+def _sheet(
+    catalogue: Catalogue, engineer_id: int, names: EngineeringNames
+) -> dict[str, Any] | None:
+    """Where an engineer is and how to unlock them (ADR 0031); ``None`` without a sheet."""
+    details = catalogue.engineer_details.get(engineer_id)
+    if details is None:
+        return None
+    refers = sorted(
+        (
+            names.engineer(other)
+            for other, sheet in catalogue.engineer_details.items()
+            if engineer_id in sheet.referred_by
+        ),
+        key=str.casefold,
+    )
+    return {
+        "system": details.system,
+        "base": details.base,
+        "referredBy": [names.engineer(id_) for id_ in details.referred_by],
+        "refers": refers,
+        "invitation": names.text(details.invitation) if details.invitation else None,
+        "unlock": names.text(details.unlock),
+        "referral": names.text(details.referral) if details.referral else None,
+        "unverified": details.confidence is not RecipeConfidence.GAME,
+    }
 
 
 def _status(status: EngineerStatus) -> str:

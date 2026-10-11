@@ -78,10 +78,10 @@ describe("recipes against the inventory", () => {
 describe("engineers", () => {
   it("lists those offering a grade, unlocked first", () => {
     const engineers = [
-      { id: 1, name: "Elvira Martuuk", status: "invited" as const, rank: null },
-      { id: 2, name: "Felicity Farseer", status: "unlocked" as const, rank: 5 },
-      { id: 3, name: "Bill Turner", status: "unlocked" as const, rank: 3 },
-      { id: 4, name: "Hera Tani", status: null, rank: null },
+      { id: 1, name: "Elvira Martuuk", status: "invited" as const, rank: null, sheet: null },
+      { id: 2, name: "Felicity Farseer", status: "unlocked" as const, rank: 5, sheet: null },
+      { id: 3, name: "Bill Turner", status: "unlocked" as const, rank: 3, sheet: null },
+      { id: 4, name: "Hera Tani", status: null, rank: null, sheet: null },
     ];
     expect(offeredBy([1, 2, 3, 99], engineers).map((e) => e.name)).toEqual([
       "Bill Turner",
@@ -109,8 +109,8 @@ const KNOWN = engineering({
     { symbol: "chromium", name: "Chromium", category: "raw", grade: 2, count: 2, cap: 250 },
   ],
   engineers: [
-    { id: 300100, name: "Felicity Farseer", status: "unlocked", rank: 5 },
-    { id: 300160, name: "Elvira Martuuk", status: "invited", rank: null },
+    { id: 300100, name: "Felicity Farseer", status: "unlocked", rank: 5, sheet: null },
+    { id: 300160, name: "Elvira Martuuk", status: "invited", rank: null, sheet: null },
   ],
 });
 

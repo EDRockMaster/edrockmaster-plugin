@@ -11,6 +11,7 @@
   import { t, type Language } from "../lib/i18n";
   import type { Engineering } from "../lib/live-view";
   import CardStack from "./CardStack.svelte";
+  import EngineerList from "./EngineerList.svelte";
   import GoalForm from "./GoalForm.svelte";
   import OnFootView from "./OnFootView.svelte";
 
@@ -194,14 +195,14 @@
 {/snippet}
 
 {#snippet engineers()}
-  <ul class="engineers">
-    {#each engineering.engineers as engineer (engineer.id)}
-      <li class:unlocked={engineer.status === "unlocked"}>
-        <span>{engineer.name}</span>
-        <span class:muted={engineer.status !== "unlocked"}>{statusText(engineer, language)}</span>
-      </li>
-    {/each}
-  </ul>
+  <EngineerList
+    engineers={engineering.engineers.map((engineer) => ({
+      ...engineer,
+      unlocked: engineer.status === "unlocked",
+      status: statusText(engineer, language),
+    }))}
+    {language}
+  />
   <p class="muted small">
     {t(language, "engineering.data", { date: engineering.catalogueDate })}
   </p>
@@ -293,32 +294,6 @@
     text-align: right;
   }
   /* Name and status side by side in short rows, so that the eye does not cross the screen */
-  .engineers {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
-    gap: var(--space-1) var(--space-3);
-    margin: 0 0 var(--space-2);
-    padding: 0;
-    list-style: none;
-  }
-  .engineers li {
-    display: flex;
-    justify-content: space-between;
-    gap: var(--space-2);
-    padding: var(--space-1) var(--space-2);
-    border-radius: var(--radius);
-    background: var(--colour-surface-current);
-    font-size: 0.9rem;
-  }
-  .engineers li span:last-child {
-    white-space: nowrap;
-  }
-  .engineers li.unlocked {
-    border-left: 3px solid var(--colour-accent);
-  }
-  .engineers li:hover {
-    outline: 1px solid var(--colour-border);
-  }
   .categories {
     display: flex;
     flex-direction: column;

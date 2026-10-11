@@ -92,7 +92,7 @@ describe("EngineeringView", () => {
       engineering: engineering({
         inventoryKnown: true,
         materials: [material({ symbol: "sulphur", name: "Sulphur", count: 300, cap: 300 })],
-        engineers: [{ id: 300200, name: "Marco Qwent", status: "unlocked", rank: 5 }],
+        engineers: [{ id: 300200, name: "Marco Qwent", status: "unlocked", rank: 5, sheet: null }],
         goals: [
           goal({
             id: "pd",
@@ -212,7 +212,7 @@ describe("edges", () => {
           material({ name: "Iron", count: 300, cap: 300 }),
           material({ symbol: "y", name: "Odd", category: null, grade: null, cap: null, count: 7 }),
         ],
-        engineers: [{ id: 1, name: "Elvira Martuuk", status: "invited", rank: null }],
+        engineers: [{ id: 1, name: "Elvira Martuuk", status: "invited", rank: null, sheet: null }],
         goals: [goal({ engineers: [] })],
       }),
     });
@@ -228,14 +228,14 @@ describe("edges", () => {
       language: "en",
       engineering: engineering({
         engineers: [
-          { id: 1, name: "Elvira Martuuk", status: "invited", rank: null },
-          { id: 2, name: "Marco Qwent", status: "unlocked", rank: 5 },
+          { id: 1, name: "Elvira Martuuk", status: "invited", rank: null, sheet: null },
+          { id: 2, name: "Marco Qwent", status: "unlocked", rank: 5, sheet: null },
         ],
       }),
     });
     expect(screen.getByText("1 unlocked of 2")).toBeInTheDocument();
     // One row per engineer: the name and its status together
-    const row = screen.getByText("Marco Qwent").closest("li");
+    const row = screen.getByText("Marco Qwent").closest("button");
     expect(row).toHaveClass("unlocked");
     expect(within(row as HTMLElement).getByText("Unlocked, rank 5")).toBeInTheDocument();
     const toggle = screen.getByRole("button", { name: "Fold Engineers" });

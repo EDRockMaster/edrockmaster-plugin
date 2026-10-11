@@ -77,6 +77,19 @@ def test_a_catalogue_has_the_modifications_of_suits_and_weapons() -> None:
     assert modifications["weapon_handling"].recipes == ()
 
 
+def test_a_catalogue_has_where_the_engineers_are_and_how_to_unlock_them() -> None:
+    details = Catalogue.from_data(DATA).engineer_details
+    farseer = details[300100]
+    assert (farseer.system, farseer.base) == ("Deciat", "Farseer Inc")
+    assert farseer.invitation == "Reach the exploration rank of Scout."
+    assert farseer.unlock == "Deliver 1 Meta-Alloys."
+    assert farseer.referred_by == ()
+    assert farseer.confidence is RecipeConfidence.WEB
+    domino = details[400002]
+    assert (domino.invitation, domino.referral) == (None, "Give 5 Push.")
+    assert domino.referred_by == (300100,)
+
+
 def test_the_engineers_offering_a_grade_depend_on_the_module() -> None:
     fsd = Catalogue.from_data(DATA).modules["fsd"]
     assert fsd.engineers("FSD_LongRange", 5) == (300100,)
@@ -131,6 +144,10 @@ def test_the_date_of_the_data_is_the_most_recent_source() -> None:
             "0 graphene",
         ),
         (("on_foot_modifications", "weapon_handling", "kind"), "helmet", "malformed"),
+        (("engineer_details", "300100", "system"), 3, "malformed"),
+        (("engineer_details", "300100", "confidence"), "deduced", "confidence"),
+        (("engineer_details", "400002", "referred_by"), [999], "unknown engineers"),
+        (("engineer_details", "999"), {}, "malformed"),
         (("on_foot_modifications", "suit_backpackcapacity", "engineers"), [300100], "engineers"),
         (
             ("on_foot_modifications", "suit_backpackcapacity", "recipes", 0, "items"),

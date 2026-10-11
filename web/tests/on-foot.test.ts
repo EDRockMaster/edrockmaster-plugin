@@ -104,7 +104,7 @@ describe("EngineeringView on foot", () => {
         onFoot: onFoot({
           known: true,
           materials: [material({ name: "Graphène", kind: "component", locker: 2, backpack: 1 })],
-          engineers: [{ id: 400002, name: "Domino Green", status: "invited" }],
+          engineers: [{ id: 400002, name: "Domino Green", status: "invited", sheet: null }],
           equipment: [
             {
               id: 1,
