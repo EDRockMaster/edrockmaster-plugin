@@ -2,7 +2,6 @@
 
 import copy
 import json
-from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -70,9 +69,13 @@ def test_the_form_back_into_settings() -> None:
     assert preferences == DesktopPreferences("fr", str(JOURNAL))
 
 
-def test_the_community_sources_are_kept_until_the_form_shows_them() -> None:
-    current = replace(DEFAULT_SETTINGS, sources=SourceSettings(spansh=False))
-    assert settings_from_request(view(), current)[0].sources == SourceSettings(spansh=False)
+def test_the_community_sources_are_switched_in_the_form() -> None:
+    request = view()
+    assert request["sources"] == {"spansh": True, "ardent": True}
+    request["sources"] = {"spansh": False, "ardent": True}
+    assert settings_from_request(request, DEFAULT_SETTINGS)[0].sources == SourceSettings(
+        spansh=False
+    )
 
 
 def test_an_empty_folder_means_the_usual_one() -> None:
@@ -102,6 +105,8 @@ def changed(path: tuple[str, ...], value: object) -> dict[str, Any]:
         (("alerts", "minimumRemaining"), -1, "minimumRemaining"),
         (("alerts", "cores"), "yes", "cores"),
         (("sound",), 1, "sound"),
+        (("sources",), None, "sources"),
+        (("sources", "ardent"), "yes", "ardent"),
         (("activities",), [], "activities"),
         (("activities",), "mining", "activities"),
         (("activities",), ["piracy"], "activities"),

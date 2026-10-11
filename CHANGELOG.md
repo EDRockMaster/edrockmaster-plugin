@@ -6,6 +6,12 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
+### Added
+
+- **The Mining tab** (design decisions ADR 0039 and ADR 0040). *Where to mine*: the rings with hotspots of a commodity around a system (your current one by default), nearest first, with their type, reserve, other hotspots, distance and how old the data is, filtered by hotspot count, reserve level and distance; a button copies the system's name for the galaxy map. *Where to sell*: the markets that buy the commodity around a system or a ring of the list, best price first, with demand, distance, landing pad and how old the price is; by default only the pads your ship can use, fleet carriers left out. Rings come from **Spansh**, markets from **Ardent Insight**, two community tools fed by EDDN, asked only when you search; their answers are kept a while (a day for rings, an hour for markets), and shown, with their age, when the source does not answer.
+- **Estimate the cargo**: a button under the mining card prices the cargo mined and not sold yet at the best market around your current system, commodity by commodity.
+- **Community sources** in *Settings*: Spansh and Ardent Insight can each be turned off; the privacy policy says what they receive.
+
 ## [0.5.0] - 2026-10-11
 
 The first published version of **EDRockMaster Companion**, the desktop application, which replaces the EDMC plugin.

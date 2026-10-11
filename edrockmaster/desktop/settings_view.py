@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from edrockmaster.application.activity import Activity
-from edrockmaster.application.settings import DisplaySettings, PluginSettings
+from edrockmaster.application.settings import DisplaySettings, PluginSettings, SourceSettings
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.mining.journal import ContentLevel
 from edrockmaster.domain.mining.prospecting import AlertSettings
@@ -89,6 +89,7 @@ def settings_view(
         "sound": settings.sound_enabled,
         "recordJournal": settings.record_journal,
         "activities": [activity.value for activity in settings.display.activities],
+        "sources": {"spansh": settings.sources.spansh, "ardent": settings.sources.ardent},
         "language": preferences.language,
         "journalFolder": preferences.journal_folder,
         "journalFolderInUse": str(journal_in_use) if journal_in_use else None,
@@ -108,7 +109,7 @@ def settings_from_request(
         record_journal=_bool(request, "recordJournal"),
         # The application shows every chosen activity: the plugin's display mode is kept
         display=replace(current.display, activities=_activities(request.get("activities"))),
-        sources=current.sources,
+        sources=_sources(_mapping(request, "sources")),
     )
     language = request.get("language")
     if language not in LANGUAGES:
@@ -181,3 +182,7 @@ def _activities(value: Any) -> tuple[Activity, ...]:
     if not chosen:
         raise SettingsError("activities", "at least one activity is shown")
     return DisplaySettings(chosen).activities
+
+
+def _sources(sources: Mapping[str, Any]) -> SourceSettings:
+    return SourceSettings(spansh=_bool(sources, "spansh"), ardent=_bool(sources, "ardent"))

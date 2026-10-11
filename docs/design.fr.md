@@ -246,6 +246,8 @@ Les données appartiennent à Frontier et ne relèvent pas de la licence de l'ap
 
 Onglet **Activités** : un bloc par activité affichée. Pour le minage : état (aucune session, minage dans un anneau, session terminée et pourquoi), la dernière alerte du prospecteur, mise en évidence jusqu'au prochain astéroïde prospecté, puis les statistiques : temps actif, tonnes raffinées, rendement, tonnes par commodité, astéroïdes prospectés et, dès qu'ils sont connus, cores, drones, soute et ventes. Les statistiques d'une session terminée restent affichées, et ses ventes s'y ajoutent. Un bouton **Réinitialiser** termine la session en cours. Les nombres s'écrivent comme la langue de l'interface les écrit.
 
+Onglet **Minage** (ADR 0040) : *où miner* et *où vendre*, demandés aux sources communautaires quand le joueur cherche (voir Sources communautaires) ; la carte de minage gagne un bouton *Estimer la soute*. Le cœur répond à ces appels sur le fil de pywebview, en attendant les sources 60 secondes au plus (`DesktopCore.find_hotspots`, `find_buyers`, `estimate_cargo`), comme le décrit `schemas/mining.schema.json`.
+
 Les autres onglets (*Ingénierie*, *Blueprints*, *Réglages*) et le bandeau de la situation du commandant sont décrits plus bas (Application de bureau).
 
 ## Réglages

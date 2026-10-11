@@ -9,7 +9,8 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from enum import Enum
+
+from edrockmaster.domain.ships import PadSize
 
 DEFAULT_MAX_DISTANCE = 50.0
 """Light years around the reference system."""
@@ -18,25 +19,6 @@ MAX_DISTANCE = 500.0
 """The farthest a source searches (Ardent)."""
 
 DEFAULT_MAX_AGE = timedelta(days=30)
-
-
-class PadSize(Enum):
-    """A landing pad, small to large."""
-
-    SMALL = 1
-    MEDIUM = 2
-    LARGE = 3
-
-    @classmethod
-    def from_number(cls, number: int | None) -> PadSize | None:
-        try:
-            return cls(number) if number is not None else None
-        except ValueError:
-            return None
-
-    def fits(self, needed: PadSize) -> bool:
-        """Whether a ship that needs ``needed`` can land on this pad."""
-        return self.value >= needed.value
 
 
 @dataclass(frozen=True, slots=True)
@@ -108,3 +90,27 @@ def select_offers(
             key=lambda offer: (-offer.price, offer.distance),
         )
     )
+
+
+@dataclass(frozen=True, slots=True)
+class CargoLine:
+    """A commodity of the cargo, and the best market found for it."""
+
+    commodity: str
+    tons: int
+    best: MarketOffer | None
+    """``None``: no market found, or the source gave nothing."""
+
+    @property
+    def value(self) -> int | None:
+        return self.tons * self.best.price if self.best is not None else None
+
+
+@dataclass(frozen=True, slots=True)
+class CargoEstimate:
+    lines: tuple[CargoLine, ...]
+
+    @property
+    def total(self) -> int:
+        """What the priced lines are worth together."""
+        return sum(line.value for line in self.lines if line.value is not None)

@@ -13,7 +13,8 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from edrockmaster.application.community import Answer
-from edrockmaster.domain.mining.markets import MarketOffer, PadSize, SaleQuery
+from edrockmaster.domain.mining.markets import MarketOffer, SaleQuery
+from edrockmaster.domain.ships import PadSize
 from edrockmaster.infrastructure.sources.http import SourceClient
 from edrockmaster.infrastructure.sources.source import CommunitySource
 

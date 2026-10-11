@@ -13,7 +13,7 @@ How a release is submitted: [store-submission.md](store-submission.md).
 - **Website**: https://github.com/EDRockMaster/edrockmaster-plugin
 - **Support contact**: contact@edrm.space.
 - **Publisher display name** (Partner Center, account settings): DamScan, a personal and non-commercial project, published from an individual account; it must equal the GitHub variable `EDROCKMASTER_MSIX_PUBLISHER_NAME`, or the package is refused ([store-submission.md](store-submission.md)). **Trader status** (EU Digital Services Act): not a trader.
-- **Personal information**: *yes*, the application accesses personal information: it reads the game journal, which names the commander and other players; it keeps it on the computer and sends nothing (see the privacy policy).
+- **Personal information**: *yes*, the application accesses personal information: it reads the game journal, which names the commander and other players; it keeps it on the computer and sends none of it; the *Mining* tab's searches go to two community tools, Spansh and Ardent Insight, only when the player searches (see the privacy policy).
 - **System requirements**: Windows 10 version 21H1 or Windows 11, 64-bit; Elite Dangerous on the same computer.
 
 ## Product name
@@ -38,7 +38,7 @@ Engineering: your materials by category and grade with their caps, the engineers
 
 Your situation at a glance: commander, ship, system and station, game mode and private group, wing.
 
-Everything is computed on your computer. No account, no advertising, no tracking: the application sends nothing. It does not change the game, and plays nothing for you: it only reads the journal the game writes for tools like it.
+Everything is computed on your computer. No account, no advertising, no tracking, no server of ours: your play stays on your computer; only your searches of hotspots and prices go to community tools. It does not change the game, and plays nothing for you: it only reads the journal the game writes for tools like it.
 
 Works alongside EDMarketConnector, or without it. In English and French.
 

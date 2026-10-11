@@ -24,6 +24,7 @@
   let activities = $state<Activity[]>([]);
   let chosenLanguage = $state<Settings["language"]>("auto");
   let journalFolder = $state("");
+  let sources = $state<Settings["sources"]>({ spansh: true, ardent: true });
   let message = $state<"saved" | "invalid" | null>(null);
 
   function show(settings: Settings): void {
@@ -39,6 +40,7 @@
     activities = [...settings.activities];
     chosenLanguage = settings.language;
     journalFolder = settings.journalFolder ?? "";
+    sources = { ...settings.sources };
   }
 
   // The settings are read when the tab opens
@@ -76,6 +78,7 @@
       activities: [first, ...others],
       language: chosenLanguage,
       journalFolder: journalFolder.trim() === "" ? null : journalFolder.trim(),
+      sources: { ...sources },
     };
     void core()?.save_settings(settings);
     loaded = settings;
@@ -180,6 +183,23 @@
           {t(language, "settings.openRecordings")}
         </button>
       </div>
+    </section>
+
+    <section>
+      <h2>{t(language, "settings.sources")}</h2>
+      <p class="muted">{t(language, "settings.sources.help")}</p>
+      <label class="check">
+        <input type="checkbox" bind:checked={sources.spansh} />{t(
+          language,
+          "settings.sources.spansh",
+        )}
+      </label>
+      <label class="check">
+        <input type="checkbox" bind:checked={sources.ardent} />{t(
+          language,
+          "settings.sources.ardent",
+        )}
+      </label>
     </section>
 
     <section>

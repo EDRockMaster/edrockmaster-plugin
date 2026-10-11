@@ -13,7 +13,7 @@ Comment une version est soumise : [store-submission.fr.md](store-submission.fr.m
 - **Site web** : https://github.com/EDRockMaster/edrockmaster-plugin
 - **Contact du support** : contact@edrm.space.
 - **Nom d'éditeur affiché** (Partner Center, paramètres du compte) : DamScan, un projet personnel et non commercial, publié depuis un compte individuel ; il doit être égal à la variable GitHub `EDROCKMASTER_MSIX_PUBLISHER_NAME`, sinon le paquet est refusé ([store-submission.fr.md](store-submission.fr.md)). **Statut de professionnel** (règlement européen sur les services numériques) : non professionnel.
-- **Informations personnelles** : *oui*, l'application accède à des informations personnelles : elle lit le journal du jeu, qui nomme le commandant et d'autres joueurs ; elle les garde sur l'ordinateur et n'envoie rien (voir la politique de confidentialité).
+- **Informations personnelles** : *oui*, l'application accède à des informations personnelles : elle lit le journal du jeu, qui nomme le commandant et d'autres joueurs ; elle les garde sur l'ordinateur et n'en envoie rien ; les recherches de l'onglet *Minage* partent vers deux outils communautaires, Spansh et Ardent Insight, seulement quand le joueur cherche (voir la politique de confidentialité).
 - **Configuration requise** : Windows 10 version 21H1 ou Windows 11, 64 bits ; Elite Dangerous sur le même ordinateur.
 
 ## Nom du produit
@@ -38,7 +38,7 @@ Ingénierie : vos matériaux par catégorie et par grade avec leurs plafonds, le
 
 Votre situation d'un coup d'œil : commandant, vaisseau, système et station, mode de jeu et groupe privé, escadrille.
 
-Tout est calculé sur votre ordinateur. Ni compte, ni publicité, ni pistage : l'application n'envoie rien. Elle ne modifie pas le jeu et ne joue pas à votre place : elle lit seulement le journal que le jeu écrit pour les outils comme elle.
+Tout est calculé sur votre ordinateur. Ni compte, ni publicité, ni pistage, ni serveur à nous : votre partie reste sur votre ordinateur ; seules vos recherches de hotspots et de prix partent vers des outils communautaires. Elle ne modifie pas le jeu et ne joue pas à votre place : elle lit seulement le journal que le jeu écrit pour les outils comme elle.
 
 Fonctionne à côté d'EDMarketConnector, ou sans lui. En français et en anglais.
 
