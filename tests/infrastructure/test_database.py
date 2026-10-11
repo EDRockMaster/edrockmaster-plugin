@@ -62,6 +62,8 @@ def schema_of(connection: sqlite3.Connection) -> list[tuple[str, str]]:
 
 CLASS_UPGRADES = 2
 """The schema version that added the class upgrade goals (ADR 0027)."""
+MODIFICATIONS = 3
+"""The schema version that added the modification goals (ADR 0027)."""
 
 
 def fixture_versions() -> list[int]:
@@ -126,6 +128,9 @@ def test_each_past_version_opens_at_the_latest_and_keeps_its_data(
     assert db.connection().execute("SELECT count(*) FROM engineering_goal").fetchone() == (2,)
     if version >= CLASS_UPGRADES:
         count = db.connection().execute("SELECT count(*) FROM class_upgrade_goal").fetchone()
+        assert count == (1,)
+    if version >= MODIFICATIONS:
+        count = db.connection().execute("SELECT count(*) FROM modification_goal").fetchone()
         assert count == (1,)
     db.close()
 

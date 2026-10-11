@@ -8,7 +8,8 @@
   "required": [
     "date",
     "modules",
-    "onFootItems"
+    "onFootItems",
+    "onFootModifications"
   ],
   "properties": {
     "date": {
@@ -165,6 +166,84 @@
                   "type": "integer",
                   "minimum": 2,
                   "maximum": 5
+                },
+                "credits": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "confidence": {
+                  "enum": [
+                    "game",
+                    "deduced",
+                    "web"
+                  ],
+                  "description": "Seen in game, deduced from a rule read in game, or read from public sources (ADR 0030)."
+                },
+                "ingredients": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/ingredient"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "onFootModifications": {
+      "description": "Modifications of suits then weapons, with the on-foot engineers seen offering them and their recipe on each item type read (ADR 0027, ADR 0030).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "symbol",
+          "kind",
+          "name",
+          "engineers",
+          "recipes"
+        ],
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "As the journal writes it in SuitMods or WeaponMods."
+          },
+          "kind": {
+            "enum": [
+              "suit",
+              "weapon"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "engineers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "recipes": {
+            "description": "An item type without a recipe has its recipe unknown.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "items",
+                "credits",
+                "confidence",
+                "ingredients"
+              ],
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1,
+                  "description": "Journal symbols of the suit or weapon types it was read on, and holds for."
                 },
                 "credits": {
                   "type": "integer",

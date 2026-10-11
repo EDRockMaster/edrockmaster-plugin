@@ -50,6 +50,35 @@ export interface GoalCatalogue {
       ingredients: Ingredient[];
     }[];
   }[];
+  /**
+   * Modifications of suits then weapons, with the on-foot engineers seen offering them and their recipe on each item type read (ADR 0027, ADR 0030).
+   */
+  onFootModifications: {
+    /**
+     * As the journal writes it in SuitMods or WeaponMods.
+     */
+    symbol: string;
+    kind: "suit" | "weapon";
+    name: string;
+    engineers: string[];
+    /**
+     * An item type without a recipe has its recipe unknown.
+     */
+    recipes: {
+      /**
+       * Journal symbols of the suit or weapon types it was read on, and holds for.
+       *
+       * @minItems 1
+       */
+      items: [string, ...string[]];
+      credits: number;
+      /**
+       * Seen in game, deduced from a rule read in game, or read from public sources (ADR 0030).
+       */
+      confidence: "game" | "deduced" | "web";
+      ingredients: Ingredient[];
+    }[];
+  }[];
 }
 export interface Ingredient {
   symbol: string;

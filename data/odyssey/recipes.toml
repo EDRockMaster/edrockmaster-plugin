@@ -15,6 +15,12 @@
 #
 # An unknown recipe is absent. The game shows a class upgrade only for an item the player owns,
 # at its next class: the upgrades to class 5 have not been seen yet.
+#
+# Modifications follow the items. Each is named by its journal symbol (`SuitMods`,
+# `WeaponMods`): `symbol.seen` is the date the player's journal showed it; one not seen there
+# yet names the public sources of its symbol, read by hand, and the date. `engineers` are those
+# seen offering it in game. A modification's recipe is read on a suit or weapon type, and holds
+# for the `items` it names only, until read on another.
 
 game_version = "4.4.1.1"
 
@@ -428,3 +434,77 @@ ingredients = { weaponschematic = 4, ionisedgas = 4, manufacturinginstructions =
 confidence = "deduced"
 rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
 
+
+# Modifications of suits
+
+[modifications.suit_reducedtoolbatteryconsumption]
+kind = "suit"
+name = "Reduced tool battery consumption"
+symbol = { sources = ["github.com/rster2002/ed-journals, suit_mod.rs", "github.com/jixxed/ed-journal-schemas, SwitchSuitLoadout"], read = 2026-10-11 }
+engineers = ["Domino Green"]
+
+[[modifications.suit_reducedtoolbatteryconsumption.recipes]]
+items = ["utilitysuit"]
+credits = 500_000
+ingredients = { electricalfuse = 3, microtransformer = 5, electricalwiring = 8, reactoroutputreview = 5 }
+confidence = "game"
+read = 2026-10-11
+
+[modifications.suit_improvedradar]
+kind = "suit"
+name = "Enhanced tracking"
+symbol = { sources = ["github.com/rster2002/ed-journals, suit_mod.rs"], read = 2026-10-11 }
+engineers = ["Domino Green"]
+
+[[modifications.suit_improvedradar.recipes]]
+items = ["utilitysuit"]
+credits = 750_000
+ingredients = { transmitter = 3, circuitboard = 3, topographicalsurveys = 5, stellaractivitylogs = 5, spectralanalysisdata = 5 }
+confidence = "game"
+read = 2026-10-11
+
+[modifications.suit_backpackcapacity]
+kind = "suit"
+name = "Extra backpack capacity"
+symbol = { sources = ["github.com/rster2002/ed-journals, suit_mod.rs", "github.com/jixxed/ed-journal-schemas, SwitchSuitLoadout"], read = 2026-10-11 }
+engineers = ["Domino Green"]
+
+[[modifications.suit_backpackcapacity.recipes]]
+items = ["utilitysuit"]
+credits = 750_000
+ingredients = { epoxyadhesive = 5, memorychip = 3, weaponinventory = 5, chemicalinventory = 5, digitaldesigns = 5 }
+confidence = "game"
+read = 2026-10-11
+
+# Modifications of weapons
+
+[modifications.weapon_handling]
+kind = "weapon"
+name = "Faster handling"
+symbol = { seen = 2026-10-10 }
+
+[modifications.weapon_stability]
+kind = "weapon"
+name = "Stability"
+symbol = { sources = ["github.com/rster2002/ed-journals, weapon_mod.rs"], read = 2026-10-11 }
+engineers = ["Domino Green"]
+
+[[modifications.weapon_stability.recipes]]
+items = ["wpn_m_submachinegun_laser_fauto"]
+credits = 500_000
+ingredients = { viscoelasticpolymer = 5, microhydraulics = 5, mininganalytics = 5, riskassessments = 8 }
+confidence = "game"
+read = 2026-10-11
+
+[modifications.weapon_range]
+kind = "weapon"
+name = "Greater range"
+symbol = { sources = ["github.com/rster2002/ed-journals, weapon_mod.rs"], read = 2026-10-11 }
+engineers = ["Domino Green"]
+
+[[modifications.weapon_range.recipes]]
+items = ["wpn_m_submachinegun_laser_fauto"]
+credits = 500_000
+ingredients = { microtransformer = 8, opticallens = 3, circuitboard = 3, stellaractivitylogs = 5, riskassessments = 8 }
+confidence = "game"
+read = 2026-10-11

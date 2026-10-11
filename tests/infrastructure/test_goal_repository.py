@@ -15,6 +15,7 @@ from edrockmaster.domain.engineering.goals import (
     ExperimentalEffectGoal,
     Goal,
     GoalId,
+    ModificationGoal,
 )
 from edrockmaster.infrastructure.database import FILE_NAME, LocalDatabase
 from edrockmaster.infrastructure.goal_repository import SqliteGoalRepository
@@ -115,6 +116,22 @@ def test_class_upgrades_are_stored_and_listed_after_the_ship_goals(storage: Stor
     storage.repository.replace(started_higher)
     storage.repository.remove(ECLIPSE.id)
     assert storage.loaded() == (RANGE, started_higher)
+
+
+def test_modifications_are_stored_and_listed_after_the_class_upgrades(storage: Storage) -> None:
+    backpack = ModificationGoal(
+        GoalId("m1"), "utilitysuit", "suit_backpackcapacity", SET_AT, 1878707285049801
+    )
+    stability = ModificationGoal(
+        GoalId("m2"), "wpn_m_submachinegun_laser_fauto", "weapon_stability", SET_AT
+    )
+    for goal in (backpack, DOMINATOR, stability, RANGE):
+        storage.repository.add(goal)
+    assert storage.loaded() == (RANGE, DOMINATOR, backpack, stability)
+    on_another = ModificationGoal(backpack.id, "utilitysuit", "suit_backpackcapacity", SET_AT, 42)
+    storage.repository.replace(on_another)
+    storage.repository.remove(stability.id)
+    assert storage.loaded() == (RANGE, DOMINATOR, on_another)
 
 
 def test_the_time_a_goal_was_set_is_kept_in_utc(storage: Storage) -> None:

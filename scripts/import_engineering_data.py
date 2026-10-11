@@ -3,8 +3,8 @@
 Reads EDCD/FDevIDs (materials, on-foot materials, engineers) and EDCD/coriolis-data (blueprints,
 experimental effects, which engineer offers which grade on which module, the
 items of each module type) at the pinned commits below, and the project's own
-on-foot recipes (``data/odyssey/recipes.toml``); keeps the fields the plugin
-uses, maps every ingredient to its journal symbol, and writes
+on-foot recipes (``data/odyssey/recipes.toml``: class upgrades and modifications); keeps the
+fields the plugin uses, maps every ingredient to its journal symbol, and writes
 ``edrockmaster/domain/engineering/catalogue.json``.
 
 The data is Frontier Developments' intellectual property (see ``NOTICE``), used
@@ -35,7 +35,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-FORMAT = 3
+FORMAT = 4
 
 
 @dataclass(frozen=True, slots=True)
@@ -267,6 +267,75 @@ def on_foot_items(
     return items
 
 
+def _symbol_proof(what: str, modification: Mapping[str, Any]) -> None:
+    """Seen in the player's journal, or read by hand from public sources (ADR 0030)."""
+    symbol = modification.get("symbol") or {}
+    if isinstance(symbol.get("seen"), datetime.date):
+        return
+    if symbol.get("sources") and isinstance(symbol.get("read"), datetime.date):
+        return
+    raise ImportRefused(f"{what}: its symbol needs the date the journal showed it, or its sources")
+
+
+def _recipe_items(
+    what: str, names: list[str], kind: str, items: Mapping[str, Mapping[str, Any]]
+) -> list[str]:
+    if not names:
+        raise ImportRefused(f"{what}: a recipe holds for no item")
+    for symbol in names:
+        if symbol not in items:
+            raise ImportRefused(f"{what}: unknown item {symbol!r}")
+        if items[symbol]["kind"] != kind:
+            raise ImportRefused(f"{what}: {symbol!r} is not a {kind}")
+    return sorted(names)
+
+
+def on_foot_modifications(
+    recipes: str, materials: Mapping[str, Mapping[str, str]], engineers: Mapping[str, int]
+) -> dict[str, dict[str, Any]]:
+    """The modifications of ``recipes.toml``: who offers them, their recipe on each item type."""
+    data = tomllib.loads(recipes)
+    rules: Mapping[str, Any] = data.get("rules", {})
+    items = on_foot_items(recipes, materials)
+    on_foot = {name: id_ for name, id_ in engineers.items() if id_ > ON_FOOT_ENGINEERS}
+    modifications: dict[str, dict[str, Any]] = {}
+    for symbol, modification in sorted(data.get("modifications", {}).items()):
+        what = f"modification {symbol!r}"
+        if symbol != symbol.lower():
+            raise ImportRefused(f"{what}: the journal writes symbols in lower case")
+        kind = modification.get("kind")
+        if kind not in EQUIPMENT_KINDS:
+            raise ImportRefused(f"{what}: unknown kind {kind!r}")
+        if not modification.get("name"):
+            raise ImportRefused(f"{what} has no name")
+        _symbol_proof(what, modification)
+        offering = []
+        for name in modification.get("engineers", []):
+            if name not in on_foot:
+                raise ImportRefused(f"{what}: {name!r} is no on-foot engineer of FDevIDs")
+            offering.append(on_foot[name])
+        written: list[dict[str, Any]] = []
+        covered: set[str] = set()
+        for recipe in modification.get("recipes", []):
+            names = _recipe_items(what, recipe.get("items", []), kind, items)
+            twice = sorted(covered.intersection(names)) or sorted(
+                {name for name in names if names.count(name) > 1}
+            )
+            if twice:
+                raise ImportRefused(f"{what}: a recipe written twice for {twice}")
+            covered.update(names)
+            if recipe["credits"] < 1:
+                raise ImportRefused(f"{what}: {recipe['credits']} credits")
+            written.append({"items": names, **_upgrade(what, recipe, rules, materials)})
+        modifications[symbol] = {
+            "kind": kind,
+            "name": modification["name"],
+            "engineers": sorted(offering),
+            "recipes": written,
+        }
+    return modifications
+
+
 def _items(read: Read, keys: set[str]) -> dict[str, list[str]]:
     """The journal symbols (lower case) of the items of each module type."""
     files = {
@@ -388,6 +457,7 @@ def build_catalogue(read: Read, recipes: str) -> dict[str, Any]:
         "on_foot_materials": on_foot_materials,
         "on_foot_engineers": dict(sorted(on_foot_engineers.items(), key=lambda item: int(item[0]))),
         "on_foot_items": on_foot_items(recipes, on_foot_materials),
+        "on_foot_modifications": on_foot_modifications(recipes, on_foot_materials, engineer_ids),
     }
 
 
@@ -435,7 +505,8 @@ def main(argv: list[str], read: Read = read_github, recipes: str | None = None) 
         f"{len(catalogue['modules'])} modules, {len(catalogue['engineers'])} engineers, "
         f"{len(catalogue['on_foot_materials'])} on-foot materials, "
         f"{len(catalogue['on_foot_engineers'])} on-foot engineers, "
-        f"{len(catalogue['on_foot_items'])} suits and weapons"
+        f"{len(catalogue['on_foot_items'])} suits and weapons, "
+        f"{len(catalogue['on_foot_modifications'])} modifications"
     )
     return 0
 

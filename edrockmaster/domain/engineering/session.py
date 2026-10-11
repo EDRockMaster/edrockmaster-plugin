@@ -25,6 +25,10 @@
   the goal's item (or, for a goal on a type, an item of it shown after the goal
   was set) at a higher class, the goal starts from there; at the class aimed
   at, it is done and removed.
+- **Modifications** on foot: the recipe read on the goal's item type, and the
+  unlocked engineers seen offering it; without such a recipe, the goal is
+  unknown. When the journal shows the goal's item (or one of its type, as
+  above) with the modification, it is done and removed.
 
 The tracker reports goal changes it makes (``GoalProgressed``, ``GoalDone``) so
 that the application layer stores them; the player's own changes come through
@@ -45,6 +49,7 @@ from edrockmaster.domain.engineering.catalogue import (
     ClassUpgrade,
     Ingredients,
     MaterialCategory,
+    ModificationRecipe,
     OnFootKind,
     RecipeConfidence,
 )
@@ -54,6 +59,8 @@ from edrockmaster.domain.engineering.goals import (
     ExperimentalEffectGoal,
     Goal,
     GoalId,
+    ModificationGoal,
+    OnFootGoal,
 )
 from edrockmaster.domain.engineering.journal import (
     BlueprintApplied,
@@ -125,16 +132,16 @@ class GoalProgress:
     missing: Ingredients | None
     """What the inventory lacks for it; ``None`` while the inventory is unknown."""
     engineers: tuple[int, ...]
-    """Unlocked engineers offering it on its module type."""
+    """Unlocked engineers offering it on its module type; on foot, seen offering it."""
     known: bool = True
-    """``False`` when the catalogue does not know its blueprint, grade or effect, or a step
-    of its class upgrade."""
+    """``False`` when the catalogue does not know its blueprint, grade or effect, a step
+    of its class upgrade, or its modification on its item type."""
     credits: int = 0
-    """On foot, the credits of its class upgrade steps: shown, not counted."""
+    """On foot, the credits it takes: shown, not counted."""
     unknown_classes: tuple[int, ...] = ()
     """On foot, the classes whose upgrade the catalogue does not know."""
     unverified: bool = False
-    """On foot, a step's recipe was not seen in game: deduced or read elsewhere (ADR 0030)."""
+    """On foot, a recipe it takes was not seen in game: deduced or read elsewhere (ADR 0030)."""
 
     @property
     def ready(self) -> bool:
@@ -289,20 +296,20 @@ class EngineeringTracker:
         """What the inventory lacks for all the ship goals together, by material."""
         needed: Counter[str] = Counter()
         for goal in self._goals:
-            if not isinstance(goal, ClassUpgradeGoal):
+            if isinstance(goal, BlueprintGoal | ExperimentalEffectGoal):
                 needed.update(self._needed(goal) or {})
         return _missing(needed, self._inventory or {})
 
     def on_foot_shopping_list(self) -> Ingredients:
-        """What the on-foot materials held lack for all the class upgrades together."""
+        """What the on-foot materials held lack for all the on-foot goals together."""
         needed: Counter[str] = Counter()
-        for goal in self._class_upgrades():
-            needed.update(self._class_progress(goal).needed)
+        for goal in self._on_foot_goals():
+            needed.update(self._progress(goal).needed)
         return _missing(needed, self._on_foot.held())
 
     def on_foot_credits(self) -> int:
-        """The credits all the class upgrades take: shown, not counted."""
-        return sum(self._class_progress(goal).credits for goal in self._class_upgrades())
+        """The credits all the on-foot goals take: shown, not counted."""
+        return sum(self._progress(goal).credits for goal in self._on_foot_goals())
 
     # The journal
 
@@ -456,26 +463,23 @@ class EngineeringTracker:
     def _raise(
         self, at: datetime, pieces: Iterable[Suit | Weapon]
     ) -> list[EngineeringNotification]:
-        """Move the class upgrades of the items shown: started higher, or done."""
+        """Move the on-foot goals of the items shown: a class upgrade started higher, or a goal
+        done."""
         notifications: list[EngineeringNotification] = []
         for piece in pieces:
-            shown = piece.suit_class if isinstance(piece, Suit) else piece.weapon_class
-            if shown is None:
-                continue  # the flight suit has no class
             goals: list[Goal] = []
             for goal in self._goals:
-                if not isinstance(goal, ClassUpgradeGoal) or not _shows(goal, piece, at):
+                if not isinstance(goal, ClassUpgradeGoal | ModificationGoal) or not _shows(
+                    goal, piece, at
+                ):
                     goals.append(goal)
-                elif shown >= goal.to_class:
+                    continue
+                after = _moved(goal, piece)
+                if after is not goal:
                     self._ready.discard(goal.id)
-                    notifications.append(GoalDone(goal))
-                elif shown > goal.from_class:
-                    goal = replace(goal, from_class=shown)  # noqa: PLW2901 - the goal moved on
-                    self._ready.discard(goal.id)
-                    goals.append(goal)
-                    notifications.append(GoalProgressed(goal))
-                else:
-                    goals.append(goal)
+                    notifications.append(GoalDone(goal) if after is None else GoalProgressed(after))
+                if after is not None:
+                    goals.append(after)
             self._goals = goals
         return notifications
 
@@ -500,7 +504,7 @@ class EngineeringTracker:
         """Take one roll, or one application, off the first goal the craft made."""
         module = self._catalogue.module_of(fact.module_item)
         for index, goal in enumerate(self._goals):
-            if isinstance(goal, ClassUpgradeGoal):
+            if isinstance(goal, ClassUpgradeGoal | ModificationGoal):
                 continue
             if not self._made_by(goal, fact, module.key if module else None):
                 continue
@@ -580,14 +584,18 @@ class EngineeringTracker:
     def _progress(self, goal: Goal) -> GoalProgress:
         if isinstance(goal, ClassUpgradeGoal):
             return self._class_progress(goal)
+        if isinstance(goal, ModificationGoal):
+            return self._modification_progress(goal)
         needed = self._needed(goal)
         if needed is None:
             return GoalProgress(goal, {}, None, (), known=False)
         missing = None if self._inventory is None else _missing(needed, self._inventory)
         return GoalProgress(goal, needed, missing, self._engineers_for(goal))
 
-    def _class_upgrades(self) -> list[ClassUpgradeGoal]:
-        return [goal for goal in self._goals if isinstance(goal, ClassUpgradeGoal)]
+    def _on_foot_goals(self) -> list[OnFootGoal]:
+        return [
+            goal for goal in self._goals if isinstance(goal, ClassUpgradeGoal | ModificationGoal)
+        ]
 
     def _class_progress(self, goal: ClassUpgradeGoal) -> GoalProgress:
         item = self._catalogue.on_foot_items.get(goal.item)
@@ -608,6 +616,23 @@ class EngineeringTracker:
             credits=sum(upgrade.credits for upgrade in known),
             unknown_classes=unknown,
             unverified=any(upgrade.confidence is not RecipeConfidence.GAME for upgrade in known),
+        )
+
+    def _modification_progress(self, goal: ModificationGoal) -> GoalProgress:
+        modification = self._catalogue.on_foot_modifications.get(goal.modification)
+        recipe: ModificationRecipe | None = (
+            modification.recipe_for(goal.item) if modification else None
+        )
+        engineers = self._unlocked(modification.engineers) if modification else ()
+        if recipe is None:
+            return GoalProgress(goal, {}, None, engineers, known=False)
+        return GoalProgress(
+            goal,
+            dict(sorted(recipe.ingredients.items())),
+            _missing(recipe.ingredients, self._on_foot.held()) if self._on_foot.known else None,
+            engineers,
+            credits=recipe.credits,
+            unverified=recipe.confidence is not RecipeConfidence.GAME,
         )
 
     def _engineers_for(self, goal: BlueprintGoal | ExperimentalEffectGoal) -> tuple[int, ...]:
@@ -631,6 +656,9 @@ class EngineeringTracker:
                 )
             case _:  # pragma: no cover - exhaustiveness checked by mypy
                 assert_never(goal)
+        return self._unlocked(offering)
+
+    def _unlocked(self, offering: Iterable[int]) -> tuple[int, ...]:
         return tuple(
             id_
             for id_ in offering
@@ -647,7 +675,23 @@ def _missing(needed: Mapping[str, int], held: Mapping[str, int]) -> Ingredients:
     }
 
 
-def _shows(goal: ClassUpgradeGoal, piece: Suit | Weapon, at: datetime) -> bool:
+def _moved(goal: OnFootGoal, piece: Suit | Weapon) -> OnFootGoal | None:
+    """The goal once its item is shown: the same, started higher, or ``None`` when done."""
+    match goal:
+        case ClassUpgradeGoal():
+            shown = piece.suit_class if isinstance(piece, Suit) else piece.weapon_class
+            if shown is None:  # the flight suit has no class
+                return goal
+            if shown >= goal.to_class:
+                return None
+            return replace(goal, from_class=shown) if shown > goal.from_class else goal
+        case ModificationGoal():
+            return None if goal.modification in piece.mods else goal
+        case _:  # pragma: no cover - exhaustiveness checked by mypy
+            assert_never(goal)
+
+
+def _shows(goal: OnFootGoal, piece: Suit | Weapon, at: datetime) -> bool:
     """The item shown is the goal's own, or one of its type shown after it was set."""
     if goal.equipment_id is not None:
         return piece.id == goal.equipment_id

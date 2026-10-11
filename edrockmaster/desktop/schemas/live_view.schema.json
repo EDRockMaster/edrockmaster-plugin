@@ -470,6 +470,7 @@
         "equipment",
         "carrierMoves",
         "goals",
+        "modifications",
         "shoppingList",
         "credits"
       ],
@@ -728,6 +729,93 @@
                   }
                 ],
                 "description": "What the on-foot materials held lack for the known steps; null while the ship locker is unknown."
+              }
+            }
+          }
+        },
+        "modifications": {
+          "type": "array",
+          "description": "Modifications, in the order they were added.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "item",
+              "title",
+              "modification",
+              "name",
+              "equipmentId",
+              "known",
+              "unverified",
+              "credits",
+              "ready",
+              "missing",
+              "engineers"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "item": {
+                "type": "string",
+                "description": "Journal symbol of the suit or weapon type."
+              },
+              "title": {
+                "type": "string",
+                "description": "The suit or weapon type's name."
+              },
+              "modification": {
+                "type": "string",
+                "description": "Journal symbol of the modification."
+              },
+              "name": {
+                "type": "string",
+                "description": "The modification's name."
+              },
+              "equipmentId": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "The player's own item it follows; null for any item of the type."
+              },
+              "known": {
+                "type": "boolean",
+                "description": "False when its recipe on the item type is not known."
+              },
+              "unverified": {
+                "type": "boolean",
+                "description": "Its recipe was not seen in game: deduced or read elsewhere (ADR 0030)."
+              },
+              "credits": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Credits of its recipe, if known: shown, not counted."
+              },
+              "ready": {
+                "type": "boolean"
+              },
+              "missing": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/ingredient"
+                    }
+                  }
+                ],
+                "description": "What the on-foot materials held lack for it; null while the ship locker or its recipe is unknown."
+              },
+              "engineers": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Unlocked on-foot engineers seen offering it."
               }
             }
           }

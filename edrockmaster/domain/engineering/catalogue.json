@@ -1,5 +1,5 @@
 {
-  "format": 3,
+  "format": 4,
   "sources": [{"repository": "EDCD/FDevIDs", "commit": "c35612952dd6a547d1a7ac4cffab9c7051e86579", "date": "2026-09-05"}, {"repository": "EDCD/coriolis-data", "commit": "0db9234b5b9ce8c939ea84133d7ce336eea88e27", "date": "2026-04-24"}],
   "materials": {
     "adaptiveencryptors": {"category": "encoded", "grade": 5, "name": "Adaptive Encryptors Capture"},
@@ -613,5 +613,13 @@
     "wpn_s_pistol_kinetic_sauto": {"kind": "weapon", "name": "Karma P-15", "upgrades": {"2": {"credits": 200000, "ingredients": {"compressionliquefiedgas": 1, "manufacturinginstructions": 1, "tungstencarbide": 2, "weaponcomponent": 2, "weaponschematic": 1}, "confidence": "game"}, "3": {"credits": 750000, "ingredients": {"compressionliquefiedgas": 2, "manufacturinginstructions": 2, "tungstencarbide": 5, "weaponcomponent": 5, "weaponschematic": 2}, "confidence": "deduced"}, "4": {"credits": 1500000, "ingredients": {"compressionliquefiedgas": 4, "manufacturinginstructions": 4, "tungstencarbide": 9, "weaponcomponent": 9, "weaponschematic": 4}, "confidence": "deduced"}}},
     "wpn_s_pistol_laser_sauto": {"kind": "weapon", "name": "TK Zenith", "upgrades": {"2": {"credits": 200000, "ingredients": {"ionisedgas": 1, "manufacturinginstructions": 1, "microelectrode": 2, "opticalfibre": 2, "weaponschematic": 1}, "confidence": "game"}, "3": {"credits": 750000, "ingredients": {"ionisedgas": 2, "manufacturinginstructions": 2, "microelectrode": 5, "opticalfibre": 5, "weaponschematic": 2}, "confidence": "deduced"}, "4": {"credits": 1500000, "ingredients": {"ionisedgas": 4, "manufacturinginstructions": 4, "microelectrode": 9, "opticalfibre": 9, "weaponschematic": 4}, "confidence": "deduced"}}},
     "wpn_s_pistol_plasma_charged": {"kind": "weapon", "name": "Manticore Tormentor", "upgrades": {"2": {"credits": 200000, "ingredients": {"chemicalsuperbase": 2, "ionisedgas": 1, "manufacturinginstructions": 1, "microelectrode": 2, "weaponschematic": 1}, "confidence": "game"}, "3": {"credits": 750000, "ingredients": {"chemicalsuperbase": 5, "ionisedgas": 2, "manufacturinginstructions": 2, "microelectrode": 5, "weaponschematic": 2}, "confidence": "deduced"}, "4": {"credits": 1500000, "ingredients": {"chemicalsuperbase": 9, "ionisedgas": 4, "manufacturinginstructions": 4, "microelectrode": 9, "weaponschematic": 4}, "confidence": "deduced"}}}
+  },
+  "on_foot_modifications": {
+    "suit_backpackcapacity": {"kind": "suit", "name": "Extra backpack capacity", "engineers": [400002], "recipes": [{"items": ["utilitysuit"], "credits": 750000, "ingredients": {"chemicalinventory": 5, "digitaldesigns": 5, "epoxyadhesive": 5, "memorychip": 3, "weaponinventory": 5}, "confidence": "game"}]},
+    "suit_improvedradar": {"kind": "suit", "name": "Enhanced tracking", "engineers": [400002], "recipes": [{"items": ["utilitysuit"], "credits": 750000, "ingredients": {"circuitboard": 3, "spectralanalysisdata": 5, "stellaractivitylogs": 5, "topographicalsurveys": 5, "transmitter": 3}, "confidence": "game"}]},
+    "suit_reducedtoolbatteryconsumption": {"kind": "suit", "name": "Reduced tool battery consumption", "engineers": [400002], "recipes": [{"items": ["utilitysuit"], "credits": 500000, "ingredients": {"electricalfuse": 3, "electricalwiring": 8, "microtransformer": 5, "reactoroutputreview": 5}, "confidence": "game"}]},
+    "weapon_handling": {"kind": "weapon", "name": "Faster handling", "engineers": [], "recipes": []},
+    "weapon_range": {"kind": "weapon", "name": "Greater range", "engineers": [400002], "recipes": [{"items": ["wpn_m_submachinegun_laser_fauto"], "credits": 500000, "ingredients": {"circuitboard": 3, "microtransformer": 8, "opticallens": 3, "riskassessments": 8, "stellaractivitylogs": 5}, "confidence": "game"}]},
+    "weapon_stability": {"kind": "weapon", "name": "Stability", "engineers": [400002], "recipes": [{"items": ["wpn_m_submachinegun_laser_fauto"], "credits": 500000, "ingredients": {"microhydraulics": 5, "mininganalytics": 5, "riskassessments": 8, "viscoelasticpolymer": 5}, "confidence": "game"}]}
   }
 }
