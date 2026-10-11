@@ -32,7 +32,8 @@ the first three ingredients and 2 of each of the last two; to class 3, 2 and 5; 
 4 and 9."""
 readings = [
     "utilitysuit 2", "utilitysuit 3", "tacticalsuit 2", "tacticalsuit 4", "explorationsuit 2",
-    "explorationsuit 3", "wpn_m_submachinegun_laser_fauto 4",
+    "explorationsuit 3", "wpn_m_submachinegun_laser_fauto 4", "wpn_s_pistol_laser_sauto 3",
+    "wpn_s_pistol_laser_sauto 4",
 ]
 
 [rules.suit-ingredients]
@@ -53,6 +54,7 @@ readings = [
     "wpn_m_assaultrifle_kinetic_fauto 2", "wpn_m_launcher_rocket_sauto 2",
     "wpn_s_pistol_laser_sauto 2", "wpn_m_submachinegun_laser_fauto 2",
     "wpn_m_submachinegun_laser_fauto 4", "wpn_m_assaultrifle_laser_fauto 2",
+    "wpn_s_pistol_laser_sauto 3", "wpn_s_pistol_laser_sauto 4",
     "wpn_s_pistol_plasma_charged 2", "wpn_m_shotgun_plasma_doublebarrel 2",
     "wpn_m_assaultrifle_plasma_fauto 2", "wpn_m_sniper_plasma_charged 2",
 ]
@@ -63,6 +65,7 @@ class 4, 7.5 times."""
 readings = [
     "utilitysuit 2", "utilitysuit 3", "tacticalsuit 2", "tacticalsuit 4", "explorationsuit 2",
     "explorationsuit 3", "wpn_m_submachinegun_laser_fauto 2", "wpn_m_submachinegun_laser_fauto 4",
+    "wpn_s_pistol_laser_sauto 2", "wpn_s_pistol_laser_sauto 3", "wpn_s_pistol_laser_sauto 4",
 ]
 
 # Suits: the flight suit has no class
@@ -268,15 +271,15 @@ read = 2026-10-11
 to = 3
 credits = 750_000
 ingredients = { weaponschematic = 2, ionisedgas = 2, manufacturinginstructions = 2, microelectrode = 5, opticalfibre = 5 }
-confidence = "deduced"
-rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+confidence = "game"
+read = 2026-10-11
 
 [[items.wpn_s_pistol_laser_sauto.upgrades]]
 to = 4
 credits = 1_500_000
 ingredients = { weaponschematic = 4, ionisedgas = 4, manufacturinginstructions = 4, microelectrode = 9, opticalfibre = 9 }
-confidence = "deduced"
-rules = ["quantities-by-step", "weapon-ingredients-by-maker", "credits-by-step"]
+confidence = "game"
+read = 2026-10-11
 
 [items.wpn_m_submachinegun_laser_fauto]
 kind = "weapon"
