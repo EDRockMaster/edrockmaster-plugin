@@ -80,6 +80,10 @@ class EngineeringNames:
         modification = known.get(symbol)
         return self._tl(modification.english_name) if modification else symbol
 
+    def text(self, text: str) -> str:
+        """A text of the catalogue in English, such as an engineer's conditions (ADR 0031)."""
+        return self._tl(text)
+
     def goal(self, goal: Goal) -> str:
         """``Frame shift drive: Increased range, grade 5``."""
         match goal:

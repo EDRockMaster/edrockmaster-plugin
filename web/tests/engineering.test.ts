@@ -235,7 +235,7 @@ describe("edges", () => {
     });
     expect(screen.getByText("1 unlocked of 2")).toBeInTheDocument();
     // One row per engineer: the name and its status together
-    const row = screen.getByText("Marco Qwent").closest("li");
+    const row = screen.getByText("Marco Qwent").closest("button");
     expect(row).toHaveClass("unlocked");
     expect(within(row as HTMLElement).getByText("Unlocked, rank 5")).toBeInTheDocument();
     const toggle = screen.getByRole("button", { name: "Fold Engineers" });

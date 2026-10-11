@@ -142,6 +142,38 @@ name = "Faster handling"
 symbol = { seen = 2026-10-10 }
 """
 
+ENGINEER_DETAILS = """
+[sources]
+ship = ["https://example.org/engineers"]
+
+[engineers."Felicity Farseer"]
+system = "Deciat"
+base = "Farseer Inc"
+invitation = "Reach the exploration rank of Scout."
+unlock = "Deliver 1 Meta-Alloys."
+confidence = "web"
+sources = ["ship"]
+read = 2026-10-11
+
+[engineers."Tod 'The Blaster' McQuinn"]
+system = "Wolf 397"
+base = "Trophy Camp"
+referred_by = ["Felicity Farseer"]
+invitation = "Earn more than 15 bounty vouchers."
+unlock = "Hand in 100,000 CR of bounty vouchers."
+confidence = "game"
+read = 2026-10-12
+
+[engineers."Domino Green"]
+system = "Orishis"
+base = "The Jackrabbit"
+unlock = "Travel at least 100 ly in shuttles."
+referral = "Give 5 Push."
+confidence = "web"
+sources = ["https://example.org/domino-green"]
+read = 2026-10-11
+"""
+
 
 class Sources:
     def __init__(self) -> None:
@@ -326,6 +358,82 @@ def test_a_modification_without_its_proof_is_refused(
         importer.build_catalogue(sources.read, RECIPES.replace(old, new, 1))
 
 
+def test_the_catalogue_has_where_the_engineers_are_and_how_to_unlock_them(
+    sources: Sources,
+) -> None:
+    catalogue = importer.build_catalogue(sources.read, RECIPES, ENGINEER_DETAILS)
+    assert catalogue["engineer_details"] == {
+        "300100": {
+            "system": "Deciat",
+            "base": "Farseer Inc",
+            "referred_by": [],
+            "invitation": "Reach the exploration rank of Scout.",
+            "unlock": "Deliver 1 Meta-Alloys.",
+            "referral": None,
+            "confidence": "web",
+        },
+        "300260": {
+            "system": "Wolf 397",
+            "base": "Trophy Camp",
+            "referred_by": [300100],
+            "invitation": "Earn more than 15 bounty vouchers.",
+            "unlock": "Hand in 100,000 CR of bounty vouchers.",
+            "referral": None,
+            "confidence": "game",
+        },
+        "400002": {
+            "system": "Orishis",
+            "base": "The Jackrabbit",
+            "referred_by": [],
+            "invitation": None,
+            "unlock": "Travel at least 100 ly in shuttles.",
+            "referral": "Give 5 Push.",
+            "confidence": "web",
+        },
+    }
+    Catalogue.from_data(catalogue)
+    # Without the source, no details
+    assert importer.build_catalogue(sources.read, RECIPES)["engineer_details"] == {}
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "message"),
+    [
+        # Didi Vatermann offers nothing in this catalogue: not one of its engineers
+        ('[engineers."Felicity Farseer"]', '[engineers."Didi Vatermann"]', "'Didi Vatermann'"),
+        ('referred_by = ["Felicity Farseer"]', 'referred_by = ["Nobody"]', "'Nobody'"),
+        ('system = "Wolf 397"', 'system = ""', "system"),
+        ('base = "Trophy Camp"', "", "base"),
+        ('unlock = "Hand in 100,000 CR of bounty vouchers."', "", "unlock"),
+        ('invitation = "Earn more than 15 bounty vouchers."\n', "", "invitation"),
+        ('unlock = "Travel', 'invitation = "Ask."\nunlock = "Travel', "invitation"),
+        ('referral = "Give 5 Push."', "referral = 5", "referral"),
+        ('confidence = "game"', 'confidence = "rumour"', "confidence 'rumour'"),
+        ("read = 2026-10-12", "", "date"),
+        ('sources = ["ship"]', "sources = []", "source"),
+        ('sources = ["ship"]', 'sources = ["elsewhere"]', "'elsewhere'"),
+    ],
+)
+def test_engineer_details_without_their_proof_are_refused(
+    sources: Sources, old: str, new: str, message: str
+) -> None:
+    assert old in ENGINEER_DETAILS
+    with pytest.raises(importer.ImportRefused, match=message):
+        importer.build_catalogue(sources.read, RECIPES, ENGINEER_DETAILS.replace(old, new, 1))
+
+
+def test_the_shipped_catalogue_has_the_shipped_engineer_details() -> None:
+    shipped = json.loads(importer.DEFAULT_OUTPUT.read_text(encoding="utf-8"))
+    names = {**shipped["engineers"], **shipped["on_foot_engineers"]}
+    details = importer.engineer_details(
+        importer.DEFAULT_ENGINEERS.read_text(encoding="utf-8"),
+        {name: int(id_) for id_, name in names.items()},
+    )
+    assert shipped["engineer_details"] == details
+    # Every engineer of the catalogue has its sheet
+    assert set(details) == set(names)
+
+
 def test_the_shipped_catalogue_has_the_shipped_recipes() -> None:
     shipped = json.loads(importer.DEFAULT_OUTPUT.read_text(encoding="utf-8"))
     recipes = importer.DEFAULT_RECIPES.read_text(encoding="utf-8")
@@ -398,11 +506,11 @@ def test_a_name_it_cannot_map_is_refused(
 
 def test_the_file_is_stable_and_has_one_entry_per_line(sources: Sources, tmp_path: Path) -> None:
     output = tmp_path / "catalogue.json"
-    assert importer.main(["import", str(output)], sources.read, RECIPES) == 0
+    assert importer.main(["import", str(output)], sources.read, RECIPES, ENGINEER_DETAILS) == 0
     text = output.read_text(encoding="utf-8")
-    assert json.loads(text) == importer.build_catalogue(sources.read, RECIPES)
+    assert json.loads(text) == importer.build_catalogue(sources.read, RECIPES, ENGINEER_DETAILS)
     assert '    "FSD_LongRange": {"name": "Increased range", ' in text
-    assert importer.main(["import", str(output)], sources.read, RECIPES) == 0
+    assert importer.main(["import", str(output)], sources.read, RECIPES, ENGINEER_DETAILS) == 0
     assert output.read_text(encoding="utf-8") == text
 
 
@@ -411,7 +519,7 @@ def test_nothing_is_written_when_refused(
 ) -> None:
     sources.change("modifications/modules.json", lambda data: data.update({"zz": data["fsd"]}))
     output = tmp_path / "catalogue.json"
-    assert importer.main(["import", str(output)], sources.read, RECIPES) == 1
+    assert importer.main(["import", str(output)], sources.read, RECIPES, ENGINEER_DETAILS) == 1
     assert not output.exists()
     assert "refused" in capsys.readouterr().err
 

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { core, type GoalRequest } from "../lib/bridge";
+  import { loadCatalogue } from "../lib/catalogue";
   import type { GoalCatalogue } from "../lib/goal-catalogue";
   import { t, type Language } from "../lib/i18n";
 
@@ -12,13 +13,11 @@
   let grade = $state(5);
   let count = $state(1);
 
-  // The catalogue never changes: asked once, when the form first shows
+  // Asked once per language: the catalogue is named in the core's language
   $effect(() => {
-    void core()
-      ?.catalogue()
-      .then((received) => {
-        catalogue = received;
-      });
+    void loadCatalogue(language)?.then((received) => {
+      catalogue = received;
+    });
   });
 
   const module = $derived(catalogue?.modules.find((m) => m.key === moduleKey));

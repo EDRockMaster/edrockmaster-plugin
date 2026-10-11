@@ -65,6 +65,9 @@ def source_strings() -> set[str]:
         item.english_name for item in catalogue.on_foot_items.values() if item.kind == "suit"
     }
     strings |= {mod.english_name for mod in catalogue.on_foot_modifications.values()}
+    # Where the engineers are and how to unlock them (ADR 0031); systems and bases keep their name
+    for sheet in catalogue.engineer_details.values():
+        strings |= {text for text in (sheet.invitation, sheet.unlock, sheet.referral) if text}
     return strings
 
 

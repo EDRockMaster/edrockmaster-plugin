@@ -27,9 +27,11 @@ from typing import Any, assert_never
 from edrockmaster.application.engineering_service import EngineeringService
 from edrockmaster.domain.engineering.catalogue import (
     Catalogue,
+    EngineerDetails,
     Ingredients,
     MaterialCategory,
     OnFootKind,
+    RecipeConfidence,
 )
 from edrockmaster.domain.engineering.goals import (
     BlueprintGoal,
@@ -243,6 +245,39 @@ def _engineers(service: EngineeringService, names: EngineeringNames) -> list[dic
     return sorted(rows, key=lambda row: row["name"].casefold())
 
 
+def _sheets(catalogue: Catalogue, names: EngineeringNames) -> list[dict[str, Any]]:
+    """Where each engineer is and how to unlock them (ADR 0031): with the catalogue, asked once,
+    since they never change."""
+    return [
+        _sheet(catalogue, engineer_id, details, names)
+        for engineer_id, details in sorted(catalogue.engineer_details.items())
+    ]
+
+
+def _sheet(
+    catalogue: Catalogue, engineer_id: int, details: EngineerDetails, names: EngineeringNames
+) -> dict[str, Any]:
+    refers = sorted(
+        (
+            names.engineer(other)
+            for other, sheet in catalogue.engineer_details.items()
+            if engineer_id in sheet.referred_by
+        ),
+        key=str.casefold,
+    )
+    return {
+        "id": engineer_id,
+        "system": details.system,
+        "base": details.base,
+        "referredBy": [names.engineer(id_) for id_ in details.referred_by],
+        "refers": refers,
+        "invitation": names.text(details.invitation) if details.invitation else None,
+        "unlock": names.text(details.unlock),
+        "referral": names.text(details.referral) if details.referral else None,
+        "unverified": details.confidence is not RecipeConfidence.GAME,
+    }
+
+
 def _status(status: EngineerStatus) -> str:
     return status.name.lower()
 
@@ -339,6 +374,7 @@ def catalogue_view(catalogue: Catalogue, names: EngineeringNames) -> dict[str, A
         "modules": sorted(modules, key=lambda row: row["name"].casefold()),
         "onFootItems": _on_foot_items(catalogue, names),
         "onFootModifications": _on_foot_modifications(catalogue, names),
+        "engineerSheets": _sheets(catalogue, names),
     }
 
 

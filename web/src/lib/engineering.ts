@@ -56,7 +56,10 @@ export function ingredientsText(items: Ingredient[]): string {
   return items.map((item) => `${item.name} ×${item.count}`).join(", ");
 }
 
-export function statusText(engineer: Engineer, language: Language): string {
+export function statusText(
+  engineer: Pick<Engineer, "status" | "rank">,
+  language: Language,
+): string {
   const status = t(language, `engineering.status.${engineer.status ?? "unknown"}`);
   return engineer.rank === null
     ? status

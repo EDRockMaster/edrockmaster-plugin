@@ -79,6 +79,41 @@ export interface GoalCatalogue {
       ingredients: Ingredient[];
     }[];
   }[];
+  /**
+   * Where each engineer is and how to unlock them (ADR 0031), ship and on foot; an engineer without one is not listed. Texts in the player's language.
+   */
+  engineerSheets: {
+    /**
+     * The engineer's id, as in the live view.
+     */
+    id: number;
+    /**
+     * As the game writes it: copied to paste into the galaxy map.
+     */
+    system: string;
+    base: string;
+    /**
+     * The engineers who make this one known; empty, known from the start.
+     */
+    referredBy: string[];
+    /**
+     * The engineers this one makes known.
+     */
+    refers: string[];
+    /**
+     * What makes a ship engineer invite the player; null on foot.
+     */
+    invitation: string | null;
+    unlock: string;
+    /**
+     * An on-foot engineer's task to refer the next ones.
+     */
+    referral: string | null;
+    /**
+     * Read from public sources, not checked in game (ADR 0030).
+     */
+    unverified: boolean;
+  }[];
 }
 export interface Ingredient {
   symbol: string;

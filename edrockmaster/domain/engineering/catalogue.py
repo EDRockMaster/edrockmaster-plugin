@@ -23,6 +23,10 @@ types it was read on. These recipes are the project's own, read in game
 (``data/odyssey/recipes.toml``), each with its **confidence** (ADR 0030); an
 unknown one is absent.
 
+Each engineer has a **sheet** (ADR 0031): their system and base, the engineers
+who refer them, what makes them invite the player and what unlocks them,
+written by the project (``data/engineers.toml``) with its confidence.
+
 Names are in English; the plugin's catalogues translate them.
 """
 
@@ -33,7 +37,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
-FORMAT = 4
+FORMAT = 5
 """The version of ``catalogue.json`` this code reads."""
 
 GRADES = range(1, 6)
@@ -147,6 +151,23 @@ class Modification:
 
 
 @dataclass(frozen=True, slots=True)
+class EngineerDetails:
+    """Where an engineer is and how to unlock them (ADR 0031); texts in English."""
+
+    system: str
+    base: str
+    referred_by: tuple[int, ...]
+    """The engineers (ids) who make this one known; none, known from the start."""
+    invitation: str | None
+    """What makes a ship engineer invite the player; on-foot engineers send none."""
+    unlock: str
+    referral: str | None
+    """An on-foot engineer's task to refer the next one."""
+    confidence: RecipeConfidence
+    """``game`` or ``web`` (ADR 0030)."""
+
+
+@dataclass(frozen=True, slots=True)
 class Blueprint:
     name: str
     """As the journal writes it (``FSD_LongRange``)."""
@@ -204,6 +225,8 @@ class Catalogue:
     """Suits and weapons, by journal symbol."""
     on_foot_modifications: Mapping[str, Modification]
     """Modifications of suits and weapons, by journal symbol."""
+    engineer_details: Mapping[int, EngineerDetails]
+    """Every engineer's sheet, ship or on foot, by id."""
 
     def module_of(self, item: str) -> ModuleType | None:
         """The module type of an item the journal names (``EngineerCraft.Module``)."""
@@ -279,6 +302,10 @@ class Catalogue:
                     symbol: _modification(symbol, entry)
                     for symbol, entry in data["on_foot_modifications"].items()
                 },
+                engineer_details={
+                    int(id_): _engineer_details(entry)
+                    for id_, entry in data["engineer_details"].items()
+                },
             )
         except (AttributeError, KeyError, TypeError, ValueError) as error:
             raise CatalogueError(f"malformed catalogue: {error!r}") from error
@@ -318,6 +345,13 @@ class Catalogue:
                 self._check_recipe(what, upgrade.credits, upgrade.ingredients)
         for modification in self.on_foot_modifications.values():
             self._check_modification(modification)
+        known = set(self.engineers) | set(self.on_foot_engineers)
+        for id_, details in self.engineer_details.items():
+            unknown = {id_, *details.referred_by} - known
+            if unknown:
+                raise CatalogueError(f"engineer sheet {id_}: unknown engineers {unknown}")
+            if details.confidence is RecipeConfidence.DEDUCED:
+                raise CatalogueError(f"engineer sheet {id_}: confidence {details.confidence}")
 
     def _check_modification(self, modification: Modification) -> None:
         what = f"modification {modification.symbol!r}"
@@ -386,6 +420,24 @@ def _modification(symbol: str, entry: Mapping[str, Any]) -> Modification:
             for recipe in entry["recipes"]
         ),
     )
+
+
+def _engineer_details(entry: Mapping[str, Any]) -> EngineerDetails:
+    return EngineerDetails(
+        _string(entry["system"]),
+        _string(entry["base"]),
+        tuple(_integer(id_) for id_ in entry["referred_by"]),
+        None if entry["invitation"] is None else _string(entry["invitation"]),
+        _string(entry["unlock"]),
+        None if entry["referral"] is None else _string(entry["referral"]),
+        RecipeConfidence(entry["confidence"]),
+    )
+
+
+def _string(value: object) -> str:
+    if not isinstance(value, str) or not value:
+        raise TypeError(f"{value!r} is not a text")
+    return value
 
 
 def _integer(value: object) -> int:

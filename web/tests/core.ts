@@ -6,6 +6,7 @@ import type { Settings } from "../src/lib/settings";
 
 export const GOAL_CATALOGUE: GoalCatalogue = {
   date: "2026-09-05",
+  engineerSheets: [],
   onFootModifications: [
     {
       symbol: "suit_improvedradar",

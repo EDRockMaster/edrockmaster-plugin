@@ -48,6 +48,9 @@ def french(text: str) -> str:
     return {
         "Power distributor": "Distributeur d'énergie",
         "Professor Palin": "Professeur Palin",
+        "Reach Allied with Sirius Corporation; Sirius needs a permit.": (
+            "Atteindre Allié avec Sirius Corporation ; Sirius demande un permis."
+        ),
     }.get(text, text)
 
 
@@ -157,6 +160,35 @@ def test_goals_what_they_miss_and_who_offers_them(service: EngineeringService) -
     assert "Professor Palin" not in engineers
     ordered = [row["name"] for row in built["engineers"]]
     assert ordered == sorted(ordered, key=str.casefold)
+
+
+def test_the_engineer_sheets_come_with_the_catalogue(service: EngineeringService) -> None:
+    built = catalogue_view(CATALOGUE, names(service))
+    GOAL_CATALOGUE.validate(built)
+    sheets = {sheet["id"]: sheet for sheet in built["engineerSheets"]}
+    # Every engineer has one (ADR 0031); the live view keeps their name and status only
+    assert set(sheets) == set(CATALOGUE.engineers) | set(CATALOGUE.on_foot_engineers)
+    assert "sheet" not in view(service)["engineers"][0]
+    qwent = sheets[300200]
+    assert (qwent["system"], qwent["base"]) == ("Sirius", "Qwent Research Base")
+    assert qwent["referredBy"] == ["Elvira Martuuk"]
+    assert qwent["refers"] == ["Chloe Sedesi", "Lori Jameson", "Professeur Palin"]
+    assert qwent["invitation"] == (
+        "Atteindre Allié avec Sirius Corporation ; Sirius demande un permis."
+    )
+    assert qwent["referral"] is None
+    # Domino Green: known from the start, she refers Kit Fowler after a task
+    assert sheets[400002] == {
+        "id": 400002,
+        "system": "Orishis",
+        "base": "The Jackrabbit",
+        "referredBy": [],
+        "refers": ["Kit Fowler"],
+        "invitation": None,
+        "unlock": "Travel at least 100 ly in shuttles.",
+        "referral": "Give 5 Push.",
+        "unverified": True,
+    }
 
 
 def test_an_engineer_s_name(service: EngineeringService) -> None:
@@ -609,7 +641,7 @@ def test_on_foot_engineers_and_equipment(service: EngineeringService) -> None:
         },
     )
     domino = next(row for row in part["engineers"] if row["id"] == 400002)
-    assert domino == {"id": 400002, "name": "Domino Green", "status": "invited"}
+    assert (domino["name"], domino["status"]) == ("Domino Green", "invited")
     # Ship engineers stay in the ship part
     assert all(row["id"] > 400000 for row in part["engineers"])
     assert part["equipment"] == [

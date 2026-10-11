@@ -9,7 +9,8 @@
     "date",
     "modules",
     "onFootItems",
-    "onFootModifications"
+    "onFootModifications",
+    "engineerSheets"
   ],
   "properties": {
     "date": {
@@ -265,6 +266,73 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "engineerSheets": {
+      "description": "Where each engineer is and how to unlock them (ADR 0031), ship and on foot; an engineer without one is not listed. Texts in the player's language.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "system",
+          "base",
+          "referredBy",
+          "refers",
+          "invitation",
+          "unlock",
+          "referral",
+          "unverified"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The engineer's id, as in the live view."
+          },
+          "system": {
+            "type": "string",
+            "description": "As the game writes it: copied to paste into the galaxy map."
+          },
+          "base": {
+            "type": "string"
+          },
+          "referredBy": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The engineers who make this one known; empty, known from the start."
+          },
+          "refers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The engineers this one makes known."
+          },
+          "invitation": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What makes a ship engineer invite the player; null on foot."
+          },
+          "unlock": {
+            "type": "string"
+          },
+          "referral": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "An on-foot engineer's task to refer the next ones."
+          },
+          "unverified": {
+            "type": "boolean",
+            "description": "Read from public sources, not checked in game (ADR 0030)."
           }
         }
       }

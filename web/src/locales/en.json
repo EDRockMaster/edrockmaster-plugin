@@ -173,5 +173,17 @@
   "onFoot.mod.unknown": "Recipe not known yet on this suit or weapon: what it takes is not counted.",
   "onFoot.addMod": "Add a modification",
   "onFoot.addMod.modification": "Modification",
-  "onFoot.addMod.unknownRecipe": "{name} (recipe not known)"
+  "onFoot.addMod.unknownRecipe": "{name} (recipe not known)",
+  "engineer.system": "System",
+  "engineer.copy": "Copy {system}",
+  "engineer.copied": "Copied",
+  "engineer.base": "Base",
+  "engineer.referredBy": "Known through",
+  "engineer.known": "Known from the start",
+  "engineer.invitation": "Invitation",
+  "engineer.unlock": "Unlock",
+  "engineer.referral": "Referral",
+  "engineer.referralTask": "{task} → {names}",
+  "engineer.refers": "Refers",
+  "engineer.unverified": "Not checked in game yet."
 }
