@@ -12,6 +12,7 @@ from edrockmaster.application.ports import GoalRepository
 from edrockmaster.domain.engineering.goals import (
     BlueprintGoal,
     ClassUpgradeGoal,
+    EngineerUnlockGoal,
     ExperimentalEffectGoal,
     Goal,
     GoalId,
@@ -132,6 +133,17 @@ def test_modifications_are_stored_and_listed_after_the_class_upgrades(storage: S
     storage.repository.replace(on_another)
     storage.repository.remove(stability.id)
     assert storage.loaded() == (RANGE, DOMINATOR, on_another)
+
+
+def test_engineer_unlocks_are_stored_and_listed_last(storage: Storage) -> None:
+    kit = EngineerUnlockGoal(GoalId("u1"), 400004)
+    farseer = EngineerUnlockGoal(GoalId("u2"), 300100)
+    for goal in (kit, RANGE, farseer):
+        storage.repository.add(goal)
+    assert storage.loaded() == (RANGE, kit, farseer)
+    storage.repository.replace(EngineerUnlockGoal(kit.id, 400005))
+    storage.repository.remove(farseer.id)
+    assert storage.loaded() == (RANGE, EngineerUnlockGoal(kit.id, 400005))
 
 
 def test_the_time_a_goal_was_set_is_kept_in_utc(storage: Storage) -> None:

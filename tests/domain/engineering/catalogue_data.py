@@ -5,7 +5,7 @@ from typing import Any
 from edrockmaster.domain.engineering.catalogue import Catalogue
 
 DATA: dict[str, Any] = {
-    "format": 5,
+    "format": 6,
     "sources": [
         {"repository": "EDCD/FDevIDs", "commit": "c356", "date": "2026-09-05"},
         {"repository": "EDCD/coriolis-data", "commit": "0db9", "date": "2026-04-24"},
@@ -47,7 +47,7 @@ DATA: dict[str, Any] = {
         "healthpack": {"kind": "consumable", "name": "Medkit"},
         "internalcorrespondence": {"kind": "data", "name": "Internal Correspondence"},
     },
-    "on_foot_engineers": {"400002": "Domino Green"},
+    "on_foot_engineers": {"400002": "Domino Green", "400004": "Kit Fowler"},
     "on_foot_items": {
         "flightsuit": {"kind": "suit", "name": "Flight suit", "upgrades": {}},
         "tacticalsuit": {
@@ -96,6 +96,8 @@ DATA: dict[str, Any] = {
             "invitation": "Reach the exploration rank of Scout.",
             "unlock": "Deliver 1 Meta-Alloys.",
             "referral": None,
+            "unlock_gives": {},
+            "referral_gives": {},
             "confidence": "web",
         },
         "400002": {
@@ -105,7 +107,20 @@ DATA: dict[str, Any] = {
             "invitation": None,
             "unlock": "Travel at least 100 ly in shuttles.",
             "referral": "Give 5 Push.",
+            "unlock_gives": {"internalcorrespondence": 2},
+            "referral_gives": {"chemicalsample": 5},
             "confidence": "game",
+        },
+        "400004": {
+            "system": "Capoya",
+            "base": "The Last Call",
+            "referred_by": [400002],
+            "invitation": None,
+            "unlock": "Sell 3 Graphene.",
+            "referral": None,
+            "unlock_gives": {"graphene": 3},
+            "referral_gives": {},
+            "confidence": "web",
         },
     },
 }

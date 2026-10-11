@@ -281,7 +281,8 @@
         "goals",
         "shoppingList",
         "catalogueDate",
-        "onFoot"
+        "onFoot",
+        "unlocks"
       ],
       "properties": {
         "inventoryKnown": {
@@ -456,6 +457,9 @@
         },
         "onFoot": {
           "$ref": "#/$defs/onFoot"
+        },
+        "unlocks": {
+          "$ref": "#/$defs/engineerUnlock"
         }
       }
     },
@@ -472,7 +476,8 @@
         "goals",
         "modifications",
         "shoppingList",
-        "credits"
+        "credits",
+        "unlocks"
       ],
       "properties": {
         "known": {
@@ -839,6 +844,86 @@
           "type": "integer",
           "minimum": 0,
           "description": "Credits of every class upgrade: shown, not counted."
+        },
+        "unlocks": {
+          "$ref": "#/$defs/engineerUnlock"
+        }
+      }
+    },
+    "engineerUnlock": {
+      "description": "An engineer unlock goal (ADR 0027, ADR 0031); its conditions are in the catalogue's engineer sheets.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "engineerId",
+          "name",
+          "status",
+          "known",
+          "counted",
+          "unverified",
+          "ready",
+          "needed",
+          "missing"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "engineerId": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "known",
+              "invited",
+              "acquainted",
+              "unlocked",
+              "barred",
+              null
+            ]
+          },
+          "known": {
+            "type": "boolean",
+            "description": "False when the catalogue has no sheet for the engineer."
+          },
+          "counted": {
+            "type": "boolean",
+            "description": "Every step left is to give or sell on-foot materials, counted against those held; otherwise the goal is never ready."
+          },
+          "unverified": {
+            "type": "boolean",
+            "description": "The sheet was not checked in game (ADR 0030)."
+          },
+          "ready": {
+            "type": "boolean"
+          },
+          "needed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/ingredient"
+            },
+            "description": "The on-foot materials the steps left take."
+          },
+          "missing": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/ingredient"
+                }
+              }
+            ],
+            "description": "What the on-foot materials held lack; null while the ship locker is unknown."
+          }
         }
       }
     }

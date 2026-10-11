@@ -185,5 +185,14 @@
   "engineer.referral": "Referral",
   "engineer.referralTask": "{task} → {names}",
   "engineer.refers": "Refers",
-  "engineer.unverified": "Not checked in game yet."
+  "engineer.unverified": "Not checked in game yet.",
+  "unlock.title": "Unlock {engineer}",
+  "unlock.referredBy": "First be referred by {names}.",
+  "unlock.invitation": "Invitation: {condition}",
+  "unlock.unlock": "Unlock: {condition}",
+  "unlock.unknown": "This engineer has no sheet: what it takes is not known.",
+  "unlock.notCounted": "Some conditions are not materials: check them in game.",
+  "unlock.heading": "Engineer unlocks",
+  "engineer.aim": "Aim at unlocking",
+  "engineer.aimed": "Aimed at"
 }

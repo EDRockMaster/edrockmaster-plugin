@@ -37,7 +37,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
-FORMAT = 5
+FORMAT = 6
 """The version of ``catalogue.json`` this code reads."""
 
 GRADES = range(1, 6)
@@ -163,6 +163,11 @@ class EngineerDetails:
     unlock: str
     referral: str | None
     """An on-foot engineer's task to refer the next one."""
+    unlock_gives: Ingredients
+    """The on-foot materials the unlock task takes, when it is to give or sell exactly those;
+    empty otherwise (ADR 0027)."""
+    referral_gives: Ingredients
+    """The same, for the referral task."""
     confidence: RecipeConfidence
     """``game`` or ``web`` (ADR 0030)."""
 
@@ -352,6 +357,8 @@ class Catalogue:
                 raise CatalogueError(f"engineer sheet {id_}: unknown engineers {unknown}")
             if details.confidence is RecipeConfidence.DEDUCED:
                 raise CatalogueError(f"engineer sheet {id_}: confidence {details.confidence}")
+            for gives in (details.unlock_gives, details.referral_gives):
+                self._check_recipe(f"engineer sheet {id_}", 1, gives)
 
     def _check_modification(self, modification: Modification) -> None:
         what = f"modification {modification.symbol!r}"
@@ -430,6 +437,8 @@ def _engineer_details(entry: Mapping[str, Any]) -> EngineerDetails:
         None if entry["invitation"] is None else _string(entry["invitation"]),
         _string(entry["unlock"]),
         None if entry["referral"] is None else _string(entry["referral"]),
+        dict(entry["unlock_gives"]),
+        dict(entry["referral_gives"]),
         RecipeConfidence(entry["confidence"]),
     )
 

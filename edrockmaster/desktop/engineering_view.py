@@ -36,12 +36,13 @@ from edrockmaster.domain.engineering.catalogue import (
 from edrockmaster.domain.engineering.goals import (
     BlueprintGoal,
     ClassUpgradeGoal,
+    EngineerUnlockGoal,
     ExperimentalEffectGoal,
     Goal,
     GoalId,
     ModificationGoal,
 )
-from edrockmaster.domain.engineering.journal import EngineerStatus
+from edrockmaster.domain.engineering.journal import EngineerState, EngineerStatus
 from edrockmaster.domain.engineering.on_foot import CarrierMove, Equipment
 from edrockmaster.domain.engineering.on_foot_journal import Suit
 from edrockmaster.domain.engineering.session import GoalProgress
@@ -57,6 +58,7 @@ BLUEPRINT = "blueprint"
 EFFECT = "effect"
 CLASS_UPGRADE = "classUpgrade"
 MODIFICATION = "modification"
+ENGINEER_UNLOCK = "engineerUnlock"
 
 
 def engineering_view(service: EngineeringService, names: EngineeringNames) -> dict[str, Any]:
@@ -72,6 +74,7 @@ def engineering_view(service: EngineeringService, names: EngineeringNames) -> di
             if isinstance(progress.goal, BlueprintGoal | ExperimentalEffectGoal)
         ],
         "shoppingList": _ingredients(service.shopping_list(), inventory or {}, names),
+        "unlocks": _unlocks(service, names, on_foot=False),
         "catalogueDate": catalogue.date,
         "onFoot": _on_foot(service, names),
     }
@@ -140,6 +143,7 @@ def _on_foot(service: EngineeringService, names: EngineeringNames) -> dict[str, 
         ],
         "shoppingList": _ingredients(service.on_foot_shopping_list(), held, names),
         "credits": service.on_foot_credits(),
+        "unlocks": _unlocks(service, names, on_foot=True),
     }
 
 
@@ -179,6 +183,38 @@ def _modification(
         "missing": None if progress.missing is None else _ingredients(progress.missing, {}, names),
         "engineers": [names.engineer(id_) for id_ in progress.engineers],
     }
+
+
+def _unlocks(
+    service: EngineeringService, names: EngineeringNames, *, on_foot: bool
+) -> list[dict[str, Any]]:
+    """The engineer unlocks of one part (ADR 0027, ADR 0031), ready first; their conditions are
+    in the catalogue's sheets."""
+    rows = []
+    for progress in service.stats.goals:
+        goal = progress.goal
+        if not isinstance(goal, EngineerUnlockGoal):
+            continue
+        if (goal.engineer_id in service.catalogue.on_foot_engineers) is not on_foot:
+            continue
+        state = service.engineers.get(goal.engineer_id)
+        rows.append(
+            {
+                "id": goal.id.value,
+                "engineerId": goal.engineer_id,
+                "name": names.engineer(goal.engineer_id),
+                "status": _status(state.status) if state else None,
+                "known": progress.known,
+                "counted": progress.counted,
+                "unverified": progress.unverified,
+                "ready": progress.ready,
+                "needed": _ingredients(progress.needed, {}, names),
+                "missing": None
+                if progress.missing is None
+                else _ingredients(progress.missing, {}, names),
+            }
+        )
+    return sorted(rows, key=lambda row: not row["ready"])
 
 
 def _move(move: CarrierMove, names: EngineeringNames) -> dict[str, Any]:
@@ -295,8 +331,8 @@ def _goal(progress: GoalProgress, names: EngineeringNames) -> dict[str, Any]:
             )
         case ExperimentalEffectGoal():
             kind, title, grade, count = EFFECT, names.effect(goal.effect), None, goal.applications
-        case ClassUpgradeGoal() | ModificationGoal():  # pragma: no cover - in the on-foot part
-            raise ValueError("an on-foot goal is shown on foot")
+        case ClassUpgradeGoal() | ModificationGoal() | EngineerUnlockGoal():  # pragma: no cover
+            raise ValueError("shown apart")
         case _:  # pragma: no cover - exhaustiveness checked by mypy
             assert_never(goal)
     return {
@@ -436,6 +472,7 @@ def goal_from_request(
     catalogue: Catalogue,
     equipment: Mapping[int, Equipment],
     now: datetime,
+    engineers: Mapping[int, EngineerState] | None = None,
 ) -> Goal:
     """A new goal from the interface's form; ``ValueError`` if the catalogue does not offer it.
 
@@ -445,6 +482,8 @@ def goal_from_request(
         return _class_upgrade_from_request(request, catalogue, equipment, now)
     if request.get("kind") == MODIFICATION:
         return _modification_from_request(request, catalogue, equipment, now)
+    if request.get("kind") == ENGINEER_UNLOCK:
+        return _unlock_from_request(request, catalogue, engineers or {})
     kind, module_key, name = request.get("kind"), request.get("module"), request.get("name")
     count = request.get("count", 1)
     module = catalogue.modules.get(module_key) if isinstance(module_key, str) else None
@@ -510,6 +549,21 @@ def _modification_from_request(
     return ModificationGoal(GoalId.new(), known.symbol, modification.symbol, now, equipment_id)
 
 
+def _unlock_from_request(
+    request: Mapping[str, Any], catalogue: Catalogue, engineers: Mapping[int, EngineerState]
+) -> EngineerUnlockGoal:
+    """An engineer of the catalogue, ship or on foot, not unlocked yet."""
+    engineer_id = request.get("engineerId")
+    if not isinstance(engineer_id, int) or (
+        engineer_id not in catalogue.engineers and engineer_id not in catalogue.on_foot_engineers
+    ):
+        raise ValueError(f"no such engineer for a goal: {engineer_id!r}")
+    state = engineers.get(engineer_id)
+    if state is not None and state.status is EngineerStatus.UNLOCKED:
+        raise ValueError(f"engineer {engineer_id} is unlocked already")
+    return EngineerUnlockGoal(GoalId.new(), engineer_id)
+
+
 def with_count(goal: Goal, count: int) -> Goal:
     """The goal, with a new number of rolls or applications, or a new class aimed at
     (checked by the domain)."""
@@ -522,5 +576,7 @@ def with_count(goal: Goal, count: int) -> Goal:
             return replace(goal, to_class=count)
         case ModificationGoal():
             raise ValueError("a modification goal has no count")
+        case EngineerUnlockGoal():
+            raise ValueError("an engineer unlock has no count")
         case _:  # pragma: no cover - exhaustiveness checked by mypy
             assert_never(goal)

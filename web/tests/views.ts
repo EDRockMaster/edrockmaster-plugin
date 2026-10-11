@@ -51,6 +51,7 @@ export function engineering(overrides: Partial<Engineering> = {}): Engineering {
     engineers: [],
     goals: [],
     shoppingList: [],
+    unlocks: [],
     catalogueDate: "2026-09-05",
     onFoot: onFoot(),
     ...overrides,
@@ -68,6 +69,7 @@ export function onFoot(overrides: Partial<OnFoot> = {}): OnFoot {
     modifications: [],
     shoppingList: [],
     credits: 0,
+    unlocks: [],
     ...overrides,
   };
 }

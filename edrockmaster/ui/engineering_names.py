@@ -19,6 +19,7 @@ from edrockmaster.domain.engineering.catalogue import Catalogue, EquipmentKind
 from edrockmaster.domain.engineering.goals import (
     BlueprintGoal,
     ClassUpgradeGoal,
+    EngineerUnlockGoal,
     ExperimentalEffectGoal,
     Goal,
     ModificationGoal,
@@ -100,6 +101,10 @@ class EngineeringNames:
             case ClassUpgradeGoal():
                 return self._tl("{item}: class {from_class} to {to_class}").format(
                     item=self.item(goal.item), from_class=goal.from_class, to_class=goal.to_class
+                )
+            case EngineerUnlockGoal():
+                return self._tl("Unlock {engineer}").format(
+                    engineer=self.engineer(goal.engineer_id)
                 )
             case ModificationGoal():
                 return self._tl("{item}: {modification}").format(

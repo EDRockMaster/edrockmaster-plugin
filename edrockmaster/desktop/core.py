@@ -326,7 +326,11 @@ class DesktopCore:
             engineering = self._require_companion().engineering
             try:
                 goal = goal_from_request(
-                    request, engineering.catalogue, engineering.equipment, self._clock.now()
+                    request,
+                    engineering.catalogue,
+                    engineering.equipment,
+                    self._clock.now(),
+                    engineering.engineers,
                 )
             except ValueError as error:
                 self._logger.warning("Goal refused: %s", error)

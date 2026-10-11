@@ -16,6 +16,7 @@ from typing import assert_never
 from edrockmaster.domain.engineering.goals import (
     BlueprintGoal,
     ClassUpgradeGoal,
+    EngineerUnlockGoal,
     ExperimentalEffectGoal,
     Goal,
     GoalId,
@@ -97,8 +98,8 @@ def _modification_goal(row: _ModificationRow) -> ModificationGoal:
 
 
 def read_goals(connection: sqlite3.Connection) -> tuple[Goal, ...]:
-    """The ship goals, the class upgrades, then the modifications, each in the order they were
-    added."""
+    """The ship goals, the class upgrades, the modifications, then the engineer unlocks, each in
+    the order they were added."""
     rows = connection.execute(
         "SELECT id, kind, name, module, grade, count FROM engineering_goal ORDER BY position"
     )
@@ -110,10 +111,14 @@ def read_goals(connection: sqlite3.Connection) -> tuple[Goal, ...]:
         "SELECT id, item, modification, set_at, equipment_id FROM modification_goal "
         "ORDER BY position"
     )
+    unlock_rows = connection.execute(
+        "SELECT id, engineer_id FROM engineer_unlock_goal ORDER BY position"
+    )
     return (
         *(_goal(row) for row in rows),
         *(_class_goal(row) for row in class_rows),
         *(_modification_goal(row) for row in modification_rows),
+        *(EngineerUnlockGoal(GoalId(goal_id), engineer_id) for goal_id, engineer_id in unlock_rows),
     )
 
 
@@ -124,6 +129,13 @@ def insert_goal(connection: sqlite3.Connection, goal: Goal) -> None:
             "(id, item, from_class, to_class, set_at, equipment_id, position) "
             "SELECT ?, ?, ?, ?, ?, ?, coalesce(max(position), 0) + 1 FROM class_upgrade_goal",
             _class_row(goal),
+        )
+        return
+    if isinstance(goal, EngineerUnlockGoal):
+        connection.execute(
+            "INSERT INTO engineer_unlock_goal (id, engineer_id, position) "
+            "SELECT ?, ?, coalesce(max(position), 0) + 1 FROM engineer_unlock_goal",
+            (goal.id.value, goal.engineer_id),
         )
         return
     if isinstance(goal, ModificationGoal):
@@ -150,6 +162,12 @@ def update_goal(connection: sqlite3.Connection, goal: Goal) -> None:
             (item, from_class, to_class, set_at, equipment_id, goal_id),
         )
         return
+    if isinstance(goal, EngineerUnlockGoal):
+        connection.execute(
+            "UPDATE engineer_unlock_goal SET engineer_id = ? WHERE id = ?",
+            (goal.engineer_id, goal.id.value),
+        )
+        return
     if isinstance(goal, ModificationGoal):
         goal_id, item, modification, set_at, equipment_id = _modification_row(goal)
         connection.execute(
@@ -170,6 +188,7 @@ def delete_goal(connection: sqlite3.Connection, goal_id: GoalId) -> None:
     connection.execute("DELETE FROM engineering_goal WHERE id = ?", (goal_id.value,))
     connection.execute("DELETE FROM class_upgrade_goal WHERE id = ?", (goal_id.value,))
     connection.execute("DELETE FROM modification_goal WHERE id = ?", (goal_id.value,))
+    connection.execute("DELETE FROM engineer_unlock_goal WHERE id = ?", (goal_id.value,))
 
 
 class SqliteGoalRepository:

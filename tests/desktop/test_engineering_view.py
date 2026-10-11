@@ -20,10 +20,12 @@ from edrockmaster.desktop.live_view import SCHEMA
 from edrockmaster.domain.engineering.goals import (
     BlueprintGoal,
     ClassUpgradeGoal,
+    EngineerUnlockGoal,
     ExperimentalEffectGoal,
     GoalId,
     ModificationGoal,
 )
+from edrockmaster.domain.engineering.journal import EngineerState, EngineerStatus
 from edrockmaster.domain.engineering.on_foot_journal import Suit, Weapon
 from edrockmaster.infrastructure.catalogue_file import load_catalogue
 from edrockmaster.ui.engineering_names import EngineeringNames
@@ -534,6 +536,82 @@ def test_the_goal_form_s_modifications(service: EngineeringService) -> None:
     }
     handling = next(row for row in modifications if row["symbol"] == "weapon_handling")
     assert (handling["engineers"], handling["recipes"]) == ([], [])
+
+
+KIT = 400004
+STATES = {
+    300100: EngineerState(300100, "Felicity Farseer", EngineerStatus.UNLOCKED, 5),
+    KIT: EngineerState(KIT, "Kit Fowler", EngineerStatus.KNOWN),
+}
+
+
+def test_an_engineer_unlock_from_the_form() -> None:
+    goal = goal_from_request(
+        {"kind": "engineerUnlock", "engineerId": KIT}, CATALOGUE, {}, NOW, STATES
+    )
+    assert goal == EngineerUnlockGoal(goal.id, KIT)
+    # One the game does not state yet can be aimed at too
+    assert isinstance(
+        goal_from_request({"kind": "engineerUnlock", "engineerId": 300260}, CATALOGUE, {}, NOW),
+        EngineerUnlockGoal,
+    )
+
+
+@pytest.mark.parametrize(
+    "request_",
+    [
+        {"kind": "engineerUnlock", "engineerId": 300100},
+        {"kind": "engineerUnlock", "engineerId": 999999},
+        {"kind": "engineerUnlock", "engineerId": "400004"},
+        {"kind": "engineerUnlock"},
+    ],
+)
+def test_an_engineer_unlock_the_form_cannot_ask_for(request_: dict[str, Any]) -> None:
+    with pytest.raises(ValueError, match="engineer"):
+        goal_from_request(request_, CATALOGUE, {}, NOW, STATES)
+
+
+def test_an_engineer_unlock_has_no_count() -> None:
+    with pytest.raises(ValueError, match="unlock"):
+        with_count(EngineerUnlockGoal(GoalId("kit"), KIT), 2)
+
+
+def test_engineer_unlocks_in_each_part(service: EngineeringService) -> None:
+    service.add_goal(EngineerUnlockGoal(GoalId("kit"), KIT))
+    service.add_goal(EngineerUnlockGoal(GoalId("farseer"), 300100))
+    part = on_foot(
+        service,
+        {
+            "event": "ShipLocker",
+            "Items": [{"Name": "push", "Name_Localised": "Boost", "Count": 2}],
+            "Components": [],
+            "Consumables": [],
+            "Data": [],
+        },
+    )
+    built = view(service)
+    [farseer] = built["unlocks"]
+    assert (farseer["engineerId"], farseer["name"]) == (300100, "Felicity Farseer")
+    assert (farseer["counted"], farseer["ready"], farseer["status"]) == (False, False, None)
+    assert farseer["needed"] == []
+    assert all(goal["kind"] != "engineerUnlock" for goal in built["goals"])
+    [kit] = part["unlocks"]
+    assert (kit["id"], kit["name"], kit["counted"], kit["unverified"]) == (
+        "kit",
+        "Kit Fowler",
+        True,
+        True,
+    )
+    # Not known yet: Domino Green's referral (5 Push), then selling 5 Opinion Polls
+    assert {row["symbol"]: row["count"] for row in kit["needed"]} == {
+        "opinionpolls": 5,
+        "push": 5,
+    }
+    assert {row["symbol"]: row["count"] for row in kit["missing"]} == {
+        "opinionpolls": 5,
+        "push": 3,
+    }
+    assert {row["symbol"] for row in part["shoppingList"]} == {"opinionpolls", "push"}
 
 
 def on_foot(service: EngineeringService, *entries: dict[str, Any]) -> dict[str, Any]:

@@ -19,6 +19,7 @@
   } from "../lib/on-foot";
   import CardStack from "./CardStack.svelte";
   import EngineerList from "./EngineerList.svelte";
+  import UnlockList from "./UnlockList.svelte";
   import ClassUpgradeForm from "./ClassUpgradeForm.svelte";
   import ModificationForm from "./ModificationForm.svelte";
 
@@ -30,7 +31,9 @@
     ...onFoot.modifications.filter((goal) => goal.ready),
     ...onFoot.modifications.filter((goal) => !goal.ready),
   ]);
-  const noGoal = $derived(onFoot.goals.length === 0 && onFoot.modifications.length === 0);
+  const noGoal = $derived(
+    onFoot.goals.length === 0 && onFoot.modifications.length === 0 && onFoot.unlocks.length === 0,
+  );
   const goals = $derived([
     ...onFoot.goals.filter((goal) => goal.ready),
     ...onFoot.goals.filter((goal) => !goal.ready),
@@ -172,6 +175,10 @@
     {/each}
   </ul>
   <ModificationForm equipment={onFoot.equipment} {language} />
+  {#if onFoot.unlocks.length > 0}
+    <h3 class="part">{t(language, "unlock.heading")}</h3>
+    <UnlockList unlocks={onFoot.unlocks} {language} />
+  {/if}
 {/snippet}
 
 {#snippet shopping()}
@@ -258,6 +265,7 @@
       status: statusText({ ...engineer, rank: null }, language),
     }))}
     {language}
+    aimed={onFoot.unlocks.map((goal) => goal.engineerId)}
   />
 {/snippet}
 

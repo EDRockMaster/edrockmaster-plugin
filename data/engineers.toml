@@ -10,6 +10,9 @@
 # - `invitation`: what makes the engineer invite the player (ship engineers only);
 #   `unlock`: what to deliver or do. In English, in the project's own words: facts and figures
 #   only, no text taken from a source. Translated in L10n/fr.strings.
+# - `unlock_gives`, `referral_gives`: the on-foot materials an on-foot engineer's unlock or
+#   referral task takes, by journal symbol, when the task is to give or sell exactly those
+#   (ADR 0027): an unlock goal counts them. A task in any mix of several materials stays text.
 # - `confidence`, as for the recipes (ADR 0030): "game" (read in game, `read` its date) or
 #   "web" (`sources` and `read`). The game wins; when sources disagree, the most recent wins.
 #
@@ -282,6 +285,7 @@ system = "Orishis"
 base = "The Jackrabbit"
 unlock = "Travel at least 100 ly in shuttles."
 referral = "Give 5 Push."
+referral_gives = { push = 5 }
 confidence = "web"
 sources = ["on_foot"]
 read = 2026-10-11
@@ -292,6 +296,8 @@ base = "The Last Call"
 referred_by = ["Domino Green"]
 unlock = "Sell 5 Opinion Polls to bartenders."
 referral = "Give 5 Surveillance Equipment."
+unlock_gives = { opinionpolls = 5 }
+referral_gives = { surveillanceequipment = 5 }
 confidence = "web"
 sources = ["on_foot"]
 read = 2026-10-11
@@ -301,6 +307,7 @@ system = "Bayan"
 base = "Salamander Bank"
 referred_by = ["Kit Fowler"]
 unlock = "Sell 5 Smear Campaign Plans to bartenders."
+unlock_gives = { smearcampaignplans = 5 }
 confidence = "web"
 sources = ["on_foot"]
 read = 2026-10-11
@@ -310,6 +317,7 @@ system = "Siris"
 base = "Nevermore Terrace"
 unlock = "Complete 10 surface conflict zones."
 referral = "Give 5 Settlement Defence Plans."
+referral_gives = { settlementdefenceplans = 5 }
 confidence = "web"
 sources = ["on_foot"]
 read = 2026-10-11
@@ -320,6 +328,7 @@ base = "Beck Facility"
 referred_by = ["Hero Ferrari"]
 unlock = "Sell 15 Multimedia Entertainment, Classic Entertainment or Cat Media, in any mix, to bartenders."
 referral = "Give 5 Insight Entertainment Suites."
+referral_gives = { insightentertainmentsuite = 5 }
 confidence = "web"
 sources = ["on_foot"]
 read = 2026-10-11
@@ -338,6 +347,7 @@ system = "Aurai"
 base = "Marshall's Drift"
 unlock = "Complete 10 restore or reactivation missions."
 referral = "Give 5 Genetic Repair Meds."
+referral_gives = { geneticrepairmeds = 5 }
 confidence = "web"
 sources = ["on_foot"]
 read = 2026-10-11
@@ -348,6 +358,7 @@ base = "Rascal's Choice"
 referred_by = ["Jude Navarro"]
 unlock = "Complete 6 covert theft or covert heist missions."
 referral = "Give 15 Financial Projections."
+referral_gives = { financialprojections = 15 }
 confidence = "web"
 sources = ["on_foot"]
 read = 2026-10-11
@@ -368,6 +379,7 @@ system = "Deriso"
 base = "The Divine Apparatus"
 unlock = "Reach Friendly with the Colonia Council."
 referral = "Give 10 Faction Associates."
+referral_gives = { factionassociates = 10 }
 confidence = "web"
 sources = ["on_foot"]
 read = 2026-10-11
@@ -377,6 +389,7 @@ system = "Desy"
 base = "Bresa Modifications"
 unlock = "Visit 5 settlements in the Colonia system."
 referral = "Give 10 Digital Designs."
+referral_gives = { digitaldesigns = 10 }
 confidence = "web"
 sources = ["on_foot"]
 read = 2026-10-11
@@ -386,6 +399,7 @@ system = "Kojeara"
 base = "Rosa's Shop"
 unlock = "Sell 10 Culinary Recipes or Cocktail Recipes, in any mix, in the Colonia system."
 referral = "Give 10 Manufacturing Instructions."
+referral_gives = { manufacturinginstructions = 10 }
 confidence = "web"
 sources = ["on_foot"]
 read = 2026-10-11
