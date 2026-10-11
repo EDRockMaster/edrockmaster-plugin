@@ -177,6 +177,10 @@ export interface OnFoot {
      * 1 to 5; null for the flight suit.
      */
     class: number | null;
+    /**
+     * Journal symbols of its modifications (SuitMods, WeaponMods).
+     */
+    mods: string[];
   }[];
   carrierMoves: {
     dockedAt: string;

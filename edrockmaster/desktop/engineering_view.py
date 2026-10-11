@@ -106,6 +106,7 @@ def _on_foot(service: EngineeringService, names: EngineeringNames) -> dict[str, 
             "symbol": piece.symbol,
             "name": names.item(piece.symbol),
             "class": piece.suit_class,
+            "mods": list(piece.mods),
         }
         if isinstance(piece, Suit)
         else {
@@ -114,6 +115,7 @@ def _on_foot(service: EngineeringService, names: EngineeringNames) -> dict[str, 
             "symbol": piece.symbol,
             "name": piece.name or piece.symbol,
             "class": piece.weapon_class,
+            "mods": list(piece.mods),
         }
         for piece in service.equipment.values()
     ]

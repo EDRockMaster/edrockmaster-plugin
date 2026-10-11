@@ -595,7 +595,7 @@ def test_on_foot_engineers_and_equipment(service: EngineeringService) -> None:
             "event": "SuitLoadout",
             "SuitID": 1,
             "SuitName": "utilitysuit_class2",
-            "SuitMods": [],
+            "SuitMods": ["suit_backpackcapacity"],
             "Modules": [
                 {
                     "SlotName": "PrimaryWeapon1",
@@ -613,13 +613,21 @@ def test_on_foot_engineers_and_equipment(service: EngineeringService) -> None:
     # Ship engineers stay in the ship part
     assert all(row["id"] > 400000 for row in part["engineers"])
     assert part["equipment"] == [
-        {"id": 1, "kind": "suit", "symbol": "utilitysuit", "name": "Maverick suit", "class": 2},
+        {
+            "id": 1,
+            "kind": "suit",
+            "symbol": "utilitysuit",
+            "name": "Maverick suit",
+            "class": 2,
+            "mods": ["suit_backpackcapacity"],
+        },
         {
             "id": 2,
             "kind": "weapon",
             "symbol": "wpn_m_submachinegun_kinetic_fauto",
             "name": "Karma C-44",
             "class": 1,
+            "mods": [],
         },
     ]
 

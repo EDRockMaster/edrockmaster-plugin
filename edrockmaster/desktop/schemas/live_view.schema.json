@@ -567,7 +567,8 @@
               "kind",
               "symbol",
               "name",
-              "class"
+              "class",
+              "mods"
             ],
             "properties": {
               "id": {
@@ -592,6 +593,13 @@
                   "null"
                 ],
                 "description": "1 to 5; null for the flight suit."
+              },
+              "mods": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Journal symbols of its modifications (SuitMods, WeaponMods)."
               }
             }
           }
