@@ -108,6 +108,7 @@ def settings_from_request(
         record_journal=_bool(request, "recordJournal"),
         # The application shows every chosen activity: the plugin's display mode is kept
         display=replace(current.display, activities=_activities(request.get("activities"))),
+        sources=current.sources,
     )
     language = request.get("language")
     if language not in LANGUAGES:

@@ -27,6 +27,8 @@ edrockmaster/
       journal.py                journal entry → mining fact
       prospecting.py            prospected asteroid, alert policy
       session.py                MiningTracker aggregate (lifecycle, statistics, sales)
+      hotspots.py               hotspot commodities, rings and their hotspots, the search (ADR 0040)
+      markets.py                markets that buy a commodity, pad sizes, the sale search (ADR 0040)
     combat/                     combat context
       journal.py                journal entry → combat fact
       sites.py                  combat sites, as the game names them on arrival
@@ -50,8 +52,9 @@ edrockmaster/
     activity.py                 the activities: mining, combat, trade, engineering
     build.py                    BuildInfo: full version, commit and channel of the running build (ADR 0016)
     companion.py                Companion: records the journal once, hands each entry to every activity, owns the settings
-    settings.py                 PluginSettings (alerts, sound, recorder, activities shown) and their defaults
-    ports.py                    Clock, SettingsStore, Notifier, JournalRecorder, GoalRepository (and, in 1B, UploadQueue, Authenticator)
+    settings.py                 PluginSettings (alerts, sound, recorder, activities shown, sources) and their defaults
+    community.py                what a community source answers: found, or off, busy, down (ADR 0039)
+    ports.py                    Clock, SettingsStore, Notifier, JournalRecorder, GoalRepository, GalaxyCatalogue, CommodityMarkets
     mining_service.py           mining use cases: handle a journal entry, reset the session, apply settings
     combat_service.py           combat use cases: handle a journal entry, reset the session
     trade_service.py            trade use cases: handle a journal entry, reset the session
@@ -71,6 +74,7 @@ edrockmaster/
     paths.py                    data directory per platform
     worker.py                   a thread fed by a queue of jobs: the I/O thread, the core thread
     clock.py                    Clock: system time, UTC
+    sources/                    community sources (ADR 0039): polite HTTP client, cache, Spansh, Ardent Insight
   ui/                           presenters: notifications in, texts out, no interface toolkit
     panel_model.py              PanelModel (texts of a block), local data notices, shared formatting
     presenter.py                ActivityPresenter: the blocks of the activities shown
@@ -284,7 +288,7 @@ Contents:
 
 ## Local database
 
-One SQLite file for the application's durable **state**, which is neither a setting nor a recording (design decision ADR 0018). Each need has its own tables and its own repository port: the engineering goals first (`GoalRepository`, ADR 0017), the upload queue in 1B (ADR 0005). Nothing in it is sent to the server unless an ADR says so.
+One SQLite file for the application's durable **state**, which is neither a setting nor a recording (design decision ADR 0018). Each need has its own tables and its own repository port: the engineering goals (`GoalRepository`, ADR 0017), the answers of the community sources (ADR 0039). Nothing in it leaves the computer.
 
 - **The I/O thread only.** The database opens in a job of the I/O thread at start, and closes in one at exit. `LocalDatabase.connection()` refuses any other thread. Repositories turn each call into a job; what they read reaches the core thread as a job queued there.
 - **Versioned schema.** `PRAGMA user_version` is the schema version; `infrastructure/migrations.py` lists the migrations, applied in order at opening, each in its own transaction, forward only. A released migration never changes. Before migrating a database of version N > 0, the file is copied (SQLite's backup API) to `edrockmaster.sqlite3.v<N>.bak`, and older copies are removed. WAL journal mode.
@@ -308,14 +312,16 @@ One SQLite file for the application's durable **state**, which is neither a sett
 - `tests/test_translations.py` fails if a text passed to `tl()` has no French translation, if a translation is no longer used, or if placeholders differ.
 - Commodity names come from the journal's `*_Localised` fields when present (the game's own language), otherwise from our own names.
 
-## Prepared for step 1B
+## Community sources
 
-Ports defined in 1A, implemented in 1B:
+What the journal does not tell (hotspots of rings never visited, markets elsewhere) is asked of community tools, on the player's action only (ADR 0038, ADR 0039):
 
-- `UploadQueue`: its own tables in the local database (ADR 0018); every uploadable fact gets a client id (`uuid4`).
-- `Authenticator`: Keycloak device flow; refresh token kept in the data directory.
-- `Uploader`: batches (gzip) to `edrockmaster-ingest`, on the I/O thread, with backoff.
-- Kill switch: by version (ADR 0016), fetched every 10 minutes from our server.
+- **Ports** in `application/ports.py`: `GalaxyCatalogue` (rings and their hotspots) and `CommodityMarkets` (markets that buy a commodity). Their answers (`application/community.py`) are what was found, with the time it was read, or why nothing could be had: the source is off, busy or down. A cached answer given because the source failed says why.
+- **Adapters** in `infrastructure/sources/`: `spansh.py` (Spansh's body search, the request its site sends) and `ardent.py` (Ardent Insight's nearby importers). Only domain objects leave them (`domain/mining/hotspots.py`, `domain/mining/markets.py`). The hotspot commodities are a list of the domain; every source's spelling of their names is mapped onto it.
+- **HTTP** (`http.py`): the standard library's client, one request at a time per source, at least one second apart, 15 seconds at most; a `429` or `5xx` makes the source busy for its `Retry-After`, or 30 seconds doubled up to 10 minutes. The `User-Agent` is `EDRockMaster/<full version> (<channel>; <system>) +https://edrm.space`.
+- **Cache** (`source.py`): every answer kept as the source gave it in the `source_cache` table of the local database (schema version 6), used while fresh (hotspot searches a day, markets an hour), and when the source fails, however old. It holds nothing about the player; a source's answers are forgotten when it is turned off.
+- **Switches**: one setting per source, on by default (`edrockmaster.sources.spansh`, `edrockmaster.sources.ardent`); a source turned off is never asked.
+- **Tests**: answers recorded on 11 October 2026 in `tests/fixtures/sources/` are the contract each adapter reads; the HTTP client and the cache are tested without network.
 
 ## Desktop application
 

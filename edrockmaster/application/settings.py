@@ -32,6 +32,14 @@ class DisplaySettings:
 
 
 @dataclass(frozen=True, slots=True)
+class SourceSettings:
+    """The community sources the player lets the application ask (ADR 0039)."""
+
+    spansh: bool = True
+    ardent: bool = True
+
+
+@dataclass(frozen=True, slots=True)
 class PluginSettings:
     """Everything the player can change in the preferences tab."""
 
@@ -39,6 +47,7 @@ class PluginSettings:
     sound_enabled: bool
     record_journal: bool
     display: DisplaySettings = field(default_factory=DisplaySettings)
+    sources: SourceSettings = field(default_factory=SourceSettings)
 
 
 DEFAULT_SETTINGS = PluginSettings(

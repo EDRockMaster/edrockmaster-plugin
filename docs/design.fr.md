@@ -27,6 +27,8 @@ edrockmaster/
       journal.py                entrée du journal → fait de minage
       prospecting.py            astéroïde prospecté, politique d'alerte
       session.py                agrégat MiningTracker (cycle de vie, statistiques, ventes)
+      hotspots.py               marchandises à hotspots, anneaux et leurs hotspots, la recherche (ADR 0040)
+      markets.py                marchés qui achètent une marchandise, tailles de piste, la recherche de vente (ADR 0040)
     combat/                     contexte du combat
       journal.py                entrée du journal → fait de combat
       sites.py                  sites de combat, tels que le jeu les nomme à l'arrivée
@@ -50,8 +52,9 @@ edrockmaster/
     activity.py                 les activités : minage, combat, commerce, ingénierie
     build.py                    BuildInfo : version complète, commit et canal du build en cours (ADR 0016)
     companion.py                Companion : enregistre le journal une fois, transmet chaque entrée à chaque activité, détient les réglages
-    settings.py                 PluginSettings (alertes, son, enregistreur, activités affichées) et leurs valeurs par défaut
-    ports.py                    Clock, SettingsStore, Notifier, JournalRecorder, GoalRepository (et, en 1B, UploadQueue, Authenticator)
+    settings.py                 PluginSettings (alertes, son, enregistreur, activités affichées, sources) et leurs valeurs par défaut
+    community.py                ce que répond une source communautaire : trouvé, ou désactivée, occupée, indisponible (ADR 0039)
+    ports.py                    Clock, SettingsStore, Notifier, JournalRecorder, GoalRepository, GalaxyCatalogue, CommodityMarkets
     mining_service.py           cas d'usage du minage : traiter une entrée, réinitialiser la session, appliquer les réglages
     combat_service.py           cas d'usage du combat : traiter une entrée, réinitialiser la session
     trade_service.py            cas d'usage du commerce : traiter une entrée, réinitialiser la session
@@ -71,6 +74,7 @@ edrockmaster/
     paths.py                    dossier de données selon la plateforme
     worker.py                   un fil alimenté par une file de tâches : le fil d'entrées-sorties, le fil du cœur
     clock.py                    Clock : heure système, UTC
+    sources/                    sources communautaires (ADR 0039) : client HTTP poli, cache, Spansh, Ardent Insight
   ui/                           présentateurs : notifications en entrée, textes en sortie, sans boîte à outils d'interface
     panel_model.py              PanelModel (textes d'un bloc), avis sur les données locales, mise en forme commune
     presenter.py                ActivityPresenter : les blocs des activités affichées
@@ -284,7 +288,7 @@ Contenu :
 
 ## Base locale
 
-Un fichier SQLite pour l'**état** durable de l'application, qui n'est ni un réglage ni un enregistrement (décision de conception ADR 0018). Chaque besoin a ses tables et son port de dépôt : d'abord les objectifs d'ingénierie (`GoalRepository`, ADR 0017), la file d'envoi en 1B (ADR 0005). Rien de ce qu'elle contient n'est envoyé au serveur, sauf si un ADR le prévoit.
+Un fichier SQLite pour l'**état** durable de l'application, qui n'est ni un réglage ni un enregistrement (décision de conception ADR 0018). Chaque besoin a ses tables et son port de dépôt : les objectifs d'ingénierie (`GoalRepository`, ADR 0017), les réponses des sources communautaires (ADR 0039). Rien de ce qu'elle contient ne quitte l'ordinateur.
 
 - **Le fil d'entrées-sorties seulement.** La base s'ouvre dans une tâche du fil d'entrées-sorties au démarrage, et se ferme dans une autre à la fermeture. `LocalDatabase.connection()` refuse tout autre fil. Les dépôts font de chaque appel une tâche ; ce qu'ils lisent parvient au fil du cœur par une tâche déposée sur celui-ci.
 - **Schéma versionné.** `PRAGMA user_version` donne la version du schéma ; `infrastructure/migrations.py` liste les migrations, appliquées dans l'ordre à l'ouverture, chacune dans sa transaction, toujours vers l'avant. Une migration publiée ne change plus. Avant de migrer une base de version N > 0, le fichier est copié (API de sauvegarde de SQLite) dans `edrockmaster.sqlite3.v<N>.bak`, et les copies plus anciennes sont supprimées. Journal en mode WAL.
@@ -308,14 +312,16 @@ Un fichier SQLite pour l'**état** durable de l'application, qui n'est ni un ré
 - `tests/test_translations.py` échoue si un texte passé à `tl()` n'a pas de traduction française, si une traduction n'est plus utilisée, ou si les espaces réservés diffèrent.
 - Les noms de commodités viennent des champs `*_Localised` du journal quand ils sont présents (la langue du jeu), sinon de nos propres noms.
 
-## Préparé pour l'étape 1B
+## Sources communautaires
 
-Ports définis en 1A, réalisés en 1B :
+Ce que le journal ne dit pas (les hotspots des anneaux jamais visités, les marchés ailleurs) est demandé à des outils de la communauté, seulement sur une action du joueur (ADR 0038, ADR 0039) :
 
-- `UploadQueue` : ses propres tables dans la base locale (ADR 0018) ; chaque fait envoyable reçoit un identifiant client (`uuid4`).
-- `Authenticator` : device flow de Keycloak ; jeton de rafraîchissement gardé dans le dossier de données.
-- `Uploader` : lots (gzip) vers `edrockmaster-ingest`, sur le fil d'entrées-sorties, avec reprise progressive.
-- Killswitch : par version (ADR 0016), relu toutes les 10 minutes depuis notre serveur.
+- **Ports** dans `application/ports.py` : `GalaxyCatalogue` (les anneaux et leurs hotspots) et `CommodityMarkets` (les marchés qui achètent une marchandise). Leurs réponses (`application/community.py`) sont ce qui a été trouvé, avec l'heure de lecture, ou la raison pour laquelle rien n'a pu être obtenu : la source est désactivée, occupée ou indisponible. Une réponse du cache donnée parce que la source a échoué dit pourquoi.
+- **Adaptateurs** dans `infrastructure/sources/` : `spansh.py` (la recherche de corps de Spansh, la requête qu'envoie son site) et `ardent.py` (les acheteurs proches d'Ardent Insight). Seuls des objets du domaine en sortent (`domain/mining/hotspots.py`, `domain/mining/markets.py`). Les marchandises à hotspots sont une liste du domaine ; chaque orthographe des sources y est rapportée.
+- **HTTP** (`http.py`) : le client de la bibliothèque standard, une requête à la fois par source, à au moins une seconde d'intervalle, 15 secondes au plus ; un `429` ou un `5xx` rend la source occupée pendant son `Retry-After`, ou 30 secondes doublées jusqu'à 10 minutes. Le `User-Agent` est `EDRockMaster/<version complète> (<canal>; <système>) +https://edrm.space`.
+- **Cache** (`source.py`) : chaque réponse gardée telle que la source l'a donnée dans la table `source_cache` de la base locale (version de schéma 6), utilisée tant qu'elle est fraîche (recherches de hotspots un jour, marchés une heure), et, quel que soit son âge, quand la source échoue. Il ne contient rien sur le joueur ; les réponses d'une source sont oubliées quand elle est désactivée.
+- **Interrupteurs** : un réglage par source, activé par défaut (`edrockmaster.sources.spansh`, `edrockmaster.sources.ardent`) ; une source désactivée n'est jamais interrogée.
+- **Tests** : des réponses enregistrées le 11 octobre 2026 dans `tests/fixtures/sources/` sont le contrat que lit chaque adaptateur ; le client HTTP et le cache sont testés sans réseau.
 
 ## Application de bureau
 
