@@ -1,7 +1,8 @@
 # PyInstaller specification of the desktop application for Windows (ADR 0020, ADR 0022).
 # One folder (faster to start, fewer antivirus false alarms than one file), no console.
 # Data files keep the places the code reads them from: next to their modules in the
-# edrockmaster package, and L10n/ at the root, as in the repository.
+# edrockmaster package, and L10n/ at the root, as in the repository. A test checks that every
+# data file of the package is listed here.
 # Run by scripts/package_desktop.py, which writes the build file and builds the interface first.
 from pathlib import Path
 
@@ -16,6 +17,7 @@ a = Analysis(
         (str(ROOT / "L10n"), "L10n"),
         (str(PACKAGE / "build.json"), "edrockmaster"),
         (str(PACKAGE / "domain" / "engineering" / "catalogue.json"), "edrockmaster/domain/engineering"),
+        (str(PACKAGE / "domain" / "situation" / "ship_names.json"), "edrockmaster/domain/situation"),
         (str(PACKAGE / "desktop" / "schemas"), "edrockmaster/desktop/schemas"),
         (str(PACKAGE / "desktop" / "demo_journal.jsonl"), "edrockmaster/desktop"),
         (str(PACKAGE / "desktop" / "interface" / "index.html"), "edrockmaster/desktop/interface"),
