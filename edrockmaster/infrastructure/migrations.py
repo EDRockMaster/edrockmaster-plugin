@@ -107,6 +107,22 @@ MIGRATIONS: tuple[Migration, ...] = (
             """,
         ),
     ),
+    Migration(
+        6,
+        (
+            # Answers of the community sources (ADR 0039): what a source published, never the
+            # player's data; the request identifies the answer, read_at in UTC, ISO 8601
+            """
+            CREATE TABLE source_cache (
+                source TEXT NOT NULL CHECK (source <> ''),
+                request TEXT NOT NULL CHECK (request <> ''),
+                read_at TEXT NOT NULL CHECK (read_at <> ''),
+                answer TEXT NOT NULL,
+                PRIMARY KEY (source, request)
+            ) STRICT
+            """,
+        ),
+    ),
 )
 
 LATEST_VERSION = MIGRATIONS[-1].version

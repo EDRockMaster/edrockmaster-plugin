@@ -21,6 +21,7 @@ from edrockmaster.application.settings import (
     DisplayMode,
     DisplaySettings,
     PluginSettings,
+    SourceSettings,
 )
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.mining.journal import ContentLevel
@@ -38,6 +39,8 @@ KEY_RECORD_JOURNAL = "edrockmaster.record_journal"
 KEY_DISPLAY_ACTIVITIES = "edrockmaster.display.activities"
 KEY_DISPLAY_MODE = "edrockmaster.display.mode"
 KEY_DISPLAY_OFFERED = "edrockmaster.display.offered"
+KEY_SOURCE_SPANSH = "edrockmaster.sources.spansh"
+KEY_SOURCE_ARDENT = "edrockmaster.sources.ardent"
 
 OFFERED_BEFORE_TRADE: tuple[Activity, ...] = (Activity.MINING, Activity.COMBAT)
 """What the tab offered when the settings were saved without ``KEY_DISPLAY_OFFERED`` (0.3.0)."""
@@ -86,6 +89,10 @@ class KeyValueSettingsStore:
                 activities=self._read_activities(defaults.display.activities),
                 mode=self._read(KEY_DISPLAY_MODE, _parse_mode, defaults.display.mode),
             ),
+            sources=SourceSettings(
+                spansh=self._read_bool(KEY_SOURCE_SPANSH, defaults.sources.spansh),
+                ardent=self._read_bool(KEY_SOURCE_ARDENT, defaults.sources.ardent),
+            ),
         )
 
     def _read_activities(self, default: tuple[Activity, ...]) -> tuple[Activity, ...]:
@@ -110,6 +117,8 @@ class KeyValueSettingsStore:
         self._config.set(KEY_DISPLAY_ACTIVITIES, json.dumps(activities))
         self._config.set(KEY_DISPLAY_OFFERED, json.dumps([activity.value for activity in Activity]))
         self._config.set(KEY_DISPLAY_MODE, settings.display.mode.value)
+        self._config.set(KEY_SOURCE_SPANSH, settings.sources.spansh)
+        self._config.set(KEY_SOURCE_ARDENT, settings.sources.ardent)
 
     def _read[T](self, key: str, parse: Callable[[str], T], default: T) -> T:
         try:

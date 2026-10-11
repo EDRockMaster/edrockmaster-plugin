@@ -2,6 +2,7 @@
 
 import copy
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -9,7 +10,7 @@ import jsonschema
 import pytest
 
 from edrockmaster.application.activity import Activity
-from edrockmaster.application.settings import DEFAULT_SETTINGS, DisplayMode
+from edrockmaster.application.settings import DEFAULT_SETTINGS, DisplayMode, SourceSettings
 from edrockmaster.desktop.live_view import SCHEMA
 from edrockmaster.desktop.settings_view import (
     DesktopPreferences,
@@ -67,6 +68,11 @@ def test_the_form_back_into_settings() -> None:
     assert settings.display.activities == (Activity.MINING, Activity.TRADE)
     assert settings.display.mode is DisplayMode.LAST_ACTIVE  # the plugin's, kept
     assert preferences == DesktopPreferences("fr", str(JOURNAL))
+
+
+def test_the_community_sources_are_kept_until_the_form_shows_them() -> None:
+    current = replace(DEFAULT_SETTINGS, sources=SourceSettings(spansh=False))
+    assert settings_from_request(view(), current)[0].sources == SourceSettings(spansh=False)
 
 
 def test_an_empty_folder_means_the_usual_one() -> None:

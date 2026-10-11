@@ -1,0 +1,322 @@
+{
+  "count": 5,
+  "from": 0,
+  "size": 10,
+  "reference": {
+    "id64": 5070611621289,
+    "name": "Borann",
+    "x": 123.03125,
+    "y": -0.25,
+    "z": 2.84375
+  },
+  "results": [
+    {
+      "name": "Borann A 2",
+      "type": "Planet",
+      "subtype": "Gas giant with water-based life",
+      "system_name": "Borann",
+      "system_id64": 5070611621289,
+      "distance": 0.0,
+      "distance_to_arrival": 901.719814,
+      "reserve_level": "Pristine",
+      "rings": [
+        {
+          "inner_radius": 149160000.0,
+          "mass": 99719000000.0,
+          "name": "Borann A 2 A Ring",
+          "outer_radius": 160580000.0,
+          "signal_count": 23,
+          "signals": [
+            {
+              "count": 3,
+              "name": "Monazite"
+            },
+            {
+              "count": 10,
+              "name": "Painite"
+            },
+            {
+              "count": 3,
+              "name": "Platinum"
+            },
+            {
+              "count": 3,
+              "name": "Rhodplumsite"
+            },
+            {
+              "count": 4,
+              "name": "Serendibite"
+            }
+          ],
+          "signals_updated_at": "2026-10-05T13:40:17Z",
+          "type": "Metal Rich"
+        },
+        {
+          "inner_radius": 160680000.0,
+          "mass": 2109500000000.0,
+          "name": "Borann A 2 B Ring",
+          "outer_radius": 317190000.0,
+          "signal_count": 25,
+          "signals": [
+            {
+              "count": 8,
+              "name": "Alexandrite"
+            },
+            {
+              "count": 3,
+              "name": "Bromellite"
+            },
+            {
+              "count": 5,
+              "name": "Grandidierite"
+            },
+            {
+              "count": 3,
+              "name": "Low Temperature Diamonds"
+            },
+            {
+              "count": 5,
+              "name": "Void Opal"
+            },
+            {
+              "count": 1,
+              "name": "Tritium"
+            }
+          ],
+          "signals_updated_at": "2026-10-05T13:40:17Z",
+          "type": "Icy"
+        }
+      ],
+      "signals_updated_at": "2022-06-17T01:31:28Z",
+      "updated_at": "2026-10-10T20:12:26Z"
+    },
+    {
+      "name": "Fugeirs 2",
+      "type": "Planet",
+      "subtype": "Class I gas giant",
+      "system_name": "Fugeirs",
+      "system_id64": 16065727899049,
+      "distance": 14.1661458237588,
+      "distance_to_arrival": 468.747973,
+      "reserve_level": "Major",
+      "rings": [
+        {
+          "inner_radius": 125550000.0,
+          "mass": 82058000000.0,
+          "name": "Fugeirs 2 A Ring",
+          "outer_radius": 135550000.0,
+          "signal_count": 12,
+          "signals": [
+            {
+              "count": 2,
+              "name": "Monazite"
+            },
+            {
+              "count": 4,
+              "name": "Painite"
+            },
+            {
+              "count": 1,
+              "name": "Platinum"
+            },
+            {
+              "count": 4,
+              "name": "Rhodplumsite"
+            },
+            {
+              "count": 1,
+              "name": "Serendibite"
+            }
+          ],
+          "signals_updated_at": "2025-07-20T13:53:18Z",
+          "type": "Metal Rich"
+        },
+        {
+          "inner_radius": 135650000.0,
+          "mass": 1417900000000.0,
+          "name": "Fugeirs 2 B Ring",
+          "outer_radius": 252010000.0,
+          "signal_count": 2,
+          "signals": [
+            {
+              "count": 1,
+              "name": "Bromellite"
+            },
+            {
+              "count": 1,
+              "name": "Low Temperature Diamonds"
+            }
+          ],
+          "signals_updated_at": "2025-09-19T19:47:17Z",
+          "type": "Icy"
+        }
+      ],
+      "signals_updated_at": "2021-01-09T12:59:16Z",
+      "updated_at": "2026-07-26T19:29:57Z"
+    },
+    {
+      "name": "HIP 45096 B 7",
+      "type": "Planet",
+      "subtype": "Class I gas giant",
+      "system_name": "HIP 45096",
+      "system_id64": 2008199205586,
+      "distance": 17.4353717339207,
+      "distance_to_arrival": 99709.520756,
+      "reserve_level": "Major",
+      "rings": [
+        {
+          "inner_radius": 133750000.0,
+          "mass": 93974000000.0,
+          "name": "HIP 45096 B 7 A Ring",
+          "outer_radius": 144500000.0,
+          "signal_count": 17,
+          "signals": [
+            {
+              "count": 5,
+              "name": "Monazite"
+            },
+            {
+              "count": 4,
+              "name": "Painite"
+            },
+            {
+              "count": 1,
+              "name": "Platinum"
+            },
+            {
+              "count": 1,
+              "name": "Rhodplumsite"
+            },
+            {
+              "count": 6,
+              "name": "Serendibite"
+            }
+          ],
+          "signals_updated_at": "2025-09-25T12:38:42Z",
+          "type": "Metal Rich"
+        },
+        {
+          "inner_radius": 144600000.0,
+          "mass": 1530500000000.0,
+          "name": "HIP 45096 B 7 B Ring",
+          "outer_radius": 263810000.0,
+          "type": "Icy"
+        }
+      ],
+      "signals_updated_at": null,
+      "updated_at": "2026-09-07T16:25:44Z"
+    },
+    {
+      "name": "Gango A 4",
+      "type": "Planet",
+      "subtype": "Class I gas giant",
+      "system_name": "Gango",
+      "system_id64": 3480844503403,
+      "distance": 19.1775472965784,
+      "distance_to_arrival": 557.197725,
+      "reserve_level": "Major",
+      "rings": [
+        {
+          "inner_radius": 120930000.0,
+          "mass": 79919000000.0,
+          "name": "Gango A 4 A Ring",
+          "outer_radius": 132560000.0,
+          "signal_count": 18,
+          "signals": [
+            {
+              "count": 3,
+              "name": "Monazite"
+            },
+            {
+              "count": 7,
+              "name": "Painite"
+            },
+            {
+              "count": 5,
+              "name": "Platinum"
+            },
+            {
+              "count": 2,
+              "name": "Rhodplumsite"
+            },
+            {
+              "count": 1,
+              "name": "Serendibite"
+            }
+          ],
+          "signals_updated_at": "2025-04-29T09:18:42Z",
+          "type": "Metal Rich"
+        },
+        {
+          "inner_radius": 132660000.0,
+          "mass": 1441400000000.0,
+          "name": "Gango A 4 B Ring",
+          "outer_radius": 260560000.0,
+          "signal_count": 2,
+          "signals": [
+            {
+              "count": 1,
+              "name": "Bromellite"
+            },
+            {
+              "count": 1,
+              "name": "Void Opal"
+            }
+          ],
+          "signals_updated_at": "2025-04-29T09:18:30Z",
+          "type": "Icy"
+        }
+      ],
+      "signals_updated_at": null,
+      "updated_at": "2026-10-04T22:41:43Z"
+    },
+    {
+      "name": "Onileut 3",
+      "type": "Planet",
+      "subtype": "Class I gas giant",
+      "system_name": "Onileut",
+      "system_id64": 8880146879194,
+      "distance": 19.8591229822719,
+      "distance_to_arrival": 2515.600136,
+      "reserve_level": "Pristine",
+      "rings": [
+        {
+          "inner_radius": 84809000.0,
+          "mass": 15176000000.0,
+          "name": "Onileut 3 A Ring",
+          "outer_radius": 88043000.0,
+          "signal_count": 9,
+          "signals": [
+            {
+              "count": 1,
+              "name": "Monazite"
+            },
+            {
+              "count": 5,
+              "name": "Painite"
+            },
+            {
+              "count": 1,
+              "name": "Platinum"
+            },
+            {
+              "count": 2,
+              "name": "Rhodplumsite"
+            }
+          ],
+          "signals_updated_at": "2025-08-25T05:45:55Z",
+          "type": "Metal Rich"
+        },
+        {
+          "inner_radius": 88143000.0,
+          "mass": 77838000000.0,
+          "name": "Onileut 3 B Ring",
+          "outer_radius": 103040000.0,
+          "type": "Icy"
+        }
+      ],
+      "signals_updated_at": "2020-06-28T15:58:12Z",
+      "updated_at": "2026-10-09T20:15:38Z"
+    }
+  ]
+}

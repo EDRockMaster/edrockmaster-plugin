@@ -5,7 +5,12 @@ from dataclasses import replace
 import pytest
 
 from edrockmaster.application.activity import Activity
-from edrockmaster.application.settings import DEFAULT_SETTINGS, DisplayMode, DisplaySettings
+from edrockmaster.application.settings import (
+    DEFAULT_SETTINGS,
+    DisplayMode,
+    DisplaySettings,
+    SourceSettings,
+)
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.mining.journal import ContentLevel
 from edrockmaster.domain.mining.prospecting import AlertSettings
@@ -29,6 +34,7 @@ CUSTOM = replace(
     sound_enabled=False,
     record_journal=True,
     display=DisplaySettings((Activity.COMBAT,), DisplayMode.STACKED),
+    sources=SourceSettings(spansh=False, ardent=True),
 )
 
 
@@ -163,3 +169,11 @@ def test_an_invalid_list_of_offered_activities_is_the_one_of_0_3_0() -> None:
         Activity.ENGINEERING,
         Activity.COMMUNITY_GOALS,
     )
+
+
+def test_the_community_sources_are_on_until_the_player_turns_them_off() -> None:
+    assert DEFAULT_SETTINGS.sources == SourceSettings(spansh=True, ardent=True)
+    config = FakeConfig()
+    KeyValueSettingsStore(config, logger).save(CUSTOM)
+    assert config.values["edrockmaster.sources.spansh"] is False
+    assert config.values["edrockmaster.sources.ardent"] is True

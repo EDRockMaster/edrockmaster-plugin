@@ -1,7 +1,4 @@
-"""Ports of the application layer, implemented by adapters in ``infrastructure``.
-
-The server link of step 1B will add ``UploadQueue`` and ``Authenticator`` here.
-"""
+"""Ports of the application layer, implemented by adapters in ``infrastructure``."""
 
 from __future__ import annotations
 
@@ -9,9 +6,12 @@ from collections.abc import Callable, Sequence
 from datetime import datetime
 from typing import Protocol
 
+from edrockmaster.application.community import Answer
 from edrockmaster.application.settings import PluginSettings
 from edrockmaster.domain.engineering.goals import Goal, GoalId
 from edrockmaster.domain.journal_reading import Entry
+from edrockmaster.domain.mining.hotspots import HotspotPage, HotspotQuery
+from edrockmaster.domain.mining.markets import MarketOffer, SaleQuery
 from edrockmaster.domain.mining.prospecting import ProspectorAlertRaised
 
 
@@ -62,4 +62,36 @@ class GoalRepository(Protocol):
 
     def reorder(self, order: Sequence[GoalId]) -> None:
         """Store the player's priority (ADR 0033): every goal, first to last."""
+        ...
+
+
+class GalaxyCatalogue(Protocol):
+    """Systems, bodies and rings as a community source knows them (ADR 0039, ADR 0040).
+
+    No method blocks: the source is asked on the I/O thread, and the answer is
+    handed to the callback later, on the core thread.
+    """
+
+    def find_hotspots(
+        self,
+        query: HotspotQuery,
+        on_answer: Callable[[Answer[HotspotPage]], None],
+        *,
+        refresh: bool = False,
+    ) -> None:
+        """Rings with the query's hotspots, nearest first; ``refresh`` skips the cache."""
+        ...
+
+
+class CommodityMarkets(Protocol):
+    """Markets as a community source knows them (ADR 0039, ADR 0040); does not block."""
+
+    def find_buyers(
+        self,
+        query: SaleQuery,
+        on_answer: Callable[[Answer[tuple[MarketOffer, ...]]], None],
+        *,
+        refresh: bool = False,
+    ) -> None:
+        """Markets that buy the commodity around the system, as the source gives them."""
         ...

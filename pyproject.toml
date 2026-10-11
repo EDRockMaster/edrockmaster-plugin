@@ -82,6 +82,8 @@ forbidden_modules = [
     "edrockmaster.ui",
     "webview",
     "sqlite3",
+    "urllib",
+    "http",
 ]
 
 [[tool.importlinter.contracts]]
