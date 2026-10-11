@@ -12,7 +12,7 @@ Comment une version est soumise : [store-submission.fr.md](store-submission.fr.m
 - **Adresse de la politique de confidentialité** : https://github.com/EDRockMaster/edrockmaster-plugin/blob/main/docs/privacy.fr.md (en attendant qu'edrm.space l'héberge).
 - **Site web** : https://github.com/EDRockMaster/edrockmaster-plugin
 - **Contact du support** : contact@edrm.space.
-- **Nom d'éditeur affiché** (Partner Center, paramètres du compte) : Nexagone, le nom d'un projet personnel et non commercial, publié depuis un compte individuel ; il doit être égal à la variable GitHub `EDROCKMASTER_MSIX_PUBLISHER_NAME`, sinon le paquet est refusé ([store-submission.fr.md](store-submission.fr.md)). **Statut de professionnel** (règlement européen sur les services numériques) : non professionnel.
+- **Nom d'éditeur affiché** (Partner Center, paramètres du compte) : DamScan, un projet personnel et non commercial, publié depuis un compte individuel ; il doit être égal à la variable GitHub `EDROCKMASTER_MSIX_PUBLISHER_NAME`, sinon le paquet est refusé ([store-submission.fr.md](store-submission.fr.md)). **Statut de professionnel** (règlement européen sur les services numériques) : non professionnel.
 - **Informations personnelles** : *oui*, l'application accède à des informations personnelles : elle lit le journal du jeu, qui nomme le commandant et d'autres joueurs ; elle les garde sur l'ordinateur et n'envoie rien (voir la politique de confidentialité).
 - **Configuration requise** : Windows 10 version 21H1 ou Windows 11, 64 bits ; Elite Dangerous sur le même ordinateur.
 
