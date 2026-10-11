@@ -34,7 +34,7 @@ Ce qui a changé à chaque version : [journal des modifications](CHANGELOG.fr.md
 - `L10n/` : traductions des textes du cœur (`fr.strings`).
 - `tests/fixtures/` : extraits de vrais journaux, sans données personnelles.
 - `packaging/windows/` : spécification PyInstaller et manifeste MSIX (ADR 0022).
-- `scripts/` : emballage Windows (`package_desktop.py`, `make_icons.py`, avec le fichier de build de l'ADR 0016), notes de version (`release_notes.sh`), version (`version.sh`), canal de release (`release_plan.py`), release GitHub (`github_release.py`), enregistrement vers donnée de test (`sanitise_recording.py`), donnée de test vers fichier de journal (`fixture_to_journal.py`), journal de démo (`make_demo_journal.py`), données du jeu pour l'ingénierie (`import_engineering_data.py`, ADR 0017, ADR 0027).
+- `scripts/` : emballage Windows (`package_desktop.py`, `make_icons.py`, avec le fichier de build de l'ADR 0016), notes de version (`release_notes.sh`), version (`version.sh`), canal de release (`release_plan.py`), barrière du build Windows sur Gitea (`windows_build_gate.py`, ADR 0034), release GitHub (`github_release.py`), enregistrement vers donnée de test (`sanitise_recording.py`), donnée de test vers fichier de journal (`fixture_to_journal.py`), journal de démo (`make_demo_journal.py`), données du jeu pour l'ingénierie (`import_engineering_data.py`, ADR 0017, ADR 0027).
 
 ## Documentation
 

@@ -34,7 +34,7 @@ What changed in each version: [changelog](CHANGELOG.md). Privacy: [privacy polic
 - `L10n/`: translations of the core's texts (`fr.strings`).
 - `tests/fixtures/`: excerpts of real journals, free of personal data.
 - `packaging/windows/`: PyInstaller specification and MSIX manifest (ADR 0022).
-- `scripts/`: Windows packaging (`package_desktop.py`, `make_icons.py`, with the build file of ADR 0016), release notes (`release_notes.sh`), version (`version.sh`), release channel (`release_plan.py`), GitHub release (`github_release.py`), recording to test fixture (`sanitise_recording.py`), fixture to journal file (`fixture_to_journal.py`), demo journal (`make_demo_journal.py`), game data of engineering (`import_engineering_data.py`, ADR 0017, ADR 0027).
+- `scripts/`: Windows packaging (`package_desktop.py`, `make_icons.py`, with the build file of ADR 0016), release notes (`release_notes.sh`), version (`version.sh`), release channel (`release_plan.py`), Windows build gate on Gitea (`windows_build_gate.py`, ADR 0034), GitHub release (`github_release.py`), recording to test fixture (`sanitise_recording.py`), fixture to journal file (`fixture_to_journal.py`), demo journal (`make_demo_journal.py`), game data of engineering (`import_engineering_data.py`, ADR 0017, ADR 0027).
 
 ## Documentation
 
