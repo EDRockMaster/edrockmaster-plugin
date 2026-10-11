@@ -40,7 +40,7 @@ def test_a_catalogue_has_the_on_foot_materials_and_engineers() -> None:
     sample = catalogue.on_foot_materials["chemicalsample"]
     assert (sample.kind, sample.english_name) == (OnFootKind.ITEM, "Chemical Sample")
     assert catalogue.on_foot_materials["internalcorrespondence"].kind is OnFootKind.DATA
-    assert catalogue.on_foot_engineers == {400002: "Domino Green"}
+    assert catalogue.on_foot_engineers == {400002: "Domino Green", 400004: "Kit Fowler"}
     # The ship engineers stay apart: the engineering view lists them on their own
     assert 400002 not in catalogue.engineers
 
@@ -88,6 +88,10 @@ def test_a_catalogue_has_where_the_engineers_are_and_how_to_unlock_them() -> Non
     domino = details[400002]
     assert (domino.invitation, domino.referral) == (None, "Give 5 Push.")
     assert domino.referred_by == (300100,)
+    assert (domino.unlock_gives, domino.referral_gives) == (
+        {"internalcorrespondence": 2},
+        {"chemicalsample": 5},
+    )
 
 
 def test_the_engineers_offering_a_grade_depend_on_the_module() -> None:
@@ -148,6 +152,8 @@ def test_the_date_of_the_data_is_the_most_recent_source() -> None:
         (("engineer_details", "300100", "confidence"), "deduced", "confidence"),
         (("engineer_details", "400002", "referred_by"), [999], "unknown engineers"),
         (("engineer_details", "999"), {}, "malformed"),
+        (("engineer_details", "400002", "referral_gives"), {"iron": 1}, "'iron'"),
+        (("engineer_details", "400002", "unlock_gives"), {"healthpack": 1}, "consumable"),
         (("on_foot_modifications", "suit_backpackcapacity", "engineers"), [300100], "engineers"),
         (
             ("on_foot_modifications", "suit_backpackcapacity", "recipes", 0, "items"),

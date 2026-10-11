@@ -36,7 +36,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-FORMAT = 5
+FORMAT = 6
 
 
 @dataclass(frozen=True, slots=True)
@@ -363,10 +363,30 @@ def _details_proof(what: str, entry: Mapping[str, Any], named: Mapping[str, Any]
     return str(confidence)
 
 
-def engineer_details(text: str, engineers: Mapping[str, int]) -> dict[str, dict[str, Any]]:
+def _gives(
+    what: str, entry: Mapping[str, Any], field: str, materials: Mapping[str, Mapping[str, str]]
+) -> dict[str, int]:
+    """The on-foot materials a task takes, when it is to give or sell exactly those."""
+    gives = entry.get(field, {})
+    for symbol, count in gives.items():
+        if symbol not in materials:
+            raise ImportRefused(f"{what}: {field} {symbol!r} is no on-foot material of FDevIDs")
+        if materials[symbol]["kind"] == "consumable":
+            raise ImportRefused(f"{what}: {field} takes a consumable {symbol!r}")
+        if not isinstance(count, int) or isinstance(count, bool) or count < 1:
+            raise ImportRefused(f"{what}: {field} {count!r} {symbol}")
+    return dict(sorted(gives.items()))
+
+
+def engineer_details(
+    text: str,
+    engineers: Mapping[str, int],
+    materials: Mapping[str, Mapping[str, str]],
+) -> dict[str, dict[str, Any]]:
     """Where each engineer is and how to unlock them, by engineer id (ADR 0031).
 
-    ``engineers``: the catalogue's engineers, ship and on foot, id by name."""
+    ``engineers``: the catalogue's engineers, ship and on foot, id by name; ``materials``: the
+    on-foot materials, by journal symbol."""
     if not text:
         return {}
     data = tomllib.loads(text)
@@ -386,6 +406,12 @@ def engineer_details(text: str, engineers: Mapping[str, int]) -> dict[str, dict[
         invitation = _text(what, entry, "invitation", required=not on_foot)
         if on_foot and invitation is not None:
             raise ImportRefused(f"{what}: an on-foot engineer sends no invitation")
+        unlock_gives = _gives(what, entry, "unlock_gives", materials)
+        referral_gives = _gives(what, entry, "referral_gives", materials)
+        if (unlock_gives or referral_gives) and not on_foot:
+            raise ImportRefused(f"{what}: only an on-foot engineer's tasks take on-foot materials")
+        if referral_gives and "referral" not in entry:
+            raise ImportRefused(f"{what}: referral_gives without its referral task")
         details[engineers[name]] = {
             "system": _text(what, entry, "system", required=True),
             "base": _text(what, entry, "base", required=True),
@@ -393,6 +419,8 @@ def engineer_details(text: str, engineers: Mapping[str, int]) -> dict[str, dict[
             "invitation": invitation,
             "unlock": _text(what, entry, "unlock", required=True),
             "referral": _text(what, entry, "referral", required=False),
+            "unlock_gives": unlock_gives,
+            "referral_gives": referral_gives,
             "confidence": _details_proof(what, entry, named),
         }
     return {str(id_): details[id_] for id_ in sorted(details)}
@@ -523,6 +551,7 @@ def build_catalogue(read: Read, recipes: str, sheets: str = "") -> dict[str, Any
         "engineer_details": engineer_details(
             sheets,
             {name: int(id_) for id_, name in (*engineers.items(), *on_foot_engineers.items())},
+            on_foot_materials,
         ),
     }
 

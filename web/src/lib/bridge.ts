@@ -30,7 +30,8 @@ export interface CoreApi {
 }
 
 /** A goal the player asks for; the core checks it against the catalogue. */
-export type GoalRequest = ShipGoalRequest | ClassUpgradeRequest | ModificationRequest;
+export type GoalRequest =
+  ShipGoalRequest | ClassUpgradeRequest | ModificationRequest | EngineerUnlockRequest;
 
 export interface ShipGoalRequest {
   kind: "blueprint" | "effect";
@@ -55,6 +56,12 @@ export interface ModificationRequest {
   item: string;
   modification: string;
   equipmentId?: number;
+}
+
+/** An engineer to unlock, ship or on foot (ADR 0027, ADR 0031). */
+export interface EngineerUnlockRequest {
+  kind: "engineerUnlock";
+  engineerId: number;
 }
 
 declare global {

@@ -12,6 +12,7 @@
   import type { Engineering } from "../lib/live-view";
   import CardStack from "./CardStack.svelte";
   import EngineerList from "./EngineerList.svelte";
+  import UnlockList from "./UnlockList.svelte";
   import GoalForm from "./GoalForm.svelte";
   import OnFootView from "./OnFootView.svelte";
 
@@ -135,6 +136,10 @@
     {/each}
   </ul>
   <GoalForm {language} />
+  {#if engineering.unlocks.length > 0}
+    <h3 class="part">{t(language, "unlock.heading")}</h3>
+    <UnlockList unlocks={engineering.unlocks} {language} />
+  {/if}
 {/snippet}
 
 {#snippet shopping()}
@@ -203,6 +208,7 @@
       status: statusText(engineer, language),
     }))}
     {language}
+    aimed={engineering.unlocks.map((goal) => goal.engineerId)}
   />
   <p class="muted small">
     {t(language, "engineering.data", { date: engineering.catalogueDate })}
@@ -225,6 +231,9 @@
   h3 {
     margin: 0 0 var(--space-1);
     font-size: 1rem;
+  }
+  h3.part {
+    margin-top: var(--space-4);
   }
   h4 {
     display: flex;

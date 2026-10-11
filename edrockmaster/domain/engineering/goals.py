@@ -10,7 +10,8 @@ to a higher one, a step at a time. It names the type of item by its journal
 symbol and, when the player chose one of theirs, that item's id: the goal then
 follows that item only. Without it, any item of the type the journal shows
 after the goal was set counts. A **modification** goal names the same way the
-item it is for, and the modification by its journal symbol.
+item it is for, and the modification by its journal symbol. An **engineer unlock**
+names the engineer by the id the journal gives, ship or on foot.
 
 A goal names its blueprint or effect by its journal name, and the module it is
 for by the catalogue's module key: the engineers offering a grade depend on the
@@ -127,5 +128,16 @@ class ModificationGoal:
             raise ValueError("the time a goal was set needs its time zone")
 
 
+@dataclass(frozen=True, slots=True)
+class EngineerUnlockGoal:
+    id: GoalId
+    engineer_id: int
+    """As the journal gives it (``EngineerID``)."""
+
+    def __post_init__(self) -> None:
+        if self.engineer_id <= 0:
+            raise ValueError(f"no engineer has the id {self.engineer_id}")
+
+
 type OnFootGoal = ClassUpgradeGoal | ModificationGoal
-type Goal = BlueprintGoal | ExperimentalEffectGoal | OnFootGoal
+type Goal = BlueprintGoal | ExperimentalEffectGoal | OnFootGoal | EngineerUnlockGoal

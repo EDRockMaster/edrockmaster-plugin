@@ -29,6 +29,13 @@
   unlocked engineers seen offering it; without such a recipe, the goal is
   unknown. When the journal shows the goal's item (or one of its type, as
   above) with the modification, it is done and removed.
+- **Engineer unlocks** (ADR 0027, ADR 0031): what is left to do for the
+  engineer, from their sheet and their state: an on-foot engineer's referral
+  (the referring engineer's task) while not known yet, a ship engineer's
+  invitation while not invited, then the unlock. A task to give or sell given
+  on-foot materials is counted against those held; any other is not, and the
+  goal is then never ready. Once the game states the engineer unlocked, it is
+  done and removed.
 
 The tracker reports goal changes it makes (``GoalProgressed``, ``GoalDone``) so
 that the application layer stores them; the player's own changes come through
@@ -56,6 +63,7 @@ from edrockmaster.domain.engineering.catalogue import (
 from edrockmaster.domain.engineering.goals import (
     BlueprintGoal,
     ClassUpgradeGoal,
+    EngineerUnlockGoal,
     ExperimentalEffectGoal,
     Goal,
     GoalId,
@@ -142,10 +150,13 @@ class GoalProgress:
     """On foot, the classes whose upgrade the catalogue does not know."""
     unverified: bool = False
     """On foot, a recipe it takes was not seen in game: deduced or read elsewhere (ADR 0030)."""
+    counted: bool = True
+    """``False`` when what is left to do is not only materials held: a rank, a reputation, a
+    commodity (an engineer unlock); the goal is then never ready."""
 
     @property
     def ready(self) -> bool:
-        return self.known and self.missing is not None and not self.missing
+        return self.known and self.counted and self.missing is not None and not self.missing
 
 
 @dataclass(frozen=True, slots=True)
@@ -321,10 +332,12 @@ class EngineeringTracker:
                 return self._after(progressed=False)
             case EngineersStated():
                 self._engineers = {state.engineer_id: state for state in fact.engineers}
-                return self._after(progressed=False)
+                notifications = self._unlocks_done()
+                return notifications + self._after(progressed=bool(notifications))
             case EngineerProgressed():
                 self._engineers[fact.engineer.engineer_id] = fact.engineer
-                return self._after(progressed=False)
+                notifications = self._unlocks_done()
+                return notifications + self._after(progressed=bool(notifications))
             case MaterialsChanged():
                 return self._on_change(fact.at, fact.cause, fact.changes)
             case BlueprintApplied():
@@ -483,6 +496,24 @@ class EngineeringTracker:
             self._goals = goals
         return notifications
 
+    def _unlocks_done(self) -> list[EngineeringNotification]:
+        """The engineer unlocks the game now states done."""
+        notifications: list[EngineeringNotification] = []
+        goals: list[Goal] = []
+        for goal in self._goals:
+            state = (
+                self._engineers.get(goal.engineer_id)
+                if isinstance(goal, EngineerUnlockGoal)
+                else None
+            )
+            if state is not None and state.status is EngineerStatus.UNLOCKED:
+                self._ready.discard(goal.id)
+                notifications.append(GoalDone(goal))
+            else:
+                goals.append(goal)
+        self._goals = goals
+        return notifications
+
     def _collecting(self, at: datetime) -> tuple[_Collection, list[EngineeringNotification]]:
         """The collection, started if needed, and its start if it did."""
         if self._collection is not None:
@@ -504,7 +535,7 @@ class EngineeringTracker:
         """Take one roll, or one application, off the first goal the craft made."""
         module = self._catalogue.module_of(fact.module_item)
         for index, goal in enumerate(self._goals):
-            if isinstance(goal, ClassUpgradeGoal | ModificationGoal):
+            if not isinstance(goal, BlueprintGoal | ExperimentalEffectGoal):
                 continue
             if not self._made_by(goal, fact, module.key if module else None):
                 continue
@@ -586,15 +617,20 @@ class EngineeringTracker:
             return self._class_progress(goal)
         if isinstance(goal, ModificationGoal):
             return self._modification_progress(goal)
+        if isinstance(goal, EngineerUnlockGoal):
+            return self._unlock_progress(goal)
         needed = self._needed(goal)
         if needed is None:
             return GoalProgress(goal, {}, None, (), known=False)
         missing = None if self._inventory is None else _missing(needed, self._inventory)
         return GoalProgress(goal, needed, missing, self._engineers_for(goal))
 
-    def _on_foot_goals(self) -> list[OnFootGoal]:
+    def _on_foot_goals(self) -> list[OnFootGoal | EngineerUnlockGoal]:
+        """The goals that take on-foot materials."""
         return [
-            goal for goal in self._goals if isinstance(goal, ClassUpgradeGoal | ModificationGoal)
+            goal
+            for goal in self._goals
+            if isinstance(goal, ClassUpgradeGoal | ModificationGoal | EngineerUnlockGoal)
         ]
 
     def _class_progress(self, goal: ClassUpgradeGoal) -> GoalProgress:
@@ -633,6 +669,33 @@ class EngineeringTracker:
             engineers,
             credits=recipe.credits,
             unverified=recipe.confidence is not RecipeConfidence.GAME,
+        )
+
+    def _unlock_progress(self, goal: EngineerUnlockGoal) -> GoalProgress:
+        details = self._catalogue.engineer_details.get(goal.engineer_id)
+        if details is None:
+            return GoalProgress(goal, {}, None, (), known=False, counted=False)
+        state = self._engineers.get(goal.engineer_id)
+        status = state.status if state else None
+        needed: Counter[str] = Counter()
+        # Each step left: counted when it is to give or sell given on-foot materials
+        counted = status is not EngineerStatus.BARRED
+        if status is None and details.referred_by:
+            for referrer in details.referred_by:
+                gives = self._catalogue.engineer_details[referrer].referral_gives
+                needed.update(gives)
+                counted = counted and bool(gives)
+        if details.invitation is not None and status in (None, EngineerStatus.KNOWN):
+            counted = False
+        needed.update(details.unlock_gives)
+        counted = counted and bool(details.unlock_gives)
+        return GoalProgress(
+            goal,
+            dict(sorted(needed.items())),
+            _missing(needed, self._on_foot.held()) if self._on_foot.known else None,
+            (),
+            unverified=details.confidence is not RecipeConfidence.GAME,
+            counted=counted,
         )
 
     def _engineers_for(self, goal: BlueprintGoal | ExperimentalEffectGoal) -> tuple[int, ...]:

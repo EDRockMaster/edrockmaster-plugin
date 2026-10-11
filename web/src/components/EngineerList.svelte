@@ -16,10 +16,20 @@
   // The engineers, name and status side by side in short rows; a click unfolds an engineer's
   // sheet (ADR 0031): where they are, the system copied in one click, and how to unlock them.
   import { loadCatalogue } from "../lib/catalogue";
+  import { core } from "../lib/bridge";
   import { copyText } from "../lib/clipboard";
   import { t, type Language } from "../lib/i18n";
 
-  let { engineers, language }: { engineers: EngineerRow[]; language: Language } = $props();
+  let {
+    engineers,
+    language,
+    aimed = [],
+  }: {
+    engineers: EngineerRow[];
+    language: Language;
+    /** The engineers an unlock goal is set on. */
+    aimed?: number[];
+  } = $props();
 
   // The sheets never change: they come with the catalogue, asked once (ADR 0031)
   let sheets = $state<Map<number, EngineerSheet>>(new Map());
@@ -121,6 +131,16 @@
           {#if sheet.unverified}
             <p class="note">{t(language, "engineer.unverified")}</p>
           {/if}
+          {#if !engineer.unlocked}
+            <button
+              type="button"
+              class="aim"
+              disabled={aimed.includes(engineer.id)}
+              onclick={() => core()?.add_goal({ kind: "engineerUnlock", engineerId: engineer.id })}
+            >
+              {t(language, aimed.includes(engineer.id) ? "engineer.aimed" : "engineer.aim")}
+            </button>
+          {/if}
         </div>
       {/if}
     </li>
@@ -210,6 +230,9 @@
     margin-left: var(--space-2);
     color: var(--colour-accent);
     font-size: 0.8rem;
+  }
+  .aim {
+    margin-top: var(--space-2);
   }
   .note {
     margin: var(--space-2) 0 0;

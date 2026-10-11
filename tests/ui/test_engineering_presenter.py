@@ -4,6 +4,7 @@ from edrockmaster.domain.engineering.catalogue import MaterialCategory, OnFootKi
 from edrockmaster.domain.engineering.goals import (
     BlueprintGoal,
     ClassUpgradeGoal,
+    EngineerUnlockGoal,
     ExperimentalEffectGoal,
     GoalId,
     ModificationGoal,
@@ -166,6 +167,7 @@ def test_names_of_suits_weapons_and_class_upgrades() -> None:
     backpack = ModificationGoal(GoalId("mod"), "tacticalsuit", "suit_backpackcapacity", T0)
     assert full.goal(backpack) == "Dominator suit: Extra backpack capacity"
     assert full.modification("suit_gone") == "suit_gone"
+    assert full.goal(EngineerUnlockGoal(GoalId("kit"), 400004)) == "Unlock Kit Fowler"
     assert EngineeringNames(None, identity).modification("weapon_handling") == "weapon_handling"
     # On foot: the catalogue's name, as it is, when the game gave none (ADR 0027)
     assert full.material("chemicalsample") == "Chemical Sample"

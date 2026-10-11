@@ -152,6 +152,7 @@
 "{module}: {effect}" = "{module} : {effect}";
 "{item}: class {from_class} to {to_class}" = "{item} : classe {from_class} à {to_class}";
 "{item}: {modification}" = "{item} : {modification}";
+"Unlock {engineer}" = "Débloquer {engineer}";
 
 /* domain/engineering/catalogue.json: names of the game data (ADR 0017), English from EDCD/FDevIDs and EDCD/coriolis-data */
 /* catalogue: raw materials. Material names are the game's own (Name_Localised of a recorded journal) where known */

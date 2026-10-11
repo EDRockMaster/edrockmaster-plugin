@@ -72,6 +72,19 @@ MIGRATIONS: tuple[Migration, ...] = (
             """,
         ),
     ),
+    Migration(
+        4,
+        (
+            # Engineer unlocks (ADR 0027, ADR 0031): the engineer, by the id the journal gives
+            """
+            CREATE TABLE engineer_unlock_goal (
+                id TEXT PRIMARY KEY,
+                position INTEGER NOT NULL UNIQUE,
+                engineer_id INTEGER NOT NULL CHECK (engineer_id > 0)
+            ) STRICT
+            """,
+        ),
+    ),
 )
 
 LATEST_VERSION = MIGRATIONS[-1].version

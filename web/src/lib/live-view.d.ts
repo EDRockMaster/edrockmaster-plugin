@@ -1,6 +1,36 @@
 /* Generated from edrockmaster/desktop/schemas/live_view.schema.json by 'pnpm types': do not edit. */
 
 export type Activity = "mining" | "combat" | "trade" | "engineering";
+/**
+ * An engineer unlock goal (ADR 0027, ADR 0031); its conditions are in the catalogue's engineer sheets.
+ */
+export type EngineerUnlock = {
+  id: string;
+  engineerId: number;
+  name: string;
+  status: "known" | "invited" | "acquainted" | "unlocked" | "barred" | null;
+  /**
+   * False when the catalogue has no sheet for the engineer.
+   */
+  known: boolean;
+  /**
+   * Every step left is to give or sell on-foot materials, counted against those held; otherwise the goal is never ready.
+   */
+  counted: boolean;
+  /**
+   * The sheet was not checked in game (ADR 0030).
+   */
+  unverified: boolean;
+  ready: boolean;
+  /**
+   * The on-foot materials the steps left take.
+   */
+  needed: Ingredient[];
+  /**
+   * What the on-foot materials held lack; null while the ship locker is unknown.
+   */
+  missing: null | Ingredient[];
+}[];
 
 /**
  * What the core shows of the activities, pushed to the interface after each change (ADR 0020, ADR 0021). Texts of the blocks are already in the player's language.
@@ -122,6 +152,7 @@ export interface Engineering {
   shoppingList: Ingredient[];
   catalogueDate: string;
   onFoot: OnFoot;
+  unlocks: EngineerUnlock;
 }
 export interface Ingredient {
   symbol: string;
@@ -290,4 +321,5 @@ export interface OnFoot {
    * Credits of every class upgrade: shown, not counted.
    */
   credits: number;
+  unlocks: EngineerUnlock;
 }

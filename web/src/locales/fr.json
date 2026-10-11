@@ -185,5 +185,14 @@
   "engineer.referral": "Recommandation",
   "engineer.referralTask": "{task} → {names}",
   "engineer.refers": "Recommande",
-  "engineer.unverified": "Pas encore vérifié en jeu."
+  "engineer.unverified": "Pas encore vérifié en jeu.",
+  "unlock.title": "Débloquer {engineer}",
+  "unlock.referredBy": "D'abord être recommandé par {names}.",
+  "unlock.invitation": "Invitation : {condition}",
+  "unlock.unlock": "Déblocage : {condition}",
+  "unlock.unknown": "Cet ingénieur n'a pas de fiche : ce qu'il demande n'est pas connu.",
+  "unlock.notCounted": "Certaines conditions ne sont pas des matériaux : vérifiez-les en jeu.",
+  "unlock.heading": "Déblocages d'ingénieurs",
+  "engineer.aim": "Viser son déblocage",
+  "engineer.aimed": "Objectif fixé"
 }

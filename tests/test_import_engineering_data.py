@@ -169,6 +169,7 @@ system = "Orishis"
 base = "The Jackrabbit"
 unlock = "Travel at least 100 ly in shuttles."
 referral = "Give 5 Push."
+referral_gives = { chemicalsample = 5 }
 confidence = "web"
 sources = ["https://example.org/domino-green"]
 read = 2026-10-11
@@ -370,6 +371,8 @@ def test_the_catalogue_has_where_the_engineers_are_and_how_to_unlock_them(
             "invitation": "Reach the exploration rank of Scout.",
             "unlock": "Deliver 1 Meta-Alloys.",
             "referral": None,
+            "unlock_gives": {},
+            "referral_gives": {},
             "confidence": "web",
         },
         "300260": {
@@ -379,6 +382,8 @@ def test_the_catalogue_has_where_the_engineers_are_and_how_to_unlock_them(
             "invitation": "Earn more than 15 bounty vouchers.",
             "unlock": "Hand in 100,000 CR of bounty vouchers.",
             "referral": None,
+            "unlock_gives": {},
+            "referral_gives": {},
             "confidence": "game",
         },
         "400002": {
@@ -388,6 +393,8 @@ def test_the_catalogue_has_where_the_engineers_are_and_how_to_unlock_them(
             "invitation": None,
             "unlock": "Travel at least 100 ly in shuttles.",
             "referral": "Give 5 Push.",
+            "unlock_gives": {},
+            "referral_gives": {"chemicalsample": 5},
             "confidence": "web",
         },
     }
@@ -408,6 +415,15 @@ def test_the_catalogue_has_where_the_engineers_are_and_how_to_unlock_them(
         ('invitation = "Earn more than 15 bounty vouchers."\n', "", "invitation"),
         ('unlock = "Travel', 'invitation = "Ask."\nunlock = "Travel', "invitation"),
         ('referral = "Give 5 Push."', "referral = 5", "referral"),
+        ('referral = "Give 5 Push."\n', "", "without its referral task"),
+        ("chemicalsample = 5", "iron = 5", "'iron'"),
+        ("chemicalsample = 5", "healthpack = 5", "consumable 'healthpack'"),
+        ("chemicalsample = 5", "chemicalsample = 0", "0 chemicalsample"),
+        (
+            'unlock = "Deliver 1 Meta-Alloys."',
+            'unlock = "Deliver 1 Meta-Alloys."\nunlock_gives = { graphene = 1 }',
+            "only an on-foot",
+        ),
         ('confidence = "game"', 'confidence = "rumour"', "confidence 'rumour'"),
         ("read = 2026-10-12", "", "date"),
         ('sources = ["ship"]', "sources = []", "source"),
@@ -428,6 +444,7 @@ def test_the_shipped_catalogue_has_the_shipped_engineer_details() -> None:
     details = importer.engineer_details(
         importer.DEFAULT_ENGINEERS.read_text(encoding="utf-8"),
         {name: int(id_) for id_, name in names.items()},
+        shipped["on_foot_materials"],
     )
     assert shipped["engineer_details"] == details
     # Every engineer of the catalogue has its sheet
