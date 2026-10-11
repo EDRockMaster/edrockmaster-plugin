@@ -46,6 +46,8 @@ READ_BY_THE_PLUGIN = {
     "RedeemVoucher",
     "Died",
     "CommunityGoal",
+    "CommunityGoalReward",
+    "CommunityGoalDiscard",
     # combat (ADR 0013)
     "SupercruiseDestinationDrop",
     "Undocked",

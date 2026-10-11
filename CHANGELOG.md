@@ -6,6 +6,10 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
+### Fixed
+
+- A community goal no longer stays in the combat block once its reward is collected or the goal discarded: the game then writes no new list of goals, the application now reads `CommunityGoalReward` and `CommunityGoalDiscard`. The recording sanitiser keeps both events.
+
 ## [0.5.0] - 2026-10-11
 
 The first published version of **EDRockMaster Companion**, the desktop application, which replaces the EDMC plugin.
