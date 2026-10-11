@@ -150,6 +150,7 @@
 /* ui/engineering_names.py: a goal: module type, blueprint and grade, or experimental effect */
 "{module}: {blueprint}, grade {grade}" = "{module} : {blueprint}, grade {grade}";
 "{module}: {effect}" = "{module} : {effect}";
+"{item}: class {from_class} to {to_class}" = "{item} : classe {from_class} à {to_class}";
 
 /* domain/engineering/catalogue.json: names of the game data (ADR 0017), English from EDCD/FDevIDs and EDCD/coriolis-data */
 /* catalogue: raw materials. Material names are the game's own (Name_Localised of a recorded journal) where known */

@@ -48,12 +48,18 @@ describe("on-foot logic", () => {
   });
 
   it("names a suit or a weapon with its class", () => {
-    expect(equipmentText({ id: 1, kind: "suit", name: "Maverick suit", class: 2 }, "en")).toBe(
-      "Maverick suit, class 2",
-    );
-    expect(equipmentText({ id: 2, kind: "suit", name: "Flight suit", class: null }, "en")).toBe(
-      "Flight suit",
-    );
+    expect(
+      equipmentText(
+        { id: 1, kind: "suit", symbol: "utilitysuit", name: "Maverick suit", class: 2 },
+        "en",
+      ),
+    ).toBe("Maverick suit, class 2");
+    expect(
+      equipmentText(
+        { id: 2, kind: "suit", symbol: "flightsuit", name: "Flight suit", class: null },
+        "en",
+      ),
+    ).toBe("Flight suit");
   });
 
   it("tells what moved to and from the carrier", () => {
@@ -83,7 +89,9 @@ describe("EngineeringView on foot", () => {
           known: true,
           materials: [material({ name: "Graphène", kind: "component", locker: 2, backpack: 1 })],
           engineers: [{ id: 400002, name: "Domino Green", status: "invited" }],
-          equipment: [{ id: 1, kind: "suit", name: "Combinaison Maverick", class: 2 }],
+          equipment: [
+            { id: 1, kind: "suit", symbol: "utilitysuit", name: "Combinaison Maverick", class: 2 },
+          ],
           carrierMoves: [
             {
               dockedAt: "2026-10-05T23:22:14Z",

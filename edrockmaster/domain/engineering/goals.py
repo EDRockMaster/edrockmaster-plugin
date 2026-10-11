@@ -1,9 +1,15 @@
-"""Goals: what the player aims at in engineering (ADR 0017).
+"""Goals: what the player aims at in engineering (ADR 0017, ADR 0027).
 
 A goal is a **blueprint** at a grade, with the number of **rolls** the player
 expects to need, or an **experimental effect**, with a number of
 **applications**. The game does not tell how many rolls a grade takes (it
 depends on the engineer's rank and on luck): the player sets it, one by default.
+
+On foot (ADR 0027), a **class upgrade** raises a suit or a weapon from one class
+to a higher one, a step at a time. It names the type of item by its journal
+symbol and, when the player chose one of theirs, that item's id: the goal then
+follows that item only. Without it, any item of the type the journal shows
+after the goal was set counts.
 
 A goal names its blueprint or effect by its journal name, and the module it is
 for by the catalogue's module key: the engineers offering a grade depend on the
@@ -16,8 +22,11 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
+from datetime import datetime
 
 MAX_GRADE = 5
+MIN_CLASS = 1
+MAX_CLASS = 5
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,4 +80,32 @@ class ExperimentalEffectGoal:
             raise ValueError(f"a goal takes at least one application, not {self.applications}")
 
 
-type Goal = BlueprintGoal | ExperimentalEffectGoal
+@dataclass(frozen=True, slots=True)
+class ClassUpgradeGoal:
+    id: GoalId
+    item: str
+    """Journal symbol of the suit or weapon type, in lower case, without class
+    (``tacticalsuit``, ``wpn_m_assaultrifle_kinetic_fauto``)."""
+    from_class: int
+    to_class: int
+    set_at: datetime
+    equipment_id: int | None = None
+    """The player's own item it follows (``SuitID``, ``SuitModuleID``), if they chose one."""
+
+    def __post_init__(self) -> None:
+        _require_name(self.item, "item")
+        if not MIN_CLASS <= self.from_class < self.to_class <= MAX_CLASS:
+            raise ValueError(
+                f"a class upgrade goes up from class {MIN_CLASS} to {MAX_CLASS}, "
+                f"not from {self.from_class} to {self.to_class}"
+            )
+        if self.set_at.tzinfo is None:
+            raise ValueError("the time a goal was set needs its time zone")
+
+    @property
+    def steps(self) -> tuple[int, ...]:
+        """The classes it rises to, one step each."""
+        return tuple(range(self.from_class + 1, self.to_class + 1))
+
+
+type Goal = BlueprintGoal | ExperimentalEffectGoal | ClassUpgradeGoal

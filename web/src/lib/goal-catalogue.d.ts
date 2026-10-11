@@ -1,7 +1,7 @@
 /* Generated from edrockmaster/desktop/schemas/goal_catalogue.schema.json by 'pnpm types': do not edit. */
 
 /**
- * What the goal form and the blueprints tab offer (ADR 0017): returned once by the core's catalogue() call. Names in the player's language.
+ * What the goal form and the blueprints tab offer (ADR 0017, ADR 0027): returned once by the core's catalogue() call. Names in the player's language.
  */
 export interface GoalCatalogue {
   date: string;
@@ -27,6 +27,26 @@ export interface GoalCatalogue {
       /**
        * What one application takes.
        */
+      ingredients: Ingredient[];
+    }[];
+  }[];
+  /**
+   * Suits then weapons, with their known class upgrades (ADR 0027, ADR 0030).
+   */
+  onFootItems: {
+    symbol: string;
+    kind: "suit" | "weapon";
+    name: string;
+    /**
+     * The known steps, by the class they rise to; an unknown one is absent.
+     */
+    upgrades: {
+      toClass: number;
+      credits: number;
+      /**
+       * Seen in game, deduced from a rule read in game, or read from public sources (ADR 0030).
+       */
+      confidence: "game" | "deduced" | "web";
       ingredients: Ingredient[];
     }[];
   }[];

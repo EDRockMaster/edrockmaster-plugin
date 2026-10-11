@@ -22,6 +22,9 @@ EMPTY_ENGINEERING: dict[str, object] = {
         "engineers": [],
         "equipment": [],
         "carrierMoves": [],
+        "goals": [],
+        "shoppingList": [],
+        "credits": 0,
     },
 }
 VALIDATOR = jsonschema.Draft202012Validator(json.loads(SCHEMA.read_text(encoding="utf-8")))

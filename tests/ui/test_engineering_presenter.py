@@ -1,7 +1,12 @@
 from datetime import UTC, datetime
 
 from edrockmaster.domain.engineering.catalogue import MaterialCategory, OnFootKind
-from edrockmaster.domain.engineering.goals import BlueprintGoal, ExperimentalEffectGoal, GoalId
+from edrockmaster.domain.engineering.goals import (
+    BlueprintGoal,
+    ClassUpgradeGoal,
+    ExperimentalEffectGoal,
+    GoalId,
+)
 from edrockmaster.domain.engineering.session import (
     CollectionEnded,
     CollectionEndReason,
@@ -148,5 +153,14 @@ def test_names_without_a_catalogue_or_unknown_to_it() -> None:
     assert full.effect("special_gone") == "special_gone"
     assert full.module("zz") == "zz"
     assert full.material("arsenic") == "Arsenic"
+
+
+def test_names_of_suits_weapons_and_class_upgrades() -> None:
+    full = names()
+    assert full.item("tacticalsuit") == "Dominator suit"
+    assert full.item("wpn_unknown") == "wpn_unknown"
+    upgrade = ClassUpgradeGoal(GoalId("up"), "tacticalsuit", 1, 3, T0)
+    assert full.goal(upgrade) == "Dominator suit: class 1 to 3"
+    assert EngineeringNames(None, identity).item("tacticalsuit") == "tacticalsuit"
     # On foot: the catalogue's name, as it is, when the game gave none (ADR 0027)
     assert full.material("chemicalsample") == "Chemical Sample"

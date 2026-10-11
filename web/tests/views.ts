@@ -64,6 +64,9 @@ export function onFoot(overrides: Partial<OnFoot> = {}): OnFoot {
     engineers: [],
     equipment: [],
     carrierMoves: [],
+    goals: [],
+    shoppingList: [],
+    credits: 0,
     ...overrides,
   };
 }

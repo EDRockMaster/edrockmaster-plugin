@@ -7,7 +7,6 @@ from pathlib import Path
 from edrockmaster.infrastructure.catalogue_file import load_catalogue
 from edrockmaster.ui import (
     combat_presenter,
-    engineering_names,
     engineering_presenter,
     mining_presenter,
     trade_presenter,
@@ -48,7 +47,6 @@ def source_strings() -> set[str]:
     strings |= set(trade_presenter._END_REASONS.values())
     strings |= set(engineering_presenter._GAINED.values())
     strings |= set(engineering_presenter._GAINED_ON_FOOT.values())
-    strings |= set(engineering_names.SUIT_NAMES.values())
     strings |= set(engineering_presenter._END_REASONS.values())
     strings |= set(trade_presenter._TRANSFER_LABELS.values())
     # Names of the game data, shown in the player's language (ADR 0017)
@@ -62,6 +60,10 @@ def source_strings() -> set[str]:
         strings |= {entry.english_name for entry in entries.values()}
     strings |= set(catalogue.engineers.values())
     strings |= set(catalogue.on_foot_engineers.values())
+    # Suits are named in the player's language, weapons by their maker's name (ADR 0027)
+    strings |= {
+        item.english_name for item in catalogue.on_foot_items.values() if item.kind == "suit"
+    }
     return strings
 
 

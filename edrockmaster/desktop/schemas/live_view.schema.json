@@ -462,13 +462,16 @@
     "onFoot": {
       "type": "object",
       "additionalProperties": false,
-      "description": "On foot (ADR 0027, ADR 0029): materials held, on-foot engineers, suits and weapons seen, moves to or from the player's fleet carrier. Names in the player's language.",
+      "description": "On foot (ADR 0027, ADR 0029, ADR 0030): materials held, on-foot engineers, suits and weapons seen, moves to or from the player's fleet carrier, class upgrade goals with their shopping list and credits. Names in the player's language.",
       "required": [
         "known",
         "materials",
         "engineers",
         "equipment",
-        "carrierMoves"
+        "carrierMoves",
+        "goals",
+        "shoppingList",
+        "credits"
       ],
       "properties": {
         "known": {
@@ -561,6 +564,7 @@
             "required": [
               "id",
               "kind",
+              "symbol",
               "name",
               "class"
             ],
@@ -573,6 +577,10 @@
                   "suit",
                   "weapon"
                 ]
+              },
+              "symbol": {
+                "type": "string",
+                "description": "Journal symbol of its type, without class: what a class upgrade goal names."
               },
               "name": {
                 "type": "string"
@@ -633,6 +641,108 @@
               }
             }
           }
+        },
+        "goals": {
+          "type": "array",
+          "description": "Class upgrades, in the order they were added.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "item",
+              "title",
+              "equipmentId",
+              "fromClass",
+              "toClass",
+              "known",
+              "unknownClasses",
+              "unverified",
+              "credits",
+              "ready",
+              "missing"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "item": {
+                "type": "string",
+                "description": "Journal symbol of the suit or weapon type."
+              },
+              "title": {
+                "type": "string"
+              },
+              "equipmentId": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "The player's own item it follows; null for any item of the type."
+              },
+              "fromClass": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4
+              },
+              "toClass": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 5
+              },
+              "known": {
+                "type": "boolean",
+                "description": "False when a step's recipe is not known."
+              },
+              "unknownClasses": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 2,
+                  "maximum": 5
+                },
+                "description": "The classes whose upgrade recipe is not known (ADR 0030)."
+              },
+              "unverified": {
+                "type": "boolean",
+                "description": "A step's recipe was not seen in game: deduced or read elsewhere (ADR 0030)."
+              },
+              "credits": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Credits of the known steps: shown, not counted."
+              },
+              "ready": {
+                "type": "boolean"
+              },
+              "missing": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/ingredient"
+                    }
+                  }
+                ],
+                "description": "What the on-foot materials held lack for the known steps; null while the ship locker is unknown."
+              }
+            }
+          }
+        },
+        "shoppingList": {
+          "type": "array",
+          "description": "What the on-foot materials held lack for every class upgrade.",
+          "items": {
+            "$ref": "#/$defs/ingredient"
+          }
+        },
+        "credits": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Credits of every class upgrade: shown, not counted."
         }
       }
     }

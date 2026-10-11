@@ -1,4 +1,4 @@
-"""Engineering goals in the local database (ADR 0017, ADR 0018).
+"""Engineering goals in the local database (ADR 0017, ADR 0018, ADR 0027).
 
 ``SqliteGoalRepository`` implements the application's ``GoalRepository``: each
 call becomes a job of the I/O thread, and the goals read are handed back to the
@@ -10,10 +10,12 @@ from __future__ import annotations
 import logging
 import sqlite3
 from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import assert_never
 
 from edrockmaster.domain.engineering.goals import (
     BlueprintGoal,
+    ClassUpgradeGoal,
     ExperimentalEffectGoal,
     Goal,
     GoalId,
@@ -28,9 +30,10 @@ _BLUEPRINT = "blueprint"
 _EXPERIMENTAL_EFFECT = "experimental_effect"
 
 type _Row = tuple[str, str, str, str, int | None, int]
+type _ClassRow = tuple[str, str, int, int, str, int | None]
 
 
-def _row(goal: Goal) -> _Row:
+def _row(goal: BlueprintGoal | ExperimentalEffectGoal) -> _Row:
     match goal:
         case BlueprintGoal():
             return (goal.id.value, _BLUEPRINT, goal.blueprint, goal.module, goal.grade, goal.rolls)
@@ -56,14 +59,45 @@ def _goal(row: _Row) -> Goal:
     raise ValueError(f"unknown kind of goal {kind!r}")  # the table's checks forbid it
 
 
+def _class_row(goal: ClassUpgradeGoal) -> _ClassRow:
+    return (
+        goal.id.value,
+        goal.item,
+        goal.from_class,
+        goal.to_class,
+        goal.set_at.astimezone(UTC).isoformat(),
+        goal.equipment_id,
+    )
+
+
+def _class_goal(row: _ClassRow) -> ClassUpgradeGoal:
+    goal_id, item, from_class, to_class, set_at, equipment_id = row
+    return ClassUpgradeGoal(
+        GoalId(goal_id), item, from_class, to_class, datetime.fromisoformat(set_at), equipment_id
+    )
+
+
 def read_goals(connection: sqlite3.Connection) -> tuple[Goal, ...]:
+    """The ship goals, then the class upgrades, each in the order they were added."""
     rows = connection.execute(
         "SELECT id, kind, name, module, grade, count FROM engineering_goal ORDER BY position"
     )
-    return tuple(_goal(row) for row in rows)
+    class_rows = connection.execute(
+        "SELECT id, item, from_class, to_class, set_at, equipment_id FROM class_upgrade_goal "
+        "ORDER BY position"
+    )
+    return (*(_goal(row) for row in rows), *(_class_goal(row) for row in class_rows))
 
 
 def insert_goal(connection: sqlite3.Connection, goal: Goal) -> None:
+    if isinstance(goal, ClassUpgradeGoal):
+        connection.execute(
+            "INSERT INTO class_upgrade_goal "
+            "(id, item, from_class, to_class, set_at, equipment_id, position) "
+            "SELECT ?, ?, ?, ?, ?, ?, coalesce(max(position), 0) + 1 FROM class_upgrade_goal",
+            _class_row(goal),
+        )
+        return
     connection.execute(
         "INSERT INTO engineering_goal (id, kind, name, module, grade, count, position) "
         "SELECT ?, ?, ?, ?, ?, ?, coalesce(max(position), 0) + 1 FROM engineering_goal",
@@ -72,6 +106,14 @@ def insert_goal(connection: sqlite3.Connection, goal: Goal) -> None:
 
 
 def update_goal(connection: sqlite3.Connection, goal: Goal) -> None:
+    if isinstance(goal, ClassUpgradeGoal):
+        goal_id, item, from_class, to_class, set_at, equipment_id = _class_row(goal)
+        connection.execute(
+            "UPDATE class_upgrade_goal SET item = ?, from_class = ?, to_class = ?, set_at = ?, "
+            "equipment_id = ? WHERE id = ?",
+            (item, from_class, to_class, set_at, equipment_id, goal_id),
+        )
+        return
     goal_id, kind, name, module, grade, count = _row(goal)
     connection.execute(
         "UPDATE engineering_goal SET kind = ?, name = ?, module = ?, grade = ?, count = ? "
@@ -82,6 +124,7 @@ def update_goal(connection: sqlite3.Connection, goal: Goal) -> None:
 
 def delete_goal(connection: sqlite3.Connection, goal_id: GoalId) -> None:
     connection.execute("DELETE FROM engineering_goal WHERE id = ?", (goal_id.value,))
+    connection.execute("DELETE FROM class_upgrade_goal WHERE id = ?", (goal_id.value,))
 
 
 class SqliteGoalRepository:

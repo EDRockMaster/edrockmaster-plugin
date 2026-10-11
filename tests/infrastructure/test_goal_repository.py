@@ -3,6 +3,7 @@
 import logging
 import threading
 from collections.abc import Callable, Iterator
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -10,6 +11,7 @@ import pytest
 from edrockmaster.application.ports import GoalRepository
 from edrockmaster.domain.engineering.goals import (
     BlueprintGoal,
+    ClassUpgradeGoal,
     ExperimentalEffectGoal,
     Goal,
     GoalId,
@@ -23,6 +25,9 @@ logger = logging.getLogger("test.goals")
 RANGE = BlueprintGoal(GoalId("a1"), "FSD_LongRange", "fsd", grade=5, rolls=3)
 MASS_MANAGER = ExperimentalEffectGoal(GoalId("b2"), "special_fsd_heavy", "fsd")
 DIRTY = BlueprintGoal(GoalId("c3"), "Engine_Dirty", "thrusters", grade=4)
+SET_AT = datetime(2026, 10, 11, 1, 30, 15, tzinfo=UTC)
+DOMINATOR = ClassUpgradeGoal(GoalId("d4"), "tacticalsuit", 1, 4, SET_AT, 1878707285049801)
+ECLIPSE = ClassUpgradeGoal(GoalId("e5"), "wpn_m_submachinegun_laser_fauto", 2, 5, SET_AT)
 
 
 class Storage:
@@ -100,6 +105,27 @@ def test_a_removed_goal_is_gone_and_new_ones_come_last(storage: Storage) -> None
     storage.repository.add(DIRTY)
     storage.repository.add(RANGE)
     assert storage.loaded() == (MASS_MANAGER, DIRTY, RANGE)
+
+
+def test_class_upgrades_are_stored_and_listed_after_the_ship_goals(storage: Storage) -> None:
+    for goal in (DOMINATOR, RANGE, ECLIPSE):
+        storage.repository.add(goal)
+    assert storage.loaded() == (RANGE, DOMINATOR, ECLIPSE)
+    started_higher = ClassUpgradeGoal(DOMINATOR.id, "tacticalsuit", 3, 4, SET_AT, 1878707285049801)
+    storage.repository.replace(started_higher)
+    storage.repository.remove(ECLIPSE.id)
+    assert storage.loaded() == (RANGE, started_higher)
+
+
+def test_the_time_a_goal_was_set_is_kept_in_utc(storage: Storage) -> None:
+    paris = timezone(timedelta(hours=2))
+    storage.repository.add(
+        ClassUpgradeGoal(GoalId("f6"), "utilitysuit", 1, 2, SET_AT.astimezone(paris))
+    )
+    [goal] = storage.loaded()
+    assert isinstance(goal, ClassUpgradeGoal)
+    assert goal.set_at == SET_AT
+    assert goal.set_at.utcoffset() == timedelta(0)
 
 
 def test_goals_survive_a_restart(tmp_path: Path) -> None:

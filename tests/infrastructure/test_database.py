@@ -22,8 +22,14 @@ FIXTURES = Path(__file__).resolve().parent.parent / "fixtures" / "database"
 NOW = datetime(2026, 10, 8, 14, 30, 5, tzinfo=UTC)
 logger = logging.getLogger("test.database")
 
-NOTES = Migration(2, ("CREATE TABLE note (id INTEGER PRIMARY KEY, text TEXT NOT NULL) STRICT",))
-BROKEN = Migration(2, ("CREATE TABLE note (id INTEGER PRIMARY KEY)", "SELECT * FROM missing"))
+# Migrations of a later version than the application's
+NOTES = Migration(
+    LATEST_VERSION + 1,
+    ("CREATE TABLE note (id INTEGER PRIMARY KEY, text TEXT NOT NULL) STRICT",),
+)
+BROKEN = Migration(
+    LATEST_VERSION + 1, ("CREATE TABLE note (id INTEGER PRIMARY KEY)", "SELECT * FROM missing")
+)
 
 
 def database(directory: Path, migrations: tuple[Migration, ...] = MIGRATIONS) -> LocalDatabase:
@@ -52,6 +58,10 @@ def schema_of(connection: sqlite3.Connection) -> list[tuple[str, str]]:
         "SELECT name, sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY name"
     )
     return [(name, " ".join(sql.split())) for name, sql in rows]
+
+
+CLASS_UPGRADES = 2
+"""The schema version that added the class upgrade goals (ADR 0027)."""
 
 
 def fixture_versions() -> list[int]:
@@ -114,6 +124,9 @@ def test_each_past_version_opens_at_the_latest_and_keeps_its_data(
     assert db.open().available
     assert db.connection().execute("PRAGMA user_version").fetchone() == (LATEST_VERSION,)
     assert db.connection().execute("SELECT count(*) FROM engineering_goal").fetchone() == (2,)
+    if version >= CLASS_UPGRADES:
+        count = db.connection().execute("SELECT count(*) FROM class_upgrade_goal").fetchone()
+        assert count == (1,)
     db.close()
 
 
@@ -127,7 +140,7 @@ def test_a_migration_copies_the_file_first_and_keeps_the_last_copy_only(tmp_path
     backups = sorted(path.name for path in tmp_path.glob("*.bak"))
     assert backups == [f"{FILE_NAME}.v1.bak"]
     assert version_of(tmp_path / f"{FILE_NAME}.v1.bak") == 1
-    assert version_of(tmp_path / FILE_NAME) == 2
+    assert version_of(tmp_path / FILE_NAME) == LATEST_VERSION + 1
 
 
 def test_no_copy_without_a_migration(tmp_path: Path) -> None:
@@ -141,7 +154,7 @@ def test_no_copy_without_a_migration(tmp_path: Path) -> None:
 def test_a_failing_migration_is_rolled_back_and_leaves_the_file_unchanged(
     tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    load_fixture(1, tmp_path / FILE_NAME)
+    load_fixture(LATEST_VERSION, tmp_path / FILE_NAME)
     db = database(tmp_path, (*MIGRATIONS, BROKEN))
     with caplog.at_level(logging.ERROR):
         opening = db.open()
@@ -149,7 +162,7 @@ def test_a_failing_migration_is_rolled_back_and_leaves_the_file_unchanged(
     assert opening.moved_aside is None
     assert "missing" in caplog.text
     assert not db.is_open
-    assert version_of(tmp_path / FILE_NAME) == 1
+    assert version_of(tmp_path / FILE_NAME) == LATEST_VERSION
     connection = sqlite3.connect(tmp_path / FILE_NAME)
     try:
         assert "note" not in {name for name, _ in schema_of(connection)}
@@ -205,7 +218,7 @@ def test_a_database_of_a_newer_plugin_is_moved_aside(tmp_path: Path) -> None:
     assert opening.reason is not None
     assert "newer version" in opening.reason
     assert opening.moved_aside is not None
-    assert version_of(opening.moved_aside) == 2
+    assert version_of(opening.moved_aside) == LATEST_VERSION + 1
     assert db.connection().execute("PRAGMA user_version").fetchone() == (LATEST_VERSION,)
     db.close()
 
