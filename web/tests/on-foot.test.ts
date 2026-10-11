@@ -10,12 +10,18 @@ import {
   goalNotes,
   groupByKind,
   heldDetail,
+  modifiable,
+  modificationGoalTitle,
+  modificationNotes,
+  modificationsFor,
   moveLines,
   total,
   upgradable,
   upgradableTypes,
   type ClassGoal,
   type Equipment,
+  type ModificationGoal,
+  type OnFootItem,
   type OnFootMaterial,
 } from "../src/lib/on-foot";
 import { fakeCore, GOAL_CATALOGUE } from "./core";
@@ -60,13 +66,13 @@ describe("on-foot logic", () => {
   it("names a suit or a weapon with its class", () => {
     expect(
       equipmentText(
-        { id: 1, kind: "suit", symbol: "utilitysuit", name: "Maverick suit", class: 2 },
+        { id: 1, kind: "suit", symbol: "utilitysuit", name: "Maverick suit", class: 2, mods: [] },
         "en",
       ),
     ).toBe("Maverick suit, class 2");
     expect(
       equipmentText(
-        { id: 2, kind: "suit", symbol: "flightsuit", name: "Flight suit", class: null },
+        { id: 2, kind: "suit", symbol: "flightsuit", name: "Flight suit", class: null, mods: [] },
         "en",
       ),
     ).toBe("Flight suit");
@@ -100,7 +106,14 @@ describe("EngineeringView on foot", () => {
           materials: [material({ name: "Graphène", kind: "component", locker: 2, backpack: 1 })],
           engineers: [{ id: 400002, name: "Domino Green", status: "invited" }],
           equipment: [
-            { id: 1, kind: "suit", symbol: "utilitysuit", name: "Combinaison Maverick", class: 2 },
+            {
+              id: 1,
+              kind: "suit",
+              symbol: "utilitysuit",
+              name: "Combinaison Maverick",
+              class: 2,
+              mods: [],
+            },
           ],
           carrierMoves: [
             {
@@ -174,6 +187,7 @@ const DOMINATOR: Equipment = {
   symbol: "tacticalsuit",
   name: "Combinaison Dominator",
   class: 2,
+  mods: [],
 };
 
 function withCore() {
@@ -239,7 +253,7 @@ describe("class upgrades on foot", () => {
     expect(screen.getAllByText(/Recette pas encore connue pour la classe 5/).length).toBe(2);
     expect(screen.getByText("Liste de courses à pied")).toBeTruthy();
     expect(screen.getByText("7 (en stock : 0)")).toBeTruthy();
-    expect(screen.getByText(/toutes les montées de classe : 13\s500\s000/)).toBeTruthy();
+    expect(screen.getByText(/tous les objectifs : 13\s500\s000/)).toBeTruthy();
     // The ready goal comes first
     const target = screen.getAllByLabelText(/Classe visée pour/)[0] as HTMLSelectElement;
     await fireEvent.change(target, { target: { value: "4" } });
@@ -259,7 +273,7 @@ describe("class upgrades on foot", () => {
 
   it("has no shopping list without a goal", async () => {
     await onFootPart({}, "en");
-    expect(screen.getByText(/No class upgrade yet/)).toBeTruthy();
+    expect(screen.getByText(/No goal yet/)).toBeTruthy();
     expect(screen.queryByText("On-foot shopping list")).toBeNull();
   });
 
@@ -312,6 +326,170 @@ describe("class upgrades on foot", () => {
     const api = withCore();
     await onFootPart({}, "en");
     await fireEvent.submit(screen.getByRole("form", { name: "Add a class upgrade" }));
+    expect(api.add_goal).not.toHaveBeenCalled();
+  });
+});
+
+function modificationGoal(overrides: Partial<ModificationGoal> = {}): ModificationGoal {
+  return {
+    id: "mod",
+    item: "tacticalsuit",
+    title: "Combinaison Dominator",
+    modification: "suit_backpackcapacity",
+    name: "Capacité de sac à dos accrue",
+    equipmentId: null,
+    known: true,
+    unverified: false,
+    credits: 750000,
+    ready: false,
+    missing: [{ symbol: "graphene", name: "Graphène", count: 3, held: 0 }],
+    engineers: ["Domino Green"],
+    ...overrides,
+  };
+}
+
+describe("modification logic", () => {
+  it("titles a goal and says what is not known or not sure", () => {
+    expect(modificationGoalTitle(modificationGoal(), "fr")).toBe(
+      "Combinaison Dominator : Capacité de sac à dos accrue",
+    );
+    expect(modificationNotes(modificationGoal(), "en")).toEqual([]);
+    expect(modificationNotes(modificationGoal({ unverified: true }), "en")).toEqual([
+      "Part of the recipe is not checked in game yet.",
+    ]);
+    expect(modificationNotes(modificationGoal({ known: false }), "en")).toEqual([
+      "Recipe not known yet on this suit or weapon: what it takes is not counted.",
+    ]);
+  });
+
+  it("offers the modifications of the item's kind it does not have, by name", () => {
+    const item = (symbol: string): OnFootItem => {
+      const found = GOAL_CATALOGUE.onFootItems.find((candidate) => candidate.symbol === symbol);
+      if (found === undefined) throw new Error(symbol);
+      return found;
+    };
+    const dominator = item("tacticalsuit");
+    const eclipse = item("wpn_m_submachinegun_laser_fauto");
+    const mods = GOAL_CATALOGUE.onFootModifications;
+    expect(modificationsFor(dominator, mods)).toEqual([
+      { symbol: "suit_improvedradar", name: "Enhanced tracking", known: false },
+      { symbol: "suit_backpackcapacity", name: "Extra backpack capacity", known: true },
+    ]);
+    expect(modificationsFor(dominator, mods, ["suit_improvedradar"]).map((m) => m.symbol)).toEqual([
+      "suit_backpackcapacity",
+    ]);
+    expect(modificationsFor(eclipse, mods).map((m) => m.symbol)).toEqual(["weapon_stability"]);
+    const flight: Equipment = { ...DOMINATOR, id: 1, symbol: "flightsuit", class: null };
+    const unknown: Equipment = { ...DOMINATOR, id: 3, symbol: "wpn_new" };
+    expect(modifiable([DOMINATOR, flight, unknown], GOAL_CATALOGUE.onFootItems)).toEqual([
+      DOMINATOR,
+    ]);
+  });
+});
+
+describe("modifications on foot", () => {
+  async function onFootPart(part: Partial<OnFoot>, language: "en" | "fr" = "fr") {
+    render(EngineeringView, { engineering: engineering({ onFoot: onFoot(part) }), language });
+    await fireEvent.click(
+      screen.getByRole("button", { name: language === "fr" ? "À pied" : "On foot" }),
+    );
+  }
+
+  it("shows each goal, what it misses, its credits, its engineers and what is not known", async () => {
+    const api = withCore();
+    await onFootPart({
+      known: true,
+      modifications: [
+        modificationGoal({ equipmentId: 7 }),
+        modificationGoal({ id: "ok", ready: true, missing: [], engineers: [] }),
+        modificationGoal({
+          id: "radar",
+          modification: "suit_improvedradar",
+          name: "Suivi amélioré",
+          known: false,
+          credits: 0,
+          missing: null,
+          equipmentId: 7,
+        }),
+        modificationGoal({ id: "locker", missing: null }),
+      ],
+      shoppingList: [{ symbol: "graphene", name: "Graphène", count: 6, held: 0 }],
+      credits: 2250000,
+    });
+    const rows = screen
+      .getAllByRole("listitem")
+      .filter((item) => item.textContent?.includes("Combinaison Dominator :"));
+    // Ready goals first
+    expect(rows[0]?.textContent).toContain("Prêt");
+    expect(rows[0]?.textContent).toContain("Aucun ingénieur débloqué ne le propose");
+    expect(screen.getAllByText("Manque : Graphène ×3").length).toBe(1);
+    expect(screen.getAllByText(/Ingénieurs : Domino Green/).length).toBe(3);
+    expect(screen.getByText(/Recette pas encore connue sur cette combinaison/)).toBeTruthy();
+    expect(screen.getByText(/dès que le jeu donne le casier/)).toBeTruthy();
+    expect(screen.getAllByText(/Suit votre équipement/).length).toBe(2);
+    // The shopping list shows with modifications alone
+    expect(screen.getByText("Liste de courses à pied")).toBeTruthy();
+    await fireEvent.click(
+      screen.getByRole("button", {
+        name: "Supprimer l'objectif Combinaison Dominator : Suivi amélioré",
+      }),
+    );
+    expect(api.remove_goal).toHaveBeenCalledWith("radar");
+  });
+
+  it("adds a modification of one of the player's items it does not have yet", async () => {
+    const api = withCore();
+    await onFootPart({ equipment: [{ ...DOMINATOR, mods: ["suit_improvedradar"] }] }, "en");
+    const form = screen.getByRole("form", { name: "Add a modification" });
+    const add = within(form).getByRole("button", { name: "Add" });
+    await waitFor(() => expect(within(form).getByLabelText("Suit or weapon")).toBeEnabled());
+    expect(within(form).getByLabelText("Modification")).toBeDisabled();
+    await fireEvent.change(within(form).getByLabelText("Suit or weapon"), {
+      target: { value: "own:7" },
+    });
+    const options = [...within(form).getByLabelText<HTMLSelectElement>("Modification").options];
+    expect(options.map((o) => o.textContent?.trim())).toEqual([
+      "Choose…",
+      "Extra backpack capacity",
+    ]);
+    expect(add).toBeDisabled();
+    await fireEvent.change(within(form).getByLabelText("Modification"), {
+      target: { value: "suit_backpackcapacity" },
+    });
+    await fireEvent.click(add);
+    expect(api.add_goal).toHaveBeenCalledWith({
+      kind: "modification",
+      item: "tacticalsuit",
+      modification: "suit_backpackcapacity",
+      equipmentId: 7,
+    });
+  });
+
+  it("adds a modification of a type, its recipe known or not", async () => {
+    const api = withCore();
+    await onFootPart({}, "en");
+    const form = screen.getByRole("form", { name: "Add a modification" });
+    await waitFor(() => expect(within(form).getByLabelText("Suit or weapon")).toBeEnabled());
+    await fireEvent.change(within(form).getByLabelText("Suit or weapon"), {
+      target: { value: "type:tacticalsuit" },
+    });
+    expect(within(form).getByText("Enhanced tracking (recipe not known)")).toBeTruthy();
+    await fireEvent.change(within(form).getByLabelText("Modification"), {
+      target: { value: "suit_improvedradar" },
+    });
+    await fireEvent.submit(form);
+    expect(api.add_goal).toHaveBeenCalledWith({
+      kind: "modification",
+      item: "tacticalsuit",
+      modification: "suit_improvedradar",
+    });
+  });
+
+  it("does not submit without a modification", async () => {
+    const api = withCore();
+    await onFootPart({}, "en");
+    const form = screen.getByRole("form", { name: "Add a modification" });
+    await fireEvent.submit(form);
     expect(api.add_goal).not.toHaveBeenCalled();
   });
 });

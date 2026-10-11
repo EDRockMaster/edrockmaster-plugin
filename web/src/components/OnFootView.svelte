@@ -12,16 +12,24 @@
     goalNotes,
     groupByKind,
     heldDetail,
+    modificationGoalTitle,
+    modificationNotes,
     moveLines,
     total,
   } from "../lib/on-foot";
   import CardStack from "./CardStack.svelte";
   import ClassUpgradeForm from "./ClassUpgradeForm.svelte";
+  import ModificationForm from "./ModificationForm.svelte";
 
   let { onFoot, language }: { onFoot: OnFoot; language: Language } = $props();
 
   const groups = $derived(groupByKind(onFoot.materials, language));
   // Ready goals first, then in the order the player added them, as on the ship
+  const modifications = $derived([
+    ...onFoot.modifications.filter((goal) => goal.ready),
+    ...onFoot.modifications.filter((goal) => !goal.ready),
+  ]);
+  const noGoal = $derived(onFoot.goals.length === 0 && onFoot.modifications.length === 0);
   const goals = $derived([
     ...onFoot.goals.filter((goal) => goal.ready),
     ...onFoot.goals.filter((goal) => !goal.ready),
@@ -39,7 +47,7 @@
         ["engineers", "onFoot.engineers"],
       ] as const
     )
-      .filter(([key]) => key !== "shopping" || onFoot.goals.length > 0)
+      .filter(([key]) => key !== "shopping" || !noGoal)
       .map(([key, title]) => ({ key, title: t(language, title) })),
   );
 
@@ -68,9 +76,10 @@
 </CardStack>
 
 {#snippet goalList()}
-  {#if goals.length === 0}
+  {#if noGoal}
     <p class="muted">{t(language, "onFoot.goals.none")}</p>
   {/if}
+  <h3>{t(language, "onFoot.classUpgrades")}</h3>
   <ul class="goals">
     {#each goals as goal (goal.id)}
       <li class:ready={goal.ready}>
@@ -117,6 +126,51 @@
     {/each}
   </ul>
   <ClassUpgradeForm equipment={onFoot.equipment} {language} />
+  <h3 class="part">{t(language, "onFoot.modifications")}</h3>
+  <ul class="goals">
+    {#each modifications as goal (goal.id)}
+      <li class:ready={goal.ready}>
+        <div class="goal-head">
+          <strong>{modificationGoalTitle(goal, language)}</strong>
+          {#if goal.ready}<span class="badge">{t(language, "engineering.goal.ready")}</span>{/if}
+          <button
+            type="button"
+            class="end"
+            aria-label={t(language, "engineering.goal.removeLabel", {
+              goal: modificationGoalTitle(goal, language),
+            })}
+            onclick={() => core()?.remove_goal(goal.id)}
+          >
+            {t(language, "engineering.goal.remove")}
+          </button>
+        </div>
+        {#if goal.known}
+          {#if goal.missing === null}
+            <p class="muted">{t(language, "onFoot.goal.unknownLocker")}</p>
+          {:else if goal.missing.length > 0}
+            <p>
+              {t(language, "engineering.goal.missing", { items: ingredientsText(goal.missing) })}
+            </p>
+          {/if}
+          <p class="muted">
+            {t(language, "onFoot.goal.credits", { credits: creditsText(goal.credits, language) })}
+            {#if goal.equipmentId !== null}· {t(language, "onFoot.goal.yours")}{/if}
+          </p>
+        {:else if goal.equipmentId !== null}
+          <p class="muted">{t(language, "onFoot.goal.yours")}</p>
+        {/if}
+        <p class="muted">
+          {goal.engineers.length > 0
+            ? t(language, "engineering.goal.engineers", { names: goal.engineers.join(", ") })
+            : t(language, "engineering.goal.noEngineer")}
+        </p>
+        {#each modificationNotes(goal, language) as note (note)}
+          <p class="note">{note}</p>
+        {/each}
+      </li>
+    {/each}
+  </ul>
+  <ModificationForm equipment={onFoot.equipment} {language} />
 {/snippet}
 
 {#snippet shopping()}
@@ -211,6 +265,12 @@
   h3 {
     margin: 0 0 var(--space-1);
     font-size: 1rem;
+  }
+  h3.part {
+    margin-top: var(--space-4);
+  }
+  .goal-head .end {
+    margin-left: auto;
   }
   ul {
     list-style: none;

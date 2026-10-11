@@ -122,3 +122,48 @@ export function upgradable(equipment: Equipment[], items: OnFootItem[]): Equipme
 export function upgradableTypes(items: OnFootItem[]): OnFootItem[] {
   return items.filter((item) => item.upgrades.length > 0);
 }
+
+// Modifications (ADR 0027, ADR 0030)
+
+export type ModificationGoal = OnFoot["modifications"][number];
+export type Modification = GoalCatalogue["onFootModifications"][number];
+
+/** A modification the form offers for an item type. */
+export interface ModificationChoice {
+  symbol: string;
+  name: string;
+  /** Its recipe was read on that type: what it takes is counted. */
+  known: boolean;
+}
+
+export function modificationGoalTitle(goal: ModificationGoal, language: Language): string {
+  return t(language, "onFoot.mod.title", { item: goal.title, modification: goal.name });
+}
+
+export function modificationNotes(goal: ModificationGoal, language: Language): string[] {
+  if (!goal.known) return [t(language, "onFoot.mod.unknown")];
+  return goal.unverified ? [t(language, "onFoot.goal.unverified")] : [];
+}
+
+/** The player's suits and weapons a modification can be set on: known to the catalogue, with a
+ * class (the flight suit has none, and no modification). */
+export function modifiable(equipment: Equipment[], items: OnFootItem[]): Equipment[] {
+  const known = new Set(items.map((item) => item.symbol));
+  return equipment.filter((piece) => known.has(piece.symbol) && piece.class !== null);
+}
+
+/** The modifications of an item type's kind, by name, but those the item has already. */
+export function modificationsFor(
+  item: OnFootItem,
+  modifications: Modification[],
+  have: string[] = [],
+): ModificationChoice[] {
+  return modifications
+    .filter((mod) => mod.kind === item.kind && !have.includes(mod.symbol))
+    .map((mod) => ({
+      symbol: mod.symbol,
+      name: mod.name,
+      known: mod.recipes.some((recipe) => recipe.items.includes(item.symbol)),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}

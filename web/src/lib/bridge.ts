@@ -30,7 +30,7 @@ export interface CoreApi {
 }
 
 /** A goal the player asks for; the core checks it against the catalogue. */
-export type GoalRequest = ShipGoalRequest | ClassUpgradeRequest;
+export type GoalRequest = ShipGoalRequest | ClassUpgradeRequest | ModificationRequest;
 
 export interface ShipGoalRequest {
   kind: "blueprint" | "effect";
@@ -47,6 +47,14 @@ export interface ClassUpgradeRequest {
   toClass: number;
   equipmentId?: number;
   fromClass?: number;
+}
+
+/** A modification of one of the player's items, or of a type (ADR 0027). */
+export interface ModificationRequest {
+  kind: "modification";
+  item: string;
+  modification: string;
+  equipmentId?: number;
 }
 
 declare global {

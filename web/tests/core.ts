@@ -6,7 +6,36 @@ import type { Settings } from "../src/lib/settings";
 
 export const GOAL_CATALOGUE: GoalCatalogue = {
   date: "2026-09-05",
-  onFootModifications: [],
+  onFootModifications: [
+    {
+      symbol: "suit_improvedradar",
+      kind: "suit",
+      name: "Enhanced tracking",
+      engineers: ["Domino Green"],
+      recipes: [],
+    },
+    {
+      symbol: "suit_backpackcapacity",
+      kind: "suit",
+      name: "Extra backpack capacity",
+      engineers: ["Domino Green"],
+      recipes: [
+        {
+          items: ["tacticalsuit"],
+          credits: 750000,
+          confidence: "game",
+          ingredients: [{ symbol: "graphene", name: "Graphene", count: 3 }],
+        },
+      ],
+    },
+    {
+      symbol: "weapon_stability",
+      kind: "weapon",
+      name: "Stability",
+      engineers: [],
+      recipes: [],
+    },
+  ],
   onFootItems: [
     { symbol: "flightsuit", kind: "suit", name: "Flight suit", upgrades: [] },
     {

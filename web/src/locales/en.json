@@ -141,8 +141,8 @@
   "onFoot.carrier.deposited": "Moved to the carrier: {items}",
   "onFoot.carrier.taken": "Taken from the carrier: {items}",
   "onFoot.carrier.unknown": "The game does not say what your carrier holds: these materials no longer count towards your goals.",
-  "onFoot.goals": "Class upgrades",
-  "onFoot.goals.none": "No class upgrade yet: choose a suit or a weapon below.",
+  "onFoot.goals": "Goals",
+  "onFoot.goals.none": "No goal yet: choose a suit or a weapon below.",
   "onFoot.goal.title": "{item}: class {from} to {to}",
   "onFoot.goal.credits": "{credits} credits",
   "onFoot.goal.toClass": "Up to class",
@@ -152,7 +152,7 @@
   "onFoot.goal.unknownLocker": "What is missing shows once the game states the ship locker.",
   "onFoot.goal.yours": "Follows your item",
   "onFoot.shopping": "On-foot shopping list",
-  "onFoot.shopping.credits": "Credits for every class upgrade: {credits}",
+  "onFoot.shopping.credits": "Credits for all goals: {credits}",
   "onFoot.add": "Add a class upgrade",
   "onFoot.add.item": "Suit or weapon",
   "onFoot.add.yours": "Yours",
@@ -166,5 +166,12 @@
   "cards.unfold": "Unfold",
   "cards.foldLabel": "Fold {card}",
   "cards.unfoldLabel": "Unfold {card}",
-  "engineering.grade.cap": "max {cap}"
+  "engineering.grade.cap": "max {cap}",
+  "onFoot.classUpgrades": "Class upgrades",
+  "onFoot.modifications": "Modifications",
+  "onFoot.mod.title": "{item}: {modification}",
+  "onFoot.mod.unknown": "Recipe not known yet on this suit or weapon: what it takes is not counted.",
+  "onFoot.addMod": "Add a modification",
+  "onFoot.addMod.modification": "Modification",
+  "onFoot.addMod.unknownRecipe": "{name} (recipe not known)"
 }
