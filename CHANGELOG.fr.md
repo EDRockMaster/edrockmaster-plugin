@@ -6,6 +6,10 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
+### Corrigé
+
+- Un objectif communautaire ne reste plus dans le bloc du combat une fois sa récompense touchée ou l'objectif abandonné : le jeu n'écrit alors aucune nouvelle liste d'objectifs, l'application lit désormais `CommunityGoalReward` et `CommunityGoalDiscard`. Le script de nettoyage des enregistrements conserve ces deux événements.
+
 ## [0.5.0] - 2026-10-11
 
 La première version publiée d'**EDRockMaster Companion**, l'application de bureau, qui remplace le plugin EDMC.

@@ -8,6 +8,7 @@ from edrockmaster.domain.combat.journal import (
     CombatBondAwarded,
     CommanderDied,
     CommunityGoal,
+    CommunityGoalLeft,
     CommunityGoalsUpdated,
     CrimeCommitted,
     DestinationDropped,
@@ -612,3 +613,34 @@ def test_community_goals_are_kept_and_notified() -> None:
     assert tracker.handle(CommunityGoalsUpdated(at(0), (goal,))) == [CommunityGoalsChanged((goal,))]
     assert tracker.community_goals == (goal,)
     assert tracker.session is None
+
+
+def test_a_community_goal_left_is_no_longer_kept() -> None:
+    # Reward collected or goal discarded: the game sends no new list
+    kept, left = community_goal(812), community_goal(861, complete=True)
+    tracker = CombatTracker()
+    tracker.handle(CommunityGoalsUpdated(at(0), (kept, left)))
+    assert tracker.handle(CommunityGoalLeft(at(5), cgid=861)) == [CommunityGoalsChanged((kept,))]
+    assert tracker.community_goals == (kept,)
+
+
+def test_leaving_an_unknown_community_goal_changes_nothing() -> None:
+    goal = community_goal(812)
+    tracker = CombatTracker()
+    tracker.handle(CommunityGoalsUpdated(at(0), (goal,)))
+    assert tracker.handle(CommunityGoalLeft(at(5), cgid=999)) == []
+    assert tracker.community_goals == (goal,)
+
+
+def community_goal(cgid: int, *, complete: bool = False) -> CommunityGoal:
+    return CommunityGoal(
+        cgid=cgid,
+        title=f"Goal {cgid}",
+        system="Sirius",
+        expiry=None,
+        complete=complete,
+        contribution=1_000,
+        percentile_band=None,
+        tier_reached=None,
+        top_tier=None,
+    )

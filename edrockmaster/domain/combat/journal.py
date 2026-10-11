@@ -171,6 +171,14 @@ class CommunityGoalsUpdated:
     goals: tuple[CommunityGoal, ...]
 
 
+@dataclass(frozen=True, slots=True)
+class CommunityGoalLeft:
+    """The commander collected a community goal's reward, or discarded the goal."""
+
+    at: datetime
+    cgid: int
+
+
 type Fact = (
     BountyAwarded
     | CombatBondAwarded
@@ -187,6 +195,7 @@ type Fact = (
     | MiningSeen
     | CrimeCommitted
     | CommunityGoalsUpdated
+    | CommunityGoalLeft
 )
 
 
@@ -365,6 +374,10 @@ def _goals(entry: Entry, at: datetime) -> CommunityGoalsUpdated:
     )
 
 
+def _goal_left(entry: Entry, at: datetime) -> CommunityGoalLeft:
+    return CommunityGoalLeft(at, cgid=required(entry, "CGID", int))
+
+
 _PARSERS: dict[str, Parser[Fact | None]] = {
     "Bounty": _bounty,
     "FactionKillBond": _kill_bond,
@@ -374,6 +387,8 @@ _PARSERS: dict[str, Parser[Fact | None]] = {
     "Shutdown": _closed,
     "ShutDown": _closed,  # synthetic event from EDMC when the game crashed
     "CommunityGoal": _goals,
+    "CommunityGoalReward": _goal_left,
+    "CommunityGoalDiscard": _goal_left,
     "SupercruiseDestinationDrop": _destination,
     "SupercruiseExit": _normal_space,
     "Undocked": _normal_space,

@@ -41,6 +41,7 @@ from edrockmaster.domain.combat.journal import (
     CombatBondAwarded,
     CommanderDied,
     CommunityGoal,
+    CommunityGoalLeft,
     CommunityGoalsUpdated,
     CrimeCommitted,
     DestinationDropped,
@@ -392,7 +393,7 @@ class CombatTracker:
                 return self._on_move(fact)
             case MiningSeen() | CrimeCommitted():
                 return self._on_conduct(fact)
-            case VouchersRedeemed() | CommunityGoalsUpdated():
+            case VouchersRedeemed() | CommunityGoalsUpdated() | CommunityGoalLeft():
                 return self._on_records(fact)
             case CommanderDied() | GameClosed():
                 return self._on_exit(fact)
@@ -459,14 +460,24 @@ class CombatTracker:
         return [CombatUpdated(self._session.stats)]
 
     def _on_records(
-        self, fact: VouchersRedeemed | CommunityGoalsUpdated
+        self, fact: VouchersRedeemed | CommunityGoalsUpdated | CommunityGoalLeft
     ) -> list[CombatNotification]:
         if isinstance(fact, CommunityGoalsUpdated):
             self._goals = fact.goals
             return [CommunityGoalsChanged(fact.goals)]
+        if isinstance(fact, CommunityGoalLeft):
+            return self._leave_goal(fact.cgid)
         vouchers = self._bonds if fact.kind is VoucherKind.COMBAT_BOND else self._bounties
         self._redeem(vouchers, fact.by_faction)
         return [VouchersUpdated(self.vouchers)]
+
+    def _leave_goal(self, cgid: int) -> list[CombatNotification]:
+        """The game sends no new list once a goal is left: it goes here."""
+        kept = tuple(goal for goal in self._goals if goal.cgid != cgid)
+        if kept == self._goals:
+            return []
+        self._goals = kept
+        return [CommunityGoalsChanged(kept)]
 
     def _on_exit(self, fact: CommanderDied | GameClosed) -> list[CombatNotification]:
         if isinstance(fact, CommanderDied):
