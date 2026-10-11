@@ -61,6 +61,22 @@ def test_a_catalogue_has_the_class_upgrades_of_suits_and_weapons() -> None:
     assert items["flightsuit"].upgrades == {}
 
 
+def test_a_catalogue_has_the_modifications_of_suits_and_weapons() -> None:
+    modifications = Catalogue.from_data(DATA).on_foot_modifications
+    backpack = modifications["suit_backpackcapacity"]
+    assert (backpack.kind, backpack.english_name) == (EquipmentKind.SUIT, "Extra backpack capacity")
+    assert backpack.engineers == (400002,)
+    recipe = backpack.recipe_for("tacticalsuit")
+    assert recipe is not None
+    assert recipe.credits == 750000
+    assert recipe.ingredients == {"graphene": 3, "internalcorrespondence": 5}
+    assert recipe.confidence is RecipeConfidence.GAME
+    # A recipe holds for the item types it was read on only (ADR 0030)
+    assert backpack.recipe_for("utilitysuit") is None
+    # Known by its symbol only
+    assert modifications["weapon_handling"].recipes == ()
+
+
 def test_the_engineers_offering_a_grade_depend_on_the_module() -> None:
     fsd = Catalogue.from_data(DATA).modules["fsd"]
     assert fsd.engineers("FSD_LongRange", 5) == (300100,)
@@ -113,6 +129,35 @@ def test_the_date_of_the_data_is_the_most_recent_source() -> None:
             ("on_foot_items", "tacticalsuit", "upgrades", "2", "ingredients"),
             {"graphene": 0},
             "0 graphene",
+        ),
+        (("on_foot_modifications", "weapon_handling", "kind"), "helmet", "malformed"),
+        (("on_foot_modifications", "suit_backpackcapacity", "engineers"), [300100], "engineers"),
+        (
+            ("on_foot_modifications", "suit_backpackcapacity", "recipes", 0, "items"),
+            ["artemissuit"],
+            "'artemissuit'",
+        ),
+        (
+            ("on_foot_modifications", "weapon_handling", "recipes"),
+            [
+                {
+                    "items": ["tacticalsuit"],
+                    "credits": 1,
+                    "ingredients": {"graphene": 1},
+                    "confidence": "game",
+                }
+            ],
+            "not a weapon",
+        ),
+        (
+            ("on_foot_modifications", "suit_backpackcapacity", "recipes", 0, "credits"),
+            0,
+            "0 credits",
+        ),
+        (
+            ("on_foot_modifications", "suit_backpackcapacity", "recipes", 0, "ingredients"),
+            {"healthpack": 1},
+            "consumable 'healthpack'",
         ),
     ],
 )

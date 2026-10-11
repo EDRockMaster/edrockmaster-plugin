@@ -232,6 +232,53 @@ export interface OnFoot {
     missing: null | Ingredient[];
   }[];
   /**
+   * Modifications, in the order they were added.
+   */
+  modifications: {
+    id: string;
+    /**
+     * Journal symbol of the suit or weapon type.
+     */
+    item: string;
+    /**
+     * The suit or weapon type's name.
+     */
+    title: string;
+    /**
+     * Journal symbol of the modification.
+     */
+    modification: string;
+    /**
+     * The modification's name.
+     */
+    name: string;
+    /**
+     * The player's own item it follows; null for any item of the type.
+     */
+    equipmentId: number | null;
+    /**
+     * False when its recipe on the item type is not known.
+     */
+    known: boolean;
+    /**
+     * Its recipe was not seen in game: deduced or read elsewhere (ADR 0030).
+     */
+    unverified: boolean;
+    /**
+     * Credits of its recipe, if known: shown, not counted.
+     */
+    credits: number;
+    ready: boolean;
+    /**
+     * What the on-foot materials held lack for it; null while the ship locker or its recipe is unknown.
+     */
+    missing: null | Ingredient[];
+    /**
+     * Unlocked on-foot engineers seen offering it.
+     */
+    engineers: string[];
+  }[];
+  /**
    * What the on-foot materials held lack for every class upgrade.
    */
   shoppingList: Ingredient[];

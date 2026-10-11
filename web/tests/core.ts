@@ -5,6 +5,7 @@ import type { Settings } from "../src/lib/settings";
 
 export const GOAL_CATALOGUE: GoalCatalogue = {
   date: "2026-09-05",
+  onFootModifications: [],
   onFootItems: [
     { symbol: "flightsuit", kind: "suit", name: "Flight suit", upgrades: [] },
     {

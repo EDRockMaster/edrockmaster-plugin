@@ -8,6 +8,7 @@ from edrockmaster.domain.engineering.goals import (
     ClassUpgradeGoal,
     ExperimentalEffectGoal,
     GoalId,
+    ModificationGoal,
 )
 
 ID = GoalId("0f8c4b2e")
@@ -84,3 +85,17 @@ def test_a_class_upgrade_goal_names_its_item() -> None:
 def test_a_class_upgrade_goal_knows_when_it_was_set() -> None:
     with pytest.raises(ValueError, match="time zone"):
         ClassUpgradeGoal(ID, "tacticalsuit", 1, 2, datetime(2026, 10, 11))
+
+
+def test_a_modification_goal_names_its_item_and_modification() -> None:
+    goal = ModificationGoal(ID, "utilitysuit", "suit_backpackcapacity", SET_AT)
+    assert goal.equipment_id is None
+    with pytest.raises(ValueError, match="item"):
+        ModificationGoal(ID, "", "suit_backpackcapacity", SET_AT)
+    with pytest.raises(ValueError, match="modification"):
+        ModificationGoal(ID, "utilitysuit", " ", SET_AT)
+
+
+def test_a_modification_goal_knows_when_it_was_set() -> None:
+    with pytest.raises(ValueError, match="time zone"):
+        ModificationGoal(ID, "utilitysuit", "suit_backpackcapacity", datetime(2026, 10, 11))

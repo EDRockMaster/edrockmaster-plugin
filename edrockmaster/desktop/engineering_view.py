@@ -5,13 +5,14 @@ inventory (by category and grade, count and cap), the ship engineers (status,
 rank), the goals (what each misses, the unlocked engineers offering it) and the
 shopping list; and on foot (ADR 0027, ADR 0029), the materials held in the ship
 locker and the backpack, the on-foot engineers, the suits and weapons seen, and
-what moved to or from the player's fleet carrier, and the class upgrades with
-their own shopping list and credits. Names come in the player's language:
+what moved to or from the player's fleet carrier, and the class upgrades and
+modifications with their own shopping list and credits. Names come in the player's language:
 materials as the game names them when the journal did, the rest translated
 from the catalogue.
 
 The goal form needs the catalogue (module types, their blueprints and grades,
-their experimental effects; suits and weapons with their class upgrades): it
+their experimental effects; suits and weapons with their class upgrades; the
+modifications with their recipes): it
 never changes, so the interface asks for it once (``catalogue_view``). A goal
 the interface asks for is checked here and by the domain (``goal_from_request``).
 """
@@ -36,6 +37,7 @@ from edrockmaster.domain.engineering.goals import (
     ExperimentalEffectGoal,
     Goal,
     GoalId,
+    ModificationGoal,
 )
 from edrockmaster.domain.engineering.journal import EngineerStatus
 from edrockmaster.domain.engineering.on_foot import CarrierMove, Equipment
@@ -52,6 +54,7 @@ _KIND_ORDER = {kind: index for index, kind in enumerate(OnFootKind)}
 BLUEPRINT = "blueprint"
 EFFECT = "effect"
 CLASS_UPGRADE = "classUpgrade"
+MODIFICATION = "modification"
 
 
 def engineering_view(service: EngineeringService, names: EngineeringNames) -> dict[str, Any]:
@@ -64,7 +67,7 @@ def engineering_view(service: EngineeringService, names: EngineeringNames) -> di
         "goals": [
             _goal(progress, names)
             for progress in service.stats.goals
-            if not isinstance(progress.goal, ClassUpgradeGoal)
+            if isinstance(progress.goal, BlueprintGoal | ExperimentalEffectGoal)
         ],
         "shoppingList": _ingredients(service.shopping_list(), inventory or {}, names),
         "catalogueDate": catalogue.date,
@@ -126,6 +129,11 @@ def _on_foot(service: EngineeringService, names: EngineeringNames) -> dict[str, 
             for progress in service.stats.goals
             if isinstance(progress.goal, ClassUpgradeGoal)
         ],
+        "modifications": [
+            _modification(progress, progress.goal, names)
+            for progress in service.stats.goals
+            if isinstance(progress.goal, ModificationGoal)
+        ],
         "shoppingList": _ingredients(service.on_foot_shopping_list(), held, names),
         "credits": service.on_foot_credits(),
     }
@@ -147,6 +155,25 @@ def _class_upgrade(
         "credits": progress.credits,
         "ready": progress.ready,
         "missing": None if progress.missing is None else _ingredients(progress.missing, {}, names),
+    }
+
+
+def _modification(
+    progress: GoalProgress, goal: ModificationGoal, names: EngineeringNames
+) -> dict[str, Any]:
+    return {
+        "id": goal.id.value,
+        "item": goal.item,
+        "title": names.item(goal.item),
+        "modification": goal.modification,
+        "name": names.modification(goal.modification),
+        "equipmentId": goal.equipment_id,
+        "known": progress.known,
+        "unverified": progress.unverified,
+        "credits": progress.credits,
+        "ready": progress.ready,
+        "missing": None if progress.missing is None else _ingredients(progress.missing, {}, names),
+        "engineers": [names.engineer(id_) for id_ in progress.engineers],
     }
 
 
@@ -231,8 +258,8 @@ def _goal(progress: GoalProgress, names: EngineeringNames) -> dict[str, Any]:
             )
         case ExperimentalEffectGoal():
             kind, title, grade, count = EFFECT, names.effect(goal.effect), None, goal.applications
-        case ClassUpgradeGoal():  # pragma: no cover - in the on-foot part
-            raise ValueError("a class upgrade is shown on foot")
+        case ClassUpgradeGoal() | ModificationGoal():  # pragma: no cover - in the on-foot part
+            raise ValueError("an on-foot goal is shown on foot")
         case _:  # pragma: no cover - exhaustiveness checked by mypy
             assert_never(goal)
     return {
@@ -309,6 +336,7 @@ def catalogue_view(catalogue: Catalogue, names: EngineeringNames) -> dict[str, A
         "date": catalogue.date,
         "modules": sorted(modules, key=lambda row: row["name"].casefold()),
         "onFootItems": _on_foot_items(catalogue, names),
+        "onFootModifications": _on_foot_modifications(catalogue, names),
     }
 
 
@@ -334,6 +362,30 @@ def _on_foot_items(catalogue: Catalogue, names: EngineeringNames) -> list[dict[s
     return sorted(items, key=lambda row: (row["kind"] != "suit", row["name"].casefold()))
 
 
+def _on_foot_modifications(catalogue: Catalogue, names: EngineeringNames) -> list[dict[str, Any]]:
+    """Suits' then weapons' modifications, by name, with who offers them and their recipe on each
+    item type read (ADR 0027, ADR 0030)."""
+    modifications = [
+        {
+            "symbol": modification.symbol,
+            "kind": modification.kind.value,
+            "name": names.modification(modification.symbol),
+            "engineers": [names.engineer(id_) for id_ in modification.engineers],
+            "recipes": [
+                {
+                    "items": sorted(recipe.items),
+                    "credits": recipe.credits,
+                    "confidence": recipe.confidence.value,
+                    "ingredients": _recipe(recipe.ingredients, names),
+                }
+                for recipe in modification.recipes
+            ],
+        }
+        for modification in catalogue.on_foot_modifications.values()
+    ]
+    return sorted(modifications, key=lambda row: (row["kind"] != "suit", row["name"].casefold()))
+
+
 def _recipe(ingredients: Ingredients, names: EngineeringNames) -> list[dict[str, Any]]:
     return [
         {"symbol": row["symbol"], "name": row["name"], "count": row["count"]}
@@ -353,6 +405,8 @@ def goal_from_request(
     type, from ``fromClass`` (1 by default)."""
     if request.get("kind") == CLASS_UPGRADE:
         return _class_upgrade_from_request(request, catalogue, equipment, now)
+    if request.get("kind") == MODIFICATION:
+        return _modification_from_request(request, catalogue, equipment, now)
     kind, module_key, name = request.get("kind"), request.get("module"), request.get("name")
     count = request.get("count", 1)
     module = catalogue.modules.get(module_key) if isinstance(module_key, str) else None
@@ -393,6 +447,31 @@ def _class_upgrade_from_request(
     return ClassUpgradeGoal(GoalId.new(), item, from_class, to_class, now, equipment_id)
 
 
+def _modification_from_request(
+    request: Mapping[str, Any],
+    catalogue: Catalogue,
+    equipment: Mapping[int, Equipment],
+    now: datetime,
+) -> ModificationGoal:
+    """A modification of a type, or of one of the player's items (``equipmentId``) that does not
+    have it yet; its recipe may be unknown (ADR 0030)."""
+    item, symbol = request.get("item"), request.get("modification")
+    equipment_id = request.get("equipmentId")
+    known = catalogue.on_foot_items.get(item) if isinstance(item, str) else None
+    if known is None:
+        raise ValueError(f"no such item for a goal: {item!r}")
+    modification = catalogue.on_foot_modifications.get(symbol) if isinstance(symbol, str) else None
+    if modification is None or modification.kind is not known.kind:
+        raise ValueError(f"no modification {symbol!r} for a {known.kind}")
+    if equipment_id is not None:
+        piece = equipment.get(equipment_id) if isinstance(equipment_id, int) else None
+        if piece is None or piece.symbol != known.symbol:
+            raise ValueError(f"no item {equipment_id!r} of type {item!r}")
+        if modification.symbol in piece.mods:
+            raise ValueError(f"item {equipment_id!r} has the modification {symbol!r} already")
+    return ModificationGoal(GoalId.new(), known.symbol, modification.symbol, now, equipment_id)
+
+
 def with_count(goal: Goal, count: int) -> Goal:
     """The goal, with a new number of rolls or applications, or a new class aimed at
     (checked by the domain)."""
@@ -403,5 +482,7 @@ def with_count(goal: Goal, count: int) -> Goal:
             return ExperimentalEffectGoal(goal.id, goal.effect, goal.module, count)
         case ClassUpgradeGoal():
             return replace(goal, to_class=count)
+        case ModificationGoal():
+            raise ValueError("a modification goal has no count")
         case _:  # pragma: no cover - exhaustiveness checked by mypy
             assert_never(goal)

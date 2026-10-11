@@ -9,7 +9,8 @@ On foot (ADR 0027), a **class upgrade** raises a suit or a weapon from one class
 to a higher one, a step at a time. It names the type of item by its journal
 symbol and, when the player chose one of theirs, that item's id: the goal then
 follows that item only. Without it, any item of the type the journal shows
-after the goal was set counts.
+after the goal was set counts. A **modification** goal names the same way the
+item it is for, and the modification by its journal symbol.
 
 A goal names its blueprint or effect by its journal name, and the module it is
 for by the catalogue's module key: the engineers offering a grade depend on the
@@ -108,4 +109,23 @@ class ClassUpgradeGoal:
         return tuple(range(self.from_class + 1, self.to_class + 1))
 
 
-type Goal = BlueprintGoal | ExperimentalEffectGoal | ClassUpgradeGoal
+@dataclass(frozen=True, slots=True)
+class ModificationGoal:
+    id: GoalId
+    item: str
+    """Journal symbol of the suit or weapon type, in lower case, without class."""
+    modification: str
+    """Journal symbol of the modification, as in ``SuitMods`` (``suit_backpackcapacity``)."""
+    set_at: datetime
+    equipment_id: int | None = None
+    """The player's own item it follows, if they chose one."""
+
+    def __post_init__(self) -> None:
+        _require_name(self.item, "item")
+        _require_name(self.modification, "modification")
+        if self.set_at.tzinfo is None:
+            raise ValueError("the time a goal was set needs its time zone")
+
+
+type OnFootGoal = ClassUpgradeGoal | ModificationGoal
+type Goal = BlueprintGoal | ExperimentalEffectGoal | OnFootGoal

@@ -6,6 +6,7 @@ from edrockmaster.domain.engineering.goals import (
     ClassUpgradeGoal,
     ExperimentalEffectGoal,
     GoalId,
+    ModificationGoal,
 )
 from edrockmaster.domain.engineering.session import (
     CollectionEnded,
@@ -162,5 +163,9 @@ def test_names_of_suits_weapons_and_class_upgrades() -> None:
     upgrade = ClassUpgradeGoal(GoalId("up"), "tacticalsuit", 1, 3, T0)
     assert full.goal(upgrade) == "Dominator suit: class 1 to 3"
     assert EngineeringNames(None, identity).item("tacticalsuit") == "tacticalsuit"
+    backpack = ModificationGoal(GoalId("mod"), "tacticalsuit", "suit_backpackcapacity", T0)
+    assert full.goal(backpack) == "Dominator suit: Extra backpack capacity"
+    assert full.modification("suit_gone") == "suit_gone"
+    assert EngineeringNames(None, identity).modification("weapon_handling") == "weapon_handling"
     # On foot: the catalogue's name, as it is, when the game gave none (ADR 0027)
     assert full.material("chemicalsample") == "Chemical Sample"

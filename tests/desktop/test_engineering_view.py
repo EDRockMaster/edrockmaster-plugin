@@ -22,8 +22,9 @@ from edrockmaster.domain.engineering.goals import (
     ClassUpgradeGoal,
     ExperimentalEffectGoal,
     GoalId,
+    ModificationGoal,
 )
-from edrockmaster.domain.engineering.on_foot_journal import Suit
+from edrockmaster.domain.engineering.on_foot_journal import Suit, Weapon
 from edrockmaster.infrastructure.catalogue_file import load_catalogue
 from edrockmaster.ui.engineering_names import EngineeringNames
 from tests.fakes import FakeGoalRepository, FixedClock
@@ -365,6 +366,142 @@ def test_the_goal_form_s_suits_and_weapons(service: EngineeringService) -> None:
     }
     eclipse = next(row for row in items if row["symbol"] == ECLIPSE)
     assert (eclipse["kind"], eclipse["name"]) == ("weapon", "TK Eclipse")
+
+
+MAVERICK = Suit(1878707285049802, "utilitysuit", 3, ("suit_backpackcapacity",))
+EQUIPMENT: dict[int, Suit | Weapon] = {
+    MAVERICK.id: MAVERICK,
+    7: Weapon(7, ECLIPSE, 3, ("weapon_handling",)),
+}
+
+
+def test_a_modification_from_the_form() -> None:
+    mine = goal_from_request(
+        {
+            "kind": "modification",
+            "item": "utilitysuit",
+            "modification": "suit_improvedradar",
+            "equipmentId": MAVERICK.id,
+        },
+        CATALOGUE,
+        EQUIPMENT,
+        NOW,
+    )
+    assert mine == ModificationGoal(mine.id, "utilitysuit", "suit_improvedradar", NOW, MAVERICK.id)
+    # A type, and a modification whose recipe is not known on it: the goal can still be set
+    weapon = goal_from_request(
+        {
+            "kind": "modification",
+            "item": "wpn_m_assaultrifle_laser_fauto",
+            "modification": "weapon_stability",
+        },
+        CATALOGUE,
+        {},
+        NOW,
+    )
+    assert isinstance(weapon, ModificationGoal)
+    assert weapon.equipment_id is None
+
+
+@pytest.mark.parametrize(
+    "request_",
+    [
+        {"kind": "modification", "item": "helmet", "modification": "weapon_stability"},
+        {"kind": "modification", "item": ECLIPSE, "modification": "weapon_jetpack"},
+        {"kind": "modification", "item": ECLIPSE, "modification": 3},
+        # A suit's modification on a weapon
+        {"kind": "modification", "item": ECLIPSE, "modification": "suit_improvedradar"},
+        # Not the player's item, or not of that type
+        {"kind": "modification", "item": ECLIPSE, "modification": "weapon_range", "equipmentId": 9},
+        {
+            "kind": "modification",
+            "item": "tacticalsuit",
+            "modification": "suit_improvedradar",
+            "equipmentId": MAVERICK.id,
+        },
+        # The player's item has it already
+        {
+            "kind": "modification",
+            "item": ECLIPSE,
+            "modification": "weapon_handling",
+            "equipmentId": 7,
+        },
+    ],
+)
+def test_a_modification_the_form_cannot_ask_for(request_: dict[str, Any]) -> None:
+    with pytest.raises(ValueError, match=r"goal|item|modification"):
+        goal_from_request(request_, CATALOGUE, EQUIPMENT, NOW)
+
+
+def test_a_modification_has_no_count() -> None:
+    goal = ModificationGoal(GoalId("mod"), "utilitysuit", "suit_improvedradar", NOW)
+    with pytest.raises(ValueError, match="modification"):
+        with_count(goal, 2)
+
+
+def test_modification_goals_on_foot(service: EngineeringService) -> None:
+    service.add_goal(
+        ModificationGoal(GoalId("radar"), "utilitysuit", "suit_improvedradar", NOW, MAVERICK.id)
+    )
+    service.add_goal(
+        ModificationGoal(GoalId("backpack"), "tacticalsuit", "suit_backpackcapacity", NOW)
+    )
+    part = on_foot(
+        service,
+        {
+            "event": "ShipLocker",
+            "Items": [],
+            "Components": [{"Name": "transmitter", "Name_Localised": "Transmetteur", "Count": 1}],
+            "Consumables": [],
+            "Data": [],
+        },
+        {
+            "event": "EngineerProgress",
+            "Engineers": [
+                {"Engineer": "Domino Green", "EngineerID": 400002, "Progress": "Unlocked"}
+            ],
+        },
+    )
+    assert part["goals"] == []
+    radar, backpack = part["modifications"]
+    assert (radar["title"], radar["name"]) == ("Maverick suit", "Enhanced tracking")
+    assert (radar["item"], radar["modification"], radar["equipmentId"]) == (
+        "utilitysuit",
+        "suit_improvedradar",
+        MAVERICK.id,
+    )
+    assert (radar["known"], radar["unverified"], radar["ready"]) == (True, False, False)
+    assert radar["credits"] == 750_000
+    assert radar["engineers"] == ["Domino Green"]
+    missing = {row["symbol"]: row["count"] for row in radar["missing"]}
+    assert missing["transmitter"] == 2
+    # Read on the Maverick only: not known on the Dominator (ADR 0030)
+    assert (backpack["known"], backpack["credits"], backpack["missing"]) == (False, 0, None)
+    assert part["credits"] == 750_000
+    assert {row["symbol"] for row in part["shoppingList"]} >= {"transmitter", "circuitboard"}
+
+
+def test_the_goal_form_s_modifications(service: EngineeringService) -> None:
+    modifications = catalogue_view(CATALOGUE, names(service))["onFootModifications"]
+    assert [row["kind"] for row in modifications][:3] == ["suit"] * 3
+    radar = next(row for row in modifications if row["symbol"] == "suit_improvedradar")
+    assert radar["name"] == "Enhanced tracking"
+    assert radar["engineers"] == ["Domino Green"]
+    [recipe] = radar["recipes"]
+    assert (recipe["items"], recipe["credits"], recipe["confidence"]) == (
+        ["utilitysuit"],
+        750_000,
+        "game",
+    )
+    assert {row["symbol"] for row in recipe["ingredients"]} == {
+        "circuitboard",
+        "spectralanalysisdata",
+        "stellaractivitylogs",
+        "topographicalsurveys",
+        "transmitter",
+    }
+    handling = next(row for row in modifications if row["symbol"] == "weapon_handling")
+    assert (handling["engineers"], handling["recipes"]) == ([], [])
 
 
 def on_foot(service: EngineeringService, *entries: dict[str, Any]) -> dict[str, Any]:

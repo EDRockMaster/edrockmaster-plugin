@@ -23,6 +23,7 @@ EMPTY_ENGINEERING: dict[str, object] = {
         "equipment": [],
         "carrierMoves": [],
         "goals": [],
+        "modifications": [],
         "shoppingList": [],
         "credits": 0,
     },

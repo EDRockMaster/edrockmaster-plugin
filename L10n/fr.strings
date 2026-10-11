@@ -151,6 +151,7 @@
 "{module}: {blueprint}, grade {grade}" = "{module} : {blueprint}, grade {grade}";
 "{module}: {effect}" = "{module} : {effect}";
 "{item}: class {from_class} to {to_class}" = "{item} : classe {from_class} à {to_class}";
+"{item}: {modification}" = "{item} : {modification}";
 
 /* domain/engineering/catalogue.json: names of the game data (ADR 0017), English from EDCD/FDevIDs and EDCD/coriolis-data */
 /* catalogue: raw materials. Material names are the game's own (Name_Localised of a recorded journal) where known */
@@ -491,3 +492,11 @@
 "Maverick suit" = "Combinaison Maverick";
 "Dominator suit" = "Combinaison Dominator";
 "Artemis suit" = "Combinaison Artemis";
+
+/* catalogue: modifications of suits and weapons (ADR 0027), as the game names them in French */
+"Enhanced tracking" = "Suivi amélioré";
+"Extra backpack capacity" = "Capacité de sac à dos accrue";
+"Faster handling" = "Maniabilité améliorée";
+"Greater range" = "Portée améliorée";
+"Reduced tool battery consumption" = "Consommation des outils réduite";
+"Stability" = "Stabilité";

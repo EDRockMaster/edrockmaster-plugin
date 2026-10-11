@@ -55,6 +55,23 @@ MIGRATIONS: tuple[Migration, ...] = (
             """,
         ),
     ),
+    Migration(
+        3,
+        (
+            # Modifications of suits and weapons (ADR 0027): an item type, or the player's own
+            # item, and the modification by its journal symbol
+            """
+            CREATE TABLE modification_goal (
+                id TEXT PRIMARY KEY,
+                position INTEGER NOT NULL UNIQUE,
+                item TEXT NOT NULL CHECK (item <> ''),
+                modification TEXT NOT NULL CHECK (modification <> ''),
+                set_at TEXT NOT NULL CHECK (set_at <> ''),
+                equipment_id INTEGER
+            ) STRICT
+            """,
+        ),
+    ),
 )
 
 LATEST_VERSION = MIGRATIONS[-1].version

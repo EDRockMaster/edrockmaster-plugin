@@ -64,6 +64,7 @@ def source_strings() -> set[str]:
     strings |= {
         item.english_name for item in catalogue.on_foot_items.values() if item.kind == "suit"
     }
+    strings |= {mod.english_name for mod in catalogue.on_foot_modifications.values()}
     return strings
 
 

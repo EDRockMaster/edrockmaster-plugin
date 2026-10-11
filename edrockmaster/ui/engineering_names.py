@@ -1,5 +1,5 @@
 """Display names of engineering: materials, blueprints, effects, module types, engineers, goals
-(ADR 0017), suits and weapons (ADR 0027).
+(ADR 0017), suits, weapons and their modifications (ADR 0027).
 
 A material shows the game's own name when the journal gave it (the game's
 language), else the catalogue's English name, translated (on foot, as it is); the others always
@@ -21,6 +21,7 @@ from edrockmaster.domain.engineering.goals import (
     ClassUpgradeGoal,
     ExperimentalEffectGoal,
     Goal,
+    ModificationGoal,
 )
 from edrockmaster.ui.panel_model import Translate
 
@@ -73,6 +74,12 @@ class EngineeringNames:
             return symbol
         return self._tl(item.english_name) if item.kind is EquipmentKind.SUIT else item.english_name
 
+    def modification(self, symbol: str) -> str:
+        """A modification of a suit or a weapon, by its journal symbol."""
+        known = self._catalogue.on_foot_modifications if self._catalogue else {}
+        modification = known.get(symbol)
+        return self._tl(modification.english_name) if modification else symbol
+
     def goal(self, goal: Goal) -> str:
         """``Frame shift drive: Increased range, grade 5``."""
         match goal:
@@ -89,6 +96,10 @@ class EngineeringNames:
             case ClassUpgradeGoal():
                 return self._tl("{item}: class {from_class} to {to_class}").format(
                     item=self.item(goal.item), from_class=goal.from_class, to_class=goal.to_class
+                )
+            case ModificationGoal():
+                return self._tl("{item}: {modification}").format(
+                    item=self.item(goal.item), modification=self.modification(goal.modification)
                 )
             case _:  # pragma: no cover - exhaustiveness checked by mypy
                 assert_never(goal)

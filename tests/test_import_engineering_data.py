@@ -122,6 +122,24 @@ ingredients = { internalcorrespondence = 9 }
 confidence = "web"
 sources = ["https://example.org/ar-50"]
 read = 2026-10-11
+
+[modifications.suit_backpackcapacity]
+kind = "suit"
+name = "Extra backpack capacity"
+symbol = { sources = ["github.com/someone/journal-reader"], read = 2026-10-11 }
+engineers = ["Domino Green"]
+
+[[modifications.suit_backpackcapacity.recipes]]
+items = ["tacticalsuit"]
+credits = 750_000
+ingredients = { internalcorrespondence = 5, graphene = 3 }
+confidence = "game"
+read = 2026-10-11
+
+[modifications.weapon_handling]
+kind = "weapon"
+name = "Faster handling"
+symbol = { seen = 2026-10-10 }
 """
 
 
@@ -249,10 +267,74 @@ def test_a_recipe_without_its_proof_is_refused(
         importer.build_catalogue(sources.read, RECIPES.replace(old, new, 1))
 
 
+def test_the_catalogue_has_the_modifications_read_in_game(sources: Sources) -> None:
+    catalogue = importer.build_catalogue(sources.read, RECIPES)
+    assert catalogue["on_foot_modifications"] == {
+        "suit_backpackcapacity": {
+            "kind": "suit",
+            "name": "Extra backpack capacity",
+            "engineers": [400002],
+            "recipes": [
+                {
+                    "items": ["tacticalsuit"],
+                    "credits": 750000,
+                    "ingredients": {"graphene": 3, "internalcorrespondence": 5},
+                    "confidence": "game",
+                }
+            ],
+        },
+        # Known by its symbol only: a goal can be set on it, its recipe unknown
+        "weapon_handling": {
+            "kind": "weapon",
+            "name": "Faster handling",
+            "engineers": [],
+            "recipes": [],
+        },
+    }
+    Catalogue.from_data(catalogue)
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "message"),
+    [
+        ("[modifications.weapon_handling]", "[modifications.Weapon_Handling]", "lower case"),
+        ('kind = "weapon"\nname = "Faster', 'kind = "helmet"\nname = "Faster', "kind"),
+        ('name = "Faster handling"', 'name = ""', "name"),
+        ("symbol = { seen = 2026-10-10 }", "", "symbol"),
+        ("symbol = { seen = 2026-10-10 }", "symbol = { seen = true }", "symbol"),
+        ('{ sources = ["github.com/someone/journal-reader"], read', "{ read", "symbol"),
+        ('journal-reader"], read = 2026-10-11 }', 'journal-reader"] }', "symbol"),
+        ('engineers = ["Domino Green"]', 'engineers = ["Felicity Farseer"]', "'Felicity Farseer'"),
+        ('items = ["tacticalsuit"]', "items = []", "no item"),
+        ('items = ["tacticalsuit"]', 'items = ["wpn_m_assaultrifle_kinetic_fauto"]', "a suit"),
+        ('items = ["tacticalsuit"]', 'items = ["artemissuit"]', "'artemissuit'"),
+        ('items = ["tacticalsuit"]', 'items = ["tacticalsuit", "tacticalsuit"]', "twice"),
+        ("internalcorrespondence = 5, graphene", "healthpack = 5, graphene", "consumable"),
+        ("credits = 750_000", "credits = 0", "credits"),
+        (
+            '"game"\nread = 2026-10-11\n\n[modifications.weapon',
+            '"game"\n\n[modifications.weapon',
+            "date",
+        ),
+    ],
+)
+def test_a_modification_without_its_proof_is_refused(
+    sources: Sources, old: str, new: str, message: str
+) -> None:
+    assert old in RECIPES
+    with pytest.raises(importer.ImportRefused, match=message):
+        importer.build_catalogue(sources.read, RECIPES.replace(old, new, 1))
+
+
 def test_the_shipped_catalogue_has_the_shipped_recipes() -> None:
     shipped = json.loads(importer.DEFAULT_OUTPUT.read_text(encoding="utf-8"))
     recipes = importer.DEFAULT_RECIPES.read_text(encoding="utf-8")
-    assert shipped["on_foot_items"] == importer.on_foot_items(recipes, shipped["on_foot_materials"])
+    materials = shipped["on_foot_materials"]
+    engineers = {name: int(id_) for id_, name in shipped["on_foot_engineers"].items()}
+    assert shipped["on_foot_items"] == importer.on_foot_items(recipes, materials)
+    assert shipped["on_foot_modifications"] == importer.on_foot_modifications(
+        recipes, materials, engineers
+    )
 
 
 def test_an_on_foot_material_of_an_unknown_kind_is_refused(sources: Sources) -> None:

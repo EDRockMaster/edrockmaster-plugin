@@ -19,6 +19,7 @@ from edrockmaster.domain.engineering.goals import (
     ExperimentalEffectGoal,
     Goal,
     GoalId,
+    ModificationGoal,
 )
 from edrockmaster.infrastructure.database import LocalDatabase
 from edrockmaster.infrastructure.worker import Job
@@ -31,6 +32,7 @@ _EXPERIMENTAL_EFFECT = "experimental_effect"
 
 type _Row = tuple[str, str, str, str, int | None, int]
 type _ClassRow = tuple[str, str, int, int, str, int | None]
+type _ModificationRow = tuple[str, str, str, str, int | None]
 
 
 def _row(goal: BlueprintGoal | ExperimentalEffectGoal) -> _Row:
@@ -77,8 +79,26 @@ def _class_goal(row: _ClassRow) -> ClassUpgradeGoal:
     )
 
 
+def _modification_row(goal: ModificationGoal) -> _ModificationRow:
+    return (
+        goal.id.value,
+        goal.item,
+        goal.modification,
+        goal.set_at.astimezone(UTC).isoformat(),
+        goal.equipment_id,
+    )
+
+
+def _modification_goal(row: _ModificationRow) -> ModificationGoal:
+    goal_id, item, modification, set_at, equipment_id = row
+    return ModificationGoal(
+        GoalId(goal_id), item, modification, datetime.fromisoformat(set_at), equipment_id
+    )
+
+
 def read_goals(connection: sqlite3.Connection) -> tuple[Goal, ...]:
-    """The ship goals, then the class upgrades, each in the order they were added."""
+    """The ship goals, the class upgrades, then the modifications, each in the order they were
+    added."""
     rows = connection.execute(
         "SELECT id, kind, name, module, grade, count FROM engineering_goal ORDER BY position"
     )
@@ -86,7 +106,15 @@ def read_goals(connection: sqlite3.Connection) -> tuple[Goal, ...]:
         "SELECT id, item, from_class, to_class, set_at, equipment_id FROM class_upgrade_goal "
         "ORDER BY position"
     )
-    return (*(_goal(row) for row in rows), *(_class_goal(row) for row in class_rows))
+    modification_rows = connection.execute(
+        "SELECT id, item, modification, set_at, equipment_id FROM modification_goal "
+        "ORDER BY position"
+    )
+    return (
+        *(_goal(row) for row in rows),
+        *(_class_goal(row) for row in class_rows),
+        *(_modification_goal(row) for row in modification_rows),
+    )
 
 
 def insert_goal(connection: sqlite3.Connection, goal: Goal) -> None:
@@ -96,6 +124,14 @@ def insert_goal(connection: sqlite3.Connection, goal: Goal) -> None:
             "(id, item, from_class, to_class, set_at, equipment_id, position) "
             "SELECT ?, ?, ?, ?, ?, ?, coalesce(max(position), 0) + 1 FROM class_upgrade_goal",
             _class_row(goal),
+        )
+        return
+    if isinstance(goal, ModificationGoal):
+        connection.execute(
+            "INSERT INTO modification_goal "
+            "(id, item, modification, set_at, equipment_id, position) "
+            "SELECT ?, ?, ?, ?, ?, coalesce(max(position), 0) + 1 FROM modification_goal",
+            _modification_row(goal),
         )
         return
     connection.execute(
@@ -114,6 +150,14 @@ def update_goal(connection: sqlite3.Connection, goal: Goal) -> None:
             (item, from_class, to_class, set_at, equipment_id, goal_id),
         )
         return
+    if isinstance(goal, ModificationGoal):
+        goal_id, item, modification, set_at, equipment_id = _modification_row(goal)
+        connection.execute(
+            "UPDATE modification_goal SET item = ?, modification = ?, set_at = ?, "
+            "equipment_id = ? WHERE id = ?",
+            (item, modification, set_at, equipment_id, goal_id),
+        )
+        return
     goal_id, kind, name, module, grade, count = _row(goal)
     connection.execute(
         "UPDATE engineering_goal SET kind = ?, name = ?, module = ?, grade = ?, count = ? "
@@ -125,6 +169,7 @@ def update_goal(connection: sqlite3.Connection, goal: Goal) -> None:
 def delete_goal(connection: sqlite3.Connection, goal_id: GoalId) -> None:
     connection.execute("DELETE FROM engineering_goal WHERE id = ?", (goal_id.value,))
     connection.execute("DELETE FROM class_upgrade_goal WHERE id = ?", (goal_id.value,))
+    connection.execute("DELETE FROM modification_goal WHERE id = ?", (goal_id.value,))
 
 
 class SqliteGoalRepository:
