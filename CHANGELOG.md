@@ -15,6 +15,7 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 ### Fixed
 
 - A ship locker the game only wrote to `ShipLocker.json` is now read from it, as the cargo is from `Cargo.json`.
+- In French, void opals are named as in the game: *Opales du vide*.
 
 ## [0.4.0] - 2026-10-10
 
