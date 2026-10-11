@@ -6,6 +6,10 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
+### Modifié
+
+- La carte de l'ingénierie dans *Activités* affiche les matériaux à pied en une seule tuile, gagnés et perdus à une mort (`+140, 5 perdus`), au lieu d'une tuile par type et d'une pour les pertes : les types sont dans la partie *À pied* de l'onglet *Ingénierie*.
+
 ### Corrigé
 
 - Un objectif communautaire ne reste plus dans le bloc du combat une fois sa récompense touchée ou l'objectif abandonné : le jeu n'écrit alors aucune nouvelle liste d'objectifs, l'application lit désormais `CommunityGoalReward` et `CommunityGoalDiscard`. Le script de nettoyage des enregistrements conserve ces deux événements.
