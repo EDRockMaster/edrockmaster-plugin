@@ -1,5 +1,7 @@
 """Packaging of the desktop application for Windows (ADR 0022): the parts that run anywhere."""
 
+import re
+import subprocess
 import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
@@ -143,3 +145,25 @@ def test_icons_usage(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None
     assert icons.main([]) == 2
     assert icons.main([str(tmp_path)]) == 0
     assert "StoreLogo.png" in capsys.readouterr().out
+
+
+ROOT = Path(__file__).parents[1]
+SPEC = ROOT / "packaging" / "windows" / "EDRockMaster.spec"
+
+
+def bundled() -> list[Path]:
+    """What the specification bundles from the package: ``PACKAGE / "a" / "b"`` entries."""
+    entries = re.findall(r'PACKAGE((?:\s*/\s*"[^"]+")+)', SPEC.read_text(encoding="utf-8"))
+    return [Path("edrockmaster", *re.findall(r'"([^"]+)"', entry)) for entry in entries]
+
+
+def test_every_data_file_of_the_package_is_bundled() -> None:
+    # A file the code reads beside its module, left out, stops the packaged application at start
+    tracked = subprocess.run(
+        ["git", "ls-files", "edrockmaster"], cwd=ROOT, capture_output=True, text=True, check=True
+    ).stdout.split()
+    data = [Path(name) for name in tracked if not name.endswith((".py", ".pyi", "py.typed"))]
+    assert data
+    sources = bundled()
+    missing = [path for path in data if not any(path.is_relative_to(s) for s in sources)]
+    assert missing == []
