@@ -51,6 +51,8 @@ class GameLoaded:
     ship: Ship | None
     mode: GameMode | None
     group: str | None
+    on_foot: bool = False
+    """Loaded on foot: the journal then names the suit worn in place of a ship."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -160,6 +162,10 @@ def _commander(entry: Entry, at: datetime) -> CommanderNamed:
 
 def _loaded(entry: Entry, at: datetime) -> GameLoaded:
     symbol = _text(entry, "Ship")
+    # On foot, LoadGame names the suit (``UtilitySuit_Class2``) where a ship would be
+    on_foot = symbol is not None and "suit" in symbol.lower()
+    if on_foot:
+        symbol = None
     ship = (
         Ship(
             symbol,
@@ -172,7 +178,7 @@ def _loaded(entry: Entry, at: datetime) -> GameLoaded:
     )
     mode = _MODES.get((_text(entry, "GameMode") or "").lower())
     group = _text(entry, "Group") if mode is GameMode.GROUP else None
-    return GameLoaded(at, _text(entry, "Commander"), ship, mode, group)
+    return GameLoaded(at, _text(entry, "Commander"), ship, mode, group, on_foot)
 
 
 def _located(entry: Entry, at: datetime) -> Located:

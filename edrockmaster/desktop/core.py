@@ -61,6 +61,7 @@ from edrockmaster.infrastructure.recorder_jsonl import JsonlJournalRecorder
 from edrockmaster.infrastructure.settings_file import FILE_NAME as SETTINGS_FILE_NAME
 from edrockmaster.infrastructure.settings_file import JsonFileConfig
 from edrockmaster.infrastructure.settings_store import KeyValueSettingsStore
+from edrockmaster.infrastructure.ship_names_file import load_ship_names
 from edrockmaster.infrastructure.sound import SoundNotifier
 from edrockmaster.infrastructure.strings_catalogue import number_format, translator
 from edrockmaster.infrastructure.worker import IoWorker
@@ -180,6 +181,7 @@ class DesktopCore:
             clock=self._clock,
             catalogue=catalogue,
             goals=SqliteGoalRepository(database, self._io.submit, self._core.submit, self._logger),
+            ship_names=load_ship_names(),
         )
         names = self._names = EngineeringNames(catalogue, self._tl, companion.engineering.name_of)
         self._catalogue_view = catalogue_view(catalogue, EngineeringNames(catalogue, self._tl))

@@ -11,6 +11,7 @@ never stored, never uploaded.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from typing import assert_never
 
@@ -56,9 +57,11 @@ class SituationChanged:
 
 
 class SituationTracker:
-    def __init__(self) -> None:
+    def __init__(self, type_names: Mapping[str, str] | None = None) -> None:
+        """``type_names``: ship type names by lower-case symbol, used until the journal gives the
+        game's own (FDevIDs' English names)."""
         self._situation = Situation()
-        self._type_names: dict[str, str] = {}
+        self._type_names: dict[str, str] = dict(type_names or {})
 
     @property
     def situation(self) -> Situation:
@@ -78,7 +81,7 @@ class SituationTracker:
                     now,
                     commander=fact.commander or now.commander,
                     ship=self._named(fact.ship) if fact.ship else now.ship,
-                    on_foot=fact.ship is None and now.on_foot,
+                    on_foot=fact.on_foot or (fact.ship is None and now.on_foot),
                     mode=fact.mode,
                     group=fact.group,
                     wing=(),

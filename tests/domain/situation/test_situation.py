@@ -179,3 +179,40 @@ def test_a_change_is_notified_once() -> None:
     [changed] = tracker.handle(fact)
     assert changed == SituationChanged(Situation(system="Sol"))
     assert tracker.handle(fact) == []
+
+
+# The game loaded on foot, and ship types the journal does not name
+
+
+def test_the_game_loaded_on_foot_names_a_suit_not_a_ship() -> None:
+    on_foot = entry(
+        **{**LOAD_GAME, "Ship": "UtilitySuit_Class2", "Ship_Localised": "$UtilitySuit_Class1_Name;"}
+    )
+    fact = parse_entry(on_foot)
+    assert isinstance(fact, GameLoaded)
+    assert (fact.ship, fact.on_foot) == (None, True)
+    situation = situation_after(on_foot)
+    assert situation.ship is None
+    assert situation.on_foot
+
+
+def test_a_ship_type_the_journal_does_not_name_takes_its_known_name() -> None:
+    tracker = SituationTracker({"panthermkii": "Panther Clipper MkII"})
+    loadout = {"event": "Loadout", "Ship": "panthermkii", "ShipName": "", "ShipIdent": "NY-07P"}
+    for raw in (loadout,):
+        fact = parse_entry({"timestamp": TS, **raw})
+        assert fact is not None
+        tracker.handle(fact)
+    ship = tracker.situation.ship
+    assert ship is not None
+    assert (ship.type_name, ship.ident) == ("Panther Clipper MkII", "NY-07P")
+    # The game's own name, once the journal gives it, comes first
+    loaded = parse_entry(entry(**LOAD_GAME))
+    assert loaded is not None
+    tracker.handle(loaded)
+    fact = parse_entry({"timestamp": TS, **loadout})
+    assert fact is not None
+    tracker.handle(fact)
+    ship = tracker.situation.ship
+    assert ship is not None
+    assert ship.type_name == "Panther Clipper Mk II"
