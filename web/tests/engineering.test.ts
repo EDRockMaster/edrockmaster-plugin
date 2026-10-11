@@ -110,7 +110,9 @@ describe("EngineeringView", () => {
     expect(screen.getByText("No longer in the catalogue")).toBeInTheDocument();
     expect(screen.getByText(/once the game states the inventory/)).toBeInTheDocument();
     expect(screen.getByText("3 (held: 0)")).toBeInTheDocument();
-    expect(screen.getByText("300 / 300")).toBeInTheDocument();
+    // The inventory: a column per grade, its cap on top, a capped material marked
+    expect(screen.getByText("max 300")).toBeInTheDocument();
+    expect(screen.getByText("Sulphur").closest("li")).toHaveClass("capped");
     expect(screen.getByText("Unlocked, rank 5")).toBeInTheDocument();
     expect(api.catalogue).toHaveBeenCalledOnce();
   });
@@ -220,8 +222,8 @@ describe("edges", () => {
     expect(screen.getByText("No unlocked engineer offers it")).toBeInTheDocument();
   });
 
-  it("collapses the engineers, and says how many are unlocked", async () => {
-    withCore();
+  it("folds the engineers, and says how many are unlocked", async () => {
+    const api = withCore();
     render(EngineeringView, {
       language: "en",
       engineering: engineering({
@@ -236,12 +238,16 @@ describe("edges", () => {
     const row = screen.getByText("Marco Qwent").closest("li");
     expect(row).toHaveClass("unlocked");
     expect(within(row as HTMLElement).getByText("Unlocked, rank 5")).toBeInTheDocument();
-    const toggle = screen.getByRole("button", { name: "Hide" });
+    const toggle = screen.getByRole("button", { name: "Fold Engineers" });
     expect(toggle).toHaveAttribute("aria-expanded", "true");
     await fireEvent.click(toggle);
     expect(screen.queryByText("Marco Qwent")).not.toBeInTheDocument();
     expect(screen.getByText("1 unlocked of 2")).toBeInTheDocument();
-    await fireEvent.click(screen.getByRole("button", { name: "Show" }));
+    expect(api.save_layout).toHaveBeenCalledWith("engineering", {
+      order: ["goals", "shopping", "inventory", "engineers"],
+      folded: ["engineers"],
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Unfold Engineers" }));
     expect(screen.getByText("Marco Qwent")).toBeInTheDocument();
   });
 

@@ -2,6 +2,7 @@
 // `window.pywebview.api`, and the core pushes the live view through `window.edrm.receive`.
 // Nothing goes through the network.
 import type { GoalCatalogue } from "./goal-catalogue";
+import type { Layout } from "./layout";
 import type { LiveView } from "./live-view";
 import type { Settings } from "./settings";
 
@@ -23,6 +24,9 @@ export interface CoreApi {
   save_settings(settings: Settings): Promise<void>;
   /** Show the folder of the journal recordings or of the logs in the file manager. */
   open_folder(folder: "recordings" | "logs"): Promise<void>;
+  /** The order of each view's cards, and those folded (ADR 0021). */
+  layout(): Promise<Layout>;
+  save_layout(view: keyof Layout, layout: { order: string[]; folded: string[] }): Promise<void>;
 }
 
 /** A goal the player asks for; the core checks it against the catalogue. */

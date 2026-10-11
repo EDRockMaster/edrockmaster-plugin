@@ -33,6 +33,14 @@ from edrockmaster.desktop.engineering_view import (
 from edrockmaster.desktop.folder_opener import open_in_file_manager
 from edrockmaster.desktop.journal_folder import default_journal_folder
 from edrockmaster.desktop.journal_reader import POLL_SECONDS, JournalFollower, JournalWatcher
+from edrockmaster.desktop.layout import (
+    Layout,
+    LayoutError,
+    LayoutStore,
+    default_layout,
+    layout_view,
+    view_layout_from_request,
+)
 from edrockmaster.desktop.live_view import live_view
 from edrockmaster.desktop.settings_view import (
     DesktopPreferences,
@@ -116,6 +124,8 @@ class DesktopCore:
         self._presenter = ActivityPresenter(self._tl, self._format_number)
         self._preferences = DesktopPreferences()
         self._preferences_store: DesktopPreferencesStore | None = None
+        self._layout: Layout = default_layout()
+        self._layout_store: LayoutStore | None = None
         self._companion: Companion | None = None
         self._database: LocalDatabase | None = None
         self._follower: JournalFollower | None = None
@@ -141,6 +151,8 @@ class DesktopCore:
         config = JsonFileConfig(self._data / SETTINGS_FILE_NAME, self._io.submit, self._logger)
         store = self._preferences_store = DesktopPreferencesStore(config)
         preferences = self._preferences = store.load()
+        layout_store = self._layout_store = LayoutStore(config)
+        self._layout = layout_store.load()
         self._set_language(preferences.language)
         self._journal_folder = (
             self._journal_override
@@ -260,6 +272,28 @@ class DesktopCore:
                 self._set_language(preferences.language)
             self._presenter.configure(settings.display)
             self._send()
+
+        self._core.submit(save)
+
+    # Layout of the views (ADR 0021)
+
+    def layout(self) -> dict[str, Any]:
+        """The order of each view's cards, and those folded. The layout is replaced, never
+        changed: any thread."""
+        return layout_view(self._layout)
+
+    def save_layout(self, view: str, request: Mapping[str, Any]) -> None:
+        def save() -> None:
+            try:
+                changed = view_layout_from_request(view, request)
+            except LayoutError as error:
+                self._logger.warning("Layout refused: %s", error)
+                return
+            if changed == self._layout[view]:
+                return
+            self._layout = {**self._layout, view: changed}
+            assert self._layout_store is not None, "created at start, with the companion"
+            self._layout_store.save(self._layout)
 
         self._core.submit(save)
 

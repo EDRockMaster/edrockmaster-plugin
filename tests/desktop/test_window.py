@@ -52,6 +52,8 @@ class FakeGui:
         settings = api.settings()
         api.save_settings(settings)
         api.open_folder("logs")
+        layout = api.layout()
+        api.save_layout("engineering", layout["engineering"])
 
 
 @pytest.fixture(autouse=True)

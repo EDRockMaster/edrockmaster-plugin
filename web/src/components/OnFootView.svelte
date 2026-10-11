@@ -15,6 +15,7 @@
     moveLines,
     total,
   } from "../lib/on-foot";
+  import CardStack from "./CardStack.svelte";
   import ClassUpgradeForm from "./ClassUpgradeForm.svelte";
 
   let { onFoot, language }: { onFoot: OnFoot; language: Language } = $props();
@@ -26,14 +27,47 @@
     ...onFoot.goals.filter((goal) => !goal.ready),
   ]);
 
+  // The shopping list shows once there is a goal
+  const cards = $derived(
+    (
+      [
+        ["goals", "onFoot.goals"],
+        ["shopping", "onFoot.shopping"],
+        ["inventory", "onFoot.inventory"],
+        ["carrier", "onFoot.carrier"],
+        ["equipment", "onFoot.equipment"],
+        ["engineers", "onFoot.engineers"],
+      ] as const
+    )
+      .filter(([key]) => key !== "shopping" || onFoot.goals.length > 0)
+      .map(([key, title]) => ({ key, title: t(language, title) })),
+  );
+
   function changeClass(goalId: string, event: Event): void {
     const toClass = Number((event.currentTarget as HTMLSelectElement).value);
     if (Number.isInteger(toClass)) void core()?.change_goal(goalId, toClass);
   }
 </script>
 
-<section aria-labelledby="class-goals-title">
-  <h2 id="class-goals-title">{t(language, "onFoot.goals")}</h2>
+<CardStack view="onFoot" {cards} {language}>
+  {#snippet body(card)}
+    {#if card.key === "goals"}
+      {@render goalList()}
+    {:else if card.key === "shopping"}
+      {@render shopping()}
+    {:else if card.key === "inventory"}
+      {@render inventory()}
+    {:else if card.key === "carrier"}
+      {@render carrier()}
+    {:else if card.key === "equipment"}
+      {@render equipment()}
+    {:else}
+      {@render engineers()}
+    {/if}
+  {/snippet}
+</CardStack>
+
+{#snippet goalList()}
   {#if goals.length === 0}
     <p class="muted">{t(language, "onFoot.goals.none")}</p>
   {/if}
@@ -83,31 +117,27 @@
     {/each}
   </ul>
   <ClassUpgradeForm equipment={onFoot.equipment} {language} />
-</section>
+{/snippet}
 
-{#if onFoot.goals.length > 0}
-  <section aria-labelledby="on-foot-shopping-title">
-    <h2 id="on-foot-shopping-title">{t(language, "onFoot.shopping")}</h2>
-    {#if onFoot.shoppingList.length === 0}
-      <p class="muted">{t(language, "engineering.shopping.empty")}</p>
-    {:else}
-      <dl class="pairs">
-        {#each onFoot.shoppingList as item (item.symbol)}
-          <dt>{item.name}</dt>
-          <dd>
-            {t(language, "engineering.shopping.item", { count: item.count, held: item.held })}
-          </dd>
-        {/each}
-      </dl>
-    {/if}
-    <p class="muted small">
-      {t(language, "onFoot.shopping.credits", { credits: creditsText(onFoot.credits, language) })}
-    </p>
-  </section>
-{/if}
+{#snippet shopping()}
+  {#if onFoot.shoppingList.length === 0}
+    <p class="muted">{t(language, "engineering.shopping.empty")}</p>
+  {:else}
+    <dl class="pairs">
+      {#each onFoot.shoppingList as item (item.symbol)}
+        <dt>{item.name}</dt>
+        <dd>
+          {t(language, "engineering.shopping.item", { count: item.count, held: item.held })}
+        </dd>
+      {/each}
+    </dl>
+  {/if}
+  <p class="muted small">
+    {t(language, "onFoot.shopping.credits", { credits: creditsText(onFoot.credits, language) })}
+  </p>
+{/snippet}
 
-<section aria-labelledby="on-foot-inventory-title">
-  <h2 id="on-foot-inventory-title">{t(language, "onFoot.inventory")}</h2>
+{#snippet inventory()}
   {#if !onFoot.known}
     <p class="muted">{t(language, "onFoot.inventory.unknown")}</p>
   {:else if onFoot.materials.length === 0}
@@ -132,10 +162,9 @@
       {/each}
     </div>
   {/if}
-</section>
+{/snippet}
 
-<section aria-labelledby="carrier-title">
-  <h2 id="carrier-title">{t(language, "onFoot.carrier")}</h2>
+{#snippet carrier()}
   {#if onFoot.carrierMoves.length === 0}
     <p class="muted">{t(language, "onFoot.carrier.none")}</p>
   {:else}
@@ -151,10 +180,9 @@
     </ul>
     <p class="muted small">{t(language, "onFoot.carrier.unknown")}</p>
   {/if}
-</section>
+{/snippet}
 
-<section aria-labelledby="equipment-title">
-  <h2 id="equipment-title">{t(language, "onFoot.equipment")}</h2>
+{#snippet equipment()}
   {#if onFoot.equipment.length === 0}
     <p class="muted">{t(language, "onFoot.equipment.none")}</p>
   {:else}
@@ -164,10 +192,9 @@
       {/each}
     </ul>
   {/if}
-</section>
+{/snippet}
 
-<section aria-labelledby="on-foot-engineers-title">
-  <h2 id="on-foot-engineers-title">{t(language, "onFoot.engineers")}</h2>
+{#snippet engineers()}
   <ul class="engineers">
     {#each onFoot.engineers as engineer (engineer.id)}
       <li class:unlocked={engineer.status === "unlocked"}>
@@ -178,21 +205,11 @@
       </li>
     {/each}
   </ul>
-</section>
+{/snippet}
 
 <style>
-  section {
-    background: var(--colour-surface);
-    border: 1px solid var(--colour-border);
-    border-radius: var(--radius);
-    padding: var(--space-3);
-  }
-  h2 {
-    margin: 0 0 var(--space-2);
-    font-size: 1.1rem;
-  }
   h3 {
-    margin: var(--space-2) 0 var(--space-1);
+    margin: 0 0 var(--space-1);
     font-size: 1rem;
   }
   ul {

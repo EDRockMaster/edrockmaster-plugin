@@ -96,7 +96,6 @@ describe("ActivityBlock", () => {
     render(ActivityBlock, {
       block: block({ alert: "Painite 42 %" }),
       language: "en",
-      current: false,
       onreset: vi.fn(),
     });
     expect(screen.getByText("Mining", { selector: ".status" })).toBeInTheDocument();
@@ -110,7 +109,6 @@ describe("ActivityBlock", () => {
     render(ActivityBlock, {
       block: block({ lines: [] }),
       language: "en",
-      current: true,
       onreset: vi.fn(),
     });
     expect(document.querySelector("dl")).toBeNull();
@@ -122,7 +120,6 @@ describe("ActivityBlock of an ended session", () => {
     render(ActivityBlock, {
       block: block({ status: "Session ended: game closed", canReset: false }),
       language: "fr",
-      current: true,
       onreset: vi.fn(),
     });
     expect(screen.queryByRole("button")).toBeNull();

@@ -87,6 +87,13 @@ class InterfaceApi:
         """``recordings`` or ``logs``: any other name is refused by the core."""
         self._core.open_folder(name)
 
+    def layout(self) -> dict[str, Any]:
+        """Returned to the page: the order of the cards of each view, and those folded."""
+        return self._core.layout()
+
+    def save_layout(self, view: str, layout: dict[str, Any]) -> None:
+        self._core.save_layout(view, layout)
+
 
 class _Window:
     """The pywebview window, known once created: the core's pushes go to it."""

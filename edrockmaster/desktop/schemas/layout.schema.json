@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://edrm.space/schemas/desktop/layout.schema.json",
+  "title": "Layout",
+  "description": "The order of the cards of each view, and those the player folded (ADR 0021): returned by the core's layout() call; save_layout(view, layout) sends one view's back.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "activities",
+    "engineering",
+    "onFoot"
+  ],
+  "properties": {
+    "activities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order",
+        "folded"
+      ],
+      "properties": {
+        "order": {
+          "type": "array",
+          "description": "Every card of the view, top to bottom.",
+          "items": {
+            "enum": [
+              "mining",
+              "combat",
+              "trade",
+              "engineering"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "folded": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "mining",
+              "combat",
+              "trade",
+              "engineering"
+            ]
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "engineering": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order",
+        "folded"
+      ],
+      "properties": {
+        "order": {
+          "type": "array",
+          "description": "Every card of the view, top to bottom.",
+          "items": {
+            "enum": [
+              "goals",
+              "shopping",
+              "inventory",
+              "engineers"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "folded": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "goals",
+              "shopping",
+              "inventory",
+              "engineers"
+            ]
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "onFoot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order",
+        "folded"
+      ],
+      "properties": {
+        "order": {
+          "type": "array",
+          "description": "Every card of the view, top to bottom.",
+          "items": {
+            "enum": [
+              "goals",
+              "shopping",
+              "inventory",
+              "carrier",
+              "equipment",
+              "engineers"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "folded": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "goals",
+              "shopping",
+              "inventory",
+              "carrier",
+              "equipment",
+              "engineers"
+            ]
+          },
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}
