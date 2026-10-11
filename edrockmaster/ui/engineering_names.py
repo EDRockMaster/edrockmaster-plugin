@@ -1,10 +1,13 @@
 """Display names of engineering: materials, blueprints, effects, module types, engineers, goals
-(ADR 0017).
+(ADR 0017), suits and weapons (ADR 0027).
 
 A material shows the game's own name when the journal gave it (the game's
 language), else the catalogue's English name, translated (on foot, as it is); the others always
-come from the catalogue, translated. A name the catalogue lacks shows as the
-journal writes it; so do all of them without a catalogue.
+come from the catalogue, translated. Suits are named by the catalogue too: the
+journal names them by a key of the game's own (``$UtilitySuit_Class1_Name;``);
+weapons keep their maker's name (``Karma C-44``), as the game writes it. A
+name the catalogue lacks shows as the journal writes it; so do all of them
+without a catalogue.
 """
 
 from __future__ import annotations
@@ -12,18 +15,14 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import assert_never
 
-from edrockmaster.domain.engineering.catalogue import Catalogue
-from edrockmaster.domain.engineering.goals import BlueprintGoal, ExperimentalEffectGoal, Goal
+from edrockmaster.domain.engineering.catalogue import Catalogue, EquipmentKind
+from edrockmaster.domain.engineering.goals import (
+    BlueprintGoal,
+    ClassUpgradeGoal,
+    ExperimentalEffectGoal,
+    Goal,
+)
 from edrockmaster.ui.panel_model import Translate
-
-SUIT_NAMES = {
-    "flightsuit": "Flight suit",
-    "utilitysuit": "Maverick suit",
-    "tacticalsuit": "Dominator suit",
-    "explorationsuit": "Artemis suit",
-}
-"""English names of the suits, by journal symbol without class (ADR 0027): the journal names
-them by a key of the game's own (``$UtilitySuit_Class1_Name;``)."""
 
 
 class EngineeringNames:
@@ -67,9 +66,12 @@ class EngineeringNames:
             name = self._catalogue.on_foot_engineers.get(engineer_id)
         return self._tl(name) if name else str(engineer_id)
 
-    def suit(self, symbol: str) -> str:
-        name = SUIT_NAMES.get(symbol)
-        return self._tl(name) if name else symbol
+    def item(self, symbol: str) -> str:
+        """A suit or a weapon, by its journal symbol without class."""
+        item = self._catalogue.on_foot_items.get(symbol) if self._catalogue else None
+        if item is None:
+            return symbol
+        return self._tl(item.english_name) if item.kind is EquipmentKind.SUIT else item.english_name
 
     def goal(self, goal: Goal) -> str:
         """``Frame shift drive: Increased range, grade 5``."""
@@ -83,6 +85,10 @@ class EngineeringNames:
             case ExperimentalEffectGoal():
                 return self._tl("{module}: {effect}").format(
                     module=self.module(goal.module), effect=self.effect(goal.effect)
+                )
+            case ClassUpgradeGoal():
+                return self._tl("{item}: class {from_class} to {to_class}").format(
+                    item=self.item(goal.item), from_class=goal.from_class, to_class=goal.to_class
                 )
             case _:  # pragma: no cover - exhaustiveness checked by mypy
                 assert_never(goal)

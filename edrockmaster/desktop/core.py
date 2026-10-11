@@ -291,7 +291,9 @@ class DesktopCore:
         def add() -> None:
             engineering = self._require_companion().engineering
             try:
-                goal = goal_from_request(request, engineering.catalogue)
+                goal = goal_from_request(
+                    request, engineering.catalogue, engineering.equipment, self._clock.now()
+                )
             except ValueError as error:
                 self._logger.warning("Goal refused: %s", error)
                 return

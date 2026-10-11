@@ -17,7 +17,13 @@ from edrockmaster.desktop.engineering_view import (
     with_count,
 )
 from edrockmaster.desktop.live_view import SCHEMA
-from edrockmaster.domain.engineering.goals import BlueprintGoal, ExperimentalEffectGoal, GoalId
+from edrockmaster.domain.engineering.goals import (
+    BlueprintGoal,
+    ClassUpgradeGoal,
+    ExperimentalEffectGoal,
+    GoalId,
+)
+from edrockmaster.domain.engineering.on_foot_journal import Suit
 from edrockmaster.infrastructure.catalogue_file import load_catalogue
 from edrockmaster.ui.engineering_names import EngineeringNames
 from tests.fakes import FakeGoalRepository, FixedClock
@@ -32,6 +38,7 @@ GOAL_CATALOGUE = jsonschema.Draft202012Validator(
     json.loads((SCHEMAS / "goal_catalogue.schema.json").read_text(encoding="utf-8"))
 )
 T0 = "2026-10-08T05:30:00Z"
+NOW = datetime(2026, 10, 11, 1, 30, tzinfo=UTC)
 POWER_DISTRIBUTOR = BlueprintGoal(GoalId("pd"), "PowerDistributor_HighCapacity", "pd", 2, rolls=3)
 MASS_MANAGER = ExperimentalEffectGoal(GoalId("mm"), "special_fsd_heavy", "fsd")
 
@@ -198,11 +205,13 @@ def test_a_goal_from_the_form() -> None:
     goal = goal_from_request(
         {"kind": "blueprint", "module": "fsd", "name": "FSD_LongRange", "grade": 5, "count": 4},
         CATALOGUE,
+        {},
+        NOW,
     )
     assert isinstance(goal, BlueprintGoal)
     assert (goal.blueprint, goal.module, goal.grade, goal.rolls) == ("FSD_LongRange", "fsd", 5, 4)
     effect = goal_from_request(
-        {"kind": "effect", "module": "fsd", "name": "special_fsd_heavy"}, CATALOGUE
+        {"kind": "effect", "module": "fsd", "name": "special_fsd_heavy"}, CATALOGUE, {}, NOW
     )
     assert isinstance(effect, ExperimentalEffectGoal)
     assert effect.applications == 1
@@ -222,7 +231,7 @@ def test_a_goal_from_the_form() -> None:
 )
 def test_a_goal_the_catalogue_does_not_offer_is_refused(request_: dict[str, Any]) -> None:
     with pytest.raises(ValueError, match=r"goal|offers|grade|roll"):
-        goal_from_request(request_, CATALOGUE)
+        goal_from_request(request_, CATALOGUE, {}, NOW)
 
 
 def test_a_goal_with_a_new_count() -> None:
@@ -232,6 +241,130 @@ def test_a_goal_with_a_new_count() -> None:
     assert with_count(MASS_MANAGER, 2).applications == 2  # type: ignore[union-attr]
     with pytest.raises(ValueError, match="application"):
         with_count(MASS_MANAGER, 0)
+
+
+DOMINATOR = Suit(1878707285049801, "tacticalsuit", 2, ())
+ECLIPSE = "wpn_m_submachinegun_laser_fauto"
+
+
+def test_a_class_upgrade_from_the_form() -> None:
+    # The player's own item: the goal follows it, from its class
+    mine = goal_from_request(
+        {"kind": "classUpgrade", "item": "tacticalsuit", "toClass": 4, "equipmentId": DOMINATOR.id},
+        CATALOGUE,
+        {DOMINATOR.id: DOMINATOR},
+        NOW,
+    )
+    assert isinstance(mine, ClassUpgradeGoal)
+    assert (mine.item, mine.from_class, mine.to_class, mine.equipment_id) == (
+        "tacticalsuit",
+        2,
+        4,
+        DOMINATOR.id,
+    )
+    assert mine.set_at == NOW
+    # A type: from the class the player says, 1 by default
+    weapon = goal_from_request(
+        {"kind": "classUpgrade", "item": ECLIPSE, "toClass": 3}, CATALOGUE, {}, NOW
+    )
+    assert isinstance(weapon, ClassUpgradeGoal)
+    assert (weapon.from_class, weapon.to_class, weapon.equipment_id) == (1, 3, None)
+
+
+@pytest.mark.parametrize(
+    "request_",
+    [
+        {"kind": "classUpgrade", "item": "helmet", "toClass": 3},
+        {
+            "kind": "classUpgrade",
+            "item": "tacticalsuit",
+            "toClass": 2,
+            "equipmentId": 1878707285049801,
+        },
+        {"kind": "classUpgrade", "item": "tacticalsuit", "toClass": 6},
+        {
+            "kind": "classUpgrade",
+            "item": "utilitysuit",
+            "toClass": 4,
+            "equipmentId": 1878707285049801,
+        },
+        {"kind": "classUpgrade", "item": "tacticalsuit", "toClass": 4, "equipmentId": 9},
+        {"kind": "classUpgrade", "item": "tacticalsuit", "toClass": "4"},
+    ],
+)
+def test_a_class_upgrade_the_form_cannot_ask_for(request_: dict[str, Any]) -> None:
+    with pytest.raises(ValueError, match=r"goal|class|item"):
+        goal_from_request(request_, CATALOGUE, {DOMINATOR.id: DOMINATOR}, NOW)
+
+
+def test_a_class_upgrade_aiming_at_another_class() -> None:
+    goal = ClassUpgradeGoal(GoalId("up"), "tacticalsuit", 1, 3, NOW)
+    assert with_count(goal, 5) == ClassUpgradeGoal(GoalId("up"), "tacticalsuit", 1, 5, NOW)
+    with pytest.raises(ValueError, match="class"):
+        with_count(goal, 1)
+
+
+def test_class_upgrade_goals_on_foot(service: EngineeringService) -> None:
+    service.add_goal(ClassUpgradeGoal(GoalId("up"), "tacticalsuit", 2, 5, NOW, DOMINATOR.id))
+    part = on_foot(
+        service,
+        {
+            "event": "ShipLocker",
+            "Items": [
+                {"Name": "suitschematic", "Name_Localised": "Plan de combinaison", "Count": 3}
+            ],
+            "Components": [{"Name": "graphene", "Name_Localised": "Graphène", "Count": 20}],
+            "Consumables": [],
+            "Data": [],
+        },
+    )
+    [goal] = part["goals"]
+    assert goal["title"] == "Dominator suit"
+    assert (goal["item"], goal["equipmentId"], goal["fromClass"], goal["toClass"]) == (
+        "tacticalsuit",
+        DOMINATOR.id,
+        2,
+        5,
+    )
+    # To class 3 and 4 known (one deduced), to class 5 not seen yet (ADR 0030)
+    assert goal["known"] is False
+    assert goal["unknownClasses"] == [5]
+    assert goal["unverified"] is True
+    assert goal["credits"] == 6_750_000
+    assert goal["ready"] is False
+    missing = {row["symbol"]: row["count"] for row in goal["missing"]}
+    assert missing == {
+        "healthmonitor": 6,
+        "manufacturinginstructions": 6,
+        "suitschematic": 3,
+        "titaniumplating": 14,
+    }
+    assert {row["symbol"]: row["held"] for row in part["shoppingList"]}["suitschematic"] == 3
+    assert part["credits"] == 6_750_000
+    # The ship's goals and list hold no on-foot goal
+    assert all(row["kind"] != "classUpgrade" for row in view(service)["goals"])
+
+
+def test_the_goal_form_s_suits_and_weapons(service: EngineeringService) -> None:
+    items = catalogue_view(CATALOGUE, names(service))["onFootItems"]
+    assert [row["kind"] for row in items][:4] == ["suit"] * 4
+    dominator = next(row for row in items if row["symbol"] == "tacticalsuit")
+    assert dominator["name"] == "Dominator suit"
+    assert [(row["toClass"], row["confidence"]) for row in dominator["upgrades"]] == [
+        (2, "game"),
+        (3, "deduced"),
+        (4, "game"),
+    ]
+    assert dominator["upgrades"][0]["credits"] == 600_000
+    assert {row["symbol"] for row in dominator["upgrades"][0]["ingredients"]} == {
+        "graphene",
+        "healthmonitor",
+        "manufacturinginstructions",
+        "suitschematic",
+        "titaniumplating",
+    }
+    eclipse = next(row for row in items if row["symbol"] == ECLIPSE)
+    assert (eclipse["kind"], eclipse["name"]) == ("weapon", "TK Eclipse")
 
 
 def on_foot(service: EngineeringService, *entries: dict[str, Any]) -> dict[str, Any]:
@@ -343,8 +476,14 @@ def test_on_foot_engineers_and_equipment(service: EngineeringService) -> None:
     # Ship engineers stay in the ship part
     assert all(row["id"] > 400000 for row in part["engineers"])
     assert part["equipment"] == [
-        {"id": 1, "kind": "suit", "name": "Maverick suit", "class": 2},
-        {"id": 2, "kind": "weapon", "name": "Karma C-44", "class": 1},
+        {"id": 1, "kind": "suit", "symbol": "utilitysuit", "name": "Maverick suit", "class": 2},
+        {
+            "id": 2,
+            "kind": "weapon",
+            "symbol": "wpn_m_submachinegun_kinetic_fauto",
+            "name": "Karma C-44",
+            "class": 1,
+        },
     ]
 
 

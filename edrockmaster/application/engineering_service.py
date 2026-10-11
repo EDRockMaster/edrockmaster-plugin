@@ -55,6 +55,12 @@ class EngineeringService:
     def shopping_list(self) -> Ingredients:
         return self._tracker.shopping_list()
 
+    def on_foot_shopping_list(self) -> Ingredients:
+        return self._tracker.on_foot_shopping_list()
+
+    def on_foot_credits(self) -> int:
+        return self._tracker.on_foot_credits()
+
     @property
     def on_foot_inventory(self) -> tuple[OnFootHolding, ...] | None:
         return self._tracker.on_foot_inventory

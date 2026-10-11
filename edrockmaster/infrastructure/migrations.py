@@ -36,6 +36,25 @@ MIGRATIONS: tuple[Migration, ...] = (
             """,
         ),
     ),
+    Migration(
+        2,
+        (
+            # Class upgrades of suits and weapons (ADR 0027): kept apart from the ship goals,
+            # whose kinds the first table checks; the time it was set in UTC, ISO 8601
+            """
+            CREATE TABLE class_upgrade_goal (
+                id TEXT PRIMARY KEY,
+                position INTEGER NOT NULL UNIQUE,
+                item TEXT NOT NULL CHECK (item <> ''),
+                from_class INTEGER NOT NULL CHECK (from_class BETWEEN 1 AND 4),
+                to_class INTEGER NOT NULL CHECK (to_class BETWEEN 2 AND 5),
+                set_at TEXT NOT NULL CHECK (set_at <> ''),
+                equipment_id INTEGER,
+                CHECK (from_class < to_class)
+            ) STRICT
+            """,
+        ),
+    ),
 )
 
 LATEST_VERSION = MIGRATIONS[-1].version

@@ -2,12 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://edrm.space/schemas/desktop/goal_catalogue.schema.json",
   "title": "GoalCatalogue",
-  "description": "What the goal form and the blueprints tab offer (ADR 0017): returned once by the core's catalogue() call. Names in the player's language.",
+  "description": "What the goal form and the blueprints tab offer (ADR 0017, ADR 0027): returned once by the core's catalogue() call. Names in the player's language.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "date",
-    "modules"
+    "modules",
+    "onFootItems"
   ],
   "properties": {
     "date": {
@@ -111,6 +112,73 @@
                 },
                 "ingredients": {
                   "description": "What one application takes.",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/ingredient"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "onFootItems": {
+      "description": "Suits then weapons, with their known class upgrades (ADR 0027, ADR 0030).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "symbol",
+          "kind",
+          "name",
+          "upgrades"
+        ],
+        "properties": {
+          "symbol": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "suit",
+              "weapon"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "upgrades": {
+            "description": "The known steps, by the class they rise to; an unknown one is absent.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "toClass",
+                "credits",
+                "confidence",
+                "ingredients"
+              ],
+              "properties": {
+                "toClass": {
+                  "type": "integer",
+                  "minimum": 2,
+                  "maximum": 5
+                },
+                "credits": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "confidence": {
+                  "enum": [
+                    "game",
+                    "deduced",
+                    "web"
+                  ],
+                  "description": "Seen in game, deduced from a rule read in game, or read from public sources (ADR 0030)."
+                },
+                "ingredients": {
                   "type": "array",
                   "items": {
                     "$ref": "#/$defs/ingredient"

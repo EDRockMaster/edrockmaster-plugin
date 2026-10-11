@@ -130,7 +130,7 @@ export interface Ingredient {
   held: number;
 }
 /**
- * On foot (ADR 0027, ADR 0029): materials held, on-foot engineers, suits and weapons seen, moves to or from the player's fleet carrier. Names in the player's language.
+ * On foot (ADR 0027, ADR 0029, ADR 0030): materials held, on-foot engineers, suits and weapons seen, moves to or from the player's fleet carrier, class upgrade goals with their shopping list and credits. Names in the player's language.
  */
 export interface OnFoot {
   /**
@@ -168,6 +168,10 @@ export interface OnFoot {
   equipment: {
     id: number;
     kind: "suit" | "weapon";
+    /**
+     * Journal symbol of its type, without class: what a class upgrade goal names.
+     */
+    symbol: string;
     name: string;
     /**
      * 1 to 5; null for the flight suit.
@@ -189,4 +193,50 @@ export interface OnFoot {
       count: number;
     }[];
   }[];
+  /**
+   * Class upgrades, in the order they were added.
+   */
+  goals: {
+    id: string;
+    /**
+     * Journal symbol of the suit or weapon type.
+     */
+    item: string;
+    title: string;
+    /**
+     * The player's own item it follows; null for any item of the type.
+     */
+    equipmentId: number | null;
+    fromClass: number;
+    toClass: number;
+    /**
+     * False when a step's recipe is not known.
+     */
+    known: boolean;
+    /**
+     * The classes whose upgrade recipe is not known (ADR 0030).
+     */
+    unknownClasses: number[];
+    /**
+     * A step's recipe was not seen in game: deduced or read elsewhere (ADR 0030).
+     */
+    unverified: boolean;
+    /**
+     * Credits of the known steps: shown, not counted.
+     */
+    credits: number;
+    ready: boolean;
+    /**
+     * What the on-foot materials held lack for the known steps; null while the ship locker is unknown.
+     */
+    missing: null | Ingredient[];
+  }[];
+  /**
+   * What the on-foot materials held lack for every class upgrade.
+   */
+  shoppingList: Ingredient[];
+  /**
+   * Credits of every class upgrade: shown, not counted.
+   */
+  credits: number;
 }
