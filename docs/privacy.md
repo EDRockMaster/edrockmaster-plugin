@@ -2,7 +2,7 @@
 
 *English · [Français](privacy.fr.md)*
 
-Last updated: 9 October 2026. Applies to the EDRockMaster Companion desktop application and to the EDRockMaster plugin for EDMarketConnector, published by Nexagone.
+Last updated: 11 October 2026. Applies to the EDRockMaster Companion desktop application and to the EDRockMaster plugin for EDMarketConnector, published by DamScan, a personal and non-commercial project.
 
 ## In short
 
