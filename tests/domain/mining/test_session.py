@@ -381,7 +381,7 @@ def test_sale_during_a_running_session_is_credited_to_it() -> None:
 def test_galaxy_is_live_until_told_otherwise() -> None:
     tracker = MiningTracker()
     assert tracker.is_live is True
-    assert tracker.handle(GameLoaded(at=at(0), game_version="3.8.0.407", is_live=False)) == []
+    assert tracker.handle(GameLoaded(at=at(0), is_live=False)) == []
     assert tracker.is_live is False
 
 

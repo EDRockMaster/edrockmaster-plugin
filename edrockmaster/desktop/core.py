@@ -101,6 +101,24 @@ type Push = Callable[[dict[str, Any]], None]
 """Sends the live view to the interface; called on the core thread, must not block."""
 
 
+def game_description(entry: Entry, is_beta: bool = False) -> str:
+    """The game a ``LoadGame`` entry tells of, for the log: a bug report then says which."""
+    version = entry.get("gameversion")
+    build = entry.get("build")
+    parts = [f"Elite Dangerous {version}" if isinstance(version, str) else "Elite Dangerous"]
+    if not isinstance(version, str):
+        parts[0] += ", version unknown"
+    elif isinstance(build, str) and build.strip():
+        parts[0] += f" (build {build.strip()})"
+    if entry.get("Odyssey") is True:
+        parts.append("Odyssey")
+    elif entry.get("Horizons") is True:
+        parts.append("Horizons")
+    if is_beta:
+        parts.append("beta")
+    return ", ".join(parts)
+
+
 def _alert_sound() -> None:  # pragma: no cover - the sound of the platform
     if sys.platform == "win32":
         winsound.MessageBeep(winsound.MB_ICONEXCLAMATION)
@@ -522,6 +540,8 @@ class DesktopCore:
         self._core.submit(lambda: self._handle(entry, is_beta))
 
     def _handle(self, entry: Entry, is_beta: bool) -> None:
+        if entry.get("event") == "LoadGame":
+            self._logger.info("Game loaded: %s", game_description(entry, is_beta))
         try:
             notifications = self._require_companion().handle_journal_entry(entry, is_beta)
         except Exception:
