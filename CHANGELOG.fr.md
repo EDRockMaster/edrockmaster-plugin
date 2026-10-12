@@ -12,6 +12,10 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 - **Estimer la soute** : un bouton sous la carte de minage évalue la cargaison minée et pas encore vendue au meilleur marché autour de votre système actuel, marchandise par marchandise.
 - **Sources communautaires** dans les *Réglages* : Spansh et Ardent Insight se désactivent chacun ; la politique de confidentialité dit ce qu'ils reçoivent.
 
+### Corrigé
+
+- Les *Réglages* ne perdent plus les modifications non enregistrées quand vous ouvrez un autre onglet : ils demandent s'il faut les enregistrer, les abandonner ou continuer à modifier.
+
 ## [0.5.0] - 2026-10-11
 
 La première version publiée d'**EDRockMaster Companion**, l'application de bureau, qui remplace le plugin EDMC.

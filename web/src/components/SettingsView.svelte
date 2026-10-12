@@ -5,42 +5,37 @@
   import type { Settings } from "../lib/settings";
   import {
     ACTIVITIES,
+    formOf,
     percent,
-    percentText,
+    settingsFrom,
+    unsaved,
     withActivity,
-    type Activity,
+    type SettingsForm,
   } from "../lib/settings-form";
 
-  let { language, journal }: { language: Language; journal: LiveView["journal"] } = $props();
+  let {
+    language,
+    journal,
+    leaving = false,
+    onunsaved,
+    onleave,
+  }: {
+    language: Language;
+    journal: LiveView["journal"];
+    /** The player asked for another tab: confirm before losing the changes. */
+    leaving?: boolean;
+    onunsaved?: (unsaved: boolean) => void;
+    /** Whether the player may go, once the changes are saved or dropped. */
+    onleave?: (leave: boolean) => void;
+  } = $props();
 
   let loaded = $state<Settings | null>(null);
-  // Percentages are edited as text: empty means none
-  let thresholds = $state<Record<string, string>>({});
-  let remaining = $state("");
-  let minimumContent = $state<Settings["alerts"]["minimumContent"]>("low");
-  let cores = $state(true);
-  let sound = $state(true);
-  let recordJournal = $state(false);
-  let activities = $state<Activity[]>([]);
-  let chosenLanguage = $state<Settings["language"]>("auto");
-  let journalFolder = $state("");
-  let sources = $state<Settings["sources"]>({ spansh: true, ardent: true });
+  let form = $state<SettingsForm | null>(null);
   let message = $state<"saved" | "invalid" | null>(null);
 
   function show(settings: Settings): void {
     loaded = settings;
-    thresholds = Object.fromEntries(
-      settings.alerts.thresholds.map((row) => [row.commodity, percentText(row.threshold)]),
-    );
-    remaining = percentText(settings.alerts.minimumRemaining);
-    minimumContent = settings.alerts.minimumContent;
-    cores = settings.alerts.cores;
-    sound = settings.sound;
-    recordJournal = settings.recordJournal;
-    activities = [...settings.activities];
-    chosenLanguage = settings.language;
-    journalFolder = settings.journalFolder ?? "";
-    sources = { ...settings.sources };
+    form = formOf(settings);
   }
 
   // The settings are read when the tab opens
@@ -48,45 +43,32 @@
     void core()?.settings().then(show);
   });
 
-  const invalid = $derived(
-    Object.values(thresholds).some((text) => percent(text) === undefined) ||
-      percent(remaining) === undefined ||
-      activities.length === 0,
-  );
+  const changed = $derived(loaded !== null && form !== null && unsaved(loaded, form));
+  $effect(() => {
+    onunsaved?.(changed);
+  });
+
+  /** Saves the form, and tells whether it could. */
+  function store(): boolean {
+    if (loaded === null || form === null) return false;
+    const settings = settingsFrom(loaded, form);
+    if (settings === null) {
+      message = "invalid";
+      return false;
+    }
+    void core()?.save_settings(settings);
+    show(settings);
+    message = "saved";
+    return true;
+  }
 
   function save(event: SubmitEvent): void {
     event.preventDefault();
-    if (loaded === null) return;
-    const [first, ...others] = activities;
-    if (invalid || first === undefined) {
-      message = "invalid";
-      return;
-    }
-    const settings: Settings = {
-      ...loaded,
-      alerts: {
-        thresholds: loaded.alerts.thresholds.map((row) => ({
-          ...row,
-          threshold: percent(thresholds[row.commodity] ?? "") ?? null,
-        })),
-        minimumContent,
-        minimumRemaining: percent(remaining) ?? null,
-        cores,
-      },
-      sound,
-      recordJournal,
-      activities: [first, ...others],
-      language: chosenLanguage,
-      journalFolder: journalFolder.trim() === "" ? null : journalFolder.trim(),
-      sources: { ...sources },
-    };
-    void core()?.save_settings(settings);
-    loaded = settings;
-    message = "saved";
+    store();
   }
 </script>
 
-{#if loaded === null}
+{#if loaded === null || form === null}
   <p class="muted">{t(language, "settings.loading")}</p>
 {:else}
   <form onsubmit={save} aria-label={t(language, "tab.settings")}>
@@ -95,12 +77,12 @@
       <p class="muted">{t(language, "settings.alerts.help")}</p>
       <div class="thresholds">
         {#each loaded.alerts.thresholds as row (row.commodity)}
-          <label class:wrong={percent(thresholds[row.commodity] ?? "") === undefined}>
+          <label class:wrong={percent(form.thresholds[row.commodity] ?? "") === undefined}>
             <span>{row.name}</span>
             <input
               inputmode="decimal"
               size="4"
-              bind:value={thresholds[row.commodity]}
+              bind:value={form.thresholds[row.commodity]}
               aria-label={t(language, "settings.threshold", { commodity: row.name })}
             />
           </label>
@@ -108,34 +90,40 @@
       </div>
       <label class="line">
         {t(language, "settings.minimumContent")}
-        <select bind:value={minimumContent}>
+        <select bind:value={form.minimumContent}>
           <option value="low">{t(language, "settings.content.low")}</option>
           <option value="medium">{t(language, "settings.content.medium")}</option>
           <option value="high">{t(language, "settings.content.high")}</option>
         </select>
       </label>
-      <label class="line" class:wrong={percent(remaining) === undefined}>
+      <label class="line" class:wrong={percent(form.remaining) === undefined}>
         {t(language, "settings.minimumRemaining")}
-        <input inputmode="decimal" size="4" bind:value={remaining} />
+        <input inputmode="decimal" size="4" bind:value={form.remaining} />
       </label>
       <label class="check"
-        ><input type="checkbox" bind:checked={cores} />{t(language, "settings.cores")}</label
+        ><input type="checkbox" bind:checked={form.cores} />{t(language, "settings.cores")}</label
       >
       <label class="check"
-        ><input type="checkbox" bind:checked={sound} />{t(language, "settings.sound")}</label
+        ><input type="checkbox" bind:checked={form.sound} />{t(language, "settings.sound")}</label
       >
     </section>
 
     <section>
       <h2>{t(language, "settings.display")}</h2>
-      <div class:wrong={activities.length === 0}>
+      <div class:wrong={form.activities.length === 0}>
         {#each ACTIVITIES as activity (activity)}
           <label class="check">
             <input
               type="checkbox"
-              checked={activities.includes(activity)}
-              onchange={(event) =>
-                (activities = withActivity(activities, activity, event.currentTarget.checked))}
+              checked={form.activities.includes(activity)}
+              onchange={(event) => {
+                if (form !== null)
+                  form.activities = withActivity(
+                    form.activities,
+                    activity,
+                    event.currentTarget.checked,
+                  );
+              }}
             />
             {t(language, `activity.${activity}`)}
           </label>
@@ -143,7 +131,7 @@
       </div>
       <label class="line">
         {t(language, "settings.language")}
-        <select bind:value={chosenLanguage}>
+        <select bind:value={form.language}>
           <option value="auto">{t(language, "settings.language.auto")}</option>
           <option value="en">{t(language, "settings.language.en")}</option>
           <option value="fr">{t(language, "settings.language.fr")}</option>
@@ -167,11 +155,11 @@
       {/if}
       <label class="line wide">
         {t(language, "settings.journalFolder")}
-        <input bind:value={journalFolder} spellcheck="false" />
+        <input bind:value={form.journalFolder} spellcheck="false" />
       </label>
       <p class="muted small">{t(language, "settings.journalRestart")}</p>
       <label class="check">
-        <input type="checkbox" bind:checked={recordJournal} />{t(
+        <input type="checkbox" bind:checked={form.recordJournal} />{t(
           language,
           "settings.recordJournal",
         )}
@@ -189,13 +177,13 @@
       <h2>{t(language, "settings.sources")}</h2>
       <p class="muted">{t(language, "settings.sources.help")}</p>
       <label class="check">
-        <input type="checkbox" bind:checked={sources.spansh} />{t(
+        <input type="checkbox" bind:checked={form.sources.spansh} />{t(
           language,
           "settings.sources.spansh",
         )}
       </label>
       <label class="check">
-        <input type="checkbox" bind:checked={sources.ardent} />{t(
+        <input type="checkbox" bind:checked={form.sources.ardent} />{t(
           language,
           "settings.sources.ardent",
         )}
@@ -221,6 +209,24 @@
       {/if}
     </div>
   </form>
+  {#if leaving}
+    <div class="backdrop">
+      <div role="alertdialog" aria-modal="true" aria-labelledby="unsaved-title" class="dialog">
+        <p id="unsaved-title">{t(language, "settings.unsaved")}</p>
+        <div class="actions">
+          <button type="button" onclick={() => onleave?.(store())}>
+            {t(language, "settings.save")}
+          </button>
+          <button type="button" onclick={() => onleave?.(true)}>
+            {t(language, "settings.unsaved.drop")}
+          </button>
+          <button type="button" onclick={() => onleave?.(false)}>
+            {t(language, "settings.unsaved.stay")}
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
 {/if}
 
 <style>
@@ -304,7 +310,26 @@
   }
   .actions {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--space-3);
+  }
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgb(0 0 0 / 50%);
+  }
+  .dialog {
+    max-width: 32rem;
+    margin: var(--space-3);
+    padding: var(--space-3);
+    background: var(--colour-surface);
+    border: 1px solid var(--colour-alert);
+    border-radius: var(--radius);
+  }
+  .dialog p {
+    margin: 0 0 var(--space-3);
   }
 </style>

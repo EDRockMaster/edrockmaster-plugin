@@ -16,6 +16,22 @@
   type Tab = "activities" | "mining" | "engineering" | "blueprints" | "settings";
   const TABS: Tab[] = ["activities", "mining", "engineering", "blueprints", "settings"];
   let tab = $state<Tab>("activities");
+  // Leaving the settings with changes not saved asks first
+  let settingsUnsaved = $state(false);
+  let leavingFor = $state<Tab | null>(null);
+
+  function open(name: Tab): void {
+    if (tab === "settings" && name !== "settings" && settingsUnsaved) leavingFor = name;
+    else tab = name;
+  }
+
+  function leaveSettings(leave: boolean): void {
+    if (leave && leavingFor !== null) {
+      tab = leavingFor;
+      settingsUnsaved = false;
+    }
+    leavingFor = null;
+  }
   // Each activity block is a card the player can move and fold
   const activityCards = $derived(
     (view?.activities ?? []).map((block) => ({
@@ -62,7 +78,7 @@
           id="tab-{name}"
           aria-selected={tab === name}
           aria-controls="panel-{name}"
-          onclick={() => (tab = name)}
+          onclick={() => open(name)}
         >
           {t(language, `tab.${name}`)}
         </button>
@@ -89,7 +105,13 @@
       {:else if tab === "blueprints"}
         <BlueprintsView engineering={view.engineering} {language} />
       {:else}
-        <SettingsView {language} journal={view.journal} />
+        <SettingsView
+          {language}
+          journal={view.journal}
+          leaving={leavingFor !== null}
+          onunsaved={(unsaved) => (settingsUnsaved = unsaved)}
+          onleave={leaveSettings}
+        />
       {/if}
     </div>
   {/if}

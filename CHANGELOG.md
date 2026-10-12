@@ -12,6 +12,10 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 - **Estimate the cargo**: a button under the mining card prices the cargo mined and not sold yet at the best market around your current system, commodity by commodity.
 - **Community sources** in *Settings*: Spansh and Ardent Insight can each be turned off; the privacy policy says what they receive.
 
+### Fixed
+
+- *Settings* no longer drops changes not saved when you open another tab: it asks whether to save them, drop them or keep editing.
+
 ## [0.5.0] - 2026-10-11
 
 The first published version of **EDRockMaster Companion**, the desktop application, which replaces the EDMC plugin.
