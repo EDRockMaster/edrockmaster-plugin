@@ -46,7 +46,8 @@ WINDOW = {"width": 1100, "height": 760, "min_size": (520, 400), "background_colo
 
 
 class InterfaceApi:
-    """What the interface may call. Each call only queues work for the core thread."""
+    """What the interface may call. Each call only queues work for the core thread; the calls
+    of a context go to its handler (ADR 0041)."""
 
     def __init__(self, core: DesktopCore) -> None:
         self._core = core
@@ -65,53 +66,53 @@ class InterfaceApi:
 
     def catalogue(self) -> dict[str, Any]:
         """Returned to the page: the goal form's choices, read once."""
-        return self._core.catalogue()
+        return self._core.handlers.engineering.catalogue()
 
     def add_goal(self, request: dict[str, Any]) -> None:
-        self._core.add_goal(request)
+        self._core.handlers.engineering.add_goal(request)
 
     def change_goal(self, goal_id: str, count: int) -> None:
-        self._core.change_goal(goal_id, count)
+        self._core.handlers.engineering.change_goal(goal_id, count)
 
     def remove_goal(self, goal_id: str) -> None:
-        self._core.remove_goal(goal_id)
+        self._core.handlers.engineering.remove_goal(goal_id)
 
     def order_goals(self, order: list[str]) -> None:
         """The player's priority (ADR 0033): goal ids, first to last."""
-        self._core.order_goals(order)
+        self._core.handlers.engineering.order_goals(order)
 
     def settings(self) -> dict[str, Any]:
         """Returned to the page: what the settings form shows."""
-        return self._core.settings()
+        return self._core.handlers.settings.settings()
 
     def save_settings(self, request: dict[str, Any]) -> None:
-        self._core.save_settings(request)
+        self._core.handlers.settings.save_settings(request)
 
     def open_folder(self, name: str) -> None:
-        """``recordings`` or ``logs``: any other name is refused by the core."""
-        self._core.open_folder(name)
+        """``recordings`` or ``logs``: any other name is refused by the handler."""
+        self._core.handlers.settings.open_folder(name)
 
     def layout(self) -> dict[str, Any]:
         """Returned to the page: the order of the cards of each view, and those folded."""
-        return self._core.layout()
+        return self._core.handlers.layout.layout()
 
     def save_layout(self, view: str, layout: dict[str, Any]) -> None:
-        self._core.save_layout(view, layout)
+        self._core.handlers.layout.save_layout(view, layout)
 
     # The Mining tab (ADR 0040): pywebview runs each call on a thread of its own, so these may
     # wait for the community sources; the page gets their answer as the call's result
 
     def mining_options(self) -> dict[str, Any]:
-        return self._core.mining_options()
+        return self._core.handlers.mining.mining_options()
 
     def find_hotspots(self, request: dict[str, Any]) -> dict[str, Any]:
-        return self._core.find_hotspots(request)
+        return self._core.handlers.mining.find_hotspots(request)
 
     def find_buyers(self, request: dict[str, Any]) -> dict[str, Any]:
-        return self._core.find_buyers(request)
+        return self._core.handlers.mining.find_buyers(request)
 
     def estimate_cargo(self) -> dict[str, Any]:
-        return self._core.estimate_cargo()
+        return self._core.handlers.mining.estimate_cargo()
 
 
 class _Window:

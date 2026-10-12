@@ -12,7 +12,6 @@ from edrockmaster.desktop.layout import (
     LayoutError,
     LayoutStore,
     ViewLayout,
-    default_layout,
     layout_view,
     view_layout_from_request,
 )
@@ -20,6 +19,11 @@ from tests.desktop.schemas import LIVE_VIEW_SCHEMA as SCHEMA
 from tests.fakes import FakeConfig
 
 SCHEMAS = SCHEMA.parent
+
+
+def first_layout() -> dict[str, ViewLayout]:
+    """The layout before the player changes it: each view's cards in their first order."""
+    return {view: ViewLayout(cards, frozenset()) for view, cards in CARDS.items()}
 
 
 def test_the_cards_of_each_view_in_their_first_order() -> None:
@@ -33,12 +37,13 @@ def test_the_cards_of_each_view_in_their_first_order() -> None:
         "equipment",
         "engineers",
     )
-    layout = default_layout()
-    assert layout["engineering"] == ViewLayout(CARDS["engineering"], frozenset())
+    assert LayoutStore(FakeConfig()).load()["engineering"] == ViewLayout(
+        CARDS["engineering"], frozenset()
+    )
 
 
 def test_the_view_gives_every_card_of_every_view() -> None:
-    layout = dict(default_layout())
+    layout = first_layout()
     layout["engineering"] = ViewLayout(
         ("inventory", "goals", "shopping", "engineers"), frozenset({"engineers"})
     )
@@ -81,8 +86,8 @@ def test_a_request_the_interface_cannot_send_is_refused(
 def test_the_layout_is_kept_in_the_settings_file() -> None:
     config = FakeConfig()
     store = LayoutStore(config)
-    assert store.load() == default_layout()
-    layout = dict(default_layout())
+    assert store.load() == first_layout()
+    layout = first_layout()
     layout["onFoot"] = ViewLayout(
         ("engineers", *CARDS["onFoot"][:-1]), frozenset({"carrier", "equipment"})
     )

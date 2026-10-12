@@ -97,3 +97,19 @@ name = "The domain depends on nothing else of the application"
 type = "forbidden"
 source_modules = ["edrockmaster.domain"]
 forbidden_modules = ["edrockmaster.application"]
+
+[[tool.importlinter.contracts]]
+name = "The interface's handlers know neither one another nor the window (ADR 0041)"
+type = "independence"
+modules = [
+    "edrockmaster.desktop.handlers.settings",
+    "edrockmaster.desktop.handlers.layout",
+    "edrockmaster.desktop.handlers.engineering",
+    "edrockmaster.desktop.handlers.mining",
+]
+
+[[tool.importlinter.contracts]]
+name = "Handlers reach the core through their context only (ADR 0041)"
+type = "forbidden"
+source_modules = ["edrockmaster.desktop.handlers"]
+forbidden_modules = ["edrockmaster.desktop.core", "edrockmaster.desktop.window", "webview"]

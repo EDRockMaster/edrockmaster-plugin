@@ -308,7 +308,7 @@ def test_resets_and_the_first_view_shown_are_logged(
     assert "The interface shows the live view" in caplog.text
 
 
-# Engineering goals (ADR 0017)
+# The interface's calls reach the core (ADR 0041); each handler's own tests are in handlers/
 
 FSD_GOAL = {"kind": "blueprint", "module": "fsd", "name": "FSD_LongRange", "grade": 5, "count": 2}
 
@@ -319,57 +319,36 @@ def goals(view: dict[str, Any]) -> list[dict[str, Any]]:
 
 def test_goals_added_changed_and_removed_from_the_interface(desktop: Desktop) -> None:
     desktop.core.ready()
-    desktop.core.add_goal(FSD_GOAL)
+    desktop.core.handlers.engineering.add_goal(FSD_GOAL)
     [goal] = goals(desktop.views.wait_for(lambda v: len(goals(v)) == 1))
     assert (goal["kind"], goal["grade"], goal["count"]) == ("blueprint", 5, 2)
-    desktop.core.change_goal(goal["id"], 3)
+    desktop.core.handlers.engineering.change_goal(goal["id"], 3)
     desktop.views.wait_for(lambda v: [g["count"] for g in goals(v)] == [3])
-    desktop.core.remove_goal(goal["id"])
+    desktop.core.handlers.engineering.remove_goal(goal["id"])
     desktop.views.wait_for(lambda v: goals(v) == [])
 
 
 def test_the_player_s_priority_reaches_the_view(desktop: Desktop) -> None:
     desktop.core.ready()
-    desktop.core.add_goal(FSD_GOAL)
-    desktop.core.add_goal({"kind": "effect", "module": "fsd", "name": "special_fsd_heavy"})
+    engineering = desktop.core.handlers.engineering
+    engineering.add_goal(FSD_GOAL)
+    engineering.add_goal({"kind": "effect", "module": "fsd", "name": "special_fsd_heavy"})
     view = desktop.views.wait_for(lambda v: len(goals(v)) == 2)
     first, second = (goal["id"] for goal in goals(view))
     assert view["engineering"]["priority"] == [first, second]
-    desktop.core.order_goals([second, "nowhere"])
+    desktop.core.handlers.engineering.order_goals([second, "nowhere"])
     view = desktop.views.wait_for(lambda v: v["engineering"]["priority"] == [second, first])
     assert [goal["id"] for goal in goals(view)] == [second, first]
     assert [goal["readyAlone"] for goal in goals(view)] == [False, False]
 
 
-def test_goal_requests_that_cannot_be_done_are_logged(
-    desktop: Desktop, caplog: pytest.LogCaptureFixture
-) -> None:
-    desktop.core.ready()
-    with caplog.at_level(logging.WARNING):
-        desktop.core.add_goal({**FSD_GOAL, "grade": 9})
-        desktop.core.change_goal("nowhere", 2)
-        desktop.core.remove_goal("nowhere")
-        desktop.core.order_goals("nowhere")  # type: ignore[arg-type]
-        desktop.core.add_goal(FSD_GOAL)
-        [goal] = goals(desktop.views.wait_for(lambda v: len(goals(v)) == 1))
-        desktop.core.change_goal(goal["id"], 0)
-        # The core handles calls in order: once this one is seen, the others were
-        desktop.core.add_goal(FSD_GOAL)
-        desktop.views.wait_for(lambda v: len(goals(v)) == 2)
-    assert "Goal refused" in caplog.text
-    assert "No goal 'nowhere' to change" in caplog.text
-    assert "No goal 'nowhere' to remove" in caplog.text
-    assert "Goal order refused" in caplog.text
-    assert "Goal change refused" in caplog.text
-
-
-def test_the_goal_form_s_catalogue_once_started(tmp_path: Path) -> None:
+def test_the_interface_s_calls_once_started(tmp_path: Path) -> None:
     desktop = Desktop(tmp_path, None)
     with pytest.raises(RuntimeError, match="not started"):
-        desktop.core.catalogue()
+        desktop.core.handlers.settings.settings()
     desktop.core.start()
     try:
-        assert len(desktop.core.catalogue()["modules"]) == 44
+        assert len(desktop.core.handlers.engineering.catalogue()["modules"]) == 44
     finally:
         desktop.core.stop()
     with pytest.raises(RuntimeError, match="not started"):
@@ -385,65 +364,19 @@ def test_settings_saved_from_the_interface_apply_and_are_kept(tmp_path: Path) ->
     try:
         desktop.core.ready()
         desktop.views.wait_for(lambda v: v["language"] == "en")
-        request = desktop.core.settings()
+        request = desktop.core.handlers.settings.settings()
         request.update(activities=["engineering"], language="fr", sound=False)
-        desktop.core.save_settings(request)
+        desktop.core.handlers.settings.save_settings(request)
         view = desktop.views.wait_for(lambda v: v["language"] == "fr")
         assert [block["activity"] for block in view["activities"]] == ["engineering"]
         assert blocks(view)["engineering"]["status"] == "Aucune session d'ingénierie"
-        assert desktop.core.catalogue()["modules"][0]["name"] != ""
-        assert desktop.core.settings()["language"] == "fr"
+        assert desktop.core.handlers.engineering.catalogue()["modules"][0]["name"] != ""
+        assert desktop.core.handlers.settings.settings()["language"] == "fr"
     finally:
         desktop.core.stop()
     stored = json.loads((tmp_path / "data" / "settings.json").read_text(encoding="utf-8"))
     assert stored["edrockmaster.desktop.language"] == "fr"
     assert stored["edrockmaster.sound"] is False
-
-
-def test_the_layout_saved_from_the_interface_is_kept(
-    tmp_path: Path, caplog: pytest.LogCaptureFixture
-) -> None:
-    desktop = Desktop(tmp_path, None)
-    desktop.core.start()
-    try:
-        assert desktop.core.layout()["engineering"]["order"][0] == "goals"
-        with caplog.at_level(logging.WARNING):
-            desktop.core.save_layout("blueprints", {"order": [], "folded": []})
-            desktop.core.save_layout(
-                "engineering", {"order": ["inventory"], "folded": ["engineers"]}
-            )
-            # Unchanged: nothing written again
-            desktop.core.save_layout(
-                "engineering", {"order": ["inventory"], "folded": ["engineers"]}
-            )
-            desktop.core.ready()
-            desktop.views.wait_for(lambda v: True)
-        assert "Layout refused: unknown view 'blueprints'" in caplog.text
-        assert desktop.core.layout()["engineering"] == {
-            "order": ["inventory", "goals", "shopping", "engineers"],
-            "folded": ["engineers"],
-        }
-    finally:
-        desktop.core.stop()
-    again = Desktop(tmp_path, None)
-    again.core.start()
-    try:
-        assert again.core.layout()["engineering"]["folded"] == ["engineers"]
-    finally:
-        again.core.stop()
-
-
-def test_invalid_settings_are_logged_and_change_nothing(
-    desktop: Desktop, caplog: pytest.LogCaptureFixture
-) -> None:
-    desktop.core.ready()
-    request = desktop.core.settings()
-    with caplog.at_level(logging.WARNING):
-        desktop.core.save_settings({**request, "language": "de"})
-        desktop.core.save_settings({**request, "sound": False})
-        # The core thread runs in order: the first view, the refusal, then the valid change's view
-        desktop.views.wait_for(lambda v: len(desktop.views.received) >= 2)
-    assert "Settings refused: language" in caplog.text
 
 
 def test_the_journal_folder_of_the_settings_is_used_from_the_next_start(
@@ -453,10 +386,10 @@ def test_the_journal_folder_of_the_settings_is_used_from_the_next_start(
     first.core.start()
     try:
         first.core.ready()
-        request = first.core.settings()
+        request = first.core.handlers.settings.settings()
         assert request["journalFolderInUse"] is None
         with caplog.at_level(logging.INFO):
-            first.core.save_settings({**request, "journalFolder": str(journal)})
+            first.core.handlers.settings.save_settings({**request, "journalFolder": str(journal)})
             first.views.wait_for(lambda v: True)
             first.core.stop()
     finally:
@@ -470,51 +403,3 @@ def test_the_journal_folder_of_the_settings_is_used_from_the_next_start(
         second.views.wait_for(lambda v: v["journal"]["folder"] == str(journal))
     finally:
         second.core.stop()
-
-
-def test_settings_before_start_are_refused(tmp_path: Path) -> None:
-    with pytest.raises(RuntimeError, match="not started"):
-        Desktop(tmp_path, None).core.settings()
-
-
-def test_the_recordings_and_logs_folders_open_from_the_settings(tmp_path: Path) -> None:
-    desktop = Desktop(tmp_path, None)
-    desktop.core.start()
-    try:
-        shown = desktop.core.settings()
-        assert shown["recordingsFolder"] == str(tmp_path / "data" / "recordings")
-        assert shown["logsFolder"] == str(tmp_path / "logs")
-        desktop.core.open_folder("recordings")
-        desktop.core.open_folder("logs")
-    finally:
-        desktop.core.stop()
-    assert desktop.opened == [tmp_path / "data" / "recordings", tmp_path / "logs"]
-    # Before the first recording, its folder does not exist yet: it is made to be opened
-    assert (tmp_path / "data" / "recordings").is_dir()
-
-
-def test_only_the_application_s_folders_open(
-    tmp_path: Path, caplog: pytest.LogCaptureFixture
-) -> None:
-    desktop = Desktop(tmp_path, None)
-
-    def broken(folder: Path) -> None:
-        raise OSError("no file manager")
-
-    desktop.core = DesktopCore(
-        data_directory=tmp_path / "data",
-        journal_folder=None,
-        push=desktop.views.push,
-        language="en",
-        logger=logger,
-        usual_journal_folder=lambda: None,
-        open_folder=broken,
-    )
-    desktop.core.start()
-    with caplog.at_level(logging.WARNING):
-        desktop.core.open_folder("C:/Windows")
-        desktop.core.open_folder("logs")
-        desktop.core.stop()
-    assert "Unknown folder to open: 'C:/Windows'" in caplog.text
-    assert "Could not open" in caplog.text
-    assert "no file manager" in caplog.text

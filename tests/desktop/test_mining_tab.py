@@ -14,7 +14,6 @@ from typing import Any
 import jsonschema
 import pytest
 
-from edrockmaster.desktop import core as core_module
 from edrockmaster.desktop.core import DesktopCore
 from tests.fakes import FixedClock
 from tests.infrastructure.sources.test_http import FakeResponse
@@ -97,7 +96,7 @@ def mining(tmp_path: Path) -> Iterator[Mining]:
 
 
 def test_the_forms_start_from_the_commodities_with_hotspots(mining: Mining) -> None:
-    options = valid("MiningOptions", mining.core.mining_options())
+    options = valid("MiningOptions", mining.core.handlers.mining.mining_options())
     assert len(options["commodities"]) == 13
     names = {row["commodity"]: row["name"] for row in options["commodities"]}
     assert names["platinum"] == "Platine"  # in the player's language
@@ -107,7 +106,7 @@ def test_the_forms_start_from_the_commodities_with_hotspots(mining: Mining) -> N
 
 
 def test_where_to_mine(mining: Mining) -> None:
-    answer = valid("HotspotsAnswer", mining.core.find_hotspots(HOTSPOTS))
+    answer = valid("HotspotsAnswer", mining.core.handlers.mining.find_hotspots(HOTSPOTS))
     assert (answer["status"], answer["source"], answer["total"]) == ("found", "spansh", 5)
     borann = answer["rings"][0]
     assert (borann["ring"], borann["count"], borann["reserve"]) == (
@@ -119,14 +118,14 @@ def test_where_to_mine(mining: Mining) -> None:
     [request] = mining.sources.requests
     assert str(request.get_header("User-agent")).startswith("EDRockMaster/")
     # The same search again comes from the cache
-    mining.core.find_hotspots(HOTSPOTS)
+    mining.core.handlers.mining.find_hotspots(HOTSPOTS)
     assert len(mining.sources.requests) == 1
-    mining.core.find_hotspots({**HOTSPOTS, "refresh": True})
+    mining.core.handlers.mining.find_hotspots({**HOTSPOTS, "refresh": True})
     assert len(mining.sources.requests) == 2
 
 
 def test_where_to_sell(mining: Mining) -> None:
-    answer = valid("BuyersAnswer", mining.core.find_buyers(BUYERS))
+    answer = valid("BuyersAnswer", mining.core.handlers.mining.find_buyers(BUYERS))
     assert answer["status"] == "found"
     assert [offer["station"] for offer in answer["offers"]] == [
         "Borisenko's Folly",
@@ -151,30 +150,32 @@ def test_where_to_sell(mining: Mining) -> None:
 def test_a_form_the_core_refuses_asks_nothing(
     mining: Mining, call: str, request_: dict[str, Any]
 ) -> None:
-    answer = getattr(mining.core, call)(request_)
+    answer = getattr(mining.core.handlers.mining, call)(request_)
     assert answer["status"] == "invalid"
     assert mining.sources.requests == []
 
 
 def test_a_source_down_and_a_source_turned_off(mining: Mining) -> None:
     mining.sources.down = True
-    assert mining.core.find_buyers(BUYERS)["status"] == "down"
+    assert mining.core.handlers.mining.find_buyers(BUYERS)["status"] == "down"
     mining.sources.down = False
-    mining.core.find_hotspots(HOTSPOTS)
-    settings = mining.core.settings()
-    mining.core.save_settings({**settings, "sources": {"spansh": False, "ardent": True}})
-    answer = valid("HotspotsAnswer", mining.core.find_hotspots(HOTSPOTS))
+    mining.core.handlers.mining.find_hotspots(HOTSPOTS)
+    settings = mining.core.handlers.settings.settings()
+    handlers = mining.core.handlers
+    handlers.settings.save_settings({**settings, "sources": {"spansh": False, "ardent": True}})
+    answer = valid("HotspotsAnswer", mining.core.handlers.mining.find_hotspots(HOTSPOTS))
     assert (answer["status"], answer["rings"]) == ("off", [])
     database = mining.core.database
     assert database is not None
     asked = len(mining.sources.requests)
-    mining.core.save_settings({**settings, "sources": {"spansh": True, "ardent": True}})
-    mining.core.find_hotspots(HOTSPOTS)  # its cache was cleared: asked again
+    handlers.settings.save_settings({**settings, "sources": {"spansh": True, "ardent": True}})
+    mining.core.handlers.mining.find_hotspots(HOTSPOTS)  # its cache was cleared: asked again
     assert len(mining.sources.requests) == asked + 1
 
 
 def test_no_estimate_before_the_system_or_a_cargo_is_known(mining: Mining) -> None:
-    assert valid("CargoEstimateAnswer", mining.core.estimate_cargo())["status"] == "noSystem"
+    answer = mining.core.handlers.mining.estimate_cargo()
+    assert valid("CargoEstimateAnswer", answer)["status"] == "noSystem"
 
 
 def journal_line(event: str, **fields: Any) -> str:
@@ -197,7 +198,7 @@ def test_the_cargo_at_the_best_markets(tmp_path: Path) -> None:
         answer: dict[str, Any] = {}
         deadline = time.monotonic() + 20
         while time.monotonic() < deadline:
-            answer = started.core.estimate_cargo()
+            answer = started.core.handlers.mining.estimate_cargo()
             if answer["status"] == "found":
                 break
             time.sleep(0.05)
@@ -213,18 +214,6 @@ def test_the_cargo_at_the_best_markets(tmp_path: Path) -> None:
     assert answer["total"] == 4 * 91254
 
 
-def test_a_search_that_takes_too_long_is_down(
-    mining: Mining, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    mining.sources.hold = threading.Event()
-    monkeypatch.setattr(core_module, "SEARCH_TIMEOUT", 0.05)
-    try:
-        answer = valid("BuyersAnswer", mining.core.find_buyers(BUYERS))
-    finally:
-        mining.sources.hold.set()
-    assert (answer["status"], answer["offers"]) == ("down", [])
-
-
 def test_no_estimate_without_cargo(tmp_path: Path) -> None:
     folder = tmp_path / "journal"
     folder.mkdir()
@@ -236,7 +225,7 @@ def test_no_estimate_without_cargo(tmp_path: Path) -> None:
         answer: dict[str, Any] = {}
         deadline = time.monotonic() + 20
         while time.monotonic() < deadline:
-            answer = started.core.estimate_cargo()
+            answer = started.core.handlers.mining.estimate_cargo()
             if answer["status"] != "noSystem":
                 break
             time.sleep(0.05)
