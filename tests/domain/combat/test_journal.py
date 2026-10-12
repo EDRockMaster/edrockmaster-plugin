@@ -253,11 +253,16 @@ def test_leaving_normal_space_leaves_the_site(entry: dict[str, object]) -> None:
         {"timestamp": TS, "event": "MiningRefined", "Type": "$painite_name;"},
         {"timestamp": TS, "event": "AsteroidCracked", "Body": "X"},
         {"timestamp": TS, "event": "LaunchDrone", "Type": "Prospector"},
-        {"timestamp": TS, "event": "LaunchDrone", "Type": "Collection"},
     ],
 )
 def test_mining_is_seen(entry: dict[str, object]) -> None:
     assert parse_entry(entry) == MiningSeen(AT)
+
+
+def test_a_collector_is_not_mining() -> None:
+    # Bounty hunters collect what pirates drop, salvagers black boxes and escape pods
+    entry = {"timestamp": TS, "event": "LaunchDrone", "Type": "Collection"}
+    assert parse_entry(entry) is None
 
 
 def test_dropship_to_a_conflict_zone_is_not_a_departure() -> None:

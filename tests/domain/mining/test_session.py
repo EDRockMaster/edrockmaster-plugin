@@ -107,6 +107,17 @@ def test_non_mining_limpet_does_not_start_a_session() -> None:
     assert tracker.session is None
 
 
+@pytest.mark.parametrize("in_a_ring", [False, True])
+def test_a_collector_does_not_start_a_session(in_a_ring: bool) -> None:
+    # It also picks up salvage, escape pods, engineering materials: what it brings back
+    # tells, and fragments reach the refinery (MiningRefined), which starts the session
+    tracker = MiningTracker()
+    if in_a_ring:
+        tracker.handle(ring())
+    assert tracker.handle(launched(1, LimpetKind.COLLECTOR)) == []
+    assert tracker.session is None
+
+
 def test_cargo_changes_alone_do_not_start_a_session() -> None:
     tracker = MiningTracker()
     cargo = CargoChanged(at=at(1), total=4, inventory=((PAINITE, 4),))

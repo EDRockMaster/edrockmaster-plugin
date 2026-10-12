@@ -43,8 +43,6 @@ type MiningActivity = AsteroidProspected | CommodityRefined | AsteroidCracked | 
 type SessionFact = MiningActivity | CargoChanged | CargoEjected
 """Facts a running session takes into account."""
 
-_MINING_LIMPETS = (LimpetKind.PROSPECTOR, LimpetKind.COLLECTOR)
-
 
 class EndReason(Enum):
     SUPERCRUISE = "supercruise"
@@ -272,7 +270,7 @@ class MiningTracker:
     def _on_activity(self, fact: MiningActivity) -> list[SessionNotification]:
         notifications: list[SessionNotification] = []
         if self._session is None:
-            if isinstance(fact, LimpetLaunched) and fact.kind not in _MINING_LIMPETS:
+            if isinstance(fact, LimpetLaunched) and fact.kind is not LimpetKind.PROSPECTOR:
                 return []
             ring = self._ring
             self._session = MiningSession(
