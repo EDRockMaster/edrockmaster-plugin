@@ -145,4 +145,3 @@ def test_on_foot_queries(service: EngineeringService) -> None:
     assert [holding.symbol for holding in inventory] == ["gmeds", "healthpack"]
     assert service.on_foot_held() == {"gmeds": 2}
     assert list(service.equipment) == [7]
-    assert service.stats.on_foot_known

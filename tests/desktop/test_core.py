@@ -13,7 +13,7 @@ import pytest
 
 from edrockmaster.application.activity import Activity
 from edrockmaster.desktop.core import CORE_THREAD, DesktopCore
-from edrockmaster.desktop.live_view import SCHEMA
+from tests.desktop.schemas import LIVE_VIEW_SCHEMA as SCHEMA
 from tests.desktop.test_parity import write_journal
 from tests.test_replay import Replay
 

@@ -49,7 +49,7 @@ def test_prospected_asteroid_is_parsed() -> None:
         ("platinum", 32.5),
         ("painite", 7.25),
     ]
-    assert fact.materials[0].commodity.display_name == "Platine"
+    assert fact.materials[0].commodity.localised == "Platine"
 
 
 @pytest.mark.parametrize(
@@ -121,7 +121,6 @@ def test_entering_a_ring_is_parsed() -> None:
     assert fact == RingEntered(
         at=AT,
         system="Col 285 Sector AB-C d1",
-        system_address=123456789,
         ring="Col 285 Sector AB-C d1 2 A Ring",
     )
 
@@ -143,7 +142,6 @@ def test_starting_inside_a_ring_is_parsed_as_entering_it(event: str) -> None:
     assert fact == RingEntered(
         at=AT,
         system="Col 285 Sector AB-C d1",
-        system_address=123456789,
         ring="Col 285 Sector AB-C d1 2 A Ring",
     )
 
@@ -217,7 +215,7 @@ def test_ejected_cargo_is_parsed() -> None:
 @pytest.mark.parametrize(("version", "live"), [("4.1.2.0", True), ("3.8.0.407", False)])
 def test_game_loaded_tells_the_galaxy(version: str, live: bool) -> None:
     fact = parse_entry({"timestamp": TS, "event": "LoadGame", "gameversion": version})
-    assert fact == GameLoaded(at=AT, game_version=version, is_live=live)
+    assert fact == GameLoaded(at=AT, is_live=live)
 
 
 def test_market_sale_is_parsed() -> None:

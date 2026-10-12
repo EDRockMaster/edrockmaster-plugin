@@ -81,7 +81,6 @@ class AsteroidCracked:
 class RingEntered:
     at: datetime
     system: str
-    system_address: int | None
     ring: str
 
 
@@ -124,7 +123,6 @@ class CommoditySold:
 @dataclass(frozen=True, slots=True)
 class GameLoaded:
     at: datetime
-    game_version: str
     is_live: bool
 
 
@@ -202,7 +200,6 @@ def _ring_position(entry: Entry, at: datetime) -> RingEntered | None:
     return RingEntered(
         at=at,
         system=required(entry, "StarSystem", str),
-        system_address=optional(entry, "SystemAddress", int),
         ring=required(entry, "Body", str),
     )
 
@@ -242,7 +239,7 @@ def _sold(entry: Entry, at: datetime) -> CommoditySold:
 
 def _game_loaded(entry: Entry, at: datetime) -> GameLoaded:
     version = required(entry, "gameversion", str)
-    return GameLoaded(at=at, game_version=version, is_live=version.startswith("4."))
+    return GameLoaded(at=at, is_live=version.startswith("4."))
 
 
 _PARSERS: dict[str, Callable[[Entry, datetime], Fact | None]] = {

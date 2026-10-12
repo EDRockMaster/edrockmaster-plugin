@@ -320,11 +320,7 @@ def test_the_panel_only_switches_on_progress(zones_mining_res: Replay) -> None:
 
 def test_the_fine_is_counted_apart(zones_mining_res: Replay) -> None:
     crimes = combat(zones_mining_res).crimes
-    assert (crimes.count, crimes.fines, dict(crimes.by_kind)) == (
-        1,
-        100,
-        {"recklessWeaponsDischarge": 1},
-    )
+    assert (crimes.count, crimes.fines) == (1, 100)
     assert combat(zones_mining_res).credits == 1_153_256 + 370_130
 
 

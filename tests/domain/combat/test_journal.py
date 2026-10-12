@@ -48,7 +48,6 @@ def test_ship_bounty_is_parsed() -> None:
         total=150500,
         rewards=(FactionReward("Federation", 120000), FactionReward("Sirius Corporation", 30500)),
         target="Imperial Clipper",
-        victim_faction="Kumo Crew",
         shared=False,
     )
 
@@ -86,7 +85,6 @@ def test_single_faction_bounty_is_parsed() -> None:
         total=4500,
         rewards=(FactionReward("Empire", 4500),),
         target="Skimmer",
-        victim_faction="Raiders",
         shared=False,
     )
 
@@ -107,7 +105,6 @@ def test_combat_bonds_are_parsed(event: str) -> None:
         at=AT,
         amount=80000,
         awarding_faction="Federation",
-        victim_faction="Empire",
         kill=event == "FactionKillBond",
     )
 
@@ -318,9 +315,7 @@ def test_fine_is_parsed() -> None:
         "Faction": "Iyakajauja Law Party",
         "Fine": 100,
     }
-    assert parse_entry(entry) == CrimeCommitted(
-        AT, kind="recklessWeaponsDischarge", fine=100, bounty=0
-    )
+    assert parse_entry(entry) == CrimeCommitted(AT, fine=100, bounty=0)
 
 
 def test_bounty_on_the_commander_is_parsed() -> None:
@@ -332,4 +327,4 @@ def test_bounty_on_the_commander_is_parsed() -> None:
         "Victim": "Somebody",
         "Bounty": 2_000,
     }
-    assert parse_entry(entry) == CrimeCommitted(AT, kind="murder", fine=0, bounty=2_000)
+    assert parse_entry(entry) == CrimeCommitted(AT, fine=0, bounty=2_000)

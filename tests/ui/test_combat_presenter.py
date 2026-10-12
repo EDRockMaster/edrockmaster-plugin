@@ -132,7 +132,7 @@ def test_only_miscellaneous_kills_show_no_active_time(presenter: CombatPresenter
 
 
 def test_crimes(presenter: CombatPresenter) -> None:
-    crimes = Crimes(count=2, fines=100, bounties=400, by_kind=MappingProxyType({"assault": 2}))
+    crimes = Crimes(count=2, fines=100, bounties=400)
     model = presenter.apply([CombatUpdated(stats(crimes=crimes))])
     assert value(model, "Fines") == "100 CR"
     assert value(model, "Bounty on you") == "400 CR"

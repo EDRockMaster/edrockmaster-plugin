@@ -124,5 +124,3 @@ MIGRATIONS: tuple[Migration, ...] = (
         ),
     ),
 )
-
-LATEST_VERSION = MIGRATIONS[-1].version

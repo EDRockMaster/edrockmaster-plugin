@@ -142,7 +142,7 @@ Tout cela est du calcul pur sur de petits objets (bien moins d'une milliseconde 
 | Réinitialisation manuelle (bouton du bloc) | Fin de la session, une nouvelle peut démarrer |
 | `is_beta`, ou `gameversion` autre que 4.x dans `LoadGame` | Tout fonctionne en local ; marqué comme non envoyable (1B) |
 
-Statistiques d'une session : durée active, tonnes par commodité, tonnes totales, tonnes par heure, astéroïdes prospectés (par niveau de teneur), cores trouvés et fissurés, drones lancés (prospecteurs, collecteurs), raffinages par minute, tonnes vendues et crédits gagnés.
+Statistiques d'une session : durée active, tonnes par commodité, tonnes totales, tonnes par heure, astéroïdes prospectés (par niveau de teneur), cores trouvés et fissurés, drones lancés (prospecteurs, collecteurs), tonnes vendues et crédits gagnés.
 
 ## Combat
 
@@ -164,7 +164,7 @@ Le combat couvre la chasse à la prime, les zones de conflit et toute victime ([
 | `FactionKillBond` hors de tout segment | Une obligation de combat n'existe qu'en zone de conflit : un segment s'ouvre depuis la dernière arrivée (depuis l'obligation si aucune n'a été vue). En vaisseau : **zone de conflit, intensité inconnue** ; à pied : **zone de conflit au sol** |
 | Prime ailleurs (un pirate pendant le minage, près d'une station, après une interdiction) : une prime ne dit rien du lieu | **Divers** : comptée dans les victimes, les crédits et les bons, dans aucun ratio |
 | Récompense sans arrivée vue (le jeu a démarré sur le site : `StartUp`, `Location` hors station) | Un segment de type **inconnu**, depuis cette récompense ; divers si le commandant mine là (`ProspectedAsteroid`, `MiningRefined`, `AsteroidCracked`, drones de prospection ou de collecte) |
-| `CommitCrime` pendant une session | Compté par type de délit : amendes et primes sur le commandant, jamais retirées des crédits |
+| `CommitCrime` pendant une session | Compté : amendes et primes sur le commandant, jamais retirées des crédits |
 | `Died` | La session se termine ; les bons non encaissés sont perdus |
 | `Shutdown`, `ShutDown` | La session se termine |
 | `RedeemVoucher` (primes, obligations de combat) | Les bons payés sont retirés, par faction, jamais en dessous de zéro |

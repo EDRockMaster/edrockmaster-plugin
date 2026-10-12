@@ -28,10 +28,6 @@ class IoWorker:
         self._stopping = False
 
     @property
-    def thread(self) -> threading.Thread | None:
-        return self._thread
-
-    @property
     def is_running(self) -> bool:
         return self._thread is not None and self._thread.is_alive() and not self._stopping
 

@@ -171,7 +171,6 @@ class EngineeringStats:
     collection: CollectionStats | None
     goals: tuple[GoalProgress, ...]
     inventory_known: bool
-    on_foot_known: bool = False
 
     @property
     def goals_ready(self) -> int:
@@ -307,7 +306,6 @@ class EngineeringTracker:
             self._collection.stats() if self._collection else None,
             self._reserved(),
             self._inventory is not None,
-            self._on_foot.known,
         )
 
     def shopping_list(self) -> Ingredients:

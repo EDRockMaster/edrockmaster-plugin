@@ -70,10 +70,8 @@ def holdings(tracker: EngineeringTracker) -> dict[str, tuple[int, int, int]]:
 def test_the_on_foot_inventory_is_unknown_until_the_game_states_the_locker() -> None:
     tracker = EngineeringTracker(catalogue())
     assert tracker.on_foot_inventory is None
-    assert not tracker.stats().on_foot_known
     notifications = tracker.handle(locker(Stock("graphene", COMPONENT, 4, "Graphène")))
     assert [u.progressed for u in updates(notifications)] == [False]
-    assert tracker.stats().on_foot_known
     assert tracker.on_foot_inventory == (
         OnFootHolding("graphene", COMPONENT, locker=4, backpack=0, mission=0),
     )

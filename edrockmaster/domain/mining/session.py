@@ -16,7 +16,7 @@ from enum import Enum
 from types import MappingProxyType
 from typing import TypeIs, assert_never
 
-from edrockmaster.domain.commodities import LIMPET, Commodity
+from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.mining.journal import (
     AsteroidCracked,
     AsteroidProspected,
@@ -69,14 +69,12 @@ class SessionStats:
     started_at: datetime
     active_duration: timedelta
     tons_by_commodity: Mapping[Commodity, int]
-    refinements: int
     prospected_by_content: Mapping[ContentLevel, int]
     cores_found: int
     cores_cracked: int
     limpets_launched: Mapping[LimpetKind, int]
     ejected_tons: Mapping[Commodity, int]
     cargo_tons: int | None
-    limpets_on_board: int | None
     sold_tons: Mapping[Commodity, int]
     credits_earned: int
 
@@ -106,11 +104,6 @@ class SessionStats:
     def tons_per_hour(self) -> float:
         hours = self.active_duration.total_seconds() / 3600
         return self.total_tons / hours if hours else 0.0
-
-    @property
-    def refinements_per_minute(self) -> float:
-        minutes = self.active_duration.total_seconds() / 60
-        return self.refinements / minutes if minutes else 0.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -162,7 +155,6 @@ class MiningSession:
     _limpets: Counter[LimpetKind] = field(default_factory=Counter)
     _ejected: Counter[Commodity] = field(default_factory=Counter)
     _cargo_tons: int | None = None
-    _limpets_on_board: int | None = None
     _sold: Counter[Commodity] = field(default_factory=Counter)
     _credits: int = 0
 
@@ -172,14 +164,12 @@ class MiningSession:
             started_at=self.started_at,
             active_duration=self._active,
             tons_by_commodity=MappingProxyType(dict(self._tons)),
-            refinements=self._tons.total(),
             prospected_by_content=MappingProxyType(dict(self._prospected)),
             cores_found=self._cores_found,
             cores_cracked=self._cores_cracked,
             limpets_launched=MappingProxyType(dict(self._limpets)),
             ejected_tons=MappingProxyType(dict(self._ejected)),
             cargo_tons=self._cargo_tons,
-            limpets_on_board=self._limpets_on_board,
             sold_tons=MappingProxyType(dict(self._sold)),
             credits_earned=self._credits,
         )
@@ -212,7 +202,6 @@ class MiningSession:
                 self._limpets[kind] += 1
             case CargoChanged() as cargo:
                 self._cargo_tons = cargo.total - cargo.limpets
-                self._limpets_on_board = cargo.tons_of(LIMPET)
             case CargoEjected(commodity=commodity, count=count):
                 self._ejected[commodity] += count
             case _:  # pragma: no cover - exhaustiveness checked by mypy

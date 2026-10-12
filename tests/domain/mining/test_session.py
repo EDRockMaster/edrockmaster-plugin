@@ -40,7 +40,7 @@ def at(minutes: float) -> datetime:
 
 
 def ring(minutes: float = 0) -> RingEntered:
-    return RingEntered(at=at(minutes), system="Col 285", system_address=42, ring="Col 285 2 A Ring")
+    return RingEntered(at=at(minutes), system="Col 285", ring="Col 285 2 A Ring")
 
 
 def refined(minutes: float, commodity: Commodity = PAINITE) -> CommodityRefined:
@@ -224,15 +224,6 @@ def test_rates_are_zero_without_active_time() -> None:
     tracker.handle(refined(0))
     assert tracker.session is not None
     assert tracker.session.stats.tons_per_hour == 0.0
-    assert tracker.session.stats.refinements_per_minute == 0.0
-
-
-def test_refinements_per_minute() -> None:
-    tracker = MiningTracker()
-    for second in range(0, 60, 10):  # 6 refinements within 50 seconds
-        tracker.handle(refined(second / 60))
-    assert tracker.session is not None
-    assert tracker.session.stats.refinements_per_minute == pytest.approx(6 / (50 / 60))
 
 
 def test_prospecting_is_counted_by_content_level() -> None:
@@ -282,7 +273,6 @@ def test_cargo_is_tracked_during_a_session_without_counting_as_activity() -> Non
     assert tracker.session is not None
     stats = tracker.session.stats
     assert stats.cargo_tons == 10
-    assert stats.limpets_on_board == 2
     assert stats.active_duration == timedelta(0)
 
 
@@ -390,7 +380,7 @@ def test_sale_during_a_running_session_is_credited_to_it() -> None:
 def test_galaxy_is_live_until_told_otherwise() -> None:
     tracker = MiningTracker()
     assert tracker.is_live is True
-    assert tracker.handle(GameLoaded(at=at(0), game_version="3.8.0.407", is_live=False)) == []
+    assert tracker.handle(GameLoaded(at=at(0), is_live=False)) == []
     assert tracker.is_live is False
 
 

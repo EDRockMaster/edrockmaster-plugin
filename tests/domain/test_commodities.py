@@ -23,12 +23,8 @@ def test_same_commodity_from_different_symbols_is_equal() -> None:
 
 def test_localised_name_is_kept_but_not_part_of_identity() -> None:
     localised = Commodity.from_symbol("$painite_name;", localised="Painite (FR)")
-    assert localised.display_name == "Painite (FR)"
+    assert localised.localised == "Painite (FR)"
     assert localised == Commodity.from_symbol("painite")
-
-
-def test_display_name_falls_back_to_the_key() -> None:
-    assert Commodity.from_symbol("$bromellite_name;").display_name == "bromellite"
 
 
 def test_empty_symbol_is_rejected() -> None:

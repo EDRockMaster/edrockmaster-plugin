@@ -33,8 +33,8 @@ def test_jobs_run_in_order_off_the_calling_thread(worker: IoWorker) -> None:
 
 def test_thread_is_a_daemon(worker: IoWorker) -> None:
     assert worker.is_running
-    assert worker.thread is not None
-    assert worker.thread.daemon
+    [thread] = [thread for thread in threading.enumerate() if thread.name == "EDRockMaster I/O"]
+    assert thread.daemon
 
 
 def test_a_failing_job_is_logged_and_does_not_stop_the_worker(

@@ -7,10 +7,11 @@ from pathlib import Path
 import jsonschema
 
 from edrockmaster.application.activity import Activity
-from edrockmaster.desktop.live_view import SCHEMA, live_view
+from edrockmaster.desktop.live_view import live_view
 from edrockmaster.domain.situation.journal import GameMode, Ship
 from edrockmaster.domain.situation.situation import Situation
 from edrockmaster.ui.panel_model import ActivityBlock, PanelModel, StatLine
+from tests.desktop.schemas import LIVE_VIEW_SCHEMA as SCHEMA
 
 EMPTY_ENGINEERING: dict[str, object] = {
     "inventoryKnown": False,

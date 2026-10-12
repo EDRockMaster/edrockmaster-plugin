@@ -44,7 +44,6 @@ class BountyAwarded:
     total: int
     rewards: tuple[FactionReward, ...]
     target: str | None
-    victim_faction: str | None
     shared: bool
 
 
@@ -55,7 +54,6 @@ class CombatBondAwarded:
     at: datetime
     amount: int
     awarding_faction: str
-    victim_faction: str | None
     kill: bool
 
 
@@ -141,10 +139,9 @@ class MiningSeen:
 
 @dataclass(frozen=True, slots=True)
 class CrimeCommitted:
-    """A fine or a bounty on the commander's head (``kind`` as the game names the crime)."""
+    """A fine or a bounty on the commander's head."""
 
     at: datetime
-    kind: str
     fine: int
     bounty: int
 
@@ -183,10 +180,6 @@ def _faction(entry: Entry, name: str) -> str:
     return faction_name(localised(entry, name))
 
 
-def _optional_faction(entry: Entry, name: str) -> str | None:
-    return _faction(entry, name) if name in entry or f"{name}_Localised" in entry else None
-
-
 def _rewards(entry: Entry, list_name: str, amount_name: str) -> tuple[FactionReward, ...]:
     return tuple(
         FactionReward(_faction(item, "Faction"), required(item, amount_name, int))
@@ -207,7 +200,6 @@ def _bounty(entry: Entry, at: datetime) -> BountyAwarded:
         total=total,
         rewards=rewards,
         target=target,
-        victim_faction=_optional_faction(entry, "VictimFaction"),
         shared=bool(optional(entry, "SharedWithOthers", int)),
     )
 
@@ -217,7 +209,6 @@ def _bond(entry: Entry, at: datetime, kill: bool) -> CombatBondAwarded:
         at=at,
         amount=required(entry, "Reward", int),
         awarding_faction=_faction(entry, "AwardingFaction"),
-        victim_faction=_optional_faction(entry, "VictimFaction"),
         kill=kill,
     )
 
@@ -315,7 +306,6 @@ def _limpet(entry: Entry, at: datetime) -> MiningSeen | None:
 def _crime(entry: Entry, at: datetime) -> CrimeCommitted:
     return CrimeCommitted(
         at,
-        kind=required(entry, "CrimeType", str),
         fine=optional(entry, "Fine", int) or 0,
         bounty=optional(entry, "Bounty", int) or 0,
     )
