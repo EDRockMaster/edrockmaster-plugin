@@ -144,6 +144,8 @@ All of this is pure computation on small objects (well under a millisecond per e
 
 Statistics of a session: active duration, tons per commodity, total tons, tons per hour, asteroids prospected (by content level), cores found and cracked, limpets launched (prospector, collector), tons sold and credits earned.
 
+**Limpets on board** ([ADR 0042](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0042-limpets-on-board.md)): the count `Cargo` gives (`drones`), shown in the mining card. When it falls from above the setting `edrockmaster.alert.limpets` (5 by default) to it or below, during a mining session, one alert (`LimpetMonitor`, `domain/mining/limpets.py`): the prospector's sound if the sound is on, and *N limpets left* in the card until the next asteroid prospected. It is re-armed when the count rises above the threshold, for a new session, or when the threshold changes.
+
 ## Combat
 
 Combat covers bounty hunting, conflict zones and any kill ([ADR 0013](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0013-combat-segments-and-live-panel.md), [ADR 0015](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0015-unnamed-and-ground-conflict-zones.md)). It is measured in **segments**: one stay on a combat site, from the arrival (by ship or on foot) to the departure.
@@ -261,6 +263,7 @@ Stored in `settings.json` in the data directory (`infrastructure/settings_file.p
 | `edrockmaster.alert.minimum_content` | text | `low`, `medium` or `high` |
 | `edrockmaster.alert.minimum_remaining` | text | Percent, or empty for none |
 | `edrockmaster.alert.cores` | bool | Alert on cores |
+| `edrockmaster.alert.limpets` | text | Limpets on board at which to alert, or empty for none; 5 when missing (ADR 0042) |
 | `edrockmaster.sound` | bool | Audible alerts |
 | `edrockmaster.record_journal` | bool | Journal recorder |
 | `edrockmaster.display.activities` | text | JSON list of the activities shown, at least one (`["mining", "combat"]`) |

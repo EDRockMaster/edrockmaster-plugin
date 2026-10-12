@@ -34,6 +34,7 @@ KEY_THRESHOLDS = "edrockmaster.alert.thresholds"
 KEY_MINIMUM_CONTENT = "edrockmaster.alert.minimum_content"
 KEY_MINIMUM_REMAINING = "edrockmaster.alert.minimum_remaining"
 KEY_CORES = "edrockmaster.alert.cores"
+KEY_LIMPETS = "edrockmaster.alert.limpets"
 KEY_SOUND = "edrockmaster.sound"
 KEY_RECORD_JOURNAL = "edrockmaster.record_journal"
 KEY_DISPLAY_ACTIVITIES = "edrockmaster.display.activities"
@@ -80,6 +81,7 @@ class KeyValueSettingsStore:
                 KEY_MINIMUM_REMAINING, _parse_remaining, defaults.alerts.minimum_remaining
             ),
             alert_on_cores=self._read_bool(KEY_CORES, defaults.alerts.alert_on_cores),
+            limpet_alert=self._read(KEY_LIMPETS, _parse_limpets, defaults.alerts.limpet_alert),
         )
         return PluginSettings(
             alerts=alerts,
@@ -111,6 +113,8 @@ class KeyValueSettingsStore:
         self._config.set(KEY_MINIMUM_CONTENT, alerts.minimum_content.value)
         self._config.set(KEY_MINIMUM_REMAINING, "" if remaining is None else repr(remaining))
         self._config.set(KEY_CORES, alerts.alert_on_cores)
+        limpets = alerts.limpet_alert
+        self._config.set(KEY_LIMPETS, "" if limpets is None else str(limpets))
         self._config.set(KEY_SOUND, settings.sound_enabled)
         self._config.set(KEY_RECORD_JOURNAL, settings.record_journal)
         activities = [activity.value for activity in settings.display.activities]
@@ -162,6 +166,18 @@ def _parse_content(raw: str) -> ContentLevel:
         return _MINIMUM_CONTENTS[raw]
     except KeyError as error:
         raise _InvalidValueError(f"unknown content level: {raw!r}") from error
+
+
+def _parse_limpets(raw: str) -> int | None:
+    if not raw:
+        return None
+    try:
+        limpets = int(raw)
+    except ValueError as error:
+        raise _InvalidValueError(f"limpet alert: {error}") from error
+    if limpets < 0:
+        raise _InvalidValueError("limpet alert: a number of limpets, 0 or more")
+    return limpets
 
 
 def _parse_remaining(raw: str) -> float | None:

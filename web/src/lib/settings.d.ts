@@ -19,6 +19,10 @@ export interface Settings {
      */
     minimumRemaining: number | null;
     cores: boolean;
+    /**
+     * Limpets on board at which to alert (ADR 0042); null for no alert.
+     */
+    limpets: number | null;
   };
   sound: boolean;
   recordJournal: boolean;

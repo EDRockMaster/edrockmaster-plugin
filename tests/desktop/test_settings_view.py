@@ -42,6 +42,7 @@ def test_the_form_shows_the_settings() -> None:
     painite = next(row for row in shown["alerts"]["thresholds"] if row["commodity"] == "painite")
     assert painite["name"] == "Painite"
     assert shown["alerts"]["minimumContent"] in ("low", "medium", "high")
+    assert shown["alerts"]["limpets"] == 5
     assert shown["activities"] == [activity.value for activity in Activity]
     assert shown["language"] == "auto"
     assert shown["journalFolder"] is None
@@ -55,7 +56,7 @@ def test_the_form_back_into_settings() -> None:
     request = view()
     for row in request["alerts"]["thresholds"]:
         row["threshold"] = 35 if row["commodity"] == "painite" else None
-    request["alerts"].update(minimumContent="high", minimumRemaining=50, cores=False)
+    request["alerts"].update(minimumContent="high", minimumRemaining=50, cores=False, limpets=None)
     request.update(sound=False, recordJournal=True, activities=["trade", "mining"], language="fr")
     request["journalFolder"] = f"  {JOURNAL}  "
     settings, preferences = settings_from_request(request, DEFAULT_SETTINGS)
@@ -63,6 +64,7 @@ def test_the_form_back_into_settings() -> None:
     assert settings.alerts.minimum_content is ContentLevel.HIGH
     assert settings.alerts.minimum_remaining == 50.0
     assert not settings.alerts.alert_on_cores
+    assert settings.alerts.limpet_alert is None
     assert (settings.sound_enabled, settings.record_journal) == (False, True)
     assert settings.display.activities == (Activity.MINING, Activity.TRADE)
     assert settings.display.mode is DisplayMode.LAST_ACTIVE  # the plugin's, kept
@@ -104,6 +106,10 @@ def changed(path: tuple[str, ...], value: object) -> dict[str, Any]:
         (("alerts", "minimumContent"), "unknown", "minimumContent"),
         (("alerts", "minimumRemaining"), -1, "minimumRemaining"),
         (("alerts", "cores"), "yes", "cores"),
+        (("alerts", "limpets"), -1, "limpets"),
+        (("alerts", "limpets"), 2.5, "limpets"),
+        (("alerts", "limpets"), True, "limpets"),
+        (("alerts", "limpets"), 1000, "limpets"),
         (("sound",), 1, "sound"),
         (("sources",), None, "sources"),
         (("sources", "ardent"), "yes", "ardent"),

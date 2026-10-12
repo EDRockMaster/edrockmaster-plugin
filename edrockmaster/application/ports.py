@@ -11,6 +11,7 @@ from edrockmaster.application.settings import PluginSettings
 from edrockmaster.domain.engineering.goals import Goal, GoalId
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.mining.hotspots import HotspotPage, HotspotQuery
+from edrockmaster.domain.mining.limpets import LimpetAlertRaised
 from edrockmaster.domain.mining.markets import MarketOffer, SaleQuery
 from edrockmaster.domain.mining.prospecting import ProspectorAlertRaised
 
@@ -30,7 +31,7 @@ class SettingsStore(Protocol):
 
 
 class Notifier(Protocol):
-    def notify(self, alert: ProspectorAlertRaised) -> None:
+    def notify(self, alert: ProspectorAlertRaised | LimpetAlertRaised) -> None:
         """Draw the player's attention to an alert (sound). Must not block."""
         ...
 

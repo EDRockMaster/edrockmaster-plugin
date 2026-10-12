@@ -5,9 +5,10 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import assert_never
 
-from edrockmaster.application.mining_service import MiningNotification
+from edrockmaster.application.mining_service import MiningAlert, MiningNotification
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.mining.journal import LimpetKind
+from edrockmaster.domain.mining.limpets import LimpetAlertRaised
 from edrockmaster.domain.mining.prospecting import CommodityAlert, CoreAlert, ProspectorAlertRaised
 from edrockmaster.domain.mining.session import (
     EndReason,
@@ -52,7 +53,7 @@ class MiningPresenter:
         self._ring: str | None = None
         self._ended: EndReason | None = None
         self._stats: SessionStats | None = None
-        self._alert: ProspectorAlertRaised | None = None
+        self._alert: MiningAlert | None = None
 
     def apply(self, notifications: Iterable[MiningNotification]) -> PanelModel:
         for notification in notifications:
@@ -79,7 +80,7 @@ class MiningPresenter:
                 if previous is None or stats.prospected_total > previous.prospected_total:
                     self._alert = None  # a new asteroid: the previous alert is stale
                 self._stats = stats
-            case ProspectorAlertRaised():
+            case ProspectorAlertRaised() | LimpetAlertRaised():
                 self._alert = notification
             case SessionEnded(reason=reason, stats=stats):
                 self._running, self._ended = False, reason
@@ -126,6 +127,8 @@ class MiningPresenter:
             lines.append(StatLine(tl("Limpets"), limpets))
         if stats.cargo_tons is not None:
             lines.append(StatLine(tl("Cargo"), self._tons(stats.cargo_tons)))
+        if stats.limpets_on_board is not None:
+            lines.append(StatLine(tl("Limpets on board"), number(stats.limpets_on_board, 0)))
         if stats.credits_earned:
             sold = tl("{tons}, {credits}").format(
                 tons=self._tons(sum(stats.sold_tons.values())),
@@ -134,7 +137,9 @@ class MiningPresenter:
             lines.append(StatLine(tl("Sold"), sold))
         return tuple(lines)
 
-    def _alert_text(self, raised: ProspectorAlertRaised) -> str:
+    def _alert_text(self, raised: MiningAlert) -> str:
+        if isinstance(raised, LimpetAlertRaised):
+            return self._limpets_left(raised.count)
         parts = []
         for alert in raised.alerts:
             match alert:
@@ -147,6 +152,13 @@ class MiningPresenter:
                 case _:  # pragma: no cover - exhaustiveness checked by mypy
                     assert_never(alert)
         return " · ".join(parts)
+
+    def _limpets_left(self, count: int) -> str:
+        if count == 0:
+            return self._tl("No limpets left")
+        if count == 1:
+            return self._tl("1 limpet left")
+        return self._tl("{count} limpets left").format(count=self._number(count, 0))
 
     def _tons(self, tons: int) -> str:
         return self._tl("{tons} t").format(tons=self._number(tons, 0))

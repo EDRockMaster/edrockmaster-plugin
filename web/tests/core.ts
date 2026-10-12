@@ -196,6 +196,7 @@ export const SETTINGS: Settings = {
     minimumContent: "medium",
     minimumRemaining: null,
     cores: true,
+    limpets: 5,
   },
   sound: true,
   recordJournal: false,
