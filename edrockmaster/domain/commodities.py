@@ -30,10 +30,6 @@ class Commodity:
             raise ValueError("empty commodity symbol")
         return cls(key=key, localised=localised or None)
 
-    @property
-    def display_name(self) -> str:
-        return self.localised or self.key
-
 
 LIMPET = Commodity.from_symbol("drones")
 

@@ -8,7 +8,6 @@ from edrockmaster.desktop.journal_folder import (
     environment_override,
     is_beta_file,
     journal_files,
-    newest_journal,
 )
 
 
@@ -35,13 +34,10 @@ def test_journal_files_are_ordered_by_their_start_then_part(tmp_path: Path) -> N
         "Journal.2026-10-08T014139.01.log",
         "Journal.2026-10-08T014139.02.log",
     ]
-    newest = newest_journal(tmp_path)
-    assert newest is not None
-    assert newest.name == "Journal.2026-10-08T014139.02.log"
 
 
 def test_no_journal_file(tmp_path: Path) -> None:
-    assert newest_journal(tmp_path) is None
+    assert journal_files(tmp_path) == []
     assert journal_files(tmp_path / "missing") == []
 
 

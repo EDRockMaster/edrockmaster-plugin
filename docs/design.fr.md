@@ -142,7 +142,7 @@ Tout cela est du calcul pur sur de petits objets (bien moins d'une milliseconde 
 | Réinitialisation manuelle (bouton du bloc) | Fin de la session, une nouvelle peut démarrer |
 | `is_beta`, ou `gameversion` autre que 4.x dans `LoadGame` | Tout fonctionne en local ; marqué comme non envoyable (1B) |
 
-Statistiques d'une session : durée active, tonnes par commodité, tonnes totales, tonnes par heure, astéroïdes prospectés (par niveau de teneur), cores trouvés et fissurés, drones lancés (prospecteurs, collecteurs), raffinages par minute, tonnes vendues et crédits gagnés.
+Statistiques d'une session : durée active, tonnes par commodité, tonnes totales, tonnes par heure, astéroïdes prospectés (par niveau de teneur), cores trouvés et fissurés, drones lancés (prospecteurs, collecteurs), tonnes vendues et crédits gagnés.
 
 ## Combat
 

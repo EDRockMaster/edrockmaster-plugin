@@ -17,11 +17,12 @@ from edrockmaster.infrastructure.database import (
     WrongThreadError,
 )
 from edrockmaster.infrastructure.goal_repository import read_goals
-from edrockmaster.infrastructure.migrations import LATEST_VERSION, MIGRATIONS, Migration
+from edrockmaster.infrastructure.migrations import MIGRATIONS, Migration
 
 FIXTURES = Path(__file__).resolve().parent.parent / "fixtures" / "database"
 NOW = datetime(2026, 10, 8, 14, 30, 5, tzinfo=UTC)
 logger = logging.getLogger("test.database")
+LATEST_VERSION = MIGRATIONS[-1].version
 
 # Migrations of a later version than the application's
 NOTES = Migration(

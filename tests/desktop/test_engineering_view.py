@@ -16,7 +16,6 @@ from edrockmaster.desktop.engineering_view import (
     goal_from_request,
     with_count,
 )
-from edrockmaster.desktop.live_view import SCHEMA
 from edrockmaster.domain.engineering.goals import (
     BlueprintGoal,
     ClassUpgradeGoal,
@@ -29,6 +28,7 @@ from edrockmaster.domain.engineering.journal import EngineerState, EngineerStatu
 from edrockmaster.domain.engineering.on_foot_journal import Suit, Weapon
 from edrockmaster.infrastructure.catalogue_file import load_catalogue
 from edrockmaster.ui.engineering_names import EngineeringNames
+from tests.desktop.schemas import LIVE_VIEW_SCHEMA as SCHEMA
 from tests.fakes import FakeGoalRepository, FixedClock
 
 CATALOGUE = load_catalogue()

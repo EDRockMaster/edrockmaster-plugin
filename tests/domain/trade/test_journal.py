@@ -42,7 +42,7 @@ def test_purchase_is_parsed() -> None:
     )
     assert fact == GoodsBought(AT, AMANO, CMM, 1040, 5387, 5602480)
     assert isinstance(fact, GoodsBought)
-    assert fact.commodity.display_name == "Composite MMC"
+    assert fact.commodity.localised == "Composite MMC"
 
 
 def test_sale_of_bought_goods_has_a_profit() -> None:

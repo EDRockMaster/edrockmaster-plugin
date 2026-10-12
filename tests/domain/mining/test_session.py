@@ -40,7 +40,7 @@ def at(minutes: float) -> datetime:
 
 
 def ring(minutes: float = 0) -> RingEntered:
-    return RingEntered(at=at(minutes), system="Col 285", system_address=42, ring="Col 285 2 A Ring")
+    return RingEntered(at=at(minutes), system="Col 285", ring="Col 285 2 A Ring")
 
 
 def refined(minutes: float, commodity: Commodity = PAINITE) -> CommodityRefined:
@@ -224,15 +224,6 @@ def test_rates_are_zero_without_active_time() -> None:
     tracker.handle(refined(0))
     assert tracker.session is not None
     assert tracker.session.stats.tons_per_hour == 0.0
-    assert tracker.session.stats.refinements_per_minute == 0.0
-
-
-def test_refinements_per_minute() -> None:
-    tracker = MiningTracker()
-    for second in range(0, 60, 10):  # 6 refinements within 50 seconds
-        tracker.handle(refined(second / 60))
-    assert tracker.session is not None
-    assert tracker.session.stats.refinements_per_minute == pytest.approx(6 / (50 / 60))
 
 
 def test_prospecting_is_counted_by_content_level() -> None:

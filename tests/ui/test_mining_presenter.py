@@ -35,7 +35,6 @@ def stats(
         started_at=T0,
         active_duration=timedelta(minutes=minutes),
         tons_by_commodity=MappingProxyType(tons if tons is not None else {PAINITE: 20}),
-        refinements=sum((tons or {PAINITE: 20}).values()),
         prospected_by_content=MappingProxyType({ContentLevel.HIGH: prospected}),
         cores_found=0,
         cores_cracked=0,

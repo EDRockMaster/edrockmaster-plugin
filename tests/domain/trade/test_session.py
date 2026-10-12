@@ -415,7 +415,7 @@ def test_the_route_keeps_the_name_the_purchase_gave() -> None:
         sell(3, AMANO, CMM, 20, 20_000, paid=5_000),
     )
     [route] = stats_of(tracker).routes
-    assert route.commodity.display_name == "Composite MMC"
+    assert route.commodity.localised == "Composite MMC"
 
 
 CARRIER = Market(9, "TZF-66Z", fleet_carrier=True)

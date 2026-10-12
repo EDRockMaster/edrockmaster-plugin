@@ -81,7 +81,6 @@ class AsteroidCracked:
 class RingEntered:
     at: datetime
     system: str
-    system_address: int | None
     ring: str
 
 
@@ -202,7 +201,6 @@ def _ring_position(entry: Entry, at: datetime) -> RingEntered | None:
     return RingEntered(
         at=at,
         system=required(entry, "StarSystem", str),
-        system_address=optional(entry, "SystemAddress", int),
         ring=required(entry, "Body", str),
     )
 

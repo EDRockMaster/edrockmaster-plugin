@@ -142,7 +142,7 @@ All of this is pure computation on small objects (well under a millisecond per e
 | Manual reset (button of the block) | Session ends, a new one can start |
 | `is_beta`, or `gameversion` not 4.x in `LoadGame` | Everything works locally; flagged as not uploadable (1B) |
 
-Statistics of a session: active duration, tons per commodity, total tons, tons per hour, asteroids prospected (by content level), cores found and cracked, limpets launched (prospector, collector), refinements per minute, tons sold and credits earned.
+Statistics of a session: active duration, tons per commodity, total tons, tons per hour, asteroids prospected (by content level), cores found and cracked, limpets launched (prospector, collector), tons sold and credits earned.
 
 ## Combat
 

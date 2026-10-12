@@ -15,7 +15,6 @@ from edrockmaster.domain.situation.situation import Situation
 from edrockmaster.ui.panel_model import ActivityBlock, LocalDataNotice, StatLine
 
 VERSION = 1
-SCHEMA = Path(__file__).with_name("schemas") / "live_view.schema.json"
 
 
 def live_view(  # noqa: PLR0913 - one argument per part of the view

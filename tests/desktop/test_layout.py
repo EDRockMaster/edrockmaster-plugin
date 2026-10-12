@@ -16,7 +16,7 @@ from edrockmaster.desktop.layout import (
     layout_view,
     view_layout_from_request,
 )
-from edrockmaster.desktop.live_view import SCHEMA
+from tests.desktop.schemas import LIVE_VIEW_SCHEMA as SCHEMA
 from tests.fakes import FakeConfig
 
 SCHEMAS = SCHEMA.parent

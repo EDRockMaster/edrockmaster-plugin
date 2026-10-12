@@ -49,7 +49,7 @@ def test_prospected_asteroid_is_parsed() -> None:
         ("platinum", 32.5),
         ("painite", 7.25),
     ]
-    assert fact.materials[0].commodity.display_name == "Platine"
+    assert fact.materials[0].commodity.localised == "Platine"
 
 
 @pytest.mark.parametrize(
@@ -121,7 +121,6 @@ def test_entering_a_ring_is_parsed() -> None:
     assert fact == RingEntered(
         at=AT,
         system="Col 285 Sector AB-C d1",
-        system_address=123456789,
         ring="Col 285 Sector AB-C d1 2 A Ring",
     )
 
@@ -143,7 +142,6 @@ def test_starting_inside_a_ring_is_parsed_as_entering_it(event: str) -> None:
     assert fact == RingEntered(
         at=AT,
         system="Col 285 Sector AB-C d1",
-        system_address=123456789,
         ring="Col 285 Sector AB-C d1 2 A Ring",
     )
 

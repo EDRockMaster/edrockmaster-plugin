@@ -10,7 +10,6 @@ import pytest
 
 from edrockmaster.application.activity import Activity
 from edrockmaster.application.settings import DEFAULT_SETTINGS, DisplayMode, SourceSettings
-from edrockmaster.desktop.live_view import SCHEMA
 from edrockmaster.desktop.settings_view import (
     DesktopPreferences,
     DesktopPreferencesStore,
@@ -20,6 +19,7 @@ from edrockmaster.desktop.settings_view import (
 )
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.mining.journal import ContentLevel
+from tests.desktop.schemas import LIVE_VIEW_SCHEMA as SCHEMA
 from tests.fakes import FakeConfig
 
 JOURNAL = Path("/games/journal").resolve()

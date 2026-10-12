@@ -41,11 +41,6 @@ def journal_files(directory: Path) -> list[Path]:
     return [path for _, path in sorted(found)]
 
 
-def newest_journal(directory: Path) -> Path | None:
-    files = journal_files(directory)
-    return files[-1] if files else None
-
-
 def is_beta_file(path: Path) -> bool:
     match = _JOURNAL_NAME.match(path.name)
     return bool(match and match["beta"])
