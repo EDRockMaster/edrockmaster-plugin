@@ -133,7 +133,8 @@ All of this is pure computation on small objects (well under a millisecond per e
 | Situation | Effect |
 | --- | --- |
 | `SupercruiseExit`, `Location` or `StartUp` with `BodyType` = `PlanetaryRing` | Current ring known (name, system) |
-| First mining activity (`LaunchDrone` prospector, `ProspectedAsteroid`, `MiningRefined`) | Session starts if none is running |
+| First mining activity (`LaunchDrone` prospector, `ProspectedAsteroid`, `MiningRefined`, `AsteroidCracked`) | Session starts if none is running |
+| `LaunchDrone` collector | Starts a session only in a known ring: elsewhere it picks up salvage (black boxes, escape pods) |
 | `ProspectedAsteroid` | Asteroid recorded, alert policy evaluated |
 | `MiningRefined` | One ton of the commodity counted |
 | `LaunchDrone` | Limpet counted by type |
@@ -170,7 +171,7 @@ Combat covers bounty hunting, conflict zones and any kill ([ADR 0013](https://gi
 | `SupercruiseEntry`, `Docked`, `FSDJump`, `StartJump` to hyperspace, `BookDropship` retreat, `Embark` | Departure: the segment closes; the session goes on. A site left without any reward is not counted. `Embark` off a station is a new arrival, by ship |
 | `FactionKillBond` outside any segment | A combat bond only exists in a conflict zone: a segment opens from the last arrival (from the bond when none was seen). By ship: **conflict zone, unknown intensity**; on foot: **ground conflict zone** |
 | Bounty elsewhere (a pirate while mining, near a station, after an interdiction): a bounty does not tell the place | **Miscellaneous**: counted in kills, credits and vouchers, in no rate |
-| Reward with no arrival seen (the game started on the site: `StartUp`, `Location` off station) | A segment of type **unknown**, from that reward; miscellaneous if the commander mines there (`ProspectedAsteroid`, `MiningRefined`, `AsteroidCracked`, prospector or collector limpets) |
+| Reward with no arrival seen (the game started on the site: `StartUp`, `Location` off station) | A segment of type **unknown**, from that reward; miscellaneous if the commander mines there (`ProspectedAsteroid`, `MiningRefined`, `AsteroidCracked`, prospector limpets; not collectors, which also pick up what pirates drop) |
 | `CommitCrime` during a session | Counted by kind of crime: fines and bounties on the commander, never deducted from the credits |
 | `Died` | Session ends; unredeemed vouchers are lost |
 | `Shutdown`, `ShutDown` | Session ends |

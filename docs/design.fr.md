@@ -133,7 +133,8 @@ Tout cela est du calcul pur sur de petits objets (bien moins d'une milliseconde 
 | Situation | Effet |
 | --- | --- |
 | `SupercruiseExit`, `Location` ou `StartUp` avec `BodyType` = `PlanetaryRing` | Anneau courant connu (nom, système) |
-| Première activité de minage (`LaunchDrone` prospecteur, `ProspectedAsteroid`, `MiningRefined`) | Une session démarre s'il n'y en a pas en cours |
+| Première activité de minage (`LaunchDrone` prospecteur, `ProspectedAsteroid`, `MiningRefined`, `AsteroidCracked`) | Une session démarre s'il n'y en a pas en cours |
+| `LaunchDrone` collecteur | Ne démarre une session que dans un anneau connu : ailleurs, il ramasse une épave (boîtes noires, nacelles d'évacuation) |
 | `ProspectedAsteroid` | Astéroïde enregistré, politique d'alerte évaluée |
 | `MiningRefined` | Une tonne de la commodité comptée |
 | `LaunchDrone` | Drone compté par type |
@@ -170,7 +171,7 @@ Le combat couvre la chasse à la prime, les zones de conflit et toute victime ([
 | `SupercruiseEntry`, `Docked`, `FSDJump`, `StartJump` vers l'hyperespace, `BookDropship` en retraite, `Embark` | Départ : le segment se ferme ; la session continue. Un site quitté sans aucune récompense ne compte pas. `Embark` hors station est une nouvelle arrivée, en vaisseau |
 | `FactionKillBond` hors de tout segment | Une obligation de combat n'existe qu'en zone de conflit : un segment s'ouvre depuis la dernière arrivée (depuis l'obligation si aucune n'a été vue). En vaisseau : **zone de conflit, intensité inconnue** ; à pied : **zone de conflit au sol** |
 | Prime ailleurs (un pirate pendant le minage, près d'une station, après une interdiction) : une prime ne dit rien du lieu | **Divers** : comptée dans les victimes, les crédits et les bons, dans aucun ratio |
-| Récompense sans arrivée vue (le jeu a démarré sur le site : `StartUp`, `Location` hors station) | Un segment de type **inconnu**, depuis cette récompense ; divers si le commandant mine là (`ProspectedAsteroid`, `MiningRefined`, `AsteroidCracked`, drones de prospection ou de collecte) |
+| Récompense sans arrivée vue (le jeu a démarré sur le site : `StartUp`, `Location` hors station) | Un segment de type **inconnu**, depuis cette récompense ; divers si le commandant mine là (`ProspectedAsteroid`, `MiningRefined`, `AsteroidCracked`, drones de prospection ; pas les collecteurs, qui ramassent aussi ce que lâchent les pirates) |
 | `CommitCrime` pendant une session | Compté par type de délit : amendes et primes sur le commandant, jamais retirées des crédits |
 | `Died` | La session se termine ; les bons non encaissés sont perdus |
 | `Shutdown`, `ShutDown` | La session se termine |

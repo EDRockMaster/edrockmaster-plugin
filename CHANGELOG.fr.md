@@ -28,6 +28,7 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 - Les marchandises remises à un ingénieur pour le débloquer (50 t de Bromellite pour Bill Turner) quittent maintenant la soute de la carte Commerce, qui le dit : *Remis à Bill Turner : Bromellite, 50 t*.
 - Les *Réglages* ne perdent plus les modifications non enregistrées quand vous ouvrez un autre onglet : ils demandent s'il faut les enregistrer, les abandonner ou continuer à modifier.
+- Les boîtes noires, nacelles d'évacuation et débris d'épave ramassés avec des drones collecteurs sur une source de signal ne démarrent plus de session de minage : hors d'un anneau, un collecteur, c'est une épave. Un collecteur ne compte plus non plus comme du minage au combat, pour qu'un chasseur de primes qui ramasse ce que lâchent les pirates garde son segment.
 
 ## [0.5.0] - 2026-10-11
 

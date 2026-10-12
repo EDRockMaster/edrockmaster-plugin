@@ -43,8 +43,6 @@ type MiningActivity = AsteroidProspected | CommodityRefined | AsteroidCracked | 
 type SessionFact = MiningActivity | CargoChanged | CargoEjected
 """Facts a running session takes into account."""
 
-_MINING_LIMPETS = (LimpetKind.PROSPECTOR, LimpetKind.COLLECTOR)
-
 
 class EndReason(Enum):
     SUPERCRUISE = "supercruise"
@@ -272,7 +270,7 @@ class MiningTracker:
     def _on_activity(self, fact: MiningActivity) -> list[SessionNotification]:
         notifications: list[SessionNotification] = []
         if self._session is None:
-            if isinstance(fact, LimpetLaunched) and fact.kind not in _MINING_LIMPETS:
+            if isinstance(fact, LimpetLaunched) and not self._starts_mining(fact.kind):
                 return []
             ring = self._ring
             self._session = MiningSession(
@@ -286,6 +284,13 @@ class MiningTracker:
         self._session.apply(fact)
         notifications.append(SessionUpdated(self._session.stats))
         return notifications
+
+    def _starts_mining(self, kind: LimpetKind) -> bool:
+        """A prospector is only used to mine; a collector also picks up salvage (black
+        boxes, escape pods) at a signal source, so it means mining only in a ring."""
+        return kind is LimpetKind.PROSPECTOR or (
+            kind is LimpetKind.COLLECTOR and self._ring is not None
+        )
 
     def _on_sale(self, sale: CommoditySold) -> SaleRecorded | None:
         """Credit a sale to the running session, or else to the last one that ended."""

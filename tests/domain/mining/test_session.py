@@ -78,6 +78,7 @@ def test_no_session_before_any_mining_activity() -> None:
     "first_activity",
     [
         launched(1, LimpetKind.PROSPECTOR),
+        launched(1, LimpetKind.COLLECTOR),
         prospected(1),
         refined(1),
         AsteroidCracked(at=at(1)),
@@ -104,6 +105,21 @@ def test_the_first_activity_is_counted_and_notified_with_the_start() -> None:
 def test_non_mining_limpet_does_not_start_a_session() -> None:
     tracker = MiningTracker()
     assert tracker.handle(launched(1, LimpetKind.OTHER)) == []
+    assert tracker.session is None
+
+
+def test_a_collector_outside_a_ring_does_not_start_a_session() -> None:
+    # Salvage: black boxes and escape pods picked up at a signal source
+    tracker = MiningTracker()
+    assert tracker.handle(launched(1, LimpetKind.COLLECTOR)) == []
+    assert tracker.session is None
+
+
+def test_a_collector_after_leaving_the_ring_does_not_start_a_session() -> None:
+    tracker = MiningTracker()
+    tracker.handle(ring())
+    tracker.handle(MiningAreaLeft(at=at(1), reason=LeaveReason.SUPERCRUISE))
+    assert tracker.handle(launched(2, LimpetKind.COLLECTOR)) == []
     assert tracker.session is None
 
 

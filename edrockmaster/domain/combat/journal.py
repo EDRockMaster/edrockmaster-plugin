@@ -305,11 +305,9 @@ def _mining(_entry: Entry, at: datetime) -> MiningSeen:
     return MiningSeen(at)
 
 
-_MINING_LIMPETS = {"Prospector", "Collection"}
-
-
 def _limpet(entry: Entry, at: datetime) -> MiningSeen | None:
-    return MiningSeen(at) if required(entry, "Type", str) in _MINING_LIMPETS else None
+    """A prospector means mining; a collector also picks up what pirates drop, or salvage."""
+    return MiningSeen(at) if required(entry, "Type", str) == "Prospector" else None
 
 
 def _crime(entry: Entry, at: datetime) -> CrimeCommitted:
