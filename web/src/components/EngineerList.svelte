@@ -17,8 +17,8 @@
   // sheet (ADR 0031): where they are, the system copied in one click, and how to unlock them.
   import { loadCatalogue } from "../lib/catalogue";
   import { core } from "../lib/bridge";
-  import { copyText } from "../lib/clipboard";
   import { t, type Language } from "../lib/i18n";
+  import CopySystem from "./CopySystem.svelte";
 
   let {
     engineers,
@@ -40,15 +40,6 @@
   });
 
   let open = $state<number | null>(null);
-  let copied = $state<number | null>(null);
-  let timer: ReturnType<typeof setTimeout> | undefined;
-
-  async function copy(engineer: EngineerRow, system: string): Promise<void> {
-    if (!(await copyText(system))) return;
-    copied = engineer.id;
-    clearTimeout(timer);
-    timer = setTimeout(() => (copied = null), 1500);
-  }
 </script>
 
 <ul class="engineers">
@@ -73,33 +64,7 @@
           <dl>
             <dt>{t(language, "engineer.system")}</dt>
             <dd>
-              <button
-                type="button"
-                class="copy"
-                aria-label={t(language, "engineer.copy", { system: sheet.system })}
-                onclick={() => copy(engineer, sheet.system)}
-              >
-                {sheet.system}
-                <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
-                  <rect
-                    x="5"
-                    y="5"
-                    width="9"
-                    height="9"
-                    rx="1.5"
-                    fill="none"
-                    stroke="currentColor"
-                  />
-                  <path
-                    d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"
-                    fill="none"
-                    stroke="currentColor"
-                  />
-                </svg>
-              </button>
-              {#if copied === engineer.id}
-                <span class="copied" role="status">{t(language, "engineer.copied")}</span>
-              {/if}
+              <CopySystem system={sheet.system} {language} />
             </dd>
             <dt>{t(language, "engineer.base")}</dt>
             <dd>{sheet.base}</dd>
@@ -214,22 +179,6 @@
   }
   dd {
     margin: 0;
-  }
-  .copy {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-1);
-    padding: 0 var(--space-2);
-    background: none;
-    color: var(--colour-focus);
-  }
-  .copy:hover {
-    border-color: var(--colour-focus);
-  }
-  .copied {
-    margin-left: var(--space-2);
-    color: var(--colour-accent);
-    font-size: 0.8rem;
   }
   .aim {
     margin-top: var(--space-2);

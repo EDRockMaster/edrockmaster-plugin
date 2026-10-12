@@ -20,7 +20,8 @@ describe("situation texts", () => {
     expect(situationTexts(AT_QWENT, "fr")).toEqual({
       commander: "CMDR Nyx-Vela",
       vessel: "Panther Clipper Mk II « Ore Hauler » NV-01",
-      place: "Sirius, à quai à Qwent Research Base",
+      system: "Sirius",
+      station: "À quai à Qwent Research Base",
       mode: "Groupe privé : Nyx-Vela",
       wing: "Escadrille : Cmdr A, Cmdr B",
       closed: false,
@@ -35,7 +36,8 @@ describe("situation texts", () => {
     expect(texts).toEqual({
       commander: null,
       vessel: "mamba",
-      place: "Sol",
+      system: "Sol",
+      station: null,
       mode: "Open play",
       wing: null,
       closed: true,
@@ -45,9 +47,10 @@ describe("situation texts", () => {
   it("know the solo mode, an unnamed private group, a station without its system, on foot", () => {
     expect(situationTexts(situation({ mode: "solo" }), "en").mode).toBe("Solo");
     expect(situationTexts(situation({ mode: "group" }), "en").mode).toBe("Private group");
-    expect(situationTexts(situation({ station: "Jameson Memorial" }), "en").place).toBe(
-      "Jameson Memorial",
-    );
+    expect(situationTexts(situation({ station: "Jameson Memorial" }), "en")).toMatchObject({
+      system: null,
+      station: "Docked at Jameson Memorial",
+    });
     const onFoot = situation({ onFoot: true, ship: { type: "mamba", name: null, ident: null } });
     expect(situationTexts(onFoot, "en").vessel).toBe("On foot");
   });
@@ -62,7 +65,8 @@ describe("SituationBanner", () => {
   it("shows the situation, and when the game is closed", () => {
     render(SituationBanner, { situation: { ...AT_QWENT, gameRunning: false }, language: "en" });
     expect(screen.getByText("CMDR Nyx-Vela")).toBeInTheDocument();
-    expect(screen.getByText("Sirius, docked at Qwent Research Base")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Copy Sirius" })).toHaveTextContent("Sirius");
+    expect(screen.getByText("Docked at Qwent Research Base")).toBeInTheDocument();
     expect(screen.getByText("Private group: Nyx-Vela")).toBeInTheDocument();
     expect(screen.getByText("Wing: Cmdr A, Cmdr B")).toBeInTheDocument();
     expect(screen.getByText("Game closed")).toBeInTheDocument();
@@ -70,7 +74,8 @@ describe("SituationBanner", () => {
 
   it("leaves out what is not known", () => {
     render(SituationBanner, { situation: situation({ system: "Sol" }), language: "en" });
-    expect(screen.getByText("Sol")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Copy Sol" })).toBeInTheDocument();
     expect(screen.queryByText(/CMDR/)).toBeNull();
+    expect(screen.queryByText(/Docked/)).toBeNull();
   });
 });

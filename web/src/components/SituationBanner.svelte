@@ -1,5 +1,6 @@
 <script lang="ts">
   import { t, type Language } from "../lib/i18n";
+  import CopySystem from "./CopySystem.svelte";
   import type { Situation } from "../lib/live-view";
   import { isUnknown, situationTexts } from "../lib/situation";
 
@@ -17,7 +18,8 @@
       {#if texts.closed}<span class="closed">{t(language, "situation.gameClosed")}</span>{/if}
     </p>
     <p class="where">
-      {#if texts.place}<span>{texts.place}</span>{/if}
+      {#if texts.system}<CopySystem system={texts.system} {language} />{/if}
+      {#if texts.station}<span>{texts.station}</span>{/if}
       {#if texts.mode}<span class="mode">{texts.mode}</span>{/if}
       {#if texts.wing}<span>{texts.wing}</span>{/if}
     </p>
