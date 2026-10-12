@@ -12,7 +12,7 @@ import jsonschema
 import pytest
 
 from edrockmaster.application.activity import Activity
-from edrockmaster.desktop.core import CORE_THREAD, DesktopCore
+from edrockmaster.desktop.core import CORE_THREAD, DesktopCore, game_description
 from tests.desktop.schemas import LIVE_VIEW_SCHEMA as SCHEMA
 from tests.desktop.test_parity import write_journal
 from tests.test_replay import Replay
@@ -269,6 +269,27 @@ def test_the_live_view_carries_the_situation(desktop: Desktop, journal: Path) ->
     )
     assert view["situation"]["system"] == "Sirius"
     assert view["situation"]["station"] == "Qwent Research Base"
+
+
+def test_the_game_loaded_is_logged_with_its_version(
+    desktop: Desktop, journal: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    # A bug report then tells which game the journal came from
+    with caplog.at_level(logging.INFO):
+        desktop.core.ready()
+        write_journal(journal, "redonesses-conflict-zone-2026-10-03.jsonl", chunk=10_000)
+        desktop.views.wait_for(lambda v: v["current"] == "combat")
+    assert "Game loaded: Elite Dangerous 4.4.1.1 (build r332841/r0), Odyssey" in caplog.text
+
+
+def test_the_game_s_description_says_what_the_journal_tells() -> None:
+    assert game_description(
+        {"gameversion": "4.4.1.1", "build": "r332841/r0 ", "Odyssey": True}
+    ) == ("Elite Dangerous 4.4.1.1 (build r332841/r0), Odyssey")
+    assert game_description({"gameversion": "3.8.0.407", "Horizons": True}, is_beta=True) == (
+        "Elite Dangerous 3.8.0.407, Horizons, beta"
+    )
+    assert game_description({}) == "Elite Dangerous, version unknown"
 
 
 def test_resets_and_the_first_view_shown_are_logged(
