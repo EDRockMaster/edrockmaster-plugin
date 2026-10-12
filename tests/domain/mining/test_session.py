@@ -78,7 +78,6 @@ def test_no_session_before_any_mining_activity() -> None:
     "first_activity",
     [
         launched(1, LimpetKind.PROSPECTOR),
-        launched(1, LimpetKind.COLLECTOR),
         prospected(1),
         refined(1),
         AsteroidCracked(at=at(1)),
@@ -108,18 +107,14 @@ def test_non_mining_limpet_does_not_start_a_session() -> None:
     assert tracker.session is None
 
 
-def test_a_collector_outside_a_ring_does_not_start_a_session() -> None:
-    # Salvage: black boxes and escape pods picked up at a signal source
+@pytest.mark.parametrize("in_a_ring", [False, True])
+def test_a_collector_does_not_start_a_session(in_a_ring: bool) -> None:
+    # It also picks up salvage, escape pods, engineering materials: what it brings back
+    # tells, and fragments reach the refinery (MiningRefined), which starts the session
     tracker = MiningTracker()
+    if in_a_ring:
+        tracker.handle(ring())
     assert tracker.handle(launched(1, LimpetKind.COLLECTOR)) == []
-    assert tracker.session is None
-
-
-def test_a_collector_after_leaving_the_ring_does_not_start_a_session() -> None:
-    tracker = MiningTracker()
-    tracker.handle(ring())
-    tracker.handle(MiningAreaLeft(at=at(1), reason=LeaveReason.SUPERCRUISE))
-    assert tracker.handle(launched(2, LimpetKind.COLLECTOR)) == []
     assert tracker.session is None
 
 

@@ -134,7 +134,7 @@ Tout cela est du calcul pur sur de petits objets (bien moins d'une milliseconde 
 | --- | --- |
 | `SupercruiseExit`, `Location` ou `StartUp` avec `BodyType` = `PlanetaryRing` | Anneau courant connu (nom, système) |
 | Première activité de minage (`LaunchDrone` prospecteur, `ProspectedAsteroid`, `MiningRefined`, `AsteroidCracked`) | Une session démarre s'il n'y en a pas en cours |
-| `LaunchDrone` collecteur | Ne démarre une session que dans un anneau connu : ailleurs, il ramasse une épave (boîtes noires, nacelles d'évacuation) |
+| `LaunchDrone` collecteur | Ne démarre pas de session : il ramasse aussi des épaves, des nacelles d'évacuation ou des matériaux d'ingénierie ; c'est ce qu'il rapporte qui compte (les fragments vont à la raffinerie, `MiningRefined`) |
 | `ProspectedAsteroid` | Astéroïde enregistré, politique d'alerte évaluée |
 | `MiningRefined` | Une tonne de la commodité comptée |
 | `LaunchDrone` | Drone compté par type |

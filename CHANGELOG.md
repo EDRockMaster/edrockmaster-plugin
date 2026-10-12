@@ -28,7 +28,7 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 - Goods handed to an engineer to unlock them (50 t of Bromellite for Bill Turner) now leave the cargo of the trade card, which says so: *Handed to Bill Turner: Bromellite, 50 t*.
 - *Settings* no longer drops changes not saved when you open another tab: it asks whether to save them, drop them or keep editing.
-- Black boxes, escape pods and wreckage picked up with collector limpets at a signal source no longer start a mining session: outside a ring, a collector means salvage. A collector no longer counts as mining in combat either, so that a bounty hunter collecting what pirates drop keeps their segment.
+- Black boxes, escape pods and wreckage picked up with collector limpets at a signal source no longer start a mining session: a collector limpet starts none, what it brings back does (fragments reaching the refinery). A collector no longer counts as mining in combat either, so that a bounty hunter collecting what pirates drop keeps their segment.
 
 ## [0.5.0] - 2026-10-11
 

@@ -134,7 +134,7 @@ All of this is pure computation on small objects (well under a millisecond per e
 | --- | --- |
 | `SupercruiseExit`, `Location` or `StartUp` with `BodyType` = `PlanetaryRing` | Current ring known (name, system) |
 | First mining activity (`LaunchDrone` prospector, `ProspectedAsteroid`, `MiningRefined`, `AsteroidCracked`) | Session starts if none is running |
-| `LaunchDrone` collector | Starts a session only in a known ring: elsewhere it picks up salvage (black boxes, escape pods) |
+| `LaunchDrone` collector | Starts no session: it also picks up salvage, escape pods or engineering materials; what it brings back tells (fragments reach the refinery, `MiningRefined`) |
 | `ProspectedAsteroid` | Asteroid recorded, alert policy evaluated |
 | `MiningRefined` | One ton of the commodity counted |
 | `LaunchDrone` | Limpet counted by type |
