@@ -41,6 +41,7 @@ from edrockmaster.desktop.layout import LayoutStore
 from edrockmaster.desktop.live_view import live_view
 from edrockmaster.desktop.settings_view import DesktopPreferencesStore
 from edrockmaster.domain.journal_reading import Entry
+from edrockmaster.domain.situation.route import JumpDiverted
 from edrockmaster.infrastructure.build_file import load_build
 from edrockmaster.infrastructure.catalogue_file import load_catalogue
 from edrockmaster.infrastructure.clock import SystemClock
@@ -343,6 +344,15 @@ class DesktopCore:
         except Exception:
             self._logger.exception("Could not handle the journal entry %r", entry.get("event"))
             return
+        for diverted in notifications:
+            if isinstance(diverted, JumpDiverted):
+                # Kept to survey what the game wrote, a Thargoid hyperdiction for one (ADR 0043)
+                self._logger.info(
+                    "Jump to %s at %s ended %s",
+                    diverted.aimed,
+                    diverted.at.isoformat(),
+                    f"in {diverted.reached}" if diverted.reached else "before any arrival",
+                )
         self._apply(notifications)
 
     def _apply(self, notifications: Sequence[Notification]) -> None:

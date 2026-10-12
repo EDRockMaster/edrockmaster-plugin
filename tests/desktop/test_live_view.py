@@ -8,7 +8,8 @@ import jsonschema
 
 from edrockmaster.application.activity import Activity
 from edrockmaster.desktop.live_view import live_view
-from edrockmaster.domain.situation.journal import GameMode, Ship
+from edrockmaster.domain.situation.journal import GameMode, RouteStop, Ship
+from edrockmaster.domain.situation.route import CurrentRoute
 from edrockmaster.domain.situation.situation import Situation
 from edrockmaster.ui.panel_model import ActivityBlock, PanelModel, StatLine
 from tests.desktop.schemas import LIVE_VIEW_SCHEMA as SCHEMA
@@ -77,6 +78,7 @@ def test_the_situation_in_the_view() -> None:
         "group": "Nyx-Vela",
         "wing": ["Cmdr A"],
         "gameRunning": True,
+        "route": None,
     }
 
 
@@ -116,3 +118,28 @@ def test_a_line_counts_down_to_its_moment_in_utc() -> None:
         {"label": "Raw gained", "value": "2"},
     ]
     assert datetime.fromisoformat(block["lines"][0]["until"]).tzinfo == UTC
+
+
+def test_the_route_in_the_view() -> None:
+    stops = (RouteStop("Sol", "G"), RouteStop("Sirius B", "DA"), RouteStop("Procyon", "F"))
+    route = CurrentRoute(stops, 0, stops[1], 2, fuel_level=30.0)
+    built = view(Situation(system="Sol", route=route))
+    assert built["situation"]["route"] == {  # type: ignore[index]
+        "destination": "Procyon",
+        "jumpsLeft": 2,
+        "offRoute": False,
+        "next": {
+            "system": "Sirius B",
+            "starClass": "DA",
+            "scoopable": False,
+            "danger": "whiteDwarf",
+        },
+        "nextScoopableIn": 2,
+        "fuelTight": False,
+    }
+
+
+def test_a_route_off_its_list() -> None:
+    route = CurrentRoute((RouteStop("Sol", "G"), RouteStop("Procyon", "F")), None, None, 1, True)
+    shown = view(Situation(route=route))["situation"]["route"]  # type: ignore[index]
+    assert (shown["offRoute"], shown["next"], shown["nextScoopableIn"]) == (True, None, None)
