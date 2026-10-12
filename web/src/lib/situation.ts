@@ -7,7 +7,8 @@ import type { Situation } from "./live-view";
 export interface SituationTexts {
   commander: string | null;
   vessel: string | null;
-  place: string | null;
+  system: string | null;
+  station: string | null;
   mode: string | null;
   wing: string | null;
   closed: boolean;
@@ -20,7 +21,11 @@ export function situationTexts(situation: Situation, language: Language): Situat
         ? null
         : t(language, "situation.commander", { name: situation.commander }),
     vessel: vessel(situation, language),
-    place: place(situation, language),
+    system: situation.system,
+    station:
+      situation.station === null
+        ? null
+        : t(language, "situation.station", { station: situation.station }),
     mode: mode(situation, language),
     wing:
       situation.wing.length === 0
@@ -38,12 +43,6 @@ function vessel(situation: Situation, language: Language): string | null {
   if (ship.name !== null) parts.push(t(language, "situation.shipName", { name: ship.name }));
   if (ship.ident !== null) parts.push(ship.ident);
   return parts.join(" ");
-}
-
-function place(situation: Situation, language: Language): string | null {
-  if (situation.system === null) return situation.station;
-  if (situation.station === null) return situation.system;
-  return t(language, "situation.docked", { system: situation.system, station: situation.station });
 }
 
 function mode(situation: Situation, language: Language): string | null {

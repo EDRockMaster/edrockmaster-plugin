@@ -16,7 +16,6 @@
   "situation.waiting": "Waiting for the game…",
   "situation.commander": "CMDR {name}",
   "situation.onFoot": "On foot",
-  "situation.docked": "{system}, docked at {station}",
   "situation.mode.open": "Open play",
   "situation.mode.solo": "Solo",
   "situation.mode.group": "Private group: {group}",
@@ -179,8 +178,6 @@
   "onFoot.addMod.modification": "Modification",
   "onFoot.addMod.unknownRecipe": "{name} (recipe not known)",
   "engineer.system": "System",
-  "engineer.copy": "Copy {system}",
-  "engineer.copied": "Copied",
   "engineer.base": "Base",
   "engineer.referredBy": "Known through",
   "engineer.known": "Known from the start",
@@ -229,8 +226,6 @@
   "mining.searching": "Searching…",
   "mining.refresh": "Refresh",
   "mining.more": "More",
-  "mining.copy": "Copy the system",
-  "mining.copied": "Copied",
   "mining.sellHere": "Sell near here",
   "mining.noRing": "No ring with these hotspots around this system.",
   "mining.noMarket": "No market buys it around this system.",
@@ -272,5 +267,9 @@
   "settings.sources": "Community sources",
   "settings.sources.help": "Asked only when you search in the Mining tab or estimate a cargo. They receive what you search and your IP address, as any web site does.",
   "settings.sources.spansh": "Spansh: rings and their hotspots",
-  "settings.sources.ardent": "Ardent Insight: the markets that buy a commodity"
+  "settings.sources.ardent": "Ardent Insight: the markets that buy a commodity",
+  "system.copy": "Copy {system}",
+  "system.copyHint": "Click to copy",
+  "system.copied": "Copied",
+  "situation.station": "Docked at {station}"
 }

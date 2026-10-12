@@ -16,7 +16,6 @@
   "situation.waiting": "En attente du jeu…",
   "situation.commander": "CMDR {name}",
   "situation.onFoot": "À pied",
-  "situation.docked": "{system}, à quai à {station}",
   "situation.mode.open": "Jeu ouvert",
   "situation.mode.solo": "Solo",
   "situation.mode.group": "Groupe privé : {group}",
@@ -179,8 +178,6 @@
   "onFoot.addMod.modification": "Modification",
   "onFoot.addMod.unknownRecipe": "{name} (recette inconnue)",
   "engineer.system": "Système",
-  "engineer.copy": "Copier {system}",
-  "engineer.copied": "Copié",
   "engineer.base": "Base",
   "engineer.referredBy": "Connu par",
   "engineer.known": "Connu dès le départ",
@@ -229,8 +226,6 @@
   "mining.searching": "Recherche…",
   "mining.refresh": "Actualiser",
   "mining.more": "Plus",
-  "mining.copy": "Copier le système",
-  "mining.copied": "Copié",
   "mining.sellHere": "Vendre près d'ici",
   "mining.noRing": "Aucun anneau avec ces hotspots autour de ce système.",
   "mining.noMarket": "Aucun marché ne l'achète autour de ce système.",
@@ -272,5 +267,9 @@
   "settings.sources": "Sources communautaires",
   "settings.sources.help": "Interrogées seulement quand vous cherchez dans l'onglet Minage ou estimez une soute. Elles reçoivent ce que vous cherchez et votre adresse IP, comme tout site web.",
   "settings.sources.spansh": "Spansh : les anneaux et leurs hotspots",
-  "settings.sources.ardent": "Ardent Insight : les marchés qui achètent une marchandise"
+  "settings.sources.ardent": "Ardent Insight : les marchés qui achètent une marchandise",
+  "system.copy": "Copier {system}",
+  "system.copyHint": "Cliquer pour copier",
+  "system.copied": "Copié",
+  "situation.station": "À quai à {station}"
 }

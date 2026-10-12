@@ -128,9 +128,9 @@ describe("MiningView", () => {
     Object.assign(navigator, { clipboard: { writeText } });
     await fireEvent.click(button("Search"));
     await screen.findByText("Borann A 2 A Ring");
-    await fireEvent.click(screen.getByRole("button", { name: "Copy the system" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Copy Borann" }));
     expect(writeText).toHaveBeenCalledWith("Borann");
-    await screen.findByRole("button", { name: "Copied" });
+    expect(await screen.findByText("Copied")).toBeInTheDocument();
     await fireEvent.click(screen.getByRole("button", { name: "Sell near here" }));
     await screen.findByText("Borisenko's Folly");
     expect(api.find_buyers).toHaveBeenCalledWith({
@@ -144,6 +144,8 @@ describe("MiningView", () => {
     const row = rowOf("Borisenko's Folly");
     expect(within(row).getByText("91,254 CR")).toBeInTheDocument();
     expect(within(row).getByText("Large")).toBeInTheDocument();
+    // A market's system is copied the same way as a ring's
+    expect(within(row).getByRole("button", { name: "Copy Arouca" })).toHaveTextContent("Arouca");
   });
 
   it("sells with carriers and any pad, and says when no market buys", async () => {

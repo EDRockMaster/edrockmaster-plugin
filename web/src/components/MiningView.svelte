@@ -3,6 +3,7 @@
   // Insight). The sources are asked only when the player searches (ADR 0039).
   import { core } from "../lib/bridge";
   import { t, type Language } from "../lib/i18n";
+  import CopySystem from "./CopySystem.svelte";
   import type {
     BuyersAnswer,
     BuyersRequest,
@@ -32,7 +33,6 @@
   let hotspots = $state<HotspotsAnswer | null>(null);
   let page = $state(0);
   let searching = $state(false);
-  let copied = $state<string | null>(null);
 
   let sellAround = $state("");
   let pad = $state<Pad | "any">("any");
@@ -115,11 +115,6 @@
       level === reserve ? on : reserves.includes(level),
     );
   }
-
-  async function copy(name: string): Promise<void> {
-    await navigator.clipboard?.writeText(name);
-    copied = name;
-  }
 </script>
 
 <section aria-labelledby="mine-title">
@@ -199,6 +194,7 @@
             <tr>
               <td>
                 <strong>{ring.ring}</strong>
+                <CopySystem system={ring.system} {language} />
                 <span class="muted small">
                   {ringType(
                     ring.ringType,
@@ -222,11 +218,6 @@
               </td>
               <td class="small">{age(ring.seen, now, language)}</td>
               <td class="row-actions">
-                <button type="button" onclick={() => copy(ring.system)}>
-                  {copied === ring.system
-                    ? t(language, "mining.copied")
-                    : t(language, "mining.copy")}
-                </button>
                 <button type="button" onclick={() => searchBuyers(ring.system)}>
                   {t(language, "mining.sellHere")}
                 </button>
@@ -307,7 +298,7 @@
             <tr>
               <td>
                 <strong>{offer.station}</strong>
-                <span class="muted small">{offer.system}</span>
+                <CopySystem system={offer.system} {language} />
               </td>
               <td class="number"
                 >{t(language, "mining.credits", { credits: number(offer.price, language) })}</td
