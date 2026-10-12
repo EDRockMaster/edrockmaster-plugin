@@ -25,7 +25,8 @@
         "thresholds",
         "minimumContent",
         "minimumRemaining",
-        "cores"
+        "cores",
+        "limpets"
       ],
       "properties": {
         "thresholds": {
@@ -75,6 +76,15 @@
         },
         "cores": {
           "type": "boolean"
+        },
+        "limpets": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 999,
+          "description": "Limpets on board at which to alert (ADR 0042); null for no alert."
         }
       }
     },

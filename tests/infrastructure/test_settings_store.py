@@ -30,6 +30,7 @@ CUSTOM = replace(
         minimum_content=ContentLevel.MEDIUM,
         minimum_remaining=50.0,
         alert_on_cores=False,
+        limpet_alert=10,
     ),
     sound_enabled=False,
     record_journal=True,
@@ -53,6 +54,23 @@ def test_keys_are_prefixed_and_versioned() -> None:
     KeyValueSettingsStore(config, logger).save(CUSTOM)
     assert all(key.startswith("edrockmaster.") for key in config.values)
     assert config.values["edrockmaster.settings_version"] == "1"
+
+
+def test_the_limpet_alert_defaults_to_5_and_may_be_turned_off() -> None:
+    # Settings saved before ADR 0042 have no limpet alert: they get the default
+    assert KeyValueSettingsStore(FakeConfig(), logger).load().alerts.limpet_alert == 5
+    config = FakeConfig()
+    off = replace(DEFAULT_SETTINGS, alerts=replace(DEFAULT_SETTINGS.alerts, limpet_alert=None))
+    KeyValueSettingsStore(config, logger).save(off)
+    assert config.values["edrockmaster.alert.limpets"] == ""
+    assert KeyValueSettingsStore(config, logger).load().alerts.limpet_alert is None
+
+
+@pytest.mark.parametrize("raw", ["-1", "many", "2.5"])
+def test_an_invalid_limpet_alert_falls_back_to_the_default(raw: str) -> None:
+    config = FakeConfig()
+    config.values["edrockmaster.alert.limpets"] = raw
+    assert KeyValueSettingsStore(config, logger).load().alerts.limpet_alert == 5
 
 
 def test_minimum_remaining_none_round_trips() -> None:

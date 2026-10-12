@@ -9,6 +9,7 @@ from edrockmaster.application.settings import DEFAULT_SETTINGS, PluginSettings
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.mining.journal import ContentLevel
+from edrockmaster.domain.mining.limpets import LimpetAlertRaised
 from edrockmaster.domain.mining.prospecting import (
     AlertSettings,
     CommodityAlert,
@@ -24,6 +25,7 @@ from edrockmaster.domain.mining.session import (
 from tests.fakes import FakeNotifier, FixedClock
 from tests.journal_entries import (
     T0,
+    cargo_entry,
     prospected_entry,
     refined_entry,
     ring_entry,
@@ -200,3 +202,56 @@ def test_replayed_mining_run_yields_consistent_statistics(harness: Harness) -> N
     assert ended.stats.tons_per_hour == pytest.approx(40.0)
     assert len(alerts_in(notifications)) == 1
     assert harness.service.current_stats is None
+
+
+# --- limpets on board (ADR 0042) ----------------------------------------------------------
+
+
+def limpet_alerts(notifications: Sequence[object]) -> list[LimpetAlertRaised]:
+    return [n for n in notifications if isinstance(n, LimpetAlertRaised)]
+
+
+def mining(harness: Harness) -> None:
+    harness.service.handle_journal_entry(ring_entry(0), False)
+    harness.service.handle_journal_entry(prospected_entry(1, painite=1.0), False)
+
+
+def test_limpets_falling_to_the_threshold_alert_once_with_a_sound(harness: Harness) -> None:
+    mining(harness)
+    assert limpet_alerts(harness.service.handle_journal_entry(cargo_entry(2, 6), False)) == []
+    notifications = harness.service.handle_journal_entry(cargo_entry(3, 5), False)
+    [alert] = limpet_alerts(notifications)
+    assert alert.count == 5
+    assert harness.notifier.notified == [alert]
+    assert limpet_alerts(harness.service.handle_journal_entry(cargo_entry(4, 4), False)) == []
+
+
+def test_limpets_are_not_watched_outside_a_mining_session(harness: Harness) -> None:
+    assert limpet_alerts(harness.service.handle_journal_entry(cargo_entry(0, 2), False)) == []
+    mining(harness)
+    # Still low when the session runs: one alert
+    [alert] = limpet_alerts(harness.service.handle_journal_entry(cargo_entry(2, 2), False))
+    assert alert.count == 2
+
+
+def test_a_new_session_alerts_again(harness: Harness) -> None:
+    mining(harness)
+    assert limpet_alerts(harness.service.handle_journal_entry(cargo_entry(2, 3), False))
+    harness.service.handle_journal_entry(supercruise_entry(3), False)
+    harness.service.handle_journal_entry(ring_entry(10), False)
+    harness.service.handle_journal_entry(prospected_entry(11, painite=1.0), False)
+    assert limpet_alerts(harness.service.handle_journal_entry(cargo_entry(12, 3), False))
+
+
+def test_the_limpet_alert_is_silent_when_the_sound_is_off() -> None:
+    harness = Harness(replace(DEFAULT_SETTINGS, sound_enabled=False))
+    mining(harness)
+    assert limpet_alerts(harness.service.handle_journal_entry(cargo_entry(2, 1), False))
+    assert harness.notifier.notified == []
+
+
+def test_no_limpet_alert_when_the_player_emptied_the_setting(harness: Harness) -> None:
+    alerts = replace(DEFAULT_SETTINGS.alerts, limpet_alert=None)
+    harness.service.apply_settings(replace(DEFAULT_SETTINGS, alerts=alerts))
+    mining(harness)
+    assert limpet_alerts(harness.service.handle_journal_entry(cargo_entry(2, 0), False)) == []

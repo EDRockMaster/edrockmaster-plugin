@@ -14,6 +14,7 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 - The application's log names the **game version** at each game loaded (version, build, Odyssey or Horizons, beta), so that a bug report says which game it came from.
 - **Combat by faction**: the combat card shows kills and credits against each faction you fought (the three with most kills, then the others together), handy in a conflict zone.
 - **Crimes by kind** in the combat card: *Reckless weapons discharge: 1, Assault: 2*, named in your language.
+- **Limpets on board** in the mining card, and an **alert before they run out**: one sound and *5 limpets left* when they fall to 5 during a mining session, once, not at every launch. The number is set in *Settings* (empty for no alert).
 - **Community sources** in *Settings*: Spansh and Ardent Insight can each be turned off; the privacy policy says what they receive.
 
 ### Fixed

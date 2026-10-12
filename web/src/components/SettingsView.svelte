@@ -6,6 +6,7 @@
   import {
     ACTIVITIES,
     formOf,
+    limpetCount,
     percent,
     settingsFrom,
     unsaved,
@@ -103,6 +104,10 @@
       <label class="check"
         ><input type="checkbox" bind:checked={form.cores} />{t(language, "settings.cores")}</label
       >
+      <label class="line" class:wrong={limpetCount(form.limpets) === undefined}>
+        {t(language, "settings.limpets")}
+        <input inputmode="numeric" size="4" bind:value={form.limpets} />
+      </label>
       <label class="check"
         ><input type="checkbox" bind:checked={form.sound} />{t(language, "settings.sound")}</label
       >

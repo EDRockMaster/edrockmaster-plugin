@@ -6,6 +6,7 @@ from datetime import datetime
 from edrockmaster.application.settings import DEFAULT_SETTINGS, PluginSettings
 from edrockmaster.domain.engineering.goals import Goal, GoalId
 from edrockmaster.domain.journal_reading import Entry
+from edrockmaster.domain.mining.limpets import LimpetAlertRaised
 from edrockmaster.domain.mining.prospecting import ProspectorAlertRaised
 
 
@@ -51,9 +52,9 @@ class FakeSettingsStore:
 
 class FakeNotifier:
     def __init__(self) -> None:
-        self.notified: list[ProspectorAlertRaised] = []
+        self.notified: list[ProspectorAlertRaised | LimpetAlertRaised] = []
 
-    def notify(self, alert: ProspectorAlertRaised) -> None:
+    def notify(self, alert: ProspectorAlertRaised | LimpetAlertRaised) -> None:
         self.notified.append(alert)
 
 

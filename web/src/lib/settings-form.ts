@@ -18,6 +18,18 @@ export function percent(text: string): number | null | undefined {
   return Number.isFinite(value) && value >= 0 && value <= 100 ? value : undefined;
 }
 
+/** The most limpets the alert may wait for (ADR 0042). */
+export const MAX_LIMPETS = 999;
+
+/** A number of limpets typed in the form: `null` when empty, `undefined` when not one. */
+export function limpetCount(text: string): number | null | undefined {
+  const trimmed = text.trim();
+  if (trimmed === "") return null;
+  if (!/^\d+$/.test(trimmed)) return undefined;
+  const value = Number(trimmed);
+  return value <= MAX_LIMPETS ? value : undefined;
+}
+
 export function percentText(value: number | null): string {
   return value === null ? "" : String(value);
 }
@@ -36,6 +48,7 @@ export interface SettingsForm {
   remaining: string;
   minimumContent: Settings["alerts"]["minimumContent"];
   cores: boolean;
+  limpets: string;
   sound: boolean;
   recordJournal: boolean;
   activities: Activity[];
@@ -52,6 +65,7 @@ export function formOf(settings: Settings): SettingsForm {
     remaining: percentText(settings.alerts.minimumRemaining),
     minimumContent: settings.alerts.minimumContent,
     cores: settings.alerts.cores,
+    limpets: settings.alerts.limpets === null ? "" : String(settings.alerts.limpets),
     sound: settings.sound,
     recordJournal: settings.recordJournal,
     activities: [...settings.activities],
@@ -68,10 +82,12 @@ export function settingsFrom(loaded: Settings, form: SettingsForm): Settings | n
     threshold: percent(form.thresholds[row.commodity] ?? ""),
   }));
   const remaining = percent(form.remaining);
+  const limpets = limpetCount(form.limpets);
   const [first, ...others] = form.activities;
   if (
     thresholds.some((row) => row.threshold === undefined) ||
     remaining === undefined ||
+    limpets === undefined ||
     first === undefined
   ) {
     return null;
@@ -84,6 +100,7 @@ export function settingsFrom(loaded: Settings, form: SettingsForm): Settings | n
       minimumContent: form.minimumContent,
       minimumRemaining: remaining,
       cores: form.cores,
+      limpets,
     },
     sound: form.sound,
     recordJournal: form.recordJournal,

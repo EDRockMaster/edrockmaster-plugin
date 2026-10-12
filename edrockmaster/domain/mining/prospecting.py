@@ -9,6 +9,7 @@ from types import MappingProxyType
 
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.mining.journal import AsteroidProspected, ContentLevel
+from edrockmaster.domain.mining.limpets import DEFAULT_LIMPET_ALERT
 
 DUPLICATE_WINDOW = timedelta(seconds=60)
 """Prospecting an identical asteroid again within this window does not alert twice."""
@@ -27,13 +28,15 @@ class AlertSettings:
 
     ``thresholds`` maps a commodity to the minimum proportion, in percent, that
     raises an alert. ``minimum_content`` set to ``LOW`` accepts every asteroid,
-    including those whose content level is unknown.
+    including those whose content level is unknown. ``limpet_alert``: the limpets on
+    board at which to alert (ADR 0042), ``None`` for no alert.
     """
 
     thresholds: Mapping[Commodity, float]
     minimum_content: ContentLevel
     minimum_remaining: float | None
     alert_on_cores: bool
+    limpet_alert: int | None = DEFAULT_LIMPET_ALERT
 
     def __post_init__(self) -> None:
         for commodity, threshold in self.thresholds.items():
@@ -41,6 +44,8 @@ class AlertSettings:
                 raise ValueError(f"threshold for {commodity.key} must be between 0 and 100")
         if self.minimum_remaining is not None and not 0.0 <= self.minimum_remaining <= 100.0:
             raise ValueError("minimum remaining reserve must be between 0 and 100")
+        if self.limpet_alert is not None and self.limpet_alert < 0:
+            raise ValueError("the limpet alert is a number of limpets, 0 or more")
         # Freeze the mapping so that the settings stay immutable
         object.__setattr__(self, "thresholds", MappingProxyType(dict(self.thresholds)))
 

@@ -4,6 +4,7 @@ import App from "../src/App.svelte";
 import SettingsView from "../src/components/SettingsView.svelte";
 import {
   formOf,
+  limpetCount,
   percent,
   percentText,
   settingsFrom,
@@ -45,6 +46,16 @@ describe("settings logic", () => {
     expect(percentText(40)).toBe("40");
   });
 
+  it("reads a number of limpets typed as text", () => {
+    expect(limpetCount("")).toBeNull();
+    expect(limpetCount(" 5 ")).toBe(5);
+    expect(limpetCount("0")).toBe(0);
+    expect(limpetCount("2.5")).toBeUndefined();
+    expect(limpetCount("-1")).toBeUndefined();
+    expect(limpetCount("1000")).toBeUndefined();
+    expect(limpetCount("lots")).toBeUndefined();
+  });
+
   it("keeps activities in their display order", () => {
     expect(withActivity(["trade"], "mining", true)).toEqual(["mining", "trade"]);
     expect(withActivity(["mining", "trade"], "mining", false)).toEqual(["trade"]);
@@ -53,6 +64,7 @@ describe("settings logic", () => {
   it("turns the form back into settings, or nothing when a field is wrong", () => {
     const form = formOf(SETTINGS);
     expect(form.thresholds).toEqual({ painite: "35", platinum: "" });
+    expect(form.limpets).toBe("5");
     expect(settingsFrom(SETTINGS, form)).toEqual(SETTINGS);
     expect(
       settingsFrom(SETTINGS, { ...form, remaining: " 12,5 ", journalFolder: " D:/J " }),
@@ -63,6 +75,8 @@ describe("settings logic", () => {
     });
     expect(settingsFrom(SETTINGS, { ...form, remaining: "150" })).toBeNull();
     expect(settingsFrom(SETTINGS, { ...form, activities: [] })).toBeNull();
+    expect(settingsFrom(SETTINGS, { ...form, limpets: "" })?.alerts.limpets).toBeNull();
+    expect(settingsFrom(SETTINGS, { ...form, limpets: "many" })).toBeNull();
   });
 
   it("tells whether the form holds changes not saved yet", () => {
@@ -100,6 +114,9 @@ describe("SettingsView", () => {
       target: { value: "50" },
     });
     await fireEvent.click(screen.getByLabelText(/Alert on cores/));
+    await fireEvent.input(screen.getByLabelText(/Alert when the limpets on board fall to/), {
+      target: { value: "10" },
+    });
     await fireEvent.click(screen.getByLabelText(/Play a sound/));
     await fireEvent.click(screen.getByLabelText(/Record the journal/));
     await fireEvent.click(screen.getByLabelText("Combat"));
@@ -118,6 +135,7 @@ describe("SettingsView", () => {
         minimumContent: "high",
         minimumRemaining: 50,
         cores: false,
+        limpets: 10,
       },
       sound: false,
       recordJournal: true,

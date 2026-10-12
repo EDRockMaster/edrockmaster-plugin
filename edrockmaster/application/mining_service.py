@@ -5,11 +5,13 @@ from __future__ import annotations
 from edrockmaster.application.ports import Clock, Notifier
 from edrockmaster.application.settings import PluginSettings
 from edrockmaster.domain.journal_reading import Entry
-from edrockmaster.domain.mining.journal import AsteroidProspected, parse_entry
+from edrockmaster.domain.mining.journal import AsteroidProspected, CargoChanged, parse_entry
+from edrockmaster.domain.mining.limpets import LimpetAlertRaised, LimpetMonitor
 from edrockmaster.domain.mining.prospecting import ProspectingMonitor, ProspectorAlertRaised
 from edrockmaster.domain.mining.session import MiningTracker, SessionNotification, SessionStats
 
-type MiningNotification = SessionNotification | ProspectorAlertRaised
+type MiningAlert = ProspectorAlertRaised | LimpetAlertRaised
+type MiningNotification = SessionNotification | MiningAlert
 """What the presentation layer is told after each mining use case."""
 
 
@@ -24,6 +26,7 @@ class MiningService:
         self._settings = settings
         self._tracker = MiningTracker()
         self._monitor = ProspectingMonitor(settings.alerts)
+        self._limpets = LimpetMonitor(settings.alerts.limpet_alert)
 
     @property
     def current_stats(self) -> SessionStats | None:
@@ -40,12 +43,18 @@ class MiningService:
         if fact is None:
             return []
         notifications: list[MiningNotification] = list(self._tracker.handle(fact))
+        raised: MiningAlert | None = None
         if isinstance(fact, AsteroidProspected):
             raised = self._monitor.evaluate(fact)
-            if raised is not None:
-                notifications.append(raised)
-                if self._settings.sound_enabled:
-                    self._notifier.notify(raised)
+        elif self._tracker.session is None:
+            # A new session alerts again for limpets already low (ADR 0042)
+            self._limpets.rearm()
+        elif isinstance(fact, CargoChanged):
+            raised = self._limpets.evaluate(fact.limpets, fact.at)
+        if raised is not None:
+            notifications.append(raised)
+            if self._settings.sound_enabled:
+                self._notifier.notify(raised)
         return notifications
 
     def reset_session(self) -> list[MiningNotification]:
@@ -55,3 +64,4 @@ class MiningService:
     def apply_settings(self, settings: PluginSettings) -> None:
         self._settings = settings
         self._monitor.update_settings(settings.alerts)
+        self._limpets.update_threshold(settings.alerts.limpet_alert)

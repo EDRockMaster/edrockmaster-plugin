@@ -52,6 +52,19 @@ def refined_entry(minutes: float, commodity: str = "$painite_name;") -> Entry:
     }
 
 
+def cargo_entry(minutes: float, limpets: int, painite: int = 0) -> Entry:
+    inventory = [{"Name": "drones", "Name_Localised": "Limpet", "Count": limpets, "Stolen": 0}]
+    if painite:
+        inventory.append({"Name": "painite", "Count": painite, "Stolen": 0})
+    return {
+        "timestamp": timestamp(minutes),
+        "event": "Cargo",
+        "Vessel": "Ship",
+        "Count": limpets + painite,
+        "Inventory": inventory,
+    }
+
+
 def supercruise_entry(minutes: float) -> Entry:
     return {"timestamp": timestamp(minutes), "event": "SupercruiseEntry", "StarSystem": "Col 285"}
 

@@ -31,6 +31,9 @@ KEY_LANGUAGE = "edrockmaster.desktop.language"
 KEY_JOURNAL_FOLDER = "edrockmaster.desktop.journal_folder"
 _CONTENTS = {level.value: level for level in ContentLevel if level is not ContentLevel.UNKNOWN}
 
+MAX_LIMPETS = 999
+"""The most limpets the alert may wait for: more than any ship carries."""
+
 
 class SettingsError(ValueError):
     """A field of the form is not valid; ``field`` names it."""
@@ -85,6 +88,7 @@ def settings_view(
             else ContentLevel.LOW.value,
             "minimumRemaining": alerts.minimum_remaining,
             "cores": alerts.alert_on_cores,
+            "limpets": alerts.limpet_alert,
         },
         "sound": settings.sound_enabled,
         "recordJournal": settings.record_journal,
@@ -145,6 +149,14 @@ def _percent(value: Any, field: str) -> float | None:
     return float(value)
 
 
+def _limpets(value: Any) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= MAX_LIMPETS:
+        raise SettingsError("limpets", f"not a whole number of limpets from 0 to {MAX_LIMPETS}")
+    return value
+
+
 def _alerts(alerts: Mapping[str, Any]) -> AlertSettings:
     known = {key for key, _ in MINEABLE}
     thresholds: dict[Commodity, float] = {}
@@ -169,6 +181,7 @@ def _alerts(alerts: Mapping[str, Any]) -> AlertSettings:
         minimum_content=content,
         minimum_remaining=_percent(alerts.get("minimumRemaining"), "minimumRemaining"),
         alert_on_cores=cores,
+        limpet_alert=_limpets(alerts.get("limpets")),
     )
 
 

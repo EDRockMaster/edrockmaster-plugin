@@ -21,6 +21,10 @@
 "Cores" = "Cores";
 "Limpets" = "Drones";
 "Cargo" = "Soute";
+"Limpets on board" = "Drones à bord";
+"No limpets left" = "Plus aucun drone";
+"1 limpet left" = "Plus qu'un drone";
+"{count} limpets left" = "Plus que {count} drones";
 "Sold" = "Vendu";
 
 /* ui/mining_presenter.py and ui/panel_model.py: statistic values */

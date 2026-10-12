@@ -7,6 +7,7 @@ import pytest
 
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.mining.journal import ContentLevel, LimpetKind
+from edrockmaster.domain.mining.limpets import LimpetAlertRaised
 from edrockmaster.domain.mining.prospecting import CommodityAlert, CoreAlert, ProspectorAlertRaised
 from edrockmaster.domain.mining.session import (
     EndReason,
@@ -208,6 +209,28 @@ def test_a_new_alert_replaces_the_previous_one(presenter: MiningPresenter) -> No
 def test_alert_is_cleared_when_the_session_ends(presenter: MiningPresenter) -> None:
     presenter.apply([SessionUpdated(stats(prospected=1)), alert(CoreAlert(PAINITE))])
     assert presenter.apply([SessionEnded(T0, EndReason.DOCKED, stats())]).alert is None
+
+
+def test_limpets_on_board_are_shown_once_the_cargo_is_known(presenter: MiningPresenter) -> None:
+    assert "Limpets on board" not in labels(presenter.apply([SessionUpdated(stats())]))
+    model = presenter.apply([SessionUpdated(stats(limpets_on_board=12))])
+    assert value(model, "Limpets on board") == "12"
+
+
+@pytest.mark.parametrize(
+    ("count", "text"), [(5, "5 limpets left"), (1, "1 limpet left"), (0, "No limpets left")]
+)
+def test_the_limpet_alert_says_how_many_are_left(
+    presenter: MiningPresenter, count: int, text: str
+) -> None:
+    model = presenter.apply([SessionUpdated(stats(prospected=1)), LimpetAlertRaised(T0, count)])
+    assert model.alert == text
+
+
+def test_the_limpet_alert_stays_until_the_next_asteroid(presenter: MiningPresenter) -> None:
+    presenter.apply([SessionUpdated(stats(prospected=1)), LimpetAlertRaised(T0, 3)])
+    assert presenter.apply([SessionUpdated(stats(prospected=1, limpets_on_board=2))]).alert
+    assert presenter.apply([SessionUpdated(stats(prospected=2))]).alert is None
 
 
 # --- language -----------------------------------------------------------------------------

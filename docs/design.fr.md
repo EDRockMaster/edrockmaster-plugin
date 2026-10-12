@@ -144,6 +144,8 @@ Tout cela est du calcul pur sur de petits objets (bien moins d'une milliseconde 
 
 Statistiques d'une session : durée active, tonnes par commodité, tonnes totales, tonnes par heure, astéroïdes prospectés (par niveau de teneur), cores trouvés et fissurés, drones lancés (prospecteurs, collecteurs), tonnes vendues et crédits gagnés.
 
+**Drones à bord** ([ADR 0042](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0042-limpets-on-board.fr.md)) : le nombre que donne `Cargo` (`drones`), montré dans la carte du minage. Quand il descend d'au-dessus du réglage `edrockmaster.alert.limpets` (5 par défaut) à ce réglage ou en dessous, pendant une session de minage, une alerte (`LimpetMonitor`, `domain/mining/limpets.py`) : le son du prospecteur si le son est activé, et *Plus que N drones* dans la carte jusqu'au prochain astéroïde prospecté. Elle se réarme quand le nombre repasse au-dessus du seuil, pour une nouvelle session, ou quand le seuil change.
+
 ## Combat
 
 Le combat couvre la chasse à la prime, les zones de conflit et toute victime ([ADR 0013](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0013-combat-segments-and-live-panel.fr.md), [ADR 0015](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0015-unnamed-and-ground-conflict-zones.fr.md)). Il se mesure en **segments** : un séjour sur un site de combat, de l'arrivée (en vaisseau ou à pied) au départ.
@@ -261,6 +263,7 @@ Enregistrés dans `settings.json` du dossier de données (`infrastructure/settin
 | `edrockmaster.alert.minimum_content` | texte | `low`, `medium` ou `high` |
 | `edrockmaster.alert.minimum_remaining` | texte | Pourcentage, ou vide si aucune |
 | `edrockmaster.alert.cores` | booléen | Alerte sur les cores |
+| `edrockmaster.alert.limpets` | texte | Drones à bord auxquels alerter, ou vide si aucune ; 5 en son absence (ADR 0042) |
 | `edrockmaster.sound` | booléen | Alertes sonores |
 | `edrockmaster.record_journal` | booléen | Enregistreur du journal |
 | `edrockmaster.display.activities` | texte | Liste JSON des activités affichées, au moins une (`["mining", "combat"]`) |
