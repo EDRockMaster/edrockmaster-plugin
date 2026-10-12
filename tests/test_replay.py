@@ -175,7 +175,7 @@ def test_conflict_zone_panel_shows_the_combat(conflict_zone: Replay) -> None:
     assert conflict_zone.presenter.current is Activity.COMBAT
     assert conflict_zone.presenter.render().status == "Combat"
     lines = conflict_zone.lines()
-    assert ("Combat bonds", "224,467 CR") in lines
+    assert ("Combat bonds earned", "224,467 CR") in lines
     assert ("Conflict zone, unknown intensity", "13.8 kills/h, 515,358 CR/h") in lines
     assert not [line for line in lines if line[0].startswith("Éliminez")]
 
@@ -189,7 +189,7 @@ def test_conflict_zone_community_goal_has_its_own_card(conflict_zone: Replay) ->
 
 def test_conflict_zone_panel_does_not_show_empty_bounties(conflict_zone: Replay) -> None:
     labels = [line.label for line in conflict_zone.presenter.render().lines]
-    assert "Bounties" not in labels
+    assert "Bounties earned" not in labels
 
 
 @pytest.fixture(scope="module")
@@ -253,7 +253,7 @@ def test_community_goal_grows_by_the_bonds_redeemed(zone_then_bounties: Replay) 
 def test_panel_after_the_bounties(zone_then_bounties: Replay) -> None:
     model = zone_then_bounties.presenter.render()
     assert model.status == "Combat session ended: game closed"
-    assert ("Bounties", "6,110,097 CR") in zone_then_bounties.lines()
+    assert ("Bounties earned", "6,110,097 CR") in zone_then_bounties.lines()
     assert zone_then_bounties.companion.mining.current_stats is None
 
 

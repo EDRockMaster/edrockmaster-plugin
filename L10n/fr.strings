@@ -63,8 +63,8 @@
 /* ui/combat_presenter.py: statistic labels and values */
 "Kills" = "Victimes";
 "{kills} ({shared} shared)" = "{kills} (dont {shared} partagées)";
-"Bounties" = "Primes";
-"Combat bonds" = "Obligations de combat";
+"Bounties earned" = "Primes gagnées";
+"Combat bonds earned" = "Obligations gagnées";
 "This site" = "Ce site";
 "{duration}, kills: {kills}" = "{duration}, victimes : {kills}";
 "{kills} kills/h, {credits}/h" = "{kills} victimes/h, {credits}/h";
