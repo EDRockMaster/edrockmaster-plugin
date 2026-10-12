@@ -8,6 +8,7 @@ from edrockmaster.domain.engineering.goals import Goal, GoalId
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.mining.limpets import LimpetAlertRaised
 from edrockmaster.domain.mining.prospecting import ProspectorAlertRaised
+from edrockmaster.domain.situation.route import RouteAlertRaised
 
 
 class FakeConfig:
@@ -52,9 +53,9 @@ class FakeSettingsStore:
 
 class FakeNotifier:
     def __init__(self) -> None:
-        self.notified: list[ProspectorAlertRaised | LimpetAlertRaised] = []
+        self.notified: list[ProspectorAlertRaised | LimpetAlertRaised | RouteAlertRaised] = []
 
-    def notify(self, alert: ProspectorAlertRaised | LimpetAlertRaised) -> None:
+    def notify(self, alert: ProspectorAlertRaised | LimpetAlertRaised | RouteAlertRaised) -> None:
         self.notified.append(alert)
 
 

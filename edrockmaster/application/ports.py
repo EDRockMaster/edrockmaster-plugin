@@ -14,6 +14,7 @@ from edrockmaster.domain.mining.hotspots import HotspotPage, HotspotQuery
 from edrockmaster.domain.mining.limpets import LimpetAlertRaised
 from edrockmaster.domain.mining.markets import MarketOffer, SaleQuery
 from edrockmaster.domain.mining.prospecting import ProspectorAlertRaised
+from edrockmaster.domain.situation.route import RouteAlertRaised
 
 
 class Clock(Protocol):
@@ -31,7 +32,7 @@ class SettingsStore(Protocol):
 
 
 class Notifier(Protocol):
-    def notify(self, alert: ProspectorAlertRaised | LimpetAlertRaised) -> None:
+    def notify(self, alert: ProspectorAlertRaised | LimpetAlertRaised | RouteAlertRaised) -> None:
         """Draw the player's attention to an alert (sound). Must not block."""
         ...
 

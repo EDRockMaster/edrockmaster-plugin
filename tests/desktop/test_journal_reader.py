@@ -323,6 +323,42 @@ def test_otherwise_the_ship_locker_is_left_as_it_is(tmp_path: Path, event: str, 
     assert handed == [json.loads(event)]
 
 
+ROUTE = [
+    {"StarSystem": "78 Ursae Majoris", "SystemAddress": 1, "StarPos": [0, 0, 0], "StarClass": "F"},
+    {"StarSystem": "Zosi", "SystemAddress": 2, "StarPos": [1, 1, 1], "StarClass": "M"},
+]
+
+
+def route_file(journal: Journal, timestamp: str = CARGO_AT) -> None:
+    content = {"timestamp": timestamp, "event": "NavRoute", "Route": ROUTE}
+    (journal.directory / "NavRoute.json").write_text(json.dumps(content), encoding="utf-8")
+
+
+def test_a_route_gets_its_systems_from_nav_route_json(tmp_path: Path) -> None:
+    # Seen live on 12 October: the line says a route was plotted, the file holds it (ADR 0043)
+    handed: list[Entry] = []
+    follower = JournalFollower(tmp_path, lambda entry, _beta: handed.append(entry), logger)
+    journal = Journal(tmp_path)
+    route_file(journal)
+    journal.write(FIRST, line("NavRoute"))
+    follower.poll()
+    assert handed == [{"timestamp": CARGO_AT, "event": "NavRoute", "Route": ROUTE}]
+
+
+def test_an_older_route_read_at_start_gets_no_systems(tmp_path: Path) -> None:
+    # Two routes 20 seconds apart: the file holds the second only
+    handed: list[Entry] = []
+    follower = JournalFollower(
+        tmp_path, lambda entry, _beta: handed.append(entry), logger, sleep=lambda _s: None
+    )
+    journal = Journal(tmp_path)
+    route_file(journal)
+    older = line("NavRoute").replace(CARGO_AT, "2026-10-08T01:00:00Z")
+    journal.write(FIRST, older)
+    follower.poll()
+    assert "Route" not in handed[0]
+
+
 def test_the_watcher_polls_on_its_own_thread_until_stopped(journal: Journal) -> None:
     seen = threading.Event()
     threads: list[str] = []

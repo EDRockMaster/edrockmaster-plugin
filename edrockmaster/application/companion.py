@@ -22,14 +22,13 @@ from edrockmaster.application.ports import (
     SettingsStore,
 )
 from edrockmaster.application.settings import PluginSettings
-from edrockmaster.application.situation_service import SituationService
+from edrockmaster.application.situation_service import SituationNotification, SituationService
 from edrockmaster.application.trade_service import TradeService
 from edrockmaster.domain.combat.session import CombatNotification
 from edrockmaster.domain.community_goals.goals import CommunityGoalsNotification
 from edrockmaster.domain.engineering.catalogue import Catalogue
 from edrockmaster.domain.engineering.events import EngineeringNotification
 from edrockmaster.domain.journal_reading import Entry
-from edrockmaster.domain.situation.situation import SituationChanged
 from edrockmaster.domain.trade.session import TradeNotification
 
 type Notification = (
@@ -38,7 +37,7 @@ type Notification = (
     | TradeNotification
     | EngineeringNotification
     | CommunityGoalsNotification
-    | SituationChanged
+    | SituationNotification
 )
 """What the presentation layer is told after each use case."""
 
@@ -65,7 +64,9 @@ class Companion:
         self.trade = TradeService(clock)
         self.engineering = EngineeringService(catalogue, goals, clock)
         self.community_goals = CommunityGoalsService()
-        self.situation = SituationService(ship_names)
+        self.situation = SituationService(
+            notifier, clock, lambda: self._settings.sound_enabled, ship_names
+        )
 
     @property
     def settings(self) -> PluginSettings:

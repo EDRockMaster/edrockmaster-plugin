@@ -20,6 +20,10 @@ locker, but some only point to ``ShipLocker.json``, which then holds the change
 (seen at a fleet carrier, where the locker emptied with bare lines only). The
 follower adds the file's content to such a line, on the same terms.
 
+``NavRoute`` too (ADR 0043): the line says a route was plotted, ``NavRoute.json``
+holds its systems. Two routes plotted 20 seconds apart leave the second in the
+file: the first line, read again at start, gets no list.
+
 The game writes whole lines, but a read can still fall in the middle of one: an
 incomplete line waits for the rest. A line that is not a journal entry is
 logged and skipped. The follower only reads; it never writes in the folder.
@@ -49,6 +53,7 @@ _VERSION_EVENTS = frozenset({"Fileheader", "LoadGame"})
 _HALF_WRITTEN = object()
 CARGO_FILE = "Cargo.json"
 SHIP_LOCKER_FILE = "ShipLocker.json"
+NAV_ROUTE_FILE = "NavRoute.json"
 _LOCKER_SECTIONS = ("Items", "Components", "Consumables", "Data")
 FILE_RETRY_SECONDS = 0.05
 FILE_WAIT_SECONDS = 1.0
@@ -147,6 +152,8 @@ class JournalFollower:
             )
         if entry["event"] == "ShipLocker" and not any(name in entry for name in _LOCKER_SECTIONS):
             return self._from_file(entry, SHIP_LOCKER_FILE, _LOCKER_SECTIONS, lambda _data: True)
+        if entry["event"] == "NavRoute" and "Route" not in entry:
+            return self._from_file(entry, NAV_ROUTE_FILE, ("Route",), lambda _data: True)
         return entry
 
     def _from_file(

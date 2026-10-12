@@ -1,4 +1,5 @@
-"""Audible mining alerts: the prospector's, and the limpets running out (ADR 0042).
+"""Audible alerts: the prospector's, the limpets running out (ADR 0042), and the route's
+(ADR 0043).
 
 How a sound is played depends on the platform: ``desktop/core.py`` gives the
 function.
@@ -11,6 +12,7 @@ from collections.abc import Callable
 
 from edrockmaster.domain.mining.limpets import LimpetAlertRaised
 from edrockmaster.domain.mining.prospecting import ProspectorAlertRaised
+from edrockmaster.domain.situation.route import RouteAlertRaised
 
 
 class SoundNotifier:
@@ -20,7 +22,7 @@ class SoundNotifier:
         self._play = play
         self._logger = logger
 
-    def notify(self, alert: ProspectorAlertRaised | LimpetAlertRaised) -> None:
+    def notify(self, alert: ProspectorAlertRaised | LimpetAlertRaised | RouteAlertRaised) -> None:
         try:
             self._play()
         except Exception as error:

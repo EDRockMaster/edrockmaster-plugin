@@ -6,7 +6,8 @@ in the game's language from ``LoadGame`` and ``ShipyardSwap``; ``Loadout`` only
 names it by its symbol, so the tracker remembers the names it has seen.
 Closing the game keeps the last known situation and says the game is closed;
 the next ``LoadGame`` opens it again. The situation is kept in memory only:
-never stored, never uploaded.
+never stored, never uploaded. The route the commander plotted is part of it
+(``route.py``, ADR 0043).
 """
 
 from __future__ import annotations
@@ -19,11 +20,16 @@ from edrockmaster.domain.situation.journal import (
     CommanderNamed,
     DockedAt,
     Fact,
+    FuelScooped,
     GameClosed,
     GameLoaded,
     GameMode,
+    JumpStarted,
+    JumpTargeted,
     Located,
     OnFoot,
+    RouteCleared,
+    RoutePlotted,
     Ship,
     ShipChanged,
     ShipRenamed,
@@ -32,6 +38,17 @@ from edrockmaster.domain.situation.journal import (
     WingAdded,
     WingJoined,
     WingLeft,
+)
+from edrockmaster.domain.situation.route import CurrentRoute, RouteEvent, RouteTracker
+
+_ROUTE_FACTS = (
+    RoutePlotted,
+    RouteCleared,
+    JumpTargeted,
+    JumpStarted,
+    SystemReached,
+    Located,
+    FuelScooped,
 )
 
 
@@ -49,6 +66,7 @@ class Situation:
     wing: tuple[str, ...] = ()
     """The other members of the commander's wing."""
     game_running: bool = False
+    route: CurrentRoute | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,15 +80,20 @@ class SituationTracker:
         game's own (FDevIDs' English names)."""
         self._situation = Situation()
         self._type_names: dict[str, str] = dict(type_names or {})
+        self._route = RouteTracker()
 
     @property
     def situation(self) -> Situation:
         return self._situation
 
-    def handle(self, fact: Fact) -> list[SituationChanged]:
+    def handle(self, fact: Fact) -> list[SituationChanged | RouteEvent]:
         before = self._situation
-        self._situation = self._apply(before, fact)
-        return [SituationChanged(self._situation)] if self._situation != before else []
+        events: list[RouteEvent] = []
+        if isinstance(fact, _ROUTE_FACTS):
+            events = self._route.handle(fact)
+        self._situation = replace(self._apply(before, fact), route=self._route.route)
+        changed = [SituationChanged(self._situation)] if self._situation != before else []
+        return [*changed, *events]
 
     def _apply(self, now: Situation, fact: Fact) -> Situation:  # noqa: PLR0911, PLR0912 - a case a fact
         match fact:
@@ -111,6 +134,8 @@ class SituationTracker:
                 return replace(now, wing=())
             case GameClosed():
                 return replace(now, game_running=False, wing=())
+            case RoutePlotted() | RouteCleared() | JumpTargeted() | JumpStarted() | FuelScooped():
+                return now  # the route tracker's
             case _:  # pragma: no cover - exhaustiveness checked by mypy
                 assert_never(fact)
 
