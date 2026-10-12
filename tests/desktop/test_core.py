@@ -403,3 +403,46 @@ def test_the_journal_folder_of_the_settings_is_used_from_the_next_start(
         second.views.wait_for(lambda v: v["journal"]["folder"] == str(journal))
     finally:
         second.core.stop()
+
+
+def test_a_jump_that_ends_elsewhere_is_logged(
+    desktop: Desktop, journal: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    lines: list[dict[str, object]] = [
+        {"event": "StartJump", "JumpType": "Hyperspace", "StarSystem": "Zosi", "StarClass": "M"},
+        {"event": "FSDJump", "StarSystem": "HIP 55192", "FuelLevel": 26.0, "FuelUsed": 4.4},
+    ]
+    with caplog.at_level(logging.INFO):
+        desktop.core.ready()
+        (journal / "Journal.2026-10-12T080000.01.log").write_text(
+            "".join(
+                json.dumps({"timestamp": "2026-10-12T08:00:00Z", **line}) + "\r\n" for line in lines
+            ),
+            newline="",
+        )
+        desktop.views.wait_for(lambda v: v["situation"]["system"] == "HIP 55192")
+    assert "Jump to Zosi at 2026-10-12T08:00:00+00:00 ended in HIP 55192" in caplog.text
+
+
+def test_a_jump_back_where_it_left_is_logged_as_a_possible_hyperdiction(
+    desktop: Desktop, journal: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    lines: list[dict[str, object]] = [
+        {"event": "Location", "StarSystem": "Putas"},
+        {"event": "StartJump", "JumpType": "Hyperspace", "StarSystem": "Vogulu", "StarClass": "K"},
+        {"event": "FSDJump", "StarSystem": "Putas", "FuelLevel": 26.0, "FuelUsed": 4.4},
+        {"event": "Music", "MusicTrack": "Unknown_Encounter"},
+    ]
+    with caplog.at_level(logging.INFO):
+        desktop.core.ready()
+        (journal / "Journal.2026-10-12T080000.01.log").write_text(
+            "".join(
+                json.dumps({"timestamp": "2026-10-12T08:00:00Z", **line}) + "\r\n" for line in lines
+            ),
+            newline="",
+        )
+        desktop.views.wait_for(lambda v: v["situation"]["system"] == "Putas")
+        deadline = time.monotonic() + 20
+        while "hyperdiction" not in caplog.text and time.monotonic() < deadline:
+            time.sleep(0.01)
+    assert "ended in Putas, back where it left: a Thargoid hyperdiction?" in caplog.text

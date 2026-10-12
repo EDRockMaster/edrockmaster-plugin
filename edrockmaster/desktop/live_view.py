@@ -11,6 +11,7 @@ from datetime import UTC
 from pathlib import Path
 from typing import Any
 
+from edrockmaster.domain.situation.route import CurrentRoute, scoopable
 from edrockmaster.domain.situation.situation import Situation
 from edrockmaster.ui.panel_model import ActivityBlock, LocalDataNotice, StatLine
 
@@ -75,4 +76,24 @@ def _situation(situation: Situation) -> dict[str, Any]:
         "group": situation.group,
         "wing": list(situation.wing),
         "gameRunning": situation.game_running,
+        "route": _route(situation.route) if situation.route else None,
+    }
+
+
+def _route(route: CurrentRoute) -> dict[str, Any]:
+    following = route.next
+    return {
+        "destination": route.destination,
+        "jumpsLeft": route.jumps_left,
+        "offRoute": route.off_route,
+        "next": None
+        if following is None
+        else {
+            "system": following.system,
+            "starClass": following.star_class,
+            "scoopable": scoopable(following.star_class),
+            "danger": danger.value if (danger := route.danger) else None,
+        },
+        "nextScoopableIn": route.next_scoopable_in,
+        "fuelTight": route.fuel_tight,
     }

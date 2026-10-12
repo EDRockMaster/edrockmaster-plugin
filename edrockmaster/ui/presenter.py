@@ -40,6 +40,7 @@ from edrockmaster.domain.engineering.events import (
     GoalReady,
     MaterialCapped,
 )
+from edrockmaster.domain.situation.route import JumpDiverted, RouteAlertRaised
 from edrockmaster.domain.situation.situation import SituationChanged
 from edrockmaster.domain.trade.session import TradeEnded, TradeStarted, TradeUpdated
 from edrockmaster.ui.combat_presenter import CombatPresenter
@@ -100,7 +101,7 @@ class ActivityPresenter:
         # Engineering sees its notifications together: its alert depends on the whole batch
         engineering: list[EngineeringNotification] = []
         for notification in notifications:
-            if isinstance(notification, SituationChanged):
+            if isinstance(notification, SituationChanged | RouteAlertRaised | JumpDiverted):
                 continue  # not an activity: the desktop application's banner (ADR 0023)
             if isinstance(notification, _COMBAT):
                 self._combat.apply([notification])

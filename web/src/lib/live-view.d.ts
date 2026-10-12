@@ -116,6 +116,44 @@ export interface Situation {
    */
   wing: string[];
   gameRunning: boolean;
+  /**
+   * The route plotted on the galaxy map (ADR 0043); null without one.
+   */
+  route: null | Route;
+}
+export interface Route {
+  /**
+   * Null when the route's list is not known.
+   */
+  destination: string | null;
+  jumpsLeft: number | null;
+  /**
+   * The last jump ended off the route.
+   */
+  offRoute: boolean;
+  next: null | {
+    system: string;
+    /**
+     * As the journal writes it: K, DA, M_RedGiant, TTS.
+     */
+    starClass: string;
+    /**
+     * Fuel can be scooped there.
+     */
+    scoopable: boolean;
+    /**
+     * Dangerous on arrival: the alert of ADR 0043.
+     */
+    danger: "whiteDwarf" | "neutronStar" | "blackHole" | null;
+  };
+  /**
+   * Jumps to the next star where fuel can be scooped, when known.
+   */
+  nextScoopableIn: number | null;
+  /**
+   * The fuel left may not reach the next star where fuel can be scooped: the alert of ADR 0043.
+   */
+  fuelTight: boolean;
 }
 /**
  * Inventory, ship engineers, goals and shopping list (ADR 0017). Names in the player's language.

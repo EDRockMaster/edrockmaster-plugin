@@ -15,6 +15,7 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 - **Combat by faction**: the combat card shows kills and credits against each faction you fought (the three with most kills, then the others together), handy in a conflict zone.
 - **Crimes by kind** in the combat card: *Reckless weapons discharge: 1, Assault: 2*, named in your language.
 - **Limpets on board** in the mining card, and an **alert before they run out**: one sound and *5 limpets left* when they fall to 5 during a mining session, once, not at every launch. The number is set in *Settings* (empty for no alert).
+- **The current route**, on the right of the situation banner, while a route is plotted in the game: destination and jumps left, the next jump with its star in words and whether fuel can be scooped there, and where fuel can next be scooped. An **alert** before a dangerous star (white dwarf, neutron star, black hole), and when the fuel may not reach the next scoopable star (design decision ADR 0043).
 - **Community sources** in *Settings*: Spansh and Ardent Insight can each be turned off; the privacy policy says what they receive.
 
 ### Fixed

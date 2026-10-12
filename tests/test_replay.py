@@ -38,6 +38,8 @@ from edrockmaster.domain.engineering.goals import BlueprintGoal, Goal, GoalId
 from edrockmaster.domain.engineering.on_foot_journal import Suit
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.mining.session import EndReason, SessionEnded
+from edrockmaster.domain.situation.journal import RouteStop
+from edrockmaster.domain.situation.route import JumpDiverted, RouteAlertRaised
 from edrockmaster.domain.trade.journal import Market
 from edrockmaster.domain.trade.session import (
     GoodsTally,
@@ -674,3 +676,34 @@ def test_the_materials_moved_to_the_player_s_carrier() -> None:
     # The locker before the second move, all of it moved
     assert moves[1].changes["gmeds"] == -4
     assert engineering.on_foot_held() == {}
+
+
+# The current route (ADR 0043): Sol to 78 Ursae Majoris, flown on 12 October 2026
+
+ROUTE = "route-sol-78-ursae-majoris-2026-10-12.jsonl"
+
+
+def test_a_route_followed_jump_by_jump() -> None:
+    plotted = Replay(ROUTE, until="2026-10-12T11:45:51Z").companion.situation.situation.route
+    assert plotted is not None
+    assert (plotted.destination, plotted.jumps_left, plotted.next) == (
+        "78 Ursae Majoris",
+        4,
+        RouteStop("DG Canum Venaticorum", "M"),
+    )
+    # In Dahan: the next is Wolf 483, every star of the route has fuel to scoop
+    halfway = Replay(ROUTE, until="2026-10-12T11:47:39Z").companion.situation.situation.route
+    assert halfway is not None
+    assert (halfway.position, halfway.jumps_left, halfway.next) == (
+        2,
+        2,
+        RouteStop("Wolf 483", "G"),
+    )
+    assert (halfway.next_scoopable_in, halfway.danger, halfway.fuel_tight) == (1, None, False)
+    assert halfway.jump_fuel > 0
+    replay = Replay(ROUTE)
+    # The game clears the route during the last jump
+    assert replay.companion.situation.situation.route is None
+    assert replay.companion.situation.situation.system == "78 Ursae Majoris"
+    assert not [n for n in replay.notifications if isinstance(n, RouteAlertRaised | JumpDiverted)]
+    assert replay.notifier.notified == []

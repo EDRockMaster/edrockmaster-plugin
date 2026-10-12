@@ -97,6 +97,11 @@ READ_BY_THE_PLUGIN = {
     "WingJoin",
     "WingAdd",
     "WingLeave",
+    # the current route (ADR 0043): systems and stars only
+    "NavRoute",
+    "NavRouteClear",
+    "FSDTarget",
+    "FuelScoop",
 }
 HARMLESS = {
     "Music",

@@ -40,6 +40,7 @@ export function situation(overrides: Partial<Situation> = {}): Situation {
     group: null,
     wing: [],
     gameRunning: false,
+    route: null,
     ...overrides,
   };
 }

@@ -14,6 +14,7 @@ from edrockmaster.domain.journal_reading import (
     Entry,
     MalformedEntryError,
     Parser,
+    number,
     optional,
     required,
     translate,
@@ -68,6 +69,11 @@ class Located:
 class SystemReached:
     at: datetime
     system: str
+    arrival: bool = False
+    """Arrived by a jump (``FSDJump``, ``CarrierJump``), not by entering or leaving supercruise."""
+    fuel_level: float | None = None
+    """Tons in the main tank after a hyperspace jump."""
+    fuel_used: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,6 +129,53 @@ class GameClosed:
     at: datetime
 
 
+@dataclass(frozen=True, slots=True)
+class RouteStop:
+    system: str
+    star_class: str
+    """As the journal writes it (``K``, ``DA``, ``M_RedGiant``, ``TTS``)."""
+
+
+@dataclass(frozen=True, slots=True)
+class RoutePlotted:
+    """A route plotted on the galaxy map (ADR 0043)."""
+
+    at: datetime
+    stops: tuple[RouteStop, ...]
+    """From the commander's system to the destination; empty when ``NavRoute.json`` did not
+    describe this very route (a line read again at start, a newer route since)."""
+
+
+@dataclass(frozen=True, slots=True)
+class RouteCleared:
+    at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class JumpTargeted:
+    """The next hyperspace jump (``FSDTarget``)."""
+
+    at: datetime
+    stop: RouteStop
+    jumps_left: int | None
+    """Jumps left in the route, this one included; ``None`` without a route."""
+
+
+@dataclass(frozen=True, slots=True)
+class JumpStarted:
+    """A hyperspace jump begins (``StartJump``): where to, and its star."""
+
+    at: datetime
+    stop: RouteStop
+
+
+@dataclass(frozen=True, slots=True)
+class FuelScooped:
+    at: datetime
+    fuel_level: float
+    """Tons in the main tank after scooping."""
+
+
 type Fact = (
     CommanderNamed
     | GameLoaded
@@ -137,6 +190,11 @@ type Fact = (
     | WingAdded
     | WingLeft
     | GameClosed
+    | RoutePlotted
+    | RouteCleared
+    | JumpTargeted
+    | JumpStarted
+    | FuelScooped
 )
 
 _MODES = {"open": GameMode.OPEN, "solo": GameMode.SOLO, "group": GameMode.GROUP}
@@ -191,6 +249,16 @@ def _located(entry: Entry, at: datetime) -> Located:
 
 def _reached(entry: Entry, at: datetime) -> SystemReached:
     return SystemReached(at, required(entry, "StarSystem", str))
+
+
+def _jumped(entry: Entry, at: datetime) -> SystemReached:
+    return SystemReached(
+        at,
+        required(entry, "StarSystem", str),
+        arrival=True,
+        fuel_level=number(entry, "FuelLevel"),
+        fuel_used=number(entry, "FuelUsed"),
+    )
 
 
 def _docked(entry: Entry, at: datetime) -> DockedAt:
@@ -257,12 +325,50 @@ def _closed(_entry: Entry, at: datetime) -> GameClosed:
     return GameClosed(at)
 
 
-_PARSERS: dict[str, Parser[Fact]] = {
+def _plotted(entry: Entry, at: datetime) -> RoutePlotted:
+    """The list is added from ``NavRoute.json`` by the journal reader, when it describes this
+    very line; a stop the game wrote oddly makes the whole list unknown."""
+    route = entry.get("Route")
+    if not isinstance(route, list):
+        return RoutePlotted(at, ())
+    try:
+        stops = tuple(_stop(stop, "StarSystem") for stop in route if isinstance(stop, dict))
+    except MalformedEntryError:
+        return RoutePlotted(at, ())
+    return RoutePlotted(at, stops if len(stops) == len(route) else ())
+
+
+def _stop(entry: Entry, name: str) -> RouteStop:
+    return RouteStop(required(entry, name, str), required(entry, "StarClass", str))
+
+
+def _cleared(_entry: Entry, at: datetime) -> RouteCleared:
+    return RouteCleared(at)
+
+
+def _targeted(entry: Entry, at: datetime) -> JumpTargeted:
+    return JumpTargeted(at, _stop(entry, "Name"), optional(entry, "RemainingJumpsInRoute", int))
+
+
+def _started(entry: Entry, at: datetime) -> JumpStarted | None:
+    if entry.get("JumpType") != "Hyperspace":
+        return None
+    return JumpStarted(at, _stop(entry, "StarSystem"))
+
+
+def _scooped(entry: Entry, at: datetime) -> FuelScooped:
+    total = number(entry, "Total")
+    if total is None:
+        raise MalformedEntryError("Total")
+    return FuelScooped(at, total)
+
+
+_PARSERS: dict[str, Parser[Fact | None]] = {
     "Commander": _commander,
     "LoadGame": _loaded,
     "Location": _located,
-    "FSDJump": _reached,
-    "CarrierJump": _reached,
+    "FSDJump": _jumped,
+    "CarrierJump": _jumped,
     "SupercruiseEntry": _reached,
     "SupercruiseExit": _reached,
     "Docked": _docked,
@@ -276,4 +382,9 @@ _PARSERS: dict[str, Parser[Fact]] = {
     "WingAdd": _added,
     "WingLeave": _left,
     "Shutdown": _closed,
+    "NavRoute": _plotted,
+    "NavRouteClear": _cleared,
+    "FSDTarget": _targeted,
+    "StartJump": _started,
+    "FuelScoop": _scooped,
 }

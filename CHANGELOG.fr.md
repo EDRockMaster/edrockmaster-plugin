@@ -15,6 +15,7 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 - **Le combat par faction** : la carte Combat montre les victimes et les crédits contre chaque faction combattue (les trois aux plus nombreuses victimes, puis les autres ensemble), utile en zone de conflit.
 - **Les délits par type** dans la carte Combat : *Tir imprudent : 1, Agression : 2*, nommés dans votre langue.
 - **Les drones à bord** dans la carte du minage, et une **alerte avant qu'ils manquent** : un son et *Plus que 5 drones* quand ils descendent à 5 pendant une session de minage, une fois, pas à chaque lancement. Le nombre se règle dans les *Réglages* (vide pour aucune alerte).
+- **La route en cours**, à droite du bandeau de situation, quand une route est tracée dans le jeu : destination et sauts restants, le prochain saut avec son étoile en clair et si le carburant y est récupérable, et où il le sera ensuite. Une **alerte** avant une étoile dangereuse (naine blanche, étoile à neutrons, trou noir), et quand le carburant risque de ne pas suffire jusqu'à la prochaine étoile à carburant récupérable (décision de conception ADR 0043).
 - **Sources communautaires** dans les *Réglages* : Spansh et Ardent Insight se désactivent chacun ; la politique de confidentialité dit ce qu'ils reçoivent.
 
 ### Corrigé
