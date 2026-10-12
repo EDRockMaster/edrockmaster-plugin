@@ -53,12 +53,15 @@ def bounty(minutes: float, *rewards: tuple[str, int], shared: bool = False) -> B
         total=sum(amount for _, amount in pairs),
         rewards=tuple(FactionReward(faction, amount) for faction, amount in pairs),
         target="Anaconda",
+        victim_faction="Pirates",
         shared=shared,
     )
 
 
 def bond(minutes: float, amount: int = 50_000, kill: bool = True) -> CombatBondAwarded:
-    return CombatBondAwarded(at=at(minutes), amount=amount, awarding_faction=FED, kill=kill)
+    return CombatBondAwarded(
+        at=at(minutes), amount=amount, awarding_faction=FED, victim_faction="Empire", kill=kill
+    )
 
 
 def redeemed(minutes: float, kind: VoucherKind, *paid: tuple[str, int]) -> VouchersRedeemed:
@@ -509,19 +512,20 @@ def test_the_settlement_is_forgotten_on_departure() -> None:
 # --- crimes -------------------------------------------------------------------------------
 
 
-def test_crimes_are_counted_during_a_session() -> None:
+def test_crimes_are_counted_by_kind_during_a_session() -> None:
     tracker = on_site(CombatTracker())
     tracker.handle(bounty(1))
-    tracker.handle(CrimeCommitted(at(2), fine=100, bounty=0))
-    stats = stats_of(tracker.handle(CrimeCommitted(at(3), fine=0, bounty=400)))
+    tracker.handle(CrimeCommitted(at(2), "recklessWeaponsDischarge", fine=100, bounty=0))
+    stats = stats_of(tracker.handle(CrimeCommitted(at(3), "assault", fine=0, bounty=400)))
     crimes = stats.crimes
     assert (crimes.count, crimes.fines, crimes.bounties) == (2, 100, 400)
+    assert crimes.by_kind == {"recklessWeaponsDischarge": 1, "assault": 1}
     assert stats.credits == 100_000  # never deducted from what was earned
 
 
 def test_crimes_without_a_session_are_ignored() -> None:
     tracker = CombatTracker()
-    assert tracker.handle(CrimeCommitted(at(0), fine=100, bounty=0)) == []
+    assert tracker.handle(CrimeCommitted(at(0), "assault", fine=100, bounty=0)) == []
     assert tracker.session is None
 
 

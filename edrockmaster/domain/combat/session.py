@@ -30,7 +30,7 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum, auto
 from types import MappingProxyType
@@ -144,6 +144,7 @@ class Crimes:
     count: int = 0
     fines: int = 0
     bounties: int = 0
+    by_kind: Mapping[str, int] = field(default_factory=lambda: MappingProxyType({}))
 
 
 @dataclass(frozen=True, slots=True)
@@ -268,7 +269,7 @@ class CombatSession:
         self._closed: list[SegmentStats] = []
         self._open: _OpenSegment | None = None
         self._miscellaneous = Tally()
-        self._crimes = 0
+        self._crimes: Counter[str] = Counter()
         self._fines = 0
         self._bounties = 0
 
@@ -281,9 +282,10 @@ class CombatSession:
             current=current,
             miscellaneous=self._miscellaneous,
             crimes=Crimes(
-                count=self._crimes,
+                count=self._crimes.total(),
                 fines=self._fines,
                 bounties=self._bounties,
+                by_kind=MappingProxyType(dict(self._crimes)),
             ),
         )
 
@@ -315,7 +317,7 @@ class CombatSession:
 
     def record_crime(self, crime: CrimeCommitted) -> None:
         self.see(crime.at)
-        self._crimes += 1
+        self._crimes[crime.kind] += 1
         self._fines += crime.fine
         self._bounties += crime.bounty
 

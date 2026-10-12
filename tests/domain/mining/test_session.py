@@ -273,6 +273,7 @@ def test_cargo_is_tracked_during_a_session_without_counting_as_activity() -> Non
     assert tracker.session is not None
     stats = tracker.session.stats
     assert stats.cargo_tons == 10
+    assert stats.limpets_on_board == 2
     assert stats.active_duration == timedelta(0)
 
 
@@ -380,7 +381,7 @@ def test_sale_during_a_running_session_is_credited_to_it() -> None:
 def test_galaxy_is_live_until_told_otherwise() -> None:
     tracker = MiningTracker()
     assert tracker.is_live is True
-    assert tracker.handle(GameLoaded(at=at(0), is_live=False)) == []
+    assert tracker.handle(GameLoaded(at=at(0), game_version="3.8.0.407", is_live=False)) == []
     assert tracker.is_live is False
 
 

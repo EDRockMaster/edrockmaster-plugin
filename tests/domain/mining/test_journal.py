@@ -215,7 +215,7 @@ def test_ejected_cargo_is_parsed() -> None:
 @pytest.mark.parametrize(("version", "live"), [("4.1.2.0", True), ("3.8.0.407", False)])
 def test_game_loaded_tells_the_galaxy(version: str, live: bool) -> None:
     fact = parse_entry({"timestamp": TS, "event": "LoadGame", "gameversion": version})
-    assert fact == GameLoaded(at=AT, is_live=live)
+    assert fact == GameLoaded(at=AT, game_version=version, is_live=live)
 
 
 def test_market_sale_is_parsed() -> None:

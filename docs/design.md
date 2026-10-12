@@ -164,7 +164,7 @@ Combat covers bounty hunting, conflict zones and any kill ([ADR 0013](https://gi
 | `FactionKillBond` outside any segment | A combat bond only exists in a conflict zone: a segment opens from the last arrival (from the bond when none was seen). By ship: **conflict zone, unknown intensity**; on foot: **ground conflict zone** |
 | Bounty elsewhere (a pirate while mining, near a station, after an interdiction): a bounty does not tell the place | **Miscellaneous**: counted in kills, credits and vouchers, in no rate |
 | Reward with no arrival seen (the game started on the site: `StartUp`, `Location` off station) | A segment of type **unknown**, from that reward; miscellaneous if the commander mines there (`ProspectedAsteroid`, `MiningRefined`, `AsteroidCracked`, prospector or collector limpets) |
-| `CommitCrime` during a session | Counted: fines and bounties on the commander, never deducted from the credits |
+| `CommitCrime` during a session | Counted by kind of crime: fines and bounties on the commander, never deducted from the credits |
 | `Died` | Session ends; unredeemed vouchers are lost |
 | `Shutdown`, `ShutDown` | Session ends |
 | `RedeemVoucher` (bounties, combat bonds) | The vouchers paid are removed, per faction, never below zero |

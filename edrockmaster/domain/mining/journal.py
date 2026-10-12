@@ -123,6 +123,7 @@ class CommoditySold:
 @dataclass(frozen=True, slots=True)
 class GameLoaded:
     at: datetime
+    game_version: str
     is_live: bool
 
 
@@ -239,7 +240,7 @@ def _sold(entry: Entry, at: datetime) -> CommoditySold:
 
 def _game_loaded(entry: Entry, at: datetime) -> GameLoaded:
     version = required(entry, "gameversion", str)
-    return GameLoaded(at=at, is_live=version.startswith("4."))
+    return GameLoaded(at=at, game_version=version, is_live=version.startswith("4."))
 
 
 _PARSERS: dict[str, Callable[[Entry, datetime], Fact | None]] = {

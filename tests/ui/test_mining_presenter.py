@@ -41,6 +41,7 @@ def stats(
         limpets_launched=MappingProxyType(Counter()),
         ejected_tons=MappingProxyType({}),
         cargo_tons=None,
+        limpets_on_board=None,
         sold_tons=MappingProxyType({}),
         credits_earned=0,
     )

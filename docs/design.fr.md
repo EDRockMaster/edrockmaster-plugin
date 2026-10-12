@@ -164,7 +164,7 @@ Le combat couvre la chasse à la prime, les zones de conflit et toute victime ([
 | `FactionKillBond` hors de tout segment | Une obligation de combat n'existe qu'en zone de conflit : un segment s'ouvre depuis la dernière arrivée (depuis l'obligation si aucune n'a été vue). En vaisseau : **zone de conflit, intensité inconnue** ; à pied : **zone de conflit au sol** |
 | Prime ailleurs (un pirate pendant le minage, près d'une station, après une interdiction) : une prime ne dit rien du lieu | **Divers** : comptée dans les victimes, les crédits et les bons, dans aucun ratio |
 | Récompense sans arrivée vue (le jeu a démarré sur le site : `StartUp`, `Location` hors station) | Un segment de type **inconnu**, depuis cette récompense ; divers si le commandant mine là (`ProspectedAsteroid`, `MiningRefined`, `AsteroidCracked`, drones de prospection ou de collecte) |
-| `CommitCrime` pendant une session | Compté : amendes et primes sur le commandant, jamais retirées des crédits |
+| `CommitCrime` pendant une session | Compté par type de délit : amendes et primes sur le commandant, jamais retirées des crédits |
 | `Died` | La session se termine ; les bons non encaissés sont perdus |
 | `Shutdown`, `ShutDown` | La session se termine |
 | `RedeemVoucher` (primes, obligations de combat) | Les bons payés sont retirés, par faction, jamais en dessous de zéro |

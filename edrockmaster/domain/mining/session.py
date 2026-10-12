@@ -75,6 +75,7 @@ class SessionStats:
     limpets_launched: Mapping[LimpetKind, int]
     ejected_tons: Mapping[Commodity, int]
     cargo_tons: int | None
+    limpets_on_board: int | None
     sold_tons: Mapping[Commodity, int]
     credits_earned: int
 
@@ -155,6 +156,7 @@ class MiningSession:
     _limpets: Counter[LimpetKind] = field(default_factory=Counter)
     _ejected: Counter[Commodity] = field(default_factory=Counter)
     _cargo_tons: int | None = None
+    _limpets_on_board: int | None = None
     _sold: Counter[Commodity] = field(default_factory=Counter)
     _credits: int = 0
 
@@ -170,6 +172,7 @@ class MiningSession:
             limpets_launched=MappingProxyType(dict(self._limpets)),
             ejected_tons=MappingProxyType(dict(self._ejected)),
             cargo_tons=self._cargo_tons,
+            limpets_on_board=self._limpets_on_board,
             sold_tons=MappingProxyType(dict(self._sold)),
             credits_earned=self._credits,
         )
@@ -202,6 +205,7 @@ class MiningSession:
                 self._limpets[kind] += 1
             case CargoChanged() as cargo:
                 self._cargo_tons = cargo.total - cargo.limpets
+                self._limpets_on_board = cargo.limpets
             case CargoEjected(commodity=commodity, count=count):
                 self._ejected[commodity] += count
             case _:  # pragma: no cover - exhaustiveness checked by mypy
