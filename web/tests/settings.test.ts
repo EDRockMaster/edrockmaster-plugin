@@ -1,8 +1,15 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import App from "../src/App.svelte";
 import SettingsView from "../src/components/SettingsView.svelte";
-import { percent, percentText, withActivity } from "../src/lib/settings-form";
+import {
+  formOf,
+  percent,
+  percentText,
+  settingsFrom,
+  unsaved,
+  withActivity,
+} from "../src/lib/settings-form";
 import { fakeCore, SETTINGS } from "./core";
 import { view } from "./views";
 import { flushSync } from "svelte";
@@ -41,6 +48,37 @@ describe("settings logic", () => {
   it("keeps activities in their display order", () => {
     expect(withActivity(["trade"], "mining", true)).toEqual(["mining", "trade"]);
     expect(withActivity(["mining", "trade"], "mining", false)).toEqual(["trade"]);
+  });
+
+  it("turns the form back into settings, or nothing when a field is wrong", () => {
+    const form = formOf(SETTINGS);
+    expect(form.thresholds).toEqual({ painite: "35", platinum: "" });
+    expect(settingsFrom(SETTINGS, form)).toEqual(SETTINGS);
+    expect(
+      settingsFrom(SETTINGS, { ...form, remaining: " 12,5 ", journalFolder: " D:/J " }),
+    ).toEqual({
+      ...SETTINGS,
+      alerts: { ...SETTINGS.alerts, minimumRemaining: 12.5 },
+      journalFolder: "D:/J",
+    });
+    expect(settingsFrom(SETTINGS, { ...form, remaining: "150" })).toBeNull();
+    expect(settingsFrom(SETTINGS, { ...form, activities: [] })).toBeNull();
+  });
+
+  it("tells whether the form holds changes not saved yet", () => {
+    const form = formOf(SETTINGS);
+    expect(unsaved(SETTINGS, form)).toBe(false);
+    expect(unsaved(SETTINGS, { ...form, sound: false })).toBe(true);
+    expect(unsaved(SETTINGS, { ...form, sources: { spansh: true, ardent: false } })).toBe(true);
+    expect(unsaved(SETTINGS, { ...form, thresholds: { ...form.thresholds, painite: "40" } })).toBe(
+      true,
+    );
+    // The same values, typed differently, change nothing
+    expect(
+      unsaved(SETTINGS, { ...form, thresholds: { ...form.thresholds, painite: " 35,0 " } }),
+    ).toBe(false);
+    // A wrong field is a change: leaving would lose it
+    expect(unsaved(SETTINGS, { ...form, remaining: "x" })).toBe(true);
   });
 });
 
@@ -156,13 +194,99 @@ describe("SettingsView", () => {
 });
 
 describe("the settings tab", () => {
-  it("opens from the tabs", async () => {
-    withCore();
+  async function settingsTab(language: "en" | "fr" = "en") {
+    const api = withCore();
     render(App);
-    flushSync(() => window.edrm?.receive(view()));
-    await fireEvent.click(screen.getByRole("tab", { name: "Settings" }));
-    await waitFor(() =>
-      expect(screen.getByRole("heading", { name: "Prospector alerts" })).toBeInTheDocument(),
+    flushSync(() => window.edrm?.receive(view({ language })));
+    await fireEvent.click(
+      screen.getByRole("tab", { name: language === "en" ? "Settings" : "Réglages" }),
     );
+    await waitFor(() => expect(screen.getByRole("form")).toBeInTheDocument());
+    return api;
+  }
+
+  async function changeSound(): Promise<void> {
+    await fireEvent.click(screen.getByLabelText(/Play a sound/));
+  }
+
+  async function leave(): Promise<HTMLElement> {
+    await fireEvent.click(screen.getByRole("tab", { name: "Activities" }));
+    return screen.getByRole("alertdialog");
+  }
+
+  it("opens from the tabs", async () => {
+    await settingsTab();
+    expect(screen.getByRole("heading", { name: "Prospector alerts" })).toBeInTheDocument();
+  });
+
+  it("is left at once when nothing changed", async () => {
+    await settingsTab();
+    await fireEvent.click(screen.getByRole("tab", { name: "Activities" }));
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("form")).not.toBeInTheDocument();
+  });
+
+  it("is left at once once the changes are saved", async () => {
+    const api = await settingsTab();
+    await changeSound();
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await fireEvent.click(screen.getByRole("tab", { name: "Activities" }));
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(api.save_settings).toHaveBeenCalledOnce();
+  });
+
+  it("asks before losing changes, and stays when asked to", async () => {
+    const api = await settingsTab();
+    await changeSound();
+    const dialog = await leave();
+    expect(dialog).toHaveTextContent("You have unsaved changes.");
+    expect(screen.getByRole("tab", { name: "Settings" })).toHaveAttribute("aria-selected", "true");
+    await fireEvent.click(within(dialog).getByRole("button", { name: "Keep editing" }));
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Play a sound/)).not.toBeChecked();
+    expect(api.save_settings).not.toHaveBeenCalled();
+  });
+
+  it("leaves without saving when the changes are dropped", async () => {
+    const api = await settingsTab();
+    await changeSound();
+    await fireEvent.click(within(await leave()).getByRole("button", { name: "Don't save" }));
+    expect(screen.queryByRole("form")).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Activities" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(api.save_settings).not.toHaveBeenCalled();
+  });
+
+  it("saves the changes, then leaves", async () => {
+    const api = await settingsTab();
+    await changeSound();
+    await fireEvent.click(within(await leave()).getByRole("button", { name: "Save" }));
+    expect(api.save_settings).toHaveBeenCalledWith({ ...SETTINGS, sound: false });
+    expect(screen.queryByRole("form")).not.toBeInTheDocument();
+  });
+
+  it("stays to show what is wrong when the changes cannot be saved", async () => {
+    const api = await settingsTab();
+    await fireEvent.input(screen.getByLabelText(/Minimum remaining reserve/), {
+      target: { value: "x" },
+    });
+    await fireEvent.click(within(await leave()).getByRole("button", { name: "Save" }));
+    expect(api.save_settings).not.toHaveBeenCalled();
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(/from 0 to 100/);
+    expect(screen.getByRole("form")).toBeInTheDocument();
+  });
+
+  it("asks in the player's language", async () => {
+    await settingsTab("fr");
+    await fireEvent.click(screen.getByLabelText(/Jouer un son/));
+    await fireEvent.click(screen.getByRole("tab", { name: "Activités" }));
+    const dialog = screen.getByRole("alertdialog");
+    expect(dialog).toHaveTextContent("Vous avez des modifications non enregistrées.");
+    for (const name of ["Enregistrer", "Ne pas enregistrer", "Continuer à modifier"]) {
+      expect(within(dialog).getByRole("button", { name })).toBeInTheDocument();
+    }
   });
 });
