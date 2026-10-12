@@ -18,6 +18,10 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 - **The current route**, on the right of the situation banner, while a route is plotted in the game: destination and jumps left, the next jump with its star in words and whether fuel can be scooped there, and where fuel can next be scooped. An **alert** before a dangerous star (white dwarf, neutron star, black hole), and when the fuel may not reach the next scoopable star (design decision ADR 0043).
 - **Community sources** in *Settings*: Spansh and Ardent Insight can each be turned off; the privacy policy says what they receive.
 
+### Changed
+
+- **Transfers with a fleet carrier** count as a balance per commodity in the trade card (design decision ADR 0044): *At the carrier: Bromellite, +50 t (3 transfers)*, or *Taken from the carrier: Gold, 20 t (2 transfers)*. Goods deposited and taken back cancel out, and leave no line.
+
 ### Fixed
 
 - Goods handed to an engineer to unlock them (50 t of Bromellite for Bill Turner) now leave the cargo of the trade card, which says so: *Handed to Bill Turner: Bromellite, 50 t*.

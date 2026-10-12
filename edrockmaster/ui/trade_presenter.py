@@ -16,7 +16,6 @@ from edrockmaster.domain.trade.session import (
     TradeStarted,
     TradeStats,
     TradeUpdated,
-    TransferKind,
     TransferStats,
 )
 from edrockmaster.ui.commodity_names import commodity_name
@@ -36,10 +35,6 @@ ROUTE_LABEL_LENGTH = 32
 too long names its destination only, then is cut."""
 
 # English source strings, translated at render time
-_TRANSFER_LABELS = {
-    TransferKind.DEPOSIT: "Deposited: {commodity}",
-    TransferKind.WITHDRAWAL: "Withdrawn: {commodity}",
-}
 _END_REASONS = {
     TradeEndReason.GAME_CLOSED: "game closed",
     TradeEndReason.DIED: "ship destroyed",
@@ -96,7 +91,7 @@ class TradePresenter:
         if stats.cargo.tons:
             yield StatLine(tl("Cargo bought"), self._tally(stats.cargo))
         yield from (self._route_line(route) for route in stats.routes)
-        yield from (self._transfer_line(moved) for moved in stats.transfers)
+        yield from (self._transfer_line(moved) for moved in stats.transfers if moved.balance)
         yield from (self._handover_line(given) for given in stats.handovers)
         if stats.refined.tons:
             yield StatLine(tl("Refined commodities"), self._tally(stats.refined))
@@ -132,12 +127,15 @@ class TradePresenter:
         return StatLine(_shorten(label), value)
 
     def _transfer_line(self, moved: TransferStats) -> StatLine:
-        """What moved to or from fleet carriers, and in how many transfers (ADR 0019)."""
+        """The balance left at or taken from fleet carriers, in how many transfers (ADR 0044)."""
         tl = self._tl
-        label = tl(_TRANSFER_LABELS[moved.kind]).format(
-            commodity=commodity_name(moved.commodity, tl)
-        )
-        tons = self._tons(moved.tons)
+        commodity = commodity_name(moved.commodity, tl)
+        if moved.balance > 0:
+            label = tl("At the carrier: {commodity}").format(commodity=commodity)
+            tons = "+" + self._tons(moved.balance)
+        else:
+            label = tl("Taken from the carrier: {commodity}").format(commodity=commodity)
+            tons = self._tons(-moved.balance)
         if moved.transfers == 1:
             return StatLine(label, tl("{tons} (1 transfer)").format(tons=tons))
         value = tl("{tons} ({count} transfers)").format(tons=tons, count=moved.transfers)

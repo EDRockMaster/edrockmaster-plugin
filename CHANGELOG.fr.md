@@ -18,6 +18,10 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 - **La route en cours**, à droite du bandeau de situation, quand une route est tracée dans le jeu : destination et sauts restants, le prochain saut avec son étoile en clair et si le carburant y est récupérable, et où il le sera ensuite. Une **alerte** avant une étoile dangereuse (naine blanche, étoile à neutrons, trou noir), et quand le carburant risque de ne pas suffire jusqu'à la prochaine étoile à carburant récupérable (décision de conception ADR 0043).
 - **Sources communautaires** dans les *Réglages* : Spansh et Ardent Insight se désactivent chacun ; la politique de confidentialité dit ce qu'ils reçoivent.
 
+### Modifié
+
+- **Les transferts avec un porte-vaisseaux** comptent au solde par marchandise dans la carte Commerce (décision de conception ADR 0044) : *Au porte-vaisseaux : Bromellite, +50 t (3 transferts)*, ou *Repris du porte-vaisseaux : Or, 20 t (2 transferts)*. Des marchandises déposées puis reprises s'annulent et ne laissent aucune ligne.
+
 ### Corrigé
 
 - Les marchandises remises à un ingénieur pour le débloquer (50 t de Bromellite pour Bill Turner) quittent maintenant la soute de la carte Commerce, qui le dit : *Remis à Bill Turner : Bromellite, 50 t*.

@@ -131,9 +131,9 @@
 "market {id}" = "marché {id}";
 "{tons}, {profit}, {per_ton}/t" = "{tons}, {profit}, {per_ton}/t";
 
-/* ui/trade_presenter.py: cargo moved to or from fleet carriers, and the number of transfers */
-"Deposited: {commodity}" = "Déposé : {commodity}";
-"Withdrawn: {commodity}" = "Retiré : {commodity}";
+/* ui/trade_presenter.py: the balance left at or taken from fleet carriers, and the number of transfers both ways */
+"At the carrier: {commodity}" = "Au porte-vaisseaux : {commodity}";
+"Taken from the carrier: {commodity}" = "Repris du porte-vaisseaux : {commodity}";
 "Handed to {engineer}: {commodity}" = "Remis à {engineer} : {commodity}";
 "{tons} (1 transfer)" = "{tons} (1 transfert)";
 "{tons} ({count} transfers)" = "{tons} ({count} transferts)";
