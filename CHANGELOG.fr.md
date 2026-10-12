@@ -6,6 +6,8 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
+## [0.6.0] - 2026-10-12
+
 ### Ajouté
 
 - **L'onglet Minage** (décisions de conception ADR 0039 et ADR 0040). *Où miner* : les anneaux avec des hotspots d'une marchandise autour d'un système (l'actuel par défaut), du plus proche au plus loin, avec leur type, leur réserve, leurs autres hotspots, la distance et l'âge des données, filtrés par nombre de hotspots, niveau de réserve et distance. *Où vendre* : les marchés qui achètent la marchandise autour d'un système ou d'un anneau de la liste, du meilleur prix au moins bon, avec la demande, la distance, la piste d'atterrissage et l'âge du prix ; par défaut, seulement les pistes que votre vaisseau peut utiliser, carriers exclus. Les anneaux viennent de **Spansh**, les marchés d'**Ardent Insight**, deux outils communautaires alimentés par EDDN, interrogés seulement quand vous cherchez ; leurs réponses sont gardées un temps (un jour pour les anneaux, une heure pour les marchés), et montrées, avec leur âge, quand la source ne répond pas.
@@ -137,6 +139,7 @@ Première version, pour le premier essai en jeu. Le plugin fonctionne seul, sans
 - Pas de valeur estimée de la soute : elle demande les prix du serveur.
 - Pas encore vérifiés : le thème sombre d'EDMC, le son d'alerte sous Windows.
 
+[0.6.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.6.0
 [0.5.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.5.0
 [0.2.2]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.2
 [0.2.1]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.1
