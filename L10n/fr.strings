@@ -68,6 +68,35 @@
 "kills: {kills}, {credits}" = "victimes : {kills}, {credits}";
 "Fines" = "Amendes";
 "Bounty on you" = "Prime sur vous";
+"Crimes" = "Délits";
+"{crime}: {count}" = "{crime} : {count}";
+"On foot: {crime}" = "À pied : {crime}";
+"Against {faction}" = "Contre {faction}";
+"Against {count} other factions" = "Contre {count} autres factions";
+"{kills} kill, {credits}" = "{kills} victime, {credits}";
+"{kills} kills, {credits}" = "{kills} victimes, {credits}";
+
+/* ui/combat_presenter.py: crimes, as CommitCrime names them (CrimeType) */
+"Assault" = "Agression";
+"Murder" = "Meurtre";
+"Piracy" = "Piraterie";
+"Illegal interdiction" = "Interdiction illégale";
+"Illegal cargo" = "Cargaison illégale";
+"Disobeying the police" = "Désobéissance à la police";
+"Firing in a no-fire zone" = "Tir en zone de non-tir";
+"Firing in a station" = "Tir dans une station";
+"Dumping dangerous cargo" = "Largage de cargaison dangereuse";
+"Dumping near a station" = "Largage près d'une station";
+"Blocking an airlock" = "Sas bloqué";
+"Blocking an airlock, major" = "Sas bloqué, grave";
+"Blocking a landing pad" = "Piste bloquée";
+"Blocking a landing pad, major" = "Piste bloquée, grave";
+"Trespassing at a station" = "Intrusion dans une station";
+"Trespassing at a station, major" = "Intrusion dans une station, grave";
+"Collision at speed in a no-fire zone" = "Collision à grande vitesse en zone de non-tir";
+"Collision at speed in a no-fire zone, hull damaged" = "Collision à grande vitesse en zone de non-tir, coque endommagée";
+"Reckless weapons discharge" = "Tir imprudent";
+"Carrying a wanted passenger" = "Transport d'un passager recherché";
 "Unredeemed" = "Non encaissé";
 
 /* ui/combat_presenter.py: community goal: contribution, percentile band, tier */

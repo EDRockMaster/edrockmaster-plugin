@@ -12,6 +12,8 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 - **Estimate the cargo**: a button under the mining card prices the cargo mined and not sold yet at the best market around your current system, commodity by commodity.
 - **Copy a system's name in one click**, wherever one is shown: your current system in the situation banner, an engineer's sheet, the rings and markets of the Mining tab. The same gesture everywhere: click the name, in pale yellow with a small copy mark, *Copied* shows for a moment; paste it in the galaxy map or another tool.
 - The application's log names the **game version** at each game loaded (version, build, Odyssey or Horizons, beta), so that a bug report says which game it came from.
+- **Combat by faction**: the combat card shows kills and credits against each faction you fought (the three with most kills, then the others together), handy in a conflict zone.
+- **Crimes by kind** in the combat card: *Reckless weapons discharge: 1, Assault: 2*, named in your language.
 - **Community sources** in *Settings*: Spansh and Ardent Insight can each be turned off; the privacy policy says what they receive.
 
 ### Fixed

@@ -12,6 +12,8 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 - **Estimer la soute** : un bouton sous la carte de minage évalue la cargaison minée et pas encore vendue au meilleur marché autour de votre système actuel, marchandise par marchandise.
 - **Copier le nom d'un système d'un clic**, partout où il s'affiche : votre système actuel dans le bandeau de situation, la fiche d'un ingénieur, les anneaux et les marchés de l'onglet Minage. Le même geste partout : cliquer sur le nom, en jaune pâle avec une petite marque de copie, *Copié* s'affiche un instant ; à coller dans la carte de la galaxie ou un autre outil.
 - Le journal de l'application nomme la **version du jeu** à chaque partie chargée (version, build, Odyssey ou Horizons, bêta), pour qu'un rapport de bogue dise de quel jeu il vient.
+- **Le combat par faction** : la carte Combat montre les victimes et les crédits contre chaque faction combattue (les trois aux plus nombreuses victimes, puis les autres ensemble), utile en zone de conflit.
+- **Les délits par type** dans la carte Combat : *Tir imprudent : 1, Agression : 2*, nommés dans votre langue.
 - **Sources communautaires** dans les *Réglages* : Spansh et Ardent Insight se désactivent chacun ; la politique de confidentialité dit ce qu'ils reçoivent.
 
 ### Corrigé
