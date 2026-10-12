@@ -1,5 +1,7 @@
 """The Gitea check that waits for the Windows build on the GitHub mirror (ADR 0034)."""
 
+import urllib.error
+from email.message import Message
 from pathlib import Path
 
 import pytest
@@ -107,3 +109,15 @@ def test_runs_are_grouped_by_commit_from_the_api() -> None:
     }
     [only] = gate.runs_by_commit(payload)["c"]
     assert (only.conclusion, only.url, only.branch) == ("success", "u", "main")
+
+
+def test_github_not_answering_is_asked_again() -> None:
+    def bad_gateway(_token: str | None) -> dict[str, list[object]]:
+        raise urllib.error.HTTPError("https://api.github.com", 502, "Bad Gateway", Message(), None)
+
+    def timeout(_token: str | None) -> dict[str, list[object]]:
+        raise TimeoutError("timed out")
+
+    assert gate.latest_runs(None, bad_gateway) is None
+    assert gate.latest_runs(None, timeout) is None
+    assert gate.latest_runs(None, lambda _token: {}) == {}

@@ -8,7 +8,8 @@ the Gitea CI runs this script so that a failed Windows build blocks merging ther
   run: the run of its nearest ancestor that has one counts, when everything changed since is
   ignored as well. A branch that changed only such files needs no build at all.
 - On a tag, the tag's own run is preferred; otherwise the latest run of the commit (a rerun).
-- No result after ``--timeout`` seconds (20 minutes by default) is a failure.
+- No result after ``--timeout`` seconds (20 minutes by default) is a failure. GitHub not
+  answering (a 502, the network) is asked again until then: it says nothing of the build.
 
 The GitHub API is read with ``GH_ACTIONS_READ_TOKEN`` when set (a read-only token, only for
 the rate limit), anonymously otherwise: the mirror is public.
@@ -25,6 +26,7 @@ import re
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -150,6 +152,17 @@ def fetch_runs(token: str | None) -> dict[str, list[Run]]:
         return runs_by_commit(json.load(response))
 
 
+def latest_runs(
+    token: str | None, fetch: Callable[[str | None], dict[str, list[Run]]] = fetch_runs
+) -> dict[str, list[Run]] | None:
+    """The runs, or ``None`` when GitHub does not answer this time."""
+    try:
+        return fetch(token)
+    except (urllib.error.URLError, TimeoutError) as error:
+        print(f"GitHub did not answer ({error}): asking again", file=sys.stderr)
+        return None
+
+
 def _git(*args: str) -> str:
     return subprocess.run(["git", *args], capture_output=True, text=True, check=True).stdout
 
@@ -181,10 +194,17 @@ def main(argv: Sequence[str]) -> int:
     token = os.environ.get("GH_ACTIONS_READ_TOKEN") or None
     deadline = time.monotonic() + args.timeout
     while True:
+        runs = latest_runs(token)
+        if runs is None:
+            if time.monotonic() > deadline:
+                print(f"No Windows build result for {commit} in time", file=sys.stderr)
+                return 1
+            time.sleep(POLL_SECONDS)
+            continue
         decision = decide(
             commit,
             history,
-            fetch_runs(token),
+            runs,
             changed=changed,
             base=base,
             patterns=patterns,
