@@ -43,10 +43,6 @@ class ViewLayout:
 type Layout = Mapping[str, ViewLayout]
 
 
-def default_layout() -> Layout:
-    return {view: ViewLayout(cards, frozenset()) for view, cards in CARDS.items()}
-
-
 def layout_view(layout: Layout) -> dict[str, Any]:
     return {
         view: {"order": list(layout[view].order), "folded": sorted(layout[view].folded)}
