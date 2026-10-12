@@ -13,6 +13,7 @@ from edrockmaster.domain.trade.journal import (
     GameClosed,
     GameLoaded,
     GoodsBought,
+    GoodsHandedOver,
     GoodsSold,
     Market,
     Transfer,
@@ -21,6 +22,7 @@ from edrockmaster.domain.trade.journal import (
 )
 from edrockmaster.domain.trade.session import (
     GoodsTally,
+    HandoverStats,
     RouteStats,
     TradeEnded,
     TradeEndReason,
@@ -538,3 +540,28 @@ def test_one_transfer_entry_may_move_several_commodities() -> None:
         TransferStats(CMM, TransferKind.DEPOSIT, 5, 1),
         TransferStats(PALLADIUM, TransferKind.WITHDRAWAL, 3, 1),
     )
+
+
+BROMELLITE = Commodity("bromellite")
+
+
+def hand_over(minutes: float, commodity: Commodity, count: int) -> GoodsHandedOver:
+    return GoodsHandedOver(at(minutes), "Bill Turner", commodity, count)
+
+
+def test_goods_handed_to_an_engineer_leave_the_hold() -> None:
+    tracker = TradeTracker()
+    haul_gold(tracker)
+    feed(tracker, withdraw(20, GOLD, 100))
+    notifications = feed(tracker, hand_over(30, GOLD, 60), hand_over(31, GOLD, 40))
+    assert isinstance(notifications[-1], TradeUpdated)
+    stats = stats_of(tracker)
+    assert stats.handovers == (HandoverStats("Bill Turner", GOLD, 100),)
+    assert stats.cargo == GoodsTally()
+    assert stats.losses == 0
+
+
+def test_a_handover_outside_a_session_starts_none() -> None:
+    tracker = TradeTracker()
+    assert tracker.handle(hand_over(0, BROMELLITE, 50)) == []
+    assert tracker.session is None

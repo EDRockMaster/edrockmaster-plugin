@@ -19,6 +19,7 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ### Fixed
 
+- Goods handed to an engineer to unlock them (50 t of Bromellite for Bill Turner) now leave the cargo of the trade card, which says so: *Handed to Bill Turner: Bromellite, 50 t*.
 - *Settings* no longer drops changes not saved when you open another tab: it asks whether to save them, drop them or keep editing.
 
 ## [0.5.0] - 2026-10-11

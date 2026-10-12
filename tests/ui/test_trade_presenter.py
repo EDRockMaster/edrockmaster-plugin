@@ -6,6 +6,7 @@ from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.trade.journal import Market
 from edrockmaster.domain.trade.session import (
     GoodsTally,
+    HandoverStats,
     RouteStats,
     TradeEnded,
     TradeEndReason,
@@ -43,8 +44,9 @@ def stats(
     other: GoodsTally = NONE,
     cargo: GoodsTally = NONE,
     transfers: tuple[TransferStats, ...] = (),
+    handovers: tuple[HandoverStats, ...] = (),
 ) -> TradeStats:
-    return TradeStats(T0, flight, routes, losses, refined, other, cargo, transfers)
+    return TradeStats(T0, flight, routes, losses, refined, other, cargo, transfers, handovers)
 
 
 def lines(presenter: TradePresenter) -> dict[str, str]:
@@ -167,6 +169,13 @@ def test_transfers_with_fleet_carriers() -> None:
     assert shown["Deposited: Or"] == "2,080 t (2 transfers)"
     assert shown["Withdrawn: Palladium"] == "50 t (1 transfer)"
     assert list(shown).index("Deposited: Or") > list(shown).index("Palladium to Verne Venture")
+
+
+def test_goods_handed_to_engineers() -> None:
+    presenter = TradePresenter(translate=lambda text: text.replace("Handed to", "Remis à"))
+    handed = (HandoverStats("Bill Turner", Commodity("bromellite", "Bromellite"), 50),)
+    presenter.apply([TradeStarted(T0), TradeUpdated(stats(handovers=handed))])
+    assert lines(presenter)["Remis à Bill Turner: Bromellite"] == "50 t"
 
 
 def test_no_sales_lines_while_nothing_is_sold() -> None:

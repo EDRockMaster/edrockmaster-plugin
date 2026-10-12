@@ -31,6 +31,9 @@ follows. They earn nothing. The goods keep their cost and origin at the
 carrier, so that a ship destroyed after a deposit loses nothing it deposited,
 and a withdrawal brings them back on board. What the tracker knows a carrier
 holds is not its stock: the carrier trades while the commander is away.
+
+Goods **handed to an engineer** (``EngineerContribution``) leave the hold for good,
+earning nothing and losing nothing; a running session shows them, none starts.
 """
 
 from __future__ import annotations
@@ -51,6 +54,7 @@ from edrockmaster.domain.trade.journal import (
     GameClosed,
     GameLoaded,
     GoodsBought,
+    GoodsHandedOver,
     GoodsSold,
     Market,
     Transfer,
@@ -113,6 +117,15 @@ class TransferStats:
 
 
 @dataclass(frozen=True, slots=True)
+class HandoverStats:
+    """One commodity given to one engineer."""
+
+    engineer: str
+    commodity: Commodity
+    tons: int
+
+
+@dataclass(frozen=True, slots=True)
 class TradeStats:
     started_at: datetime
     flight_time: timedelta
@@ -127,6 +140,8 @@ class TradeStats:
     """Bought goods on board, at the price paid, as far as the tracker saw them bought."""
     transfers: tuple[TransferStats, ...] = ()
     """With fleet carriers, in the order of the first transfer of each."""
+    handovers: tuple[HandoverStats, ...] = ()
+    """To engineers, in the order of the first of each."""
 
     @property
     def tons_sold(self) -> int:
@@ -249,6 +264,7 @@ class TradeSession:
         self._flight = timedelta(0)
         self._routes: dict[_RouteKey, _Route] = {}
         self._transfers: dict[tuple[Commodity, TransferKind], TransferStats] = {}
+        self._handovers: dict[tuple[str, Commodity], HandoverStats] = {}
         self._losses = 0
         self._refined = GoodsTally()
         self._other = GoodsTally()
@@ -263,6 +279,7 @@ class TradeSession:
             other=self._other,
             cargo=cargo,
             transfers=tuple(self._transfers.values()),
+            handovers=tuple(self._handovers.values()),
         )
 
     def fly(self, duration: timedelta) -> None:
@@ -289,6 +306,10 @@ class TradeSession:
         self._transfers[commodity, kind] = TransferStats(
             moved.commodity, kind, moved.tons + tons, moved.transfers + 1
         )
+
+    def hand_over(self, engineer: str, commodity: Commodity, tons: int) -> None:
+        given = self._handovers.get((engineer, commodity), HandoverStats(engineer, commodity, 0))
+        self._handovers[engineer, commodity] = HandoverStats(engineer, commodity, given.tons + tons)
 
     def lose(self, cost: int) -> None:
         self._losses += cost
@@ -319,7 +340,7 @@ class TradeTracker:
     def stats(self) -> TradeStats | None:
         return self._session.stats(self._hold.tally()) if self._session else None
 
-    def handle(self, fact: Fact) -> list[TradeNotification]:
+    def handle(self, fact: Fact) -> list[TradeNotification]:  # noqa: PLR0911 - a case a fact
         match fact:
             case GoodsBought():
                 return self._on_purchase(fact)
@@ -327,6 +348,8 @@ class TradeTracker:
                 return self._on_sale(fact)
             case CargoTransferred():
                 return self._on_transfer(fact)
+            case GoodsHandedOver():
+                return self._on_handover(fact)
             case Docked() | Undocked() | GameLoaded():
                 self._on_move(fact)
                 return []
@@ -410,6 +433,13 @@ class TradeTracker:
                 target.put(goods)
             session.transfer(transfer.commodity, kind, transfer.count)
         return [*notifications, self._updated(session)]
+
+    def _on_handover(self, fact: GoodsHandedOver) -> list[TradeNotification]:
+        self._hold.take(fact.commodity, fact.count)
+        if self._session is None:
+            return []
+        self._session.hand_over(fact.engineer, fact.commodity, fact.count)
+        return [self._updated(self._session)]
 
     def _kind(self, transfer: Transfer) -> TransferKind | None:
         """A deposit, a withdrawal, or ``None`` for a transfer with an SRV."""

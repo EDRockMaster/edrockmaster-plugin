@@ -12,6 +12,7 @@ from edrockmaster.domain.trade.journal import (
     GameClosed,
     GameLoaded,
     GoodsBought,
+    GoodsHandedOver,
     GoodsSold,
     Market,
     Transfer,
@@ -241,6 +242,35 @@ def test_cargo_transfers_are_parsed() -> None:
             Transfer(Commodity("water"), 1, TransferDirection.TO_SRV),
         ),
     )
+
+
+def test_goods_handed_to_an_engineer_are_parsed() -> None:
+    fact = parse_entry(
+        {
+            "timestamp": TS,
+            "event": "EngineerContribution",
+            "Engineer": "Bill Turner",
+            "EngineerID": 300010,
+            "Type": "Commodity",
+            "Commodity": "bromellite",
+            "Quantity": 50,
+            "TotalQuantity": 50,
+        }
+    )
+    assert fact == GoodsHandedOver(AT, "Bill Turner", Commodity("bromellite"), 50)
+
+
+def test_materials_handed_to_an_engineer_are_not_trade() -> None:
+    entry = {
+        "timestamp": TS,
+        "event": "EngineerContribution",
+        "Engineer": "Elvira Martuuk",
+        "Type": "Materials",
+        "Material": "iron",
+        "Quantity": 5,
+        "TotalQuantity": 5,
+    }
+    assert parse_entry(entry) is None
 
 
 def test_a_transfer_in_an_unknown_direction_is_ignored() -> None:
