@@ -13,7 +13,6 @@ from edrockmaster.domain.trade.session import (
     TradeStarted,
     TradeStats,
     TradeUpdated,
-    TransferKind,
     TransferStats,
 )
 from edrockmaster.ui.trade_presenter import ROUTE_LABEL_LENGTH, TradePresenter
@@ -157,18 +156,20 @@ def test_texts_are_translated() -> None:
     assert model.lines[0].label == "fr:Flight time"
 
 
-def test_transfers_with_fleet_carriers() -> None:
+def test_transfers_with_fleet_carriers_as_a_balance() -> None:
     gold = Commodity("gold", "Or")
     presenter = TradePresenter()
     moved = (
-        TransferStats(gold, TransferKind.DEPOSIT, 2_080, 2),
-        TransferStats(PALLADIUM, TransferKind.WITHDRAWAL, 50, 1),
+        TransferStats(gold, 2_080, 2),
+        TransferStats(PALLADIUM, -50, 1),
+        TransferStats(Commodity("bromellite", "Bromellite"), 0, 6),
     )
     presenter.apply([TradeStarted(T0), TradeUpdated(stats(route(), transfers=moved))])
     shown = lines(presenter)
-    assert shown["Deposited: Or"] == "2,080 t (2 transfers)"
-    assert shown["Withdrawn: Palladium"] == "50 t (1 transfer)"
-    assert list(shown).index("Deposited: Or") > list(shown).index("Palladium to Verne Venture")
+    assert shown["At the carrier: Or"] == "+2,080 t (2 transfers)"
+    assert shown["Taken from the carrier: Palladium"] == "50 t (1 transfer)"
+    assert not any("Bromellite" in label for label in shown)  # a zero balance shows nothing
+    assert list(shown).index("At the carrier: Or") > list(shown).index("Palladium to Verne Venture")
 
 
 def test_goods_handed_to_engineers() -> None:
@@ -180,6 +181,6 @@ def test_goods_handed_to_engineers() -> None:
 
 def test_no_sales_lines_while_nothing_is_sold() -> None:
     presenter = TradePresenter()
-    moved = (TransferStats(PALLADIUM, TransferKind.DEPOSIT, 1_040, 1),)
+    moved = (TransferStats(PALLADIUM, 1_040, 1),)
     presenter.apply([TradeStarted(T0), TradeUpdated(stats(transfers=moved))])
-    assert list(lines(presenter)) == ["Flight time", "Profit", "Deposited: Palladium"]
+    assert list(lines(presenter)) == ["Flight time", "Profit", "At the carrier: Palladium"]

@@ -29,8 +29,10 @@ profit belongs to mining), **other goods** otherwise.
 and sales: a deposit or a withdrawal starts a session and counts the legs it
 follows. They earn nothing. The goods keep their cost and origin at the
 carrier, so that a ship destroyed after a deposit loses nothing it deposited,
-and a withdrawal brings them back on board. What the tracker knows a carrier
-holds is not its stock: the carrier trades while the commander is away.
+and a withdrawal brings them back on board. A session counts them as a balance
+per commodity (ADR 0044): goods deposited and taken back cancel out. What the
+tracker knows a carrier holds is not its stock: the carrier trades while the
+commander is away.
 
 Goods **handed to an engineer** (``EngineerContribution``) leave the hold for good,
 earning nothing and losing nothing; a running session shows them, none starts.
@@ -108,12 +110,13 @@ class RouteStats:
 
 @dataclass(frozen=True, slots=True)
 class TransferStats:
-    """One commodity moved one way between the ship and fleet carriers."""
+    """One commodity moved between the ship and fleet carriers (ADR 0044)."""
 
     commodity: Commodity
-    kind: TransferKind
-    tons: int
+    balance: int
+    """Tons left at the carriers in the session: negative when more were taken than left."""
     transfers: int
+    """Both ways."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -263,7 +266,7 @@ class TradeSession:
         self.started_at = started_at
         self._flight = timedelta(0)
         self._routes: dict[_RouteKey, _Route] = {}
-        self._transfers: dict[tuple[Commodity, TransferKind], TransferStats] = {}
+        self._transfers: dict[Commodity, TransferStats] = {}
         self._handovers: dict[tuple[str, Commodity], HandoverStats] = {}
         self._losses = 0
         self._refined = GoodsTally()
@@ -302,9 +305,10 @@ class TradeSession:
             self._other += tally
 
     def transfer(self, commodity: Commodity, kind: TransferKind, tons: int) -> None:
-        moved = self._transfers.get((commodity, kind), TransferStats(commodity, kind, 0, 0))
-        self._transfers[commodity, kind] = TransferStats(
-            moved.commodity, kind, moved.tons + tons, moved.transfers + 1
+        moved = self._transfers.get(commodity, TransferStats(commodity, 0, 0))
+        tons = tons if kind is TransferKind.DEPOSIT else -tons
+        self._transfers[commodity] = TransferStats(
+            moved.commodity, moved.balance + tons, moved.transfers + 1
         )
 
     def hand_over(self, engineer: str, commodity: Commodity, tons: int) -> None:

@@ -46,7 +46,6 @@ from edrockmaster.domain.trade.session import (
     TradeEnded,
     TradeEndReason,
     TradeStats,
-    TransferKind,
     TransferStats,
 )
 from edrockmaster.infrastructure.catalogue_file import load_catalogue
@@ -464,8 +463,8 @@ def test_each_deposit_is_counted_once(gold_to_carrier: Replay) -> None:
     gold = Commodity("gold")
     first, second = trade_sessions(gold_to_carrier)
     # 22:47:24, then 00:04:37: two transfers to the carrier, not three
-    assert first.stats.transfers == (TransferStats(gold, TransferKind.DEPOSIT, 1_040, 1),)
-    assert second.stats.transfers == (TransferStats(gold, TransferKind.DEPOSIT, 1_040, 1),)
+    assert first.stats.transfers == (TransferStats(gold, 1_040, 1),)
+    assert second.stats.transfers == (TransferStats(gold, 1_040, 1),)
 
 
 def test_gold_deposited_is_not_lost_with_the_ship(gold_to_carrier: Replay) -> None:
@@ -491,7 +490,7 @@ def test_flight_time_to_the_carrier(gold_to_carrier: Replay) -> None:
 
 def test_panel_after_the_deposit(gold_to_carrier: Replay) -> None:
     lines = dict(gold_to_carrier.lines())
-    assert lines["Deposited: Or"] == "1,040 t (1 transfer)"
+    assert lines["At the carrier: Or"] == "+1,040 t (1 transfer)"
 
 
 # Engineering (ADR 0017): a real session, 2026-10-08, 01:42 to 05:41: materials collected

@@ -48,7 +48,6 @@ def source_strings() -> set[str]:
     strings |= set(trade_presenter._END_REASONS.values())
     strings |= set(engineering_presenter._GAINED.values())
     strings |= set(engineering_presenter._END_REASONS.values())
-    strings |= set(trade_presenter._TRANSFER_LABELS.values())
     # Names of the game data, shown in the player's language (ADR 0017)
     catalogue = load_catalogue()
     for entries in (

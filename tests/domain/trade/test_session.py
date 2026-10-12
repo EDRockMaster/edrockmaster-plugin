@@ -31,7 +31,6 @@ from edrockmaster.domain.trade.session import (
     TradeStats,
     TradeTracker,
     TradeUpdated,
-    TransferKind,
     TransferStats,
 )
 
@@ -456,7 +455,7 @@ def test_a_deposit_is_counted_with_its_transfers() -> None:
     notifications = feed(tracker, buy(14, CARRIER, GOLD, 1, 5_000), deposit(15, GOLD, 1))
     assert isinstance(notifications[-1], TradeUpdated)
     stats = stats_of(tracker)
-    assert stats.transfers == (TransferStats(GOLD, TransferKind.DEPOSIT, 101, 2),)
+    assert stats.transfers == (TransferStats(GOLD, 101, 2),)
     assert stats.cargo == GoodsTally()
     assert (stats.profit, stats.tons_sold) == (0, 0)
 
@@ -471,7 +470,7 @@ def test_a_transfer_starts_the_session() -> None:
     tracker = TradeTracker()
     notifications = feed(tracker, dock(0, CARRIER), withdraw(1, GOLD, 50))
     assert isinstance(notifications[0], TradeStarted)
-    assert stats_of(tracker).transfers == (TransferStats(GOLD, TransferKind.WITHDRAWAL, 50, 1),)
+    assert stats_of(tracker).transfers == (TransferStats(GOLD, -50, 1),)
 
 
 def test_deposited_goods_are_not_lost_with_the_ship() -> None:
@@ -519,7 +518,7 @@ def test_a_deposit_away_from_a_known_carrier_is_still_a_deposit() -> None:
     tracker = TradeTracker()
     feed(tracker, buy(1, AMANO, GOLD, 10, 5_000), deposit(2, GOLD, 10))
     stats = stats_of(tracker)
-    assert stats.transfers == (TransferStats(GOLD, TransferKind.DEPOSIT, 10, 1),)
+    assert stats.transfers == (TransferStats(GOLD, 10, 1),)
     assert stats.cargo == GoodsTally()
 
 
@@ -536,13 +535,30 @@ def test_one_transfer_entry_may_move_several_commodities() -> None:
         ),
     )
     assert stats_of(tracker).transfers == (
-        TransferStats(GOLD, TransferKind.DEPOSIT, 10, 1),
-        TransferStats(CMM, TransferKind.DEPOSIT, 5, 1),
-        TransferStats(PALLADIUM, TransferKind.WITHDRAWAL, 3, 1),
+        TransferStats(GOLD, 10, 1),
+        TransferStats(CMM, 5, 1),
+        TransferStats(PALLADIUM, -3, 1),
     )
 
 
 BROMELLITE = Commodity("bromellite")
+
+
+def test_transfers_count_as_a_balance_per_commodity() -> None:
+    """The evening of 11 October: 50 t of Bromellite deposited and taken back twice (ADR 0044)."""
+    tracker = TradeTracker()
+    feed(tracker, dock(0, CARRIER))
+    for minutes in (1, 10):
+        for count in (23, 18, 9):
+            feed(tracker, deposit(minutes, BROMELLITE, count))
+        for count in (23, 18, 9):
+            feed(tracker, withdraw(minutes + 1, BROMELLITE, count))
+    assert stats_of(tracker).transfers == (TransferStats(BROMELLITE, 0, 12),)
+    feed(tracker, deposit(20, BROMELLITE, 9), withdraw(21, GOLD, 20))
+    assert stats_of(tracker).transfers == (
+        TransferStats(BROMELLITE, 9, 13),
+        TransferStats(GOLD, -20, 1),
+    )
 
 
 def hand_over(minutes: float, commodity: Commodity, count: int) -> GoodsHandedOver:
