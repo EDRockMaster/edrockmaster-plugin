@@ -8,6 +8,7 @@ from typing import assert_never
 from edrockmaster.domain.trade.journal import Market
 from edrockmaster.domain.trade.session import (
     GoodsTally,
+    HandoverStats,
     RouteStats,
     TradeEnded,
     TradeEndReason,
@@ -96,6 +97,7 @@ class TradePresenter:
             yield StatLine(tl("Cargo bought"), self._tally(stats.cargo))
         yield from (self._route_line(route) for route in stats.routes)
         yield from (self._transfer_line(moved) for moved in stats.transfers)
+        yield from (self._handover_line(given) for given in stats.handovers)
         if stats.refined.tons:
             yield StatLine(tl("Refined commodities"), self._tally(stats.refined))
         if stats.other.tons:
@@ -140,6 +142,13 @@ class TradePresenter:
             return StatLine(label, tl("{tons} (1 transfer)").format(tons=tons))
         value = tl("{tons} ({count} transfers)").format(tons=tons, count=moved.transfers)
         return StatLine(label, value)
+
+    def _handover_line(self, given: HandoverStats) -> StatLine:
+        """Goods given to an engineer to unlock them: gone from the hold."""
+        label = self._tl("Handed to {engineer}: {commodity}").format(
+            engineer=given.engineer, commodity=commodity_name(given.commodity, self._tl)
+        )
+        return StatLine(label, self._tons(given.tons))
 
     def _market(self, market: Market | None) -> str:
         if market is None:

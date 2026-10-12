@@ -121,6 +121,17 @@ class CargoTransferred:
 
 
 @dataclass(frozen=True, slots=True)
+class GoodsHandedOver:
+    """Goods given to an engineer to unlock them (``EngineerContribution``): they leave the
+    hold, earning nothing."""
+
+    at: datetime
+    engineer: str
+    commodity: Commodity
+    count: int
+
+
+@dataclass(frozen=True, slots=True)
 class CommanderDied:
     at: datetime
 
@@ -138,6 +149,7 @@ type Fact = (
     | GameLoaded
     | CargoEjected
     | CargoInventory
+    | GoodsHandedOver
     | CargoTransferred
     | CommanderDied
     | GameClosed
@@ -233,6 +245,17 @@ def _transferred(entry: Entry, at: datetime) -> CargoTransferred:
     return CargoTransferred(at, tuple(transfer for transfer in transfers if transfer))
 
 
+def _handed_over(entry: Entry, at: datetime) -> GoodsHandedOver | None:
+    if entry.get("Type") != "Commodity":
+        return None  # materials belong to engineering
+    return GoodsHandedOver(
+        at,
+        required(entry, "Engineer", str),
+        commodity(entry, "Commodity"),
+        required(entry, "Quantity", int),
+    )
+
+
 def _died(_entry: Entry, at: datetime) -> CommanderDied:
     return CommanderDied(at)
 
@@ -251,6 +274,7 @@ _PARSERS: dict[str, Parser[Fact | None]] = {
     "EjectCargo": _ejected,
     "Cargo": _cargo,
     "CargoTransfer": _transferred,
+    "EngineerContribution": _handed_over,
     "Died": _died,
     "Shutdown": _closed,
     "ShutDown": _closed,  # synthetic event from EDMC when the game crashed

@@ -19,6 +19,7 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ### Corrigé
 
+- Les marchandises remises à un ingénieur pour le débloquer (50 t de Bromellite pour Bill Turner) quittent maintenant la soute de la carte Commerce, qui le dit : *Remis à Bill Turner : Bromellite, 50 t*.
 - Les *Réglages* ne perdent plus les modifications non enregistrées quand vous ouvrez un autre onglet : ils demandent s'il faut les enregistrer, les abandonner ou continuer à modifier.
 
 ## [0.5.0] - 2026-10-11
