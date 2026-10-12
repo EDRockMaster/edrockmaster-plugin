@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from edrockmaster.domain.engineering.catalogue import OnFootKind
+from edrockmaster.domain.engineering.events import EngineeringNotification, GoalDone, GoalReady
 from edrockmaster.domain.engineering.goals import ClassUpgradeGoal, GoalId, ModificationGoal
 from edrockmaster.domain.engineering.journal import (
     EngineersStated,
@@ -19,13 +20,8 @@ from edrockmaster.domain.engineering.on_foot_journal import (
     Weapon,
     WeaponEquipped,
 )
-from edrockmaster.domain.engineering.session import (
-    EngineeringNotification,
-    EngineeringTracker,
-    GoalDone,
-    GoalProgress,
-    GoalReady,
-)
+from edrockmaster.domain.engineering.progress import GoalProgress
+from edrockmaster.domain.engineering.session import EngineeringTracker
 from tests.domain.engineering.catalogue_data import catalogue
 
 T0 = datetime(2026, 10, 11, 1, 0, tzinfo=UTC)

@@ -32,13 +32,10 @@ from edrockmaster.domain.combat.sites import SiteType
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.community_goals.goals import CommunityGoalsChanged
 from edrockmaster.domain.engineering.catalogue import MaterialCategory, OnFootKind
+from edrockmaster.domain.engineering.collection import CollectionEndReason
+from edrockmaster.domain.engineering.events import CollectionEnded, CollectionStarted
 from edrockmaster.domain.engineering.goals import BlueprintGoal, Goal, GoalId
 from edrockmaster.domain.engineering.on_foot_journal import Suit
-from edrockmaster.domain.engineering.session import (
-    CollectionEnded,
-    CollectionEndReason,
-    CollectionStarted,
-)
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.mining.session import EndReason, SessionEnded
 from edrockmaster.domain.trade.journal import Market

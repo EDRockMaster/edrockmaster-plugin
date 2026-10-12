@@ -3,6 +3,17 @@ from datetime import UTC, datetime
 import pytest
 
 from edrockmaster.domain.engineering.catalogue import MaterialCategory, OnFootKind
+from edrockmaster.domain.engineering.collection import CollectionEndReason, CollectionStats
+from edrockmaster.domain.engineering.events import (
+    CollectionEnded,
+    CollectionStarted,
+    EngineeringStats,
+    EngineeringUpdated,
+    GoalDone,
+    GoalProgressed,
+    GoalReady,
+    MaterialCapped,
+)
 from edrockmaster.domain.engineering.goals import (
     BlueprintGoal,
     ClassUpgradeGoal,
@@ -11,19 +22,7 @@ from edrockmaster.domain.engineering.goals import (
     GoalId,
     ModificationGoal,
 )
-from edrockmaster.domain.engineering.session import (
-    CollectionEnded,
-    CollectionEndReason,
-    CollectionStarted,
-    CollectionStats,
-    EngineeringStats,
-    EngineeringUpdated,
-    GoalDone,
-    GoalProgress,
-    GoalProgressed,
-    GoalReady,
-    MaterialCapped,
-)
+from edrockmaster.domain.engineering.progress import GoalProgress
 from edrockmaster.ui.engineering_names import EngineeringNames
 from edrockmaster.ui.engineering_presenter import EngineeringPresenter
 from edrockmaster.ui.panel_model import StatLine, identity

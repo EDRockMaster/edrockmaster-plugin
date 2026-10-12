@@ -4,14 +4,14 @@ from datetime import timedelta
 import pytest
 
 from edrockmaster.application.engineering_service import EngineeringService
-from edrockmaster.domain.engineering.goals import BlueprintGoal, GoalId
-from edrockmaster.domain.engineering.session import (
+from edrockmaster.domain.engineering.collection import CollectionEndReason
+from edrockmaster.domain.engineering.events import (
     CollectionEnded,
-    CollectionEndReason,
     CollectionStarted,
     EngineeringNotification,
     EngineeringUpdated,
 )
+from edrockmaster.domain.engineering.goals import BlueprintGoal, GoalId
 from edrockmaster.domain.journal_reading import Entry
 from tests.domain.engineering.catalogue_data import catalogue
 from tests.fakes import FakeGoalRepository, FixedClock

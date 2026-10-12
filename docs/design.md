@@ -43,7 +43,11 @@ edrockmaster/
     engineering/                engineering context (ADR 0017, ADR 0027 on foot)
       journal.py                journal entry → engineering fact
       on_foot_journal.py        on-foot journal entry → engineering fact (ADR 0027)
-      session.py                EngineeringTracker aggregate (inventory, caps, collection, goals, engineers)
+      session.py                EngineeringTracker aggregate: facts in, its state (inventory, caps, engineers, goals), events out (ADR 0041)
+      progress.py               how far one goal is: what it takes, what is missing, who offers it (pure)
+      reservation.py            the materials held shared along the priority (ADR 0033, pure)
+      collection.py             the collection of materials and its statistics
+      events.py                 what the aggregate tells the application: statistics, collection, caps, goals ready, progressed, done
       on_foot.py                its on-foot part: ship locker, backpack, suits and weapons seen
       catalogue.py              game data: materials (grade, cap), blueprints, effects, module types, engineers, on-foot materials, engineers, class upgrades and modifications
       catalogue.json            that data, written by scripts/import_engineering_data.py (Frontier's, see NOTICE)

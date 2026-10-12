@@ -45,7 +45,7 @@ from edrockmaster.domain.engineering.goals import (
 from edrockmaster.domain.engineering.journal import EngineerState, EngineerStatus
 from edrockmaster.domain.engineering.on_foot import CarrierMove, Equipment
 from edrockmaster.domain.engineering.on_foot_journal import Suit
-from edrockmaster.domain.engineering.session import GoalProgress
+from edrockmaster.domain.engineering.progress import GoalProgress
 from edrockmaster.ui.engineering_names import EngineeringNames
 
 _CATEGORY_ORDER = {

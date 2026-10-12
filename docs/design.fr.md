@@ -43,7 +43,11 @@ edrockmaster/
     engineering/                contexte de l'ingénierie (ADR 0017, ADR 0027 à pied)
       journal.py                entrée du journal → fait d'ingénierie
       on_foot_journal.py        entrée du journal à pied → fait d'ingénierie (ADR 0027)
-      session.py                agrégat EngineeringTracker (inventaire, plafonds, collecte, objectifs, ingénieurs)
+      session.py                agrégat EngineeringTracker : des faits en entrée, son état (inventaire, plafonds, ingénieurs, objectifs), des événements en sortie (ADR 0041)
+      progress.py               l'avancement d'un objectif : ce qu'il demande, ce qui manque, qui le propose (pur)
+      reservation.py            les matériaux détenus partagés selon la priorité (ADR 0033, pur)
+      collection.py             la collecte de matériaux et ses statistiques
+      events.py                 ce que l'agrégat dit à l'application : statistiques, collecte, plafonds, objectifs prêts, avancés, terminés
       on_foot.py                sa partie à pied : casier du vaisseau, sac, combinaisons et armes vues
       catalogue.py              données du jeu : matériaux (grade, plafond), blueprints, effets, types de modules, ingénieurs, matériaux et ingénieurs à pied, montées de classe et modifications
       catalogue.json            ces données, écrites par scripts/import_engineering_data.py (celles de Frontier, voir NOTICE)

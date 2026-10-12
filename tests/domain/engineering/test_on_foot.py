@@ -3,6 +3,12 @@
 from datetime import UTC, datetime, timedelta
 
 from edrockmaster.domain.engineering.catalogue import OnFootKind
+from edrockmaster.domain.engineering.events import (
+    CollectionEnded,
+    CollectionStarted,
+    EngineeringNotification,
+    EngineeringUpdated,
+)
 from edrockmaster.domain.engineering.journal import CommanderDied, GameClosed
 from edrockmaster.domain.engineering.on_foot import CarrierMove, OnFootHolding
 from edrockmaster.domain.engineering.on_foot_journal import (
@@ -22,13 +28,7 @@ from edrockmaster.domain.engineering.on_foot_journal import (
     WeaponBought,
     WeaponEquipped,
 )
-from edrockmaster.domain.engineering.session import (
-    CollectionEnded,
-    CollectionStarted,
-    EngineeringNotification,
-    EngineeringTracker,
-    EngineeringUpdated,
-)
+from edrockmaster.domain.engineering.session import EngineeringTracker
 from tests.domain.engineering.catalogue_data import catalogue
 
 T0 = datetime(2026, 10, 5, 21, 0, tzinfo=UTC)

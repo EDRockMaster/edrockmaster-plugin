@@ -8,7 +8,7 @@ from edrockmaster.application.companion import Companion
 from edrockmaster.application.settings import DEFAULT_SETTINGS, PluginSettings
 from edrockmaster.domain.combat.session import CombatEnded, CombatStarted, VouchersUpdated
 from edrockmaster.domain.commodities import Commodity
-from edrockmaster.domain.engineering.session import CollectionEnded, CollectionStarted
+from edrockmaster.domain.engineering.events import CollectionEnded, CollectionStarted
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.mining.journal import ContentLevel
 from edrockmaster.domain.mining.prospecting import AlertSettings, ProspectorAlertRaised
