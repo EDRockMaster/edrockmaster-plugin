@@ -146,9 +146,9 @@ class CombatPresenter:
         yield StatLine(tl("Kills"), kills)
         if stats.bounty_credits or not stats.bond_credits:
             # In a conflict zone, only combat bonds are earned: no empty bounty line
-            yield StatLine(tl("Bounties"), self._credits(stats.bounty_credits))
+            yield StatLine(tl("Bounties earned"), self._credits(stats.bounty_credits))
         if stats.bond_credits:
-            yield StatLine(tl("Combat bonds"), self._credits(stats.bond_credits))
+            yield StatLine(tl("Combat bonds earned"), self._credits(stats.bond_credits))
         if stats.current is not None:
             yield StatLine(tl("This site"), self._segment_text(stats.current))
         yield from (self._average_line(average) for average in stats.by_site())

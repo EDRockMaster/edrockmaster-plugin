@@ -84,10 +84,16 @@ def test_on_a_combat_site(presenter: CombatPresenter) -> None:
     assert model.status == "RES, hazardous"
     assert model.can_reset
     assert model.alert is None
-    assert labels(model) == ["Active time", "Kills", "Bounties", "This site", "RES, hazardous"]
+    assert labels(model) == [
+        "Active time",
+        "Kills",
+        "Bounties earned",
+        "This site",
+        "RES, hazardous",
+    ]
     assert value(model, "Active time") == "30 min"
     assert value(model, "Kills") == "6"
-    assert value(model, "Bounties") == "900,000 CR"
+    assert value(model, "Bounties earned") == "900,000 CR"
     assert value(model, "This site") == "30 min, kills: 6"
     assert value(model, "RES, hazardous") == "12.0 kills/h, 1,800,000 CR/h"
 
@@ -131,7 +137,7 @@ def test_miscellaneous_kills(presenter: CombatPresenter) -> None:
 def test_only_miscellaneous_kills_show_no_active_time(presenter: CombatPresenter) -> None:
     misc = Tally(kills=1, bounty_credits=370_130)
     model = presenter.apply([CombatUpdated(CombatStats(T0, (), None, misc, Crimes()))])
-    assert labels(model) == ["Kills", "Bounties", "Miscellaneous"]
+    assert labels(model) == ["Kills", "Bounties earned", "Miscellaneous"]
 
 
 def test_crimes(presenter: CombatPresenter) -> None:
@@ -195,7 +201,7 @@ def test_beyond_three_factions_the_others_add_up(presenter: CombatPresenter) -> 
 def test_shared_kills_and_combat_bonds_appear_when_present(presenter: CombatPresenter) -> None:
     model = presenter.apply([CombatUpdated(stats(segment(shared_kills=2, bond_credits=120_000)))])
     assert value(model, "Kills") == "6 (2 shared)"
-    assert value(model, "Combat bonds") == "120,000 CR"
+    assert value(model, "Combat bonds earned") == "120,000 CR"
 
 
 def test_bounties_are_left_out_when_only_combat_bonds_were_earned(
@@ -204,8 +210,8 @@ def test_bounties_are_left_out_when_only_combat_bonds_were_earned(
     model = presenter.apply(
         [CombatUpdated(stats(segment(site=CZ, bounty_credits=0, bond_credits=224_467)))]
     )
-    assert "Bounties" not in labels(model)
-    assert value(model, "Combat bonds") == "224,467 CR"
+    assert "Bounties earned" not in labels(model)
+    assert value(model, "Combat bonds earned") == "224,467 CR"
 
 
 @pytest.mark.parametrize(
