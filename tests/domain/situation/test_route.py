@@ -279,3 +279,26 @@ def test_the_fuel_is_known_before_the_route() -> None:
 
 def test_a_fuel_scoop_without_its_total_is_ignored() -> None:
     assert parse_entry({"timestamp": TS, "event": "FuelScoop", "Scooped": 1.5}) is None
+
+
+def test_a_jump_back_where_it_left_puts_the_route_back_there() -> None:
+    # As a Thargoid hyperdiction is said to do: aimed at Zosi, back in 78 Ursae Majoris
+    flight = Flight()({"event": "Location", "StarSystem": "78 Ursae Majoris"}, plotted())
+    flight(targeted("Zosi", "M", 4), started("Zosi", "M"), jumped("78 Ursae Majoris"))
+    route = flight.route
+    assert route is not None
+    assert (route.position, route.next, route.jumps_left, route.off_route) == (
+        0,
+        RouteStop("Zosi", "M"),
+        4,
+        False,
+    )
+    [diverted] = flight.diverted()
+    assert (diverted.aimed, diverted.reached, diverted.back) == ("Zosi", "78 Ursae Majoris", True)
+
+
+def test_supercruise_tells_where_the_jump_left() -> None:
+    supercruise = {"event": "SupercruiseEntry", "StarSystem": "78 Ursae Majoris"}
+    flight = Flight()(supercruise, plotted(), started("Zosi", "M"), jumped("Somewhere"))
+    [diverted] = flight.diverted()
+    assert not diverted.back

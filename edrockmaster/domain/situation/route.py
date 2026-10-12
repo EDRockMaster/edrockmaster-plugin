@@ -4,7 +4,9 @@
 the journal reader adds from ``NavRoute.json``, ``FSDTarget`` for the next jump,
 the arrivals for the commander's place in the list. Only an arrival moves the
 route on; one off the list leaves the destination but no next jump, until the
-game targets one again. The game clears the route itself during the last jump.
+game targets one again; one back in a system of the list (the one the jump
+left, after a hyperdiction) puts the route back there. The game clears the
+route itself during the last jump.
 
 It raises an alert, once per jump aimed at, when the next star is dangerous on
 arrival (a white dwarf, a neutron star, a black hole), and when the fuel left
@@ -117,6 +119,9 @@ class JumpDiverted:
     aimed: str
     reached: str | None
     """``None``: another jump began before any arrival."""
+    back: bool = False
+    """Back in the system the jump left: what a Thargoid hyperdiction is said to do (read on
+    the web, never seen in the player's journals)."""
 
 
 type RouteFact = (
@@ -130,6 +135,10 @@ class RouteTracker:
         self._route: CurrentRoute | None = None
         self._fuel: float | None = None
         self._aimed: str | None = None
+        self._here: str | None = None
+        """The commander's system, as far as the journal said."""
+        self._left: str | None = None
+        """The system the jump in progress left."""
         self._sounded: set[tuple[RouteAlert, str]] = set()
 
     @property
@@ -150,18 +159,20 @@ class RouteTracker:
             case JumpStarted(at=at, stop=stop):
                 if self._aimed is not None:
                     events.append(JumpDiverted(at, self._aimed, None))
-                self._aimed = stop.system
-            case SystemReached(arrival=False):
+                self._aimed, self._left = stop.system, self._here
+            case SystemReached(arrival=False, system=system):
+                self._here = system
                 return []
             case SystemReached(at=at, system=system):
                 if self._aimed is not None and self._aimed != system:
-                    events.append(JumpDiverted(at, self._aimed, system))
-                self._aimed = None
+                    back = self._left is not None and self._left == system
+                    events.append(JumpDiverted(at, self._aimed, system, back))
+                self._aimed, self._here = None, system
                 if fact.fuel_level is not None:
                     self._fuel = fact.fuel_level
                 self._route = self._arrived(system, fact.fuel_used)
             case Located(system=system):
-                self._aimed = None
+                self._aimed, self._here = None, system
                 self._route = self._arrived(system, None)
             case FuelScooped(fuel_level=level):
                 self._fuel = level

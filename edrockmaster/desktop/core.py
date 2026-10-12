@@ -348,10 +348,11 @@ class DesktopCore:
             if isinstance(diverted, JumpDiverted):
                 # Kept to survey what the game wrote, a Thargoid hyperdiction for one (ADR 0043)
                 self._logger.info(
-                    "Jump to %s at %s ended %s",
+                    "Jump to %s at %s ended %s%s",
                     diverted.aimed,
                     diverted.at.isoformat(),
                     f"in {diverted.reached}" if diverted.reached else "before any arrival",
+                    ", back where it left: a Thargoid hyperdiction?" if diverted.back else "",
                 )
         self._apply(notifications)
 
