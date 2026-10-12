@@ -16,6 +16,7 @@ from edrockmaster.domain.combat.session import (
     VouchersUpdated,
 )
 from edrockmaster.domain.combat.sites import SiteType
+from edrockmaster.infrastructure.strings_catalogue import translator
 from edrockmaster.ui.combat_presenter import SITE_NAMES, CombatPresenter
 from edrockmaster.ui.panel_model import PanelModel
 
@@ -38,6 +39,7 @@ def stats(
     current: bool = True,
     miscellaneous: Tally = NOTHING,
     crimes: Crimes = NO_CRIME,
+    by_victim_faction: dict[str, Tally] | None = None,
 ) -> CombatStats:
     segments = segments or (segment(),)
     return CombatStats(
@@ -46,6 +48,7 @@ def stats(
         current=segments[-1] if current else None,
         miscellaneous=miscellaneous,
         crimes=crimes,
+        by_victim_faction=MappingProxyType(by_victim_faction or {}),
     )
 
 
@@ -137,6 +140,56 @@ def test_crimes(presenter: CombatPresenter) -> None:
     assert value(model, "Fines") == "100 CR"
     assert value(model, "Bounty on you") == "400 CR"
     assert "Fines" not in labels(presenter.apply([CombatUpdated(stats())]))
+
+
+def test_crimes_by_kind_most_frequent_first(presenter: CombatPresenter) -> None:
+    by_kind = {"recklessWeaponsDischarge": 1, "assault": 2}
+    crimes = Crimes(count=3, fines=100, by_kind=MappingProxyType(by_kind))
+    model = presenter.apply([CombatUpdated(stats(crimes=crimes))])
+    assert value(model, "Crimes") == "Assault: 2, Reckless weapons discharge: 1"
+    assert "Crimes" not in labels(presenter.apply([CombatUpdated(stats())]))
+
+
+def test_a_crime_the_application_does_not_know_stays_readable(presenter: CombatPresenter) -> None:
+    by_kind = {"onFoot_carryingIllegalGoods": 1, "collidedAtSpeedInNoFireZone_hulldamage": 1}
+    crimes = Crimes(count=2, by_kind=MappingProxyType(by_kind))
+    model = presenter.apply([CombatUpdated(stats(crimes=crimes))])
+    assert value(model, "Crimes") == (
+        "On foot: carrying illegal goods: 1, Collision at speed in a no-fire zone, hull damaged: 1"
+    )
+
+
+def test_crimes_in_french() -> None:
+    presenter = CombatPresenter(translator("fr"))
+    crimes = Crimes(count=1, fines=100, by_kind=MappingProxyType({"recklessWeaponsDischarge": 1}))
+    model = presenter.apply([CombatUpdated(stats(crimes=crimes))])
+    assert value(model, "Délits") == "Tir imprudent : 1"
+
+
+def test_kills_by_victim_faction_most_kills_first(presenter: CombatPresenter) -> None:
+    by_faction = {
+        "Empire": Tally(kills=1, bond_credits=50_000),
+        "Pirates": Tally(kills=3, bounty_credits=300_000),
+    }
+    model = presenter.apply([CombatUpdated(stats(by_victim_faction=by_faction))])
+    assert labels(model)[-2:] == ["Against Pirates", "Against Empire"]
+    assert value(model, "Against Pirates") == "3 kills, 300,000 CR"
+    assert value(model, "Against Empire") == "1 kill, 50,000 CR"
+
+
+def test_beyond_three_factions_the_others_add_up(presenter: CombatPresenter) -> None:
+    by_faction = {
+        name: Tally(kills=kills, bounty_credits=kills * 10_000)
+        for name, kills in (("A", 5), ("B", 4), ("C", 3), ("D", 2), ("E", 1))
+    }
+    model = presenter.apply([CombatUpdated(stats(by_victim_faction=by_faction))])
+    assert [label for label in labels(model) if label.startswith("Against")] == [
+        "Against A",
+        "Against B",
+        "Against C",
+        "Against 2 other factions",
+    ]
+    assert value(model, "Against 2 other factions") == "3 kills, 30,000 CR"
 
 
 def test_shared_kills_and_combat_bonds_appear_when_present(presenter: CombatPresenter) -> None:

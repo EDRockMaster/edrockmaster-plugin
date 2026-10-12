@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -507,6 +508,32 @@ def test_the_settlement_is_forgotten_on_departure() -> None:
     stats = stats_of(tracker.handle(bond(6)))
     assert stats.current is not None
     assert stats.current.settlement is None
+
+
+# --- victims by faction ------------------------------------------------------------------
+
+
+def test_kills_and_credits_are_counted_by_victim_faction() -> None:
+    tracker = on_site(CombatTracker())
+    tracker.handle(bounty(1))
+    tracker.handle(bounty(2, shared=True))
+    tracker.handle(bond(3))
+    tracker.handle(bond(4, amount=20_000, kill=False))
+    unknown = replace(bounty(5), victim_faction=None)
+    stats = stats_of(tracker.handle(unknown))
+    assert dict(stats.by_victim_faction) == {
+        "Pirates": Tally(kills=2, shared_kills=1, bounty_credits=200_000),
+        "Empire": Tally(kills=1, bond_credits=70_000),
+    }
+    # The kill whose faction the journal does not name still counts in the session
+    assert stats.kills == 4
+
+
+def test_kills_off_site_count_by_faction_too() -> None:
+    tracker = CombatTracker()
+    tracker.handle(bounty(1))
+    stats = stats_of(tracker.handle(bounty(2)))
+    assert stats.by_victim_faction["Pirates"].kills == 2
 
 
 # --- crimes -------------------------------------------------------------------------------

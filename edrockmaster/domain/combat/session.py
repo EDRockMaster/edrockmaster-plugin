@@ -155,6 +155,8 @@ class CombatStats:
     current: SegmentStats | None
     miscellaneous: Tally
     crimes: Crimes
+    by_victim_faction: Mapping[str, Tally] = field(default_factory=lambda: MappingProxyType({}))
+    """Kills and credits by the faction of the ship destroyed, when the journal names it."""
 
     @property
     def active_duration(self) -> timedelta:
@@ -269,6 +271,7 @@ class CombatSession:
         self._closed: list[SegmentStats] = []
         self._open: _OpenSegment | None = None
         self._miscellaneous = Tally()
+        self._by_victim_faction: dict[str, Tally] = {}
         self._crimes: Counter[str] = Counter()
         self._fines = 0
         self._bounties = 0
@@ -287,6 +290,7 @@ class CombatSession:
                 bounties=self._bounties,
                 by_kind=MappingProxyType(dict(self._crimes)),
             ),
+            by_victim_faction=MappingProxyType(dict(self._by_victim_faction)),
         )
 
     @property
@@ -314,6 +318,9 @@ class CombatSession:
             self._open.tally = self._open.tally.counting(reward)
         else:
             self._miscellaneous = self._miscellaneous.counting(reward)
+        if reward.victim_faction is not None:
+            faction = self._by_victim_faction.get(reward.victim_faction, Tally())
+            self._by_victim_faction[reward.victim_faction] = faction.counting(reward)
 
     def record_crime(self, crime: CrimeCommitted) -> None:
         self.see(crime.at)

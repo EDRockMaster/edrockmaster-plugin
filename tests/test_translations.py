@@ -44,6 +44,7 @@ def source_strings() -> set[str]:
     strings |= set(mining_presenter._END_REASONS.values())
     strings |= set(combat_presenter._END_REASONS.values())
     strings |= set(combat_presenter.SITE_NAMES.values())
+    strings |= set(combat_presenter.CRIME_NAMES.values())
     strings |= set(trade_presenter._END_REASONS.values())
     strings |= set(engineering_presenter._GAINED.values())
     strings |= set(engineering_presenter._END_REASONS.values())

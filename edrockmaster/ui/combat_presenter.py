@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+import re
+from collections.abc import Iterable, Mapping
 from typing import assert_never
 
 from edrockmaster.domain.combat.session import (
@@ -49,6 +50,36 @@ SITE_NAMES = {
     SiteType.GROUND_CONFLICT_ZONE: "Ground conflict zone",
     SiteType.UNKNOWN: "Unknown site",
 }
+
+
+# The crimes of ``CommitCrime`` (``CrimeType``), as the journal names them; any other is shown
+# from its symbol, in English
+CRIME_NAMES = {
+    "assault": "Assault",
+    "murder": "Murder",
+    "piracy": "Piracy",
+    "interdiction": "Illegal interdiction",
+    "illegalCargo": "Illegal cargo",
+    "disobeyPolice": "Disobeying the police",
+    "fireInNoFireZone": "Firing in a no-fire zone",
+    "fireInStation": "Firing in a station",
+    "dumpingDangerous": "Dumping dangerous cargo",
+    "dumpingNearStation": "Dumping near a station",
+    "dockingMinorBlockingAirlock": "Blocking an airlock",
+    "dockingMajorBlockingAirlock": "Blocking an airlock, major",
+    "dockingMinorBlockingLandingPad": "Blocking a landing pad",
+    "dockingMajorBlockingLandingPad": "Blocking a landing pad, major",
+    "dockingMinorTrespass": "Trespassing at a station",
+    "dockingMajorTrespass": "Trespassing at a station, major",
+    "collidedAtSpeedInNoFireZone": "Collision at speed in a no-fire zone",
+    "collidedAtSpeedInNoFireZone_hulldamage": "Collision at speed in a no-fire zone, hull damaged",
+    "recklessWeaponsDischarge": "Reckless weapons discharge",
+    "passengerWanted": "Carrying a wanted passenger",
+}
+_ON_FOOT_PREFIX = "onFoot_"
+_WORD = re.compile(r"[A-Z]?[a-z]+|[A-Z]+(?![a-z])|\d+")
+FACTIONS_SHOWN = 3
+"""Victim factions with a line of their own; the others add up in one line."""
 
 
 class CombatPresenter:
@@ -127,6 +158,49 @@ class CombatPresenter:
             yield StatLine(tl("Fines"), self._credits(stats.crimes.fines))
         if stats.crimes.bounties:
             yield StatLine(tl("Bounty on you"), self._credits(stats.crimes.bounties))
+        if stats.crimes.by_kind:
+            yield StatLine(tl("Crimes"), self._crimes_text(stats.crimes.by_kind))
+        yield from self._faction_lines(stats.by_victim_faction)
+
+    def _crimes_text(self, by_kind: Mapping[str, int]) -> str:
+        """Most frequent first; a crime of equal count in the order it came."""
+        ranked = sorted(by_kind.items(), key=lambda item: -item[1])
+        return ", ".join(
+            self._tl("{crime}: {count}").format(
+                crime=self._crime_name(kind), count=self._number(count, 0)
+            )
+            for kind, count in ranked
+        )
+
+    def _crime_name(self, kind: str) -> str:
+        if kind in CRIME_NAMES:
+            return self._tl(CRIME_NAMES[kind])
+        if kind.startswith(_ON_FOOT_PREFIX):
+            crime = _from_symbol(kind.removeprefix(_ON_FOOT_PREFIX)).lower()
+            return self._tl("On foot: {crime}").format(crime=crime)
+        return _from_symbol(kind)
+
+    def _faction_lines(self, by_faction: Mapping[str, Tally]) -> Iterable[StatLine]:
+        """Most kills first; beyond ``FACTIONS_SHOWN``, the others in one line."""
+        ranked = sorted(by_faction.items(), key=lambda item: (-item[1].kills, -item[1].credits))
+        for faction, tally in ranked[:FACTIONS_SHOWN]:
+            label = self._tl("Against {faction}").format(faction=faction)
+            yield StatLine(label, self._kills_text(tally))
+        others = ranked[FACTIONS_SHOWN:]
+        if others:
+            label = self._tl("Against {count} other factions").format(
+                count=self._number(len(others), 0)
+            )
+            yield StatLine(label, self._kills_text(sum((t for _, t in others), Tally())))
+
+    def _kills_text(self, tally: Tally) -> str:
+        if tally.kills == 1:
+            template = self._tl("{kills} kill, {credits}")
+        else:
+            template = self._tl("{kills} kills, {credits}")
+        return template.format(
+            kills=self._number(tally.kills, 0), credits=self._credits(tally.credits)
+        )
 
     def _segment_text(self, segment: SegmentStats) -> str:
         return self._tl("{duration}, kills: {kills}").format(
@@ -148,3 +222,10 @@ class CombatPresenter:
 
     def _credits(self, credits: float) -> str:
         return format_credits(credits, self._tl, self._number)
+
+
+def _from_symbol(symbol: str) -> str:
+    """``carryingIllegalGoods`` → ``Carrying illegal goods``: a crime the table does not name."""
+    words = _WORD.findall(symbol.replace("_", " ")) or [symbol]
+    text = " ".join(word.lower() for word in words)
+    return text[:1].upper() + text[1:]
