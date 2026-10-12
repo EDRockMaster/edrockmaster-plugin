@@ -16,20 +16,19 @@ from collections.abc import Iterable
 from typing import assert_never
 
 from edrockmaster.domain.engineering.catalogue import MaterialCategory
-from edrockmaster.domain.engineering.session import (
+from edrockmaster.domain.engineering.collection import CollectionEndReason, CollectionStats
+from edrockmaster.domain.engineering.events import (
     CollectionEnded,
-    CollectionEndReason,
     CollectionStarted,
-    CollectionStats,
     EngineeringNotification,
     EngineeringStats,
     EngineeringUpdated,
     GoalDone,
-    GoalProgress,
     GoalProgressed,
     GoalReady,
     MaterialCapped,
 )
+from edrockmaster.domain.engineering.progress import GoalProgress
 from edrockmaster.ui.engineering_names import EngineeringNames
 from edrockmaster.ui.panel_model import (
     NumberFormat,

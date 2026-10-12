@@ -3,6 +3,17 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from edrockmaster.domain.engineering.catalogue import MaterialCategory
+from edrockmaster.domain.engineering.collection import CollectionEndReason
+from edrockmaster.domain.engineering.events import (
+    CollectionEnded,
+    CollectionStarted,
+    EngineeringNotification,
+    EngineeringUpdated,
+    GoalDone,
+    GoalProgressed,
+    GoalReady,
+    MaterialCapped,
+)
 from edrockmaster.domain.engineering.goals import BlueprintGoal, ExperimentalEffectGoal, GoalId
 from edrockmaster.domain.engineering.journal import (
     BlueprintApplied,
@@ -16,18 +27,7 @@ from edrockmaster.domain.engineering.journal import (
     MaterialChange,
     MaterialsChanged,
 )
-from edrockmaster.domain.engineering.session import (
-    CollectionEnded,
-    CollectionEndReason,
-    CollectionStarted,
-    EngineeringNotification,
-    EngineeringTracker,
-    EngineeringUpdated,
-    GoalDone,
-    GoalProgressed,
-    GoalReady,
-    MaterialCapped,
-)
+from edrockmaster.domain.engineering.session import EngineeringTracker
 from tests.domain.engineering.catalogue_data import catalogue
 
 T0 = datetime(2026, 10, 8, 4, 0, tzinfo=UTC)

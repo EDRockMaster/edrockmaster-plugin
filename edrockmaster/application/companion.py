@@ -27,7 +27,7 @@ from edrockmaster.application.trade_service import TradeService
 from edrockmaster.domain.combat.session import CombatNotification
 from edrockmaster.domain.community_goals.goals import CommunityGoalsNotification
 from edrockmaster.domain.engineering.catalogue import Catalogue
-from edrockmaster.domain.engineering.session import EngineeringNotification
+from edrockmaster.domain.engineering.events import EngineeringNotification
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.situation.situation import SituationChanged
 from edrockmaster.domain.trade.session import TradeNotification

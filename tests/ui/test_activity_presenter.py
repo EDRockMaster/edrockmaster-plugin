@@ -16,7 +16,7 @@ from edrockmaster.domain.combat.session import (
 from edrockmaster.domain.combat.sites import SiteType
 from edrockmaster.domain.community_goals.goals import CommunityGoalsChanged
 from edrockmaster.domain.community_goals.journal import CommunityGoal
-from edrockmaster.domain.engineering.session import (
+from edrockmaster.domain.engineering.events import (
     CollectionStarted,
     EngineeringStats,
     EngineeringUpdated,

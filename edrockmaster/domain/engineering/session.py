@@ -1,69 +1,55 @@
 """Engineering: inventory, engineers, collection and goals (ADR 0017).
 
-``EngineeringTracker`` is the aggregate root of the engineering context.
+``EngineeringTracker`` is the aggregate root of the engineering context: journal facts
+in, its state changed, notifications (``events``) out.
 
-- The **inventory** is unknown until the game states it (``Materials``, at load)
-  or EDMC does (its ``state``, when the plugin starts after the game); each
-  change then applies to it. It is never stored. A material reaching its
-  **cap** is reported: what is collected beyond it is lost.
+- The **inventory** is unknown until the game states it (``Materials``, at load); each
+  change then applies to it. It is never stored. A material reaching its **cap** is
+  reported: what is collected beyond it is lost.
 - The **engineers**: their status and rank, as the game states them.
-- A **collection** runs from the first change of materials to game close or
-  reset; death does not end it (materials survive it). It counts what was
-  gained per category and what was used, and the materials that reached
-  their cap.
-- **On foot** (ADR 0027, ``on_foot``): the ship locker and the backpack, and the
-  suits and weapons seen. The player's own materials brought into the backpack
-  count in the collection, by kind; what the backpack carried at a death is lost.
-- The **goals**: what each one still misses, with the inventory, and the
-  unlocked engineers who offer it. They come in the player's order, their
-  **priority** (ADR 0033): the materials held go to the goals in that order,
-  the ship's and the on-foot ones apart, each goal taking what it needs of what
-  is left, even when it cannot be completed. A goal is **ready** when nothing is
-  missing once the goals above it have taken their share; one ready **alone**
-  but not after them says so. A goal that does not count materials takes none.
-  A roll of a blueprint, at the goal's grade, on the goal's module type, takes
-  one roll off the first matching goal; an experimental effect, one
-  application. A goal with nothing left is done and removed.
-- **Class upgrades** on foot (ADR 0027, ADR 0030): every step's ingredients
-  and credits, against the on-foot materials held; a step the catalogue does
-  not know is said, and the goal is then never ready. When the journal shows
-  the goal's item (or, for a goal on a type, an item of it shown after the goal
-  was set) at a higher class, the goal starts from there; at the class aimed
-  at, it is done and removed.
-- **Modifications** on foot: the recipe read on the goal's item type, and the
-  unlocked engineers seen offering it; without such a recipe, the goal is
-  unknown. When the journal shows the goal's item (or one of its type, as
-  above) with the modification, it is done and removed.
-- **Engineer unlocks** (ADR 0027, ADR 0031): what is left to do for the
-  engineer, from their sheet and their state: an on-foot engineer's referral
-  (the referring engineer's task) while not known yet, a ship engineer's
-  invitation while not invited, then the unlock. A task to give or sell given
-  on-foot materials is counted against those held; any other is not, and the
-  goal is then never ready. Once the game states the engineer unlocked, it is
-  done and removed.
+- The **collection** (``collection``): from the first change of materials to game close
+  or reset.
+- **On foot** (ADR 0027, ``on_foot``): the ship locker and the backpack, and the suits
+  and weapons seen.
+- The **goals**, in the player's order, their priority. How far each one is comes from
+  ``progress``, the share of the materials each takes from ``reservation`` (ADR 0033).
+  The tracker moves them: a roll of a blueprint, at the goal's grade, on the goal's
+  module type, takes one roll off the first matching goal; an experimental effect, one
+  application. On foot, when the journal shows the goal's item (or, for a goal on a
+  type, an item of it shown after the goal was set) at a higher class, a class upgrade
+  starts from there, and at the class aimed at it is done; shown with the modification,
+  a modification goal is done. An engineer unlock is done once the game states the
+  engineer unlocked. A goal with nothing left is done and removed.
 
-The tracker reports goal changes it makes (``GoalProgressed``, ``GoalDone``) so
-that the application layer stores them; the player's own changes come through
-``add_goal``, ``replace_goal`` and ``remove_goal``.
+The tracker reports goal changes it makes (``GoalProgressed``, ``GoalDone``) so that the
+application layer stores them; the player's own changes come through ``add_goal``,
+``replace_goal`` and ``remove_goal``.
 """
 
 from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, field, replace
+from dataclasses import replace
 from datetime import datetime
-from enum import Enum
 from typing import assert_never
 
 from edrockmaster.domain.engineering.catalogue import (
     Catalogue,
-    ClassUpgrade,
     Ingredients,
     MaterialCategory,
-    ModificationRecipe,
-    OnFootKind,
-    RecipeConfidence,
+)
+from edrockmaster.domain.engineering.collection import Collection, CollectionEndReason
+from edrockmaster.domain.engineering.events import (
+    CollectionEnded,
+    CollectionStarted,
+    EngineeringNotification,
+    EngineeringStats,
+    EngineeringUpdated,
+    GoalDone,
+    GoalProgressed,
+    GoalReady,
+    MaterialCapped,
 )
 from edrockmaster.domain.engineering.goals import (
     BlueprintGoal,
@@ -112,142 +98,9 @@ from edrockmaster.domain.engineering.on_foot_journal import (
     WeaponBought,
     WeaponEquipped,
 )
-
-_GAINS = frozenset({ChangeCause.COLLECTED, ChangeCause.REWARDED})
-"""Changes that bring new materials in; a trade only converts them."""
-
-
-class CollectionEndReason(Enum):
-    GAME_CLOSED = "game_closed"
-    MANUAL = "manual"
-
-
-@dataclass(frozen=True, slots=True)
-class CollectionStats:
-    started_at: datetime
-    gained: Mapping[MaterialCategory | None, int]
-    """Materials collected or rewarded, by category (``None``: not in the catalogue)."""
-    used: int
-    """Materials spent: rolls, effects, synthesis, brokers, contributions, research."""
-    capped: tuple[str, ...]
-    """Materials that reached their cap during the collection, in that order."""
-    gained_on_foot: Mapping[OnFootKind, int] = field(default_factory=dict)
-    """The player's own on-foot materials brought into the backpack, by kind."""
-    lost_on_foot: int = 0
-    """The player's own on-foot materials the backpack carried at a death."""
-
-
-@dataclass(frozen=True, slots=True)
-class GoalProgress:
-    goal: Goal
-    needed: Ingredients
-    """Everything the goal takes, all rolls or applications included."""
-    missing: Ingredients | None
-    """What the inventory lacks for it; ``None`` while the inventory is unknown."""
-    engineers: tuple[int, ...]
-    """Unlocked engineers offering it on its module type; on foot, seen offering it."""
-    known: bool = True
-    """``False`` when the catalogue does not know its blueprint, grade or effect, a step
-    of its class upgrade, or its modification on its item type."""
-    credits: int = 0
-    """On foot, the credits it takes: shown, not counted."""
-    unknown_classes: tuple[int, ...] = ()
-    """On foot, the classes whose upgrade the catalogue does not know."""
-    unverified: bool = False
-    """On foot, a recipe it takes was not seen in game: deduced or read elsewhere (ADR 0030)."""
-    counted: bool = True
-    """``False`` when what is left to do is not only materials held: a rank, a reputation, a
-    commodity (an engineer unlock); the goal is then never ready."""
-    ready_alone: bool = False
-    """It would be ready without the goals above it in the priority (ADR 0033)."""
-
-    @property
-    def ready(self) -> bool:
-        return self.known and self.counted and self.missing is not None and not self.missing
-
-
-@dataclass(frozen=True, slots=True)
-class EngineeringStats:
-    collection: CollectionStats | None
-    goals: tuple[GoalProgress, ...]
-    inventory_known: bool
-
-    @property
-    def goals_ready(self) -> int:
-        return sum(1 for progress in self.goals if progress.ready)
-
-
-@dataclass(frozen=True, slots=True)
-class CollectionStarted:
-    at: datetime
-
-
-@dataclass(frozen=True, slots=True)
-class CollectionEnded:
-    at: datetime
-    reason: CollectionEndReason
-
-
-@dataclass(frozen=True, slots=True)
-class EngineeringUpdated:
-    stats: EngineeringStats
-    progressed: bool
-    """A change the player made in game (not a statement of the game at load)."""
-
-
-@dataclass(frozen=True, slots=True)
-class MaterialCapped:
-    symbol: str
-    name: str | None
-    cap: int
-
-
-@dataclass(frozen=True, slots=True)
-class GoalReady:
-    goal: Goal
-
-
-@dataclass(frozen=True, slots=True)
-class GoalProgressed:
-    """A roll or an application was made: the goal has one fewer."""
-
-    goal: Goal
-
-
-@dataclass(frozen=True, slots=True)
-class GoalDone:
-    goal: Goal
-
-
-type EngineeringNotification = (
-    CollectionStarted
-    | CollectionEnded
-    | EngineeringUpdated
-    | MaterialCapped
-    | GoalReady
-    | GoalProgressed
-    | GoalDone
-)
-
-
-@dataclass(slots=True)
-class _Collection:
-    started_at: datetime
-    gained: Counter[MaterialCategory | None] = field(default_factory=Counter)
-    used: int = 0
-    capped: list[str] = field(default_factory=list)
-    gained_on_foot: Counter[OnFootKind] = field(default_factory=Counter)
-    lost_on_foot: int = 0
-
-    def stats(self) -> CollectionStats:
-        return CollectionStats(
-            self.started_at,
-            dict(self.gained),
-            self.used,
-            tuple(self.capped),
-            dict(self.gained_on_foot),
-            self.lost_on_foot,
-        )
+from edrockmaster.domain.engineering.progress import GoalProgress, Holdings, missing, progress
+from edrockmaster.domain.engineering.progress import needed as ship_needed
+from edrockmaster.domain.engineering.reservation import reserve
 
 
 class EngineeringTracker:
@@ -257,7 +110,7 @@ class EngineeringTracker:
         self._names: dict[str, str] = {}
         self._engineers: dict[int, EngineerState] = {}
         self._goals: list[Goal] = []
-        self._collection: _Collection | None = None
+        self._collection: Collection | None = None
         self._ready: set[GoalId] = set()
         self._on_foot = OnFoot()
 
@@ -302,9 +155,11 @@ class EngineeringTracker:
         return self._names.get(symbol)
 
     def stats(self) -> EngineeringStats:
+        holdings = self._holdings()
+        alone = (progress(goal, self._catalogue, holdings) for goal in self._goals)
         return EngineeringStats(
             self._collection.stats() if self._collection else None,
-            self._reserved(),
+            reserve(alone, self._inventory or {}, self._on_foot.held()),
             self._inventory is not None,
         )
 
@@ -313,15 +168,15 @@ class EngineeringTracker:
         needed: Counter[str] = Counter()
         for goal in self._goals:
             if isinstance(goal, BlueprintGoal | ExperimentalEffectGoal):
-                needed.update(self._needed(goal) or {})
-        return _missing(needed, self._inventory or {})
+                needed.update(ship_needed(goal, self._catalogue) or {})
+        return missing(needed, self._inventory or {})
 
     def on_foot_shopping_list(self) -> Ingredients:
         """What the on-foot materials held lack for all the on-foot goals together."""
         needed: Counter[str] = Counter()
         for goal in self._on_foot_goals():
             needed.update(self._progress(goal).needed)
-        return _missing(needed, self._on_foot.held())
+        return missing(needed, self._on_foot.held())
 
     def on_foot_credits(self) -> int:
         """The credits all the on-foot goals take: shown, not counted."""
@@ -420,15 +275,9 @@ class EngineeringTracker:
     ) -> list[EngineeringNotification]:
         """Count the changes in the collection, which starts if needed, and apply them."""
         collection, notifications = self._collecting(at)
-        for change in changes:
-            if change.count > 0 and cause in _GAINS:
-                collection.gained[self._category(change.symbol)] += change.count
-            elif change.count < 0 and cause is not ChangeCause.TRADED:
-                collection.used -= change.count
+        collection.count(cause, changes, self._category)
         capped = self._apply(changes)
-        for symbol in capped:
-            if symbol not in collection.capped:
-                collection.capped.append(symbol)
+        collection.cap(capped)
         notifications += [
             MaterialCapped(symbol, self._names.get(symbol), self._catalogue.materials[symbol].cap)
             for symbol in capped
@@ -528,11 +377,11 @@ class EngineeringTracker:
         self._goals = goals
         return notifications
 
-    def _collecting(self, at: datetime) -> tuple[_Collection, list[EngineeringNotification]]:
+    def _collecting(self, at: datetime) -> tuple[Collection, list[EngineeringNotification]]:
         """The collection, started if needed, and its start if it did."""
         if self._collection is not None:
             return self._collection, []
-        self._collection = _Collection(at)
+        self._collection = Collection(at)
         return self._collection, [CollectionStarted(at)]
 
     def _name(self, stock: Iterable[Stock]) -> None:
@@ -610,51 +459,12 @@ class EngineeringTracker:
         material = self._catalogue.materials.get(symbol)
         return material.category if material else None
 
-    def _needed(self, goal: BlueprintGoal | ExperimentalEffectGoal) -> Ingredients | None:
-        match goal:
-            case BlueprintGoal():
-                blueprint = self._catalogue.blueprints.get(goal.blueprint)
-                ingredients = blueprint.grades.get(goal.grade) if blueprint else None
-                times = goal.rolls
-            case ExperimentalEffectGoal():
-                effect = self._catalogue.effects.get(goal.effect)
-                ingredients = effect.ingredients if effect else None
-                times = goal.applications
-            case _:  # pragma: no cover - exhaustiveness checked by mypy
-                assert_never(goal)
-        if ingredients is None:
-            return None
-        return {symbol: count * times for symbol, count in ingredients.items()}
+    def _holdings(self) -> Holdings:
+        on_foot = self._on_foot.held() if self._on_foot.known else None
+        return Holdings(self._inventory, on_foot, self._engineers)
 
     def _progress(self, goal: Goal) -> GoalProgress:
-        if isinstance(goal, ClassUpgradeGoal):
-            return self._class_progress(goal)
-        if isinstance(goal, ModificationGoal):
-            return self._modification_progress(goal)
-        if isinstance(goal, EngineerUnlockGoal):
-            return self._unlock_progress(goal)
-        needed = self._needed(goal)
-        if needed is None:
-            return GoalProgress(goal, {}, None, (), known=False)
-        missing = None if self._inventory is None else _missing(needed, self._inventory)
-        return GoalProgress(goal, needed, missing, self._engineers_for(goal))
-
-    def _reserved(self) -> tuple[GoalProgress, ...]:
-        """Each goal's progress once the goals above it took their share (ADR 0033)."""
-        ship = dict(self._inventory or {})
-        on_foot = dict(self._on_foot.held())
-        reserved = []
-        for goal in self._goals:
-            alone = self._progress(goal)
-            if alone.missing is None or not alone.known or not alone.counted:
-                reserved.append(alone)  # nothing it can count: it takes nothing
-                continue
-            left = ship if isinstance(goal, BlueprintGoal | ExperimentalEffectGoal) else on_foot
-            missing = _missing(alone.needed, left)
-            for symbol, count in alone.needed.items():
-                left[symbol] = max(0, left.get(symbol, 0) - count)
-            reserved.append(replace(alone, missing=missing, ready_alone=alone.ready))
-        return tuple(reserved)
+        return progress(goal, self._catalogue, self._holdings())
 
     def _on_foot_goals(self) -> list[OnFootGoal | EngineerUnlockGoal]:
         """The goals that take on-foot materials."""
@@ -663,110 +473,6 @@ class EngineeringTracker:
             for goal in self._goals
             if isinstance(goal, ClassUpgradeGoal | ModificationGoal | EngineerUnlockGoal)
         ]
-
-    def _class_progress(self, goal: ClassUpgradeGoal) -> GoalProgress:
-        item = self._catalogue.on_foot_items.get(goal.item)
-        steps: dict[int, ClassUpgrade | None] = {
-            to_class: item.upgrades.get(to_class) if item else None for to_class in goal.steps
-        }
-        known = [upgrade for upgrade in steps.values() if upgrade is not None]
-        needed: Counter[str] = Counter()
-        for upgrade in known:
-            needed.update(upgrade.ingredients)
-        unknown = tuple(to_class for to_class, upgrade in steps.items() if upgrade is None)
-        return GoalProgress(
-            goal,
-            dict(sorted(needed.items())),
-            _missing(needed, self._on_foot.held()) if self._on_foot.known else None,
-            (),
-            known=not unknown,
-            credits=sum(upgrade.credits for upgrade in known),
-            unknown_classes=unknown,
-            unverified=any(upgrade.confidence is not RecipeConfidence.GAME for upgrade in known),
-        )
-
-    def _modification_progress(self, goal: ModificationGoal) -> GoalProgress:
-        modification = self._catalogue.on_foot_modifications.get(goal.modification)
-        recipe: ModificationRecipe | None = (
-            modification.recipe_for(goal.item) if modification else None
-        )
-        engineers = self._unlocked(modification.engineers) if modification else ()
-        if recipe is None:
-            return GoalProgress(goal, {}, None, engineers, known=False)
-        return GoalProgress(
-            goal,
-            dict(sorted(recipe.ingredients.items())),
-            _missing(recipe.ingredients, self._on_foot.held()) if self._on_foot.known else None,
-            engineers,
-            credits=recipe.credits,
-            unverified=recipe.confidence is not RecipeConfidence.GAME,
-        )
-
-    def _unlock_progress(self, goal: EngineerUnlockGoal) -> GoalProgress:
-        details = self._catalogue.engineer_details.get(goal.engineer_id)
-        if details is None:
-            return GoalProgress(goal, {}, None, (), known=False, counted=False)
-        state = self._engineers.get(goal.engineer_id)
-        status = state.status if state else None
-        needed: Counter[str] = Counter()
-        # Each step left: counted when it is to give or sell given on-foot materials
-        counted = status is not EngineerStatus.BARRED
-        if status is None and details.referred_by:
-            for referrer in details.referred_by:
-                gives = self._catalogue.engineer_details[referrer].referral_gives
-                needed.update(gives)
-                counted = counted and bool(gives)
-        if details.invitation is not None and status in (None, EngineerStatus.KNOWN):
-            counted = False
-        needed.update(details.unlock_gives)
-        counted = counted and bool(details.unlock_gives)
-        return GoalProgress(
-            goal,
-            dict(sorted(needed.items())),
-            _missing(needed, self._on_foot.held()) if self._on_foot.known else None,
-            (),
-            unverified=details.confidence is not RecipeConfidence.GAME,
-            counted=counted,
-        )
-
-    def _engineers_for(self, goal: BlueprintGoal | ExperimentalEffectGoal) -> tuple[int, ...]:
-        module = self._catalogue.modules.get(goal.module)
-        if module is None:
-            return ()
-        match goal:
-            case BlueprintGoal():
-                offering = module.engineers(goal.blueprint, goal.grade)
-            case ExperimentalEffectGoal():
-                # Any engineer who engineers this module type can apply its effects
-                offering = tuple(
-                    sorted(
-                        {
-                            id_
-                            for grades in module.offers.values()
-                            for ids in grades.values()
-                            for id_ in ids
-                        }
-                    )
-                )
-            case _:  # pragma: no cover - exhaustiveness checked by mypy
-                assert_never(goal)
-        return self._unlocked(offering)
-
-    def _unlocked(self, offering: Iterable[int]) -> tuple[int, ...]:
-        return tuple(
-            id_
-            for id_ in offering
-            if (state := self._engineers.get(id_)) is not None
-            and state.status is EngineerStatus.UNLOCKED
-        )
-
-
-def _missing(needed: Mapping[str, int], held: Mapping[str, int]) -> Ingredients:
-    return {
-        symbol: count - held.get(symbol, 0)
-        for symbol, count in sorted(needed.items())
-        if count > held.get(symbol, 0)
-    }
 
 
 def _moved(goal: OnFootGoal, piece: Suit | Weapon) -> OnFootGoal | None:

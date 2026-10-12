@@ -30,7 +30,7 @@ from edrockmaster.domain.combat.session import (
     VouchersUpdated,
 )
 from edrockmaster.domain.community_goals.goals import CommunityGoalsChanged
-from edrockmaster.domain.engineering.session import (
+from edrockmaster.domain.engineering.events import (
     CollectionEnded,
     CollectionStarted,
     EngineeringNotification,
