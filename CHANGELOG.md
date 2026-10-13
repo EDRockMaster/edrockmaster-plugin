@@ -22,6 +22,7 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ### Changed
 
+- **The version moves to the window's title bar** (*EDRockMaster 0.6.0*), and the name and version no longer repeat above the situation banner: more room for what matters.
 - **Transfers with a fleet carrier** count as a balance per commodity in the trade card (design decision ADR 0044): *At the carrier: Bromellite, +50 t (3 transfers)*, or *Taken from the carrier: Gold, 20 t (2 transfers)*. Goods deposited and taken back cancel out, and leave no line.
 
 ### Fixed

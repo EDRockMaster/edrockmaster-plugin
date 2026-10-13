@@ -22,6 +22,7 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ### Modifié
 
+- **La version passe dans la barre de titre de la fenêtre** (*EDRockMaster 0.6.0*), et le nom et la version ne se répètent plus au-dessus du bandeau de situation : plus de place pour l'essentiel.
 - **Les transferts avec un porte-vaisseaux** comptent au solde par marchandise dans la carte Commerce (décision de conception ADR 0044) : *Au porte-vaisseaux : Bromellite, +50 t (3 transferts)*, ou *Repris du porte-vaisseaux : Or, 20 t (2 transferts)*. Des marchandises déposées puis reprises s'annulent et ne laissent aucune ligne.
 
 ### Corrigé

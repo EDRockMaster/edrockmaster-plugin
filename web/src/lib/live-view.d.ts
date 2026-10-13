@@ -41,12 +41,6 @@ export type EngineerUnlock = {
  */
 export interface LiveView {
   version: 1;
-  application: {
-    /**
-     * The full version of the running build (ADR 0016): 0.4.0, 0.4.0-rc.1, 0.4.0-dev+5d45dbc.
-     */
-    version: string;
-  };
   /**
    * The language of the texts, and of the interface's own catalogue.
    */

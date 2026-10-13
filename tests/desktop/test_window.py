@@ -10,8 +10,11 @@ from typing import Any
 
 import pytest
 
+from edrockmaster import VERSION
 from edrockmaster.desktop import window as window_module
+from edrockmaster.desktop.core import PACKAGE_DIRECTORY
 from edrockmaster.desktop.window import InterfaceApi, configure_logging, main
+from edrockmaster.infrastructure.build_file import load_build
 
 
 class FakeWindow:
@@ -80,7 +83,9 @@ def test_the_window_shows_the_interface_and_receives_the_live_view(
     gui = FakeGui()
     environ = {"EDROCKMASTER_JOURNAL_DIR": str(tmp_path / "journal")}
     assert main([], environ, gui, tmp_path / "data") == 0  # type: ignore[arg-type]
-    assert gui.created["title"] == "EDRockMaster"
+    # The window's title bar names the application and its full version (ADR 0016)
+    build = load_build(PACKAGE_DIRECTORY, VERSION, logging.getLogger("test"))
+    assert gui.created["title"] == f"EDRockMaster {build.version}"
     assert gui.created["html"].startswith("<!doctype html>")
     assert gui.started == {"private_mode": True, "debug": False}
     script = gui.window.scripts[0]

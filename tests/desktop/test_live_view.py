@@ -49,7 +49,6 @@ def view(situation: Situation, blocks: tuple[ActivityBlock, ...] = ()) -> dict[s
         journal_file=None,
         situation=situation,
         engineering=EMPTY_ENGINEERING,
-        application_version="0.4.0-rc.1",
     )
     VALIDATOR.validate(built)
     return built
@@ -93,9 +92,9 @@ def test_an_unknown_situation() -> None:
     assert situation["mode"] is None  # type: ignore[index]
 
 
-def test_the_application_s_version_in_the_view() -> None:
-    # The full version of the build file (ADR 0016), shown beside the application's name
-    assert view(Situation())["application"] == {"version": "0.4.0-rc.1"}
+def test_the_version_is_left_to_the_window_s_title_bar() -> None:
+    # The title bar shows it (desktop/window.py); the page does not repeat it
+    assert "application" not in view(Situation())
 
 
 def test_a_line_counts_down_to_its_moment_in_utc() -> None:

@@ -190,7 +190,11 @@ def main(
             open_folder=open_in_file_manager,
         )
         window.window = gui.create_window(
-            TITLE, html=INTERFACE.read_text(encoding="utf-8"), js_api=InterfaceApi(core), **WINDOW
+            # The title bar carries the full version (ADR 0016): the page does not repeat it
+            f"{TITLE} {core.build.version}",
+            html=INTERFACE.read_text(encoding="utf-8"),
+            js_api=InterfaceApi(core),
+            **WINDOW,
         )
         core.start()
         try:
