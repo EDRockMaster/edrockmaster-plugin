@@ -49,12 +49,12 @@ describe("App", () => {
     expect(document.querySelector("main")?.getAttribute("lang")).toBe("fr");
   });
 
-  it("shows its version beside its name", () => {
+  it("leaves its name and version to the window's title bar", () => {
     withCore();
     render(App);
     push(view());
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("EDRockMaster");
-    expect(screen.getByText("0.4.0-rc.1")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
+    expect(screen.queryByText("EDRockMaster")).not.toBeInTheDocument();
   });
 
   it("says above the tabs only that no journal folder was found", () => {

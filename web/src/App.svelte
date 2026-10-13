@@ -49,12 +49,6 @@
 </script>
 
 <main lang={language}>
-  <header>
-    <h1>EDRockMaster</h1>
-    {#if view !== null}
-      <span class="version">{view.application.version}</span>
-    {/if}
-  </header>
   {#if view === null}
     <p>{t(language, "app.loading")}</p>
   {:else}
@@ -120,21 +114,6 @@
 <style>
   main {
     padding: var(--space-3);
-  }
-  header {
-    display: flex;
-    align-items: baseline;
-    gap: var(--space-2);
-    margin-bottom: var(--space-3);
-  }
-  h1 {
-    margin: 0;
-    font-size: 1.4rem;
-    color: var(--colour-accent);
-  }
-  .version {
-    color: var(--colour-text-muted);
-    font-size: 0.85rem;
   }
   .notice {
     display: flex;
