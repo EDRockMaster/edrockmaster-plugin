@@ -26,9 +26,9 @@ from edrockmaster.domain.combat.session import (
     CombatEndReason,
     CombatStats,
     Tally,
-    VouchersUpdated,
 )
 from edrockmaster.domain.combat.sites import SiteType
+from edrockmaster.domain.combat.vouchers import VouchersUpdated
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.community_goals.goals import CommunityGoalsChanged
 from edrockmaster.domain.engineering.catalogue import MaterialCategory, OnFootKind
@@ -333,7 +333,10 @@ def test_panel_after_the_hazardous_res(zones_mining_res: Replay) -> None:
     assert ("RES, hazardous", "11.2 kills/h, 4,150,991 CR/h") in lines
     assert ("Fines", "100 CR") in lines
     # The bonds were redeemed at 01:30: only the bounty of 05:25 is left
-    assert ("Unredeemed", "370,130 CR") in lines
+    assert (
+        "Unredeemed bounties, Amicale des Compagnons de l'Espace",
+        "370,130 CR, since 4 October 2026",
+    ) in lines
 
 
 @pytest.fixture(scope="module")

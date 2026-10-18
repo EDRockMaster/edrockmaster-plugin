@@ -1,8 +1,8 @@
 from datetime import UTC, datetime, timedelta
-from types import MappingProxyType
 
 from edrockmaster.application.activity import Activity
 from edrockmaster.application.settings import DisplayMode, DisplaySettings
+from edrockmaster.domain.combat.journal import VoucherKind
 from edrockmaster.domain.combat.session import (
     CombatStarted,
     CombatStats,
@@ -10,10 +10,14 @@ from edrockmaster.domain.combat.session import (
     Crimes,
     SegmentStats,
     Tally,
+)
+from edrockmaster.domain.combat.sites import SiteType
+from edrockmaster.domain.combat.vouchers import (
+    HeldVoucher,
+    PastJournals,
     Vouchers,
     VouchersUpdated,
 )
-from edrockmaster.domain.combat.sites import SiteType
 from edrockmaster.domain.community_goals.goals import CommunityGoalsChanged
 from edrockmaster.domain.community_goals.journal import CommunityGoal
 from edrockmaster.domain.engineering.events import (
@@ -41,7 +45,8 @@ SEGMENT = SegmentStats(
 )
 STATS = CombatStats(T0, (SEGMENT,), SEGMENT, Tally(), Crimes())
 STATS_TRADE = TradeStats(T0, timedelta(0), (), 0, GoodsTally(), GoodsTally(), GoodsTally())
-VOUCHERS = Vouchers(bounties=MappingProxyType({"Federation": 100_000}), combat_bonds={})
+VOUCHERS = Vouchers((HeldVoucher(VoucherKind.BOUNTY, "Federation", 100_000, T0),))
+VOUCHERS_UPDATED = VouchersUpdated(VOUCHERS, PastJournals(read=1, total=1))
 
 
 def shown(presenter: ActivityPresenter) -> Activity:
@@ -56,7 +61,7 @@ def test_mining_is_shown_by_default() -> None:
 
 def test_the_last_activity_to_progress_is_shown() -> None:
     presenter = ActivityPresenter()
-    model = presenter.apply([CombatStarted(T0), CombatUpdated(STATS), VouchersUpdated(VOUCHERS)])
+    model = presenter.apply([CombatStarted(T0), CombatUpdated(STATS), VOUCHERS_UPDATED])
     assert shown(presenter) is Activity.COMBAT
     assert model.status == "RES, hazardous"
     model = presenter.apply([SessionStarted(T0, None, "Col 285 2 A Ring")])
@@ -67,7 +72,7 @@ def test_the_last_activity_to_progress_is_shown() -> None:
 def test_vouchers_and_goals_do_not_switch_the_activity() -> None:
     presenter = ActivityPresenter()
     presenter.apply([SessionStarted(T0, None, None)])
-    presenter.apply([VouchersUpdated(VOUCHERS), CommunityGoalsChanged(())])
+    presenter.apply([VOUCHERS_UPDATED, CommunityGoalsChanged(())])
     assert presenter.current is Activity.MINING
 
 
@@ -93,9 +98,11 @@ def test_hidden_activity_keeps_up_to_date() -> None:
     presenter = ActivityPresenter()
     presenter.apply([CombatStarted(T0)])
     presenter.apply([SessionStarted(T0, None, None)])
-    presenter.apply([VouchersUpdated(VOUCHERS)])
+    presenter.apply([VOUCHERS_UPDATED])
     model = presenter.apply([CombatUpdated(STATS)])
-    assert ("Unredeemed", "100,000 CR") in [(line.label, line.value) for line in model.lines]
+    assert ("Unredeemed bounties, Federation", "100,000 CR, since 3 October 2026") in [
+        (line.label, line.value) for line in model.lines
+    ]
 
 
 def test_translation_reaches_both_presenters() -> None:

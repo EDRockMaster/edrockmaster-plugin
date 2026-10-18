@@ -23,12 +23,8 @@ from typing import assert_never
 from edrockmaster.application.activity import Activity
 from edrockmaster.application.companion import Notification
 from edrockmaster.application.settings import DisplayMode, DisplaySettings
-from edrockmaster.domain.combat.session import (
-    CombatEnded,
-    CombatStarted,
-    CombatUpdated,
-    VouchersUpdated,
-)
+from edrockmaster.domain.combat.session import CombatEnded, CombatStarted, CombatUpdated
+from edrockmaster.domain.combat.vouchers import VouchersUpdated
 from edrockmaster.domain.community_goals.goals import CommunityGoalsChanged
 from edrockmaster.domain.engineering.events import (
     CollectionEnded,

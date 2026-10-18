@@ -32,7 +32,8 @@ edrockmaster/
     combat/                     contexte du combat
       journal.py                entrée du journal → fait de combat
       sites.py                  sites de combat, tels que le jeu les nomme à l'arrivée
-      session.py                agrégat CombatTracker (sessions par segments de site, bons, délits)
+      session.py                agrégat CombatTracker (sessions par segments de site, délits)
+      vouchers.py               agrégat VoucherLedger : bons non encaissés par commandant et galaxie (ADR 0052)
     trade/                      contexte du commerce
       journal.py                entrée du journal → fait de commerce
       session.py                agrégat TradeTracker (sessions, routes, temps de vol, cargaison achetée, pertes)
@@ -58,9 +59,10 @@ edrockmaster/
     companion.py                Companion : enregistre le journal une fois, transmet chaque entrée à chaque activité, détient les réglages
     settings.py                 PluginSettings (alertes, son, enregistreur, activités affichées, sources) et leurs valeurs par défaut
     community.py                ce que répond une source communautaire : trouvé, ou désactivée, occupée, indisponible (ADR 0039)
-    ports.py                    Clock, SettingsStore, Notifier, JournalRecorder, GoalRepository, GalaxyCatalogue, CommodityMarkets
+    ports.py                    Clock, SettingsStore, Notifier, JournalRecorder, GoalRepository, GalaxyCatalogue, CommodityMarkets, JournalArchive, PastJournalStore
     mining_service.py           cas d'usage du minage : traiter une entrée, réinitialiser la session, appliquer les réglages
-    combat_service.py           cas d'usage du combat : traiter une entrée, réinitialiser la session
+    combat_service.py           cas d'usage du combat : traiter une entrée, réinitialiser la session, les bons des anciens journaux et du direct
+    past_journals.py            PastJournalReader : les journaux des parties passées, lus une fois chacun (ADR 0052)
     trade_service.py            cas d'usage du commerce : traiter une entrée, réinitialiser la session
     engineering_service.py      cas d'usage de l'ingénierie : journal, objectifs et leur stockage, réinitialisation
     situation_service.py        la situation du commandant
@@ -71,6 +73,7 @@ edrockmaster/
     database.py                 la base SQLite locale : ouverture, migrations, copie, mise de côté (ADR 0018)
     migrations.py               le schéma de la base, une migration par version
     goal_repository.py          GoalRepository sur la base locale
+    past_journal_store.py       PastJournalStore sur la base locale : les fichiers lus et les bons qu'ils ont donnés
     catalogue_file.py           lit le catalogue d'ingénierie livré avec l'application
     build_file.py               lit edrockmaster/build.json, écrit par l'emballage
     sound.py                    Notifier : sons d'alerte, joués par la fonction de l'hôte
@@ -91,6 +94,7 @@ edrockmaster/
   desktop/                      l'application (ADR 0020) : sa racine de composition et sa fenêtre
     journal_folder.py           où le jeu écrit son journal ; les fichiers de journal dans l'ordre
     journal_reader.py           JournalFollower (suit le journal au fil de son écriture), JournalWatcher (son fil)
+    journal_archive.py          FolderArchive : les fichiers de journal du dossier, pour la lecture des anciens journaux
     core.py                     DesktopCore : la racine de composition, le fil du cœur, la vue en direct poussée
     handlers/                   les appels de l'interface, un gestionnaire par contexte (ADR 0041), et le CoreContext par lequel ils atteignent le cœur
     live_view.py                la vue en direct, telle que la décrit schemas/live_view.schema.json
@@ -126,7 +130,8 @@ Tout cela est du calcul pur sur de petits objets (bien moins d'une milliseconde 
 - **Fil du journal** (`EDRockMaster journal`) : `JournalWatcher` lit le journal toutes les secondes.
 - **Fil du cœur** (`EDRockMaster core`, un `IoWorker` à lui) : tous les appels au companion, aux présentateurs et aux constructeurs de vues. Le fil du journal et les appels de l'interface ne font qu'y déposer des tâches ; il appelle `push`, qui ne doit pas bloquer.
 - **Un fil d'entrées-sorties** (`infrastructure/worker.py`) : fil démon alimenté par une `queue.Queue` de tâches (ajout au fichier d'enregistrement, base locale, fichier des réglages ; en 1B, envois et authentification). Ce qu'il lit parvient au fil du cœur par une tâche déposée sur celui-ci.
-- À la fermeture : le lecteur s'arrête, puis le fil du cœur ; la base se ferme dans une dernière tâche du fil d'entrées-sorties, qui s'arrête ensuite.
+- **Fil des anciens journaux** (`EDRockMaster past journals`, un `IoWorker`) : `PastJournalReader` lit les journaux des parties passées au démarrage et chaque fois que le jeu ouvre un nouveau fichier (ADR 0052). Ses ports bloquent : il appelle (`call`) des tâches du fil d'entrées-sorties et les attend. Ce qu'il lit parvient au fil du cœur par une tâche déposée sur celui-ci.
+- À la fermeture : le lecteur s'arrête, puis le fil des anciens journaux (une première lecture encore en cours reprend la fois suivante), puis le fil du cœur ; la base se ferme dans une dernière tâche du fil d'entrées-sorties, qui s'arrête ensuite.
 
 ## Cycle de vie d'une session de minage
 
@@ -173,17 +178,29 @@ Le combat couvre la chasse à la prime, les zones de conflit et toute victime ([
 | Prime ailleurs (un pirate pendant le minage, près d'une station, après une interdiction) : une prime ne dit rien du lieu | **Divers** : comptée dans les victimes, les crédits et les bons, dans aucun ratio |
 | Récompense sans arrivée vue (le jeu a démarré sur le site : `StartUp`, `Location` hors station) | Un segment de type **inconnu**, depuis cette récompense ; divers si le commandant mine là (`ProspectedAsteroid`, `MiningRefined`, `AsteroidCracked`, drones de prospection ; pas les collecteurs, qui ramassent aussi ce que lâchent les pirates) |
 | `CommitCrime` pendant une session | Compté par type de délit : amendes et primes sur le commandant, jamais retirées des crédits |
-| `Died` | La session se termine ; les bons non encaissés sont perdus |
+| `Died` | La session se termine ; les bons non encaissés du commandant sont perdus |
 | `Shutdown`, `ShutDown` | La session se termine |
-| `RedeemVoucher` (primes, obligations de combat) | Les bons payés sont retirés, par faction, jamais en dessous de zéro |
+| `RedeemVoucher` (primes, obligations de combat) | Tous les bons de cette nature de chaque faction payée sont retirés : un courtier paie moins que les bons, les obligations sont payées davantage (ADR 0049) |
+| `Fileheader`, `Commander`, `LoadGame` | Qui joue (`FID`) et dans quelle galaxie (`gameversion` inférieure à 4 depuis la mise à jour 14 du 29 novembre 2022 : Legacy) : chaque sauvegarde a ses bons |
 | `CommunityGoal` | Les objectifs rejoints par le commandant : contribution, tranche de classement, palier atteint |
 | Réinitialisation manuelle (bouton du bloc de combat) | La session se termine, une nouvelle peut commencer ; toujours sur le site, le segment suivant commence à la réinitialisation |
 
-Statistiques d'une session de combat : ses segments (type de site, durée, victimes, crédits, ratios), une moyenne **par type de site, pondérée par le temps** (total des victimes et des crédits sur la durée totale), le temps sur les sites de combat, les victimes (et victimes partagées), les crédits de primes et d'obligations de combat gagnés (tels que les écrit le journal, les montants des notifications du jeu : les obligations d'une zone de conflit ont été payées 3,3 à 3,7 fois plus au rachat, sur les journaux du 3 au 12 octobre 2026), les victimes diverses, les victimes et crédits **par faction adverse** (`VictimFaction` de `Bounty` et `FactionKillBond` : les trois aux plus nombreuses victimes, puis les autres ensemble), les délits **par type** (`CrimeType`, nommés dans la langue du joueur ; un type que l'application ne connaît pas s'affiche d'après son symbole, en anglais). Affichés avec le bloc : les bons non encaissés (connus seulement depuis le début du fichier de journal : le journal ne redonne pas les plus anciens). Les superpuissances écrites `$faction_Federation;` sont ramenées à `Federation`. Une autre activité ne termine jamais une session de combat : un mineur peut riposter et continuer de miner.
+Statistiques d'une session de combat : ses segments (type de site, durée, victimes, crédits, ratios), une moyenne **par type de site, pondérée par le temps** (total des victimes et des crédits sur la durée totale), le temps sur les sites de combat, les victimes (et victimes partagées), les crédits de primes et d'obligations de combat gagnés (tels que les écrit le journal, les montants des notifications du jeu : les obligations d'une zone de conflit ont été payées 3,3 à 3,7 fois plus au rachat, sur les journaux du 3 au 12 octobre 2026), les victimes diverses, les victimes et crédits **par faction adverse** (`VictimFaction` de `Bounty` et `FactionKillBond` : les trois aux plus nombreuses victimes, puis les autres ensemble), les délits **par type** (`CrimeType`, nommés dans la langue du joueur ; un type que l'application ne connaît pas s'affiche d'après son symbole, en anglais). Affichés avec le bloc : les bons non encaissés, ci-dessous. Les superpuissances écrites `$faction_Federation;` sont ramenées à `Federation`. Une autre activité ne termine jamais une session de combat : un mineur peut riposter et continuer de miner.
 
 L'onglet *Activités* affiche un bloc par activité choisie par le joueur (*Réglages*), chacun avec son bouton **Réinitialiser** ([ADR 0013](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0013-combat-segments-and-live-panel.fr.md)) ; le bloc de la dernière activité qui a **progressé** est mis en évidence. Pour le combat, une session ou un segment qui commence ou se termine, une récompense ou un délit sont une progression ; quitter un site sans segment et les bons n'en sont pas. Les **objectifs communautaires** ([ADR 0032](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0032-community-goals-card.fr.md)) ont leur propre carte, qui n'est pas une session et ne progresse jamais : affichée seulement tant qu'un objectif est rejoint, une tuile par objectif (titre, système sauf si le titre le nomme, contribution, tranche de percentile, palier atteint sur le palier le plus haut) avec son échéance décomptée par l'interface, ou « Terminé : récompense à toucher ». Un objectif part quand la liste du jeu ne le contient plus, ou tout de suite avec sa récompense (`CommunityGoalReward`) ou son abandon (`CommunityGoalDiscard`), après quoi le jeu n'écrit aucune nouvelle liste. Pour le commerce, une session qui commence ou se termine, un achat, une vente ou une perte. Une activité masquée reste suivie : affichée de nouveau, elle est à jour.
 
 **Cartes** (ADR 0021). Les blocs d'activité et les parties de la vue *Ingénierie* (vaisseau : objectifs, liste de courses, inventaire, ingénieurs ; à pied : objectifs, liste de courses, inventaire, porte-vaisseaux, combinaisons et armes, ingénieurs) sont des cartes, les unes sous les autres (`CardStack.svelte`). Le joueur déplace une carte en faisant glisser sa poignée sur une autre (elle prend sa place), ou avec ses flèches au clavier, et la replie ou la déplie ; une carte n'est déplaçable que tant que sa poignée est tenue, pour que son texte et ses champs restent utilisables. La disposition de chaque vue, toutes ses cartes dans l'ordre et celles repliées, est gardée d'une session à l'autre : l'interface la demande une fois au cœur (`layout()`, schéma `layout.schema.json`) et lui renvoie chaque changement d'une vue (`save_layout`) ; le cœur la garde dans `settings.json` (`desktop/layout.py`), en un texte JSON. Un ordre enregistré qui omet une carte (une nouvelle) la met en dernier, une carte qu'il nomme et qui n'existe plus est retirée, et une disposition enregistrée illisible revient à la première. Les cartes étant aussi larges que la fenêtre, les statistiques d'une activité s'affichent en tuiles côte à côte, et l'inventaire montre chaque catégorie de matériaux sur sa propre ligne, ses grades côte à côte, avec le plafond de chaque grade en tête de sa colonne.
+
+### Bons non encaissés ([ADR 0052](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0052-journal-index.fr.md))
+
+Le journal ne redit jamais les bons détenus : on ne les connaît qu'en les suivant de la victime à l'encaissement ou à la mort, et un chasseur de primes peut les remettre des jours plus tard. L'application lit donc **chaque journal du dossier une fois**, et garde dans la base locale ce qui dure d'une partie à l'autre.
+
+- `VoucherLedger` (domaine) suit les bons de chaque commandant, par galaxie, par nature et faction qui paie, depuis le plus ancien détenu.
+- `PastJournalReader` (application, sur son propre fil) lit les fichiers **terminés** que l'index ne connaît pas, du plus ancien au plus récent : un fichier est terminé dès qu'un plus récent existe, ou qu'il se finit par `Shutdown`. Seules les lignes des événements utiles sont décodées (`FolderArchive` écarte les autres par leur nom) ; les bêtas sont écartées. Chaque fichier est indexé avec le registre auquel il a mené dans **une seule transaction** : compté en entier ou pas du tout. Un fichier de l'index dont la taille a changé, ou un fichier inconnu plus ancien que le plus récent de l'index, fait perdre l'ordre : tout est relu depuis les fichiers présents. Les fichiers retirés du dossier gardent ce qu'ils ont donné. `VERSION` (dans `past_journals.py`) monte avec un correctif qui change ce qu'un fichier donne : ce qui est gardé sous une autre version est vidé et tout est relu.
+- Le **fichier en cours** est lu en direct, comme avant ; `CombatService` garde ses faits de bons avec leur fichier, et les ajoute à ce qu'ont donné les anciens journaux. Quand le lecteur compte ce fichier plus tard, ses faits sont retirés du direct : rien n'est compté deux fois.
+- Le premier démarrage avec cette version lit tout l'historique, sur son propre fil : la vue en direct n'attend pas, et la carte du combat dit *Anciens journaux : lecture 120 / 860* jusqu'à la fin. Ensuite, chaque démarrage ne lit que les nouveaux fichiers. Les *Réglages* proposent *Relire les anciens journaux*.
+- **Affichage** : une ligne par nature et faction qui paie, la plus grosse d'abord (*Primes non encaissées, Lavigny's Legion : 33 552 700 CR, depuis le 14 octobre 2026*), trois au plus, les autres ensemble ; s'il y en a plusieurs, leur total d'abord (*Non encaissé*). Les montants sont ceux du journal : les obligations de combat sont payées davantage à l'encaissement (ADR 0049).
+- Sans base locale, rien n'est gardé : tous les anciens journaux sont relus à chaque démarrage, et les chiffres restent justes.
 
 ## Commerce
 
@@ -300,7 +317,7 @@ Contenu :
 
 ## Base locale
 
-Un fichier SQLite pour l'**état** durable de l'application, qui n'est ni un réglage ni un enregistrement (décision de conception ADR 0018). Chaque besoin a ses tables et son port de dépôt : les objectifs d'ingénierie (`GoalRepository`, ADR 0017), les réponses des sources communautaires (ADR 0039). Rien de ce qu'elle contient ne quitte l'ordinateur.
+Un fichier SQLite pour l'**état** durable de l'application, qui n'est ni un réglage ni un enregistrement (décision de conception ADR 0018). Chaque besoin a ses tables et son port de dépôt : les objectifs d'ingénierie (`GoalRepository`, ADR 0017), les réponses des sources communautaires (ADR 0039), les fichiers de journal lus et les bons non encaissés qu'ils ont donnés (`PastJournalStore`, version de schéma 7, ADR 0052). Rien de ce qu'elle contient ne quitte l'ordinateur.
 
 - **Le fil d'entrées-sorties seulement.** La base s'ouvre dans une tâche du fil d'entrées-sorties au démarrage, et se ferme dans une autre à la fermeture. `LocalDatabase.connection()` refuse tout autre fil. Les dépôts font de chaque appel une tâche ; ce qu'ils lisent parvient au fil du cœur par une tâche déposée sur celui-ci.
 - **Schéma versionné.** `PRAGMA user_version` donne la version du schéma ; `infrastructure/migrations.py` liste les migrations, appliquées dans l'ordre à l'ouverture, chacune dans sa transaction, toujours vers l'avant. Une migration publiée ne change plus. Avant de migrer une base de version N > 0, le fichier est copié (API de sauvegarde de SQLite) dans `edrockmaster.sqlite3.v<N>.bak`, et les copies plus anciennes sont supprimées. Journal en mode WAL.

@@ -3,6 +3,7 @@ from types import MappingProxyType
 
 import pytest
 
+from edrockmaster.domain.combat.journal import VoucherKind
 from edrockmaster.domain.combat.session import (
     CombatEnded,
     CombatEndReason,
@@ -12,10 +13,14 @@ from edrockmaster.domain.combat.session import (
     Crimes,
     SegmentStats,
     Tally,
+)
+from edrockmaster.domain.combat.sites import SiteType
+from edrockmaster.domain.combat.vouchers import (
+    HeldVoucher,
+    PastJournals,
     Vouchers,
     VouchersUpdated,
 )
-from edrockmaster.domain.combat.sites import SiteType
 from edrockmaster.infrastructure.strings_catalogue import translator
 from edrockmaster.ui.combat_presenter import SITE_NAMES, CombatPresenter
 from edrockmaster.ui.panel_model import PanelModel
@@ -52,11 +57,16 @@ def stats(
     )
 
 
-def vouchers(bounties: int = 0, bonds: int = 0) -> Vouchers:
-    return Vouchers(
-        bounties=MappingProxyType({"Federation": bounties} if bounties else {}),
-        combat_bonds=MappingProxyType({"Federation": bonds} if bonds else {}),
-    )
+READ = PastJournals(read=3, total=3)
+LAVIGNY = "Lavigny's Legion"
+
+
+def held(faction: str, amount: int, kind: VoucherKind = VoucherKind.BOUNTY) -> HeldVoucher:
+    return HeldVoucher(kind, faction, amount, datetime(2026, 10, 14, 20, 0, tzinfo=UTC))
+
+
+def vouchers(*held_vouchers: HeldVoucher, past: PastJournals = READ) -> VouchersUpdated:
+    return VouchersUpdated(Vouchers(held_vouchers), past)
 
 
 def value(model: PanelModel, label: str) -> str:
@@ -231,10 +241,58 @@ def test_ended_combat_keeps_its_statistics(
     assert value(model, "Kills") == "6"
 
 
-def test_unredeemed_vouchers_are_shown_while_there_are_some(presenter: CombatPresenter) -> None:
-    model = presenter.apply([VouchersUpdated(vouchers(bounties=900_000, bonds=100_000))])
-    assert value(model, "Unredeemed") == "1,000,000 CR"
-    assert "Unredeemed" not in labels(presenter.apply([VouchersUpdated(vouchers())]))
+def test_one_kind_of_unredeemed_vouchers_is_one_line(presenter: CombatPresenter) -> None:
+    model = presenter.apply([vouchers(held(LAVIGNY, 33_552_700))])
+    assert [(line.label, line.value) for line in model.lines] == [
+        ("Unredeemed bounties, Lavigny's Legion", "33,552,700 CR, since 14 October 2026")
+    ]
+
+
+def test_several_add_up_then_come_one_by_one_the_largest_first(
+    presenter: CombatPresenter,
+) -> None:
+    model = presenter.apply(
+        [
+            vouchers(
+                held("Olker General Solutions", 46_700),
+                held(LAVIGNY, 33_552_700),
+                held(LAVIGNY, 100_000, VoucherKind.COMBAT_BOND),
+            )
+        ]
+    )
+    assert [(line.label, line.value) for line in model.lines] == [
+        ("Unredeemed", "33,699,400 CR"),
+        ("Unredeemed bounties, Lavigny's Legion", "33,552,700 CR, since 14 October 2026"),
+        ("Unredeemed combat bonds, Lavigny's Legion", "100,000 CR, since 14 October 2026"),
+        ("Unredeemed bounties, Olker General Solutions", "46,700 CR, since 14 October 2026"),
+    ]
+
+
+def test_beyond_three_the_others_add_up(presenter: CombatPresenter) -> None:
+    model = presenter.apply([vouchers(*(held(f"Faction {n}", 1_000 * n) for n in range(1, 6)))])
+    assert labels(model)[-1] == "Unredeemed from 2 other factions"
+    assert value(model, "Unredeemed from 2 other factions") == "3,000 CR"
+
+
+def test_no_line_without_vouchers(presenter: CombatPresenter) -> None:
+    presenter.apply([vouchers(held(LAVIGNY, 1_000))])
+    assert presenter.apply([vouchers()]).lines == ()
+
+
+def test_reading_past_journals_is_shown_until_done(presenter: CombatPresenter) -> None:
+    model = presenter.apply([vouchers(held(LAVIGNY, 1_000), past=PastJournals(120, 860))])
+    assert value(model, "Past journals") == "reading: 120 / 860"
+    assert labels(model)[-1] == "Past journals"
+    assert "Past journals" not in labels(presenter.apply([vouchers()]))
+
+
+def test_unredeemed_vouchers_in_french() -> None:
+    presenter = CombatPresenter(translator("fr"))
+    model = presenter.apply([vouchers(held(LAVIGNY, 1_000), past=PastJournals(1, 2))])
+    assert [(line.label, line.value) for line in model.lines] == [
+        ("Primes non encaissées, Lavigny's Legion", "1,000 CR, depuis le 14 octobre 2026"),
+        ("Anciens journaux", "lecture : 1 / 2"),
+    ]
 
 
 def test_render_rebuilds_texts_in_the_current_language() -> None:

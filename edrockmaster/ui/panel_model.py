@@ -69,5 +69,28 @@ def format_duration(duration: timedelta, translate: Translate) -> str:
     return translate("{minutes} min").format(minutes=minutes)
 
 
+MONTHS = (
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+)
+
+
+def format_day(moment: datetime, translate: Translate) -> str:
+    """A day in words, ``14 October 2026``: no order of day and month to guess."""
+    return translate("{day} {month} {year}").format(
+        day=moment.day, month=translate(MONTHS[moment.month - 1]), year=moment.year
+    )
+
+
 def format_credits(credits: float, translate: Translate, format_number: NumberFormat) -> str:
     return translate("{credits} CR").format(credits=format_number(credits, 0))

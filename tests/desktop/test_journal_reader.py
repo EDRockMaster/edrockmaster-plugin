@@ -23,17 +23,23 @@ class Journal:
         self.directory = directory
         directory.mkdir(exist_ok=True)
         self.received: list[tuple[str, bool]] = []
-        self.follower = JournalFollower(directory, self.receive, logger)
+        self.follower = JournalFollower(directory, self.receive, logger, on_file=self.opened)
 
     def receive(self, entry: Entry, is_beta: bool) -> None:
         self.received.append((str(entry["event"]), is_beta))
+
+    def opened(self, path: Path) -> None:
+        self.received.append((f"file {path.name}", False))
 
     def write(self, name: str, text: str) -> None:
         with (self.directory / name).open("a", encoding="utf-8", newline="") as file:
             file.write(text)
 
     def events(self) -> list[str]:
-        return [event for event, _ in self.received]
+        return [event for event, _ in self.received if not event.startswith("file ")]
+
+    def files(self) -> list[str]:
+        return [event for event, _ in self.received if event.startswith("file ")]
 
 
 @pytest.fixture
@@ -97,7 +103,7 @@ def test_entries_of_a_beta_say_so(journal: Journal) -> None:
         line("Fileheader", gameversion="4.4.1.1") + line("Music"),
     )
     journal.follower.poll()
-    assert journal.received == [
+    assert [received for received in journal.received if not received[0].startswith("file ")] == [
         ("Fileheader", True),
         ("Fileheader", True),
         ("Music", True),
@@ -398,3 +404,18 @@ def test_a_failing_poll_is_logged_and_polling_goes_on(
 
 def test_stopping_a_watcher_never_started() -> None:
     assert JournalWatcher(JournalFollower(Path("."), lambda e, b: None, logger), logger).stop()
+
+
+def test_each_file_is_told_before_its_entries(journal: Journal) -> None:
+    journal.write(FIRST, line("Fileheader"))
+    journal.follower.poll()
+    journal.write(FIRST, line("Shutdown"))
+    journal.write(SECOND, line("Fileheader"))
+    journal.follower.poll()
+    assert [event for event, _ in journal.received] == [
+        f"file {FIRST}",
+        "Fileheader",
+        "Shutdown",
+        f"file {SECOND}",
+        "Fileheader",
+    ]

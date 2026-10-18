@@ -6,6 +6,15 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
+### Corrigé
+
+- **Les bons non encaissés correspondent maintenant au panneau du jeu**, quel que soit le temps écoulé depuis leur gain (décision de conception ADR 0052). L'application ne comptait que le fichier de journal le plus récent : un chasseur de primes qui encaisse une fois par semaine voyait les bons de la dernière soirée, pas les 33 millions de CR que le jeu détenait. Elle lit désormais **une fois** chaque journal du dossier, garde ce qu'elle y a trouvé dans sa base locale, et à chaque démarrage ne lit que les nouveaux fichiers. La carte du combat liste les bons par faction et par nature, les plus gros d'abord, avec le jour du plus ancien (*Primes non encaissées, Lavigny's Legion : 33 552 700 CR, depuis le 14 octobre 2026*). Chaque commandant, et Legacy à part du jeu actuel, a les siens.
+- Un encaissement chez un courtier interstellaire, qui paie moins que les bons, les efface désormais : il ne reste rien de cette faction.
+
+### Ajouté
+
+- Le premier démarrage après la mise à jour lit tout votre historique une fois, sans bloquer l'application : la carte du combat affiche *Anciens journaux : lecture 120 / 860* jusqu'à la fin. Les *Réglages* permettent de **relire les anciens journaux**.
+
 ## [0.6.0] - 2026-10-12
 
 ### Ajouté

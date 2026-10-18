@@ -19,6 +19,7 @@ class Settings:
         self.cleared: list[Source] = []
         self.languages: list[str] = []
         self.opened: list[Path] = []
+        self.past_journals_read = 0
         self.folders = {"recordings": tmp_path / "recordings", "logs": tmp_path / "logs"}
         self.handler = SettingsHandler(
             self.core.context,
@@ -29,7 +30,11 @@ class Settings:
             open_folder=open_folder or self.opened.append,  # type: ignore[arg-type]
             clear_source=self.cleared.append,
             set_language=self.languages.append,
+            read_past_journals=self.read_again,
         )
+
+    def read_again(self) -> None:
+        self.past_journals_read += 1
 
 
 @pytest.fixture
@@ -103,3 +108,8 @@ def test_only_the_application_s_folders_open(
     assert "Unknown folder to open: 'C:/Windows'" in caplog.text
     assert "Could not open" in caplog.text
     assert "no file manager" in caplog.text
+
+
+def test_past_journals_are_read_again_when_asked(settings: Settings) -> None:
+    settings.handler.read_past_journals()
+    assert settings.past_journals_read == 1

@@ -2,7 +2,9 @@
 
 The core thread must never wait on a file or the network: such work is
 submitted as a job to the I/O thread. The core itself runs the same way, on a
-worker of its own, fed by the journal reader and the interface.
+worker of its own, fed by the journal reader and the interface. A thread that
+may wait, such as the reader of past journals (ADR 0052), ``call``s a job and
+gets its result.
 """
 
 from __future__ import annotations
@@ -15,6 +17,11 @@ from collections.abc import Callable
 type Job = Callable[[], None]
 
 THREAD_NAME = "EDRockMaster I/O"
+_CALL_CHECK_SECONDS = 0.1
+
+
+class WorkerStoppedError(RuntimeError):
+    """The worker is not running: a job called will never run."""
 
 
 class IoWorker:
@@ -42,6 +49,33 @@ class IoWorker:
             self._logger.warning("Job dropped: %s is not running", self._name)
             return
         self._queue.put(job)
+
+    def call[T](self, job: Callable[[], T]) -> T:
+        """Run a job on the worker and wait for its result, or what it raised.
+
+        Never from the worker's own thread, nor from a thread that must not wait.
+        """
+        done = threading.Event()
+        results: list[T] = []
+        errors: list[BaseException] = []
+
+        def run() -> None:
+            try:
+                results.append(job())
+            except BaseException as error:  # handed to the caller
+                errors.append(error)
+            finally:
+                done.set()
+
+        if not self.is_running:
+            raise WorkerStoppedError(f"{self._name} is not running")
+        self._queue.put(run)
+        while not done.wait(_CALL_CHECK_SECONDS):
+            if self._thread is None or not self._thread.is_alive():
+                raise WorkerStoppedError(f"{self._name} ended before the job ran")
+        if errors:
+            raise errors[0]
+        return results[0]
 
     def stop(self, timeout: float = 5.0) -> bool:
         """Run the pending jobs, then end the thread. Return whether it has ended."""

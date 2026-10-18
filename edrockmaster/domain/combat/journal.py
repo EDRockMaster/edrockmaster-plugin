@@ -2,13 +2,16 @@
 
 The combat context's anti-corruption layer for the game journal, built on the
 tolerant helpers of the shared kernel (``journal_reading``). It reads a few
-mining events too, for its own rule: a kill while mining is miscellaneous.
+mining events too, for its own rule: a kill while mining is miscellaneous; and
+who plays, in which galaxy, since each commander's save has its own vouchers
+(ADR 0052).
 """
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 
 from edrockmaster.domain.combat.sites import SiteType, combat_site
@@ -23,11 +26,22 @@ from edrockmaster.domain.journal_reading import (
 )
 
 _SUPERPOWER_PREFIX = "$faction_"
+_MAJOR_VERSION = re.compile(r"\s*(\d+)\.")
+LEGACY_SPLIT = datetime(2022, 11, 29, tzinfo=UTC)
+"""Update 14: the 3.8 of Horizons became Legacy, a save of its own; before, it was the galaxy."""
+FIRST_LIVE_VERSION = 4
 
 
 class VoucherKind(Enum):
     BOUNTY = "bounty"
     COMBAT_BOND = "combat_bond"
+
+
+class Galaxy(Enum):
+    """The game's two saves of a commander, since Update 14 (ADR 0052)."""
+
+    LIVE = "live"
+    LEGACY = "legacy"
 
 
 @dataclass(frozen=True, slots=True)
@@ -149,6 +163,15 @@ class CrimeCommitted:
     bounty: int
 
 
+@dataclass(frozen=True, slots=True)
+class GameIdentified:
+    """Who plays (``fid``, the commander's Frontier id) or in which galaxy, as far as told."""
+
+    at: datetime
+    fid: str | None
+    galaxy: Galaxy | None
+
+
 type Fact = (
     BountyAwarded
     | CombatBondAwarded
@@ -164,6 +187,7 @@ type Fact = (
     | SiteLeft
     | MiningSeen
     | CrimeCommitted
+    | GameIdentified
 )
 
 
@@ -319,6 +343,22 @@ def _crime(entry: Entry, at: datetime) -> CrimeCommitted:
     )
 
 
+def galaxy(version: str, at: datetime) -> Galaxy | None:
+    """The galaxy of a game version (``gameversion``), ``None`` if the version is not one."""
+    match = _MAJOR_VERSION.match(version)
+    if match is None:
+        return None
+    legacy = int(match[1]) < FIRST_LIVE_VERSION and at >= LEGACY_SPLIT
+    return Galaxy.LEGACY if legacy else Galaxy.LIVE
+
+
+def _identified(entry: Entry, at: datetime) -> GameIdentified | None:
+    fid = optional(entry, "FID", str) or None
+    version = optional(entry, "gameversion", str)
+    found = GameIdentified(at, fid, galaxy(version, at) if version is not None else None)
+    return found if found.fid is not None or found.galaxy is not None else None
+
+
 _PARSERS: dict[str, Parser[Fact | None]] = {
     "Bounty": _bounty,
     "FactionKillBond": _kill_bond,
@@ -346,4 +386,7 @@ _PARSERS: dict[str, Parser[Fact | None]] = {
     "AsteroidCracked": _mining,
     "LaunchDrone": _limpet,
     "CommitCrime": _crime,
+    "Fileheader": _identified,
+    "Commander": _identified,
+    "LoadGame": _identified,
 }

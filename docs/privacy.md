@@ -25,10 +25,11 @@ Everything stays on your computer, in `%LOCALAPPDATA%\EDRockMaster`:
 - **your settings** (`settings.json`);
 - **your engineering goals** (`edrockmaster.sqlite3`): the blueprints and effects you aim at, and how many rolls;
 - **a technical log** (`logs\`): when the application starts and stops, which journal file it reads, errors; it holds no statistics of your play;
+- **your unredeemed vouchers** (in `edrockmaster.sqlite3`): the bounties and combat bonds you hold, per faction and commander (by their Frontier id), and the names of the journal files already read for them, so that each is read only once;
 - **answers of the community sources** (in `edrockmaster.sqlite3`): what Spansh and Ardent Insight published in answer to your searches (rings, markets, prices), reused for a while instead of asking again; nothing about you;
 - **journal recordings** (`recordings\`), **only if you turn them on** (off by default): copies of journal entries, for you to send with a bug report if you wish.
 
-Your session statistics and your situation (commander, ship, location, wing) are **only in memory**, rebuilt from the journal each time the application starts, and never written anywhere.
+Apart from your unredeemed vouchers, your session statistics and your situation (commander, ship, location, wing) are **only in memory**, rebuilt from the journal each time the application starts, and never written anywhere.
 
 ## What the application sends
 

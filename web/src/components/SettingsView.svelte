@@ -33,6 +33,13 @@
   let loaded = $state<Settings | null>(null);
   let form = $state<SettingsForm | null>(null);
   let message = $state<"saved" | "invalid" | null>(null);
+  let readingAgain = $state(false);
+
+  /** Forgets what the past journals gave and reads them all again (ADR 0052). */
+  function readPastJournals(): void {
+    void core()?.read_past_journals();
+    readingAgain = true;
+  }
 
   function show(settings: Settings): void {
     loaded = settings;
@@ -163,6 +170,15 @@
         <input bind:value={form.journalFolder} spellcheck="false" />
       </label>
       <p class="muted small">{t(language, "settings.journalRestart")}</p>
+      <div class="folder">
+        <span class="muted small">{t(language, "settings.pastJournals")}</span>
+        <button type="button" onclick={readPastJournals}>
+          {t(language, "settings.readPastJournals")}
+        </button>
+        {#if readingAgain}
+          <span role="status" class="small">{t(language, "settings.readingPastJournals")}</span>
+        {/if}
+      </div>
       <label class="check">
         <input type="checkbox" bind:checked={form.recordJournal} />{t(
           language,

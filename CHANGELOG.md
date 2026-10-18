@@ -6,6 +6,15 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Unredeemed vouchers now match the game's panel**, however long ago you earned them (design decision ADR 0052). The application used to count only the newest journal file: a bounty hunter who hands in once a week saw the last evening's vouchers, not the 33 million CR the game held. It now reads every journal of the folder **once**, keeps what it found in its local database, and at each start reads only the new files. The combat card lists the vouchers per faction and kind, the largest first, with the day of the oldest (*Unredeemed bounties, Lavigny's Legion: 33,552,700 CR, since 14 October 2026*). Each commander, and Legacy apart from the live game, has their own.
+- A redemption at an Interstellar Factor, which pays less than the vouchers, now clears them: nothing of that faction is left.
+
+### Added
+
+- The first start after the update reads your whole history once, without holding up the application: the combat card shows *Past journals: reading 120 / 860* until it is done. *Settings* can **read past journals again**.
+
 ## [0.6.0] - 2026-10-12
 
 ### Added

@@ -25,10 +25,11 @@ Tout reste sur votre ordinateur, dans `%LOCALAPPDATA%\EDRockMaster` :
 - **vos réglages** (`settings.json`) ;
 - **vos objectifs d'ingénierie** (`edrockmaster.sqlite3`) : les blueprints et effets que vous visez, et le nombre de passes ;
 - **un journal technique** (`logs\`) : démarrage et arrêt de l'application, fichier de journal lu, erreurs ; il ne contient aucune statistique de votre partie ;
+- **vos bons non encaissés** (dans `edrockmaster.sqlite3`) : les primes et obligations de combat que vous détenez, par faction et par commandant (par son identifiant Frontier), et les noms des fichiers de journal déjà lus pour cela, afin que chacun ne soit lu qu'une fois ;
 - **les réponses des sources communautaires** (dans `edrockmaster.sqlite3`) : ce que Spansh et Ardent Insight ont publié en réponse à vos recherches (anneaux, marchés, prix), réutilisé un temps au lieu de redemander ; rien sur vous ;
 - **des enregistrements du journal** (`recordings\`), **seulement si vous les activez** (désactivés par défaut) : des copies d'entrées du journal, à joindre à un signalement de bogue si vous le souhaitez.
 
-Les statistiques de vos sessions et votre situation (commandant, vaisseau, position, escadrille) ne sont **qu'en mémoire**, reconstruites depuis le journal à chaque démarrage de l'application, et jamais écrites nulle part.
+Hormis vos bons non encaissés, les statistiques de vos sessions et votre situation (commandant, vaisseau, position, escadrille) ne sont **qu'en mémoire**, reconstruites depuis le journal à chaque démarrage de l'application, et jamais écrites nulle part.
 
 ## Ce que l'application envoie
 
