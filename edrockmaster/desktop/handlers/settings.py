@@ -1,4 +1,5 @@
-"""The Settings page's calls (ADR 0020): the settings, and the application's folders."""
+"""The Settings page's calls (ADR 0020): the settings, the application's folders, and reading
+the journals of past game sessions again (ADR 0052)."""
 
 from __future__ import annotations
 
@@ -29,10 +30,12 @@ class SettingsHandler:
         open_folder: Callable[[Path], None],
         clear_source: Callable[[Source], None],
         set_language: Callable[[str], None],
+        read_past_journals: Callable[[], None],
     ) -> None:
         """``journal_folder``: the one in use since the start; ``folders``: those the page may
         open, by name; ``clear_source``: forgets what a source answered, once turned off;
-        ``set_language``: applies the language chosen, on the core thread."""
+        ``set_language``: applies the language chosen, on the core thread;
+        ``read_past_journals``: forgets what the past journals gave and reads them again."""
         self._context = context
         self._store = store
         self._preferences = preferences
@@ -41,6 +44,8 @@ class SettingsHandler:
         self._open_folder = open_folder
         self._clear_source = clear_source
         self._set_language = set_language
+        self.read_past_journals = read_past_journals
+        """Does not block: the past journals are read on a thread of their own."""
 
     def settings(self) -> dict[str, Any]:
         """What the settings form shows. Reads immutable objects only: any thread."""

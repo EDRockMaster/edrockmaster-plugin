@@ -446,3 +446,79 @@ def test_a_jump_back_where_it_left_is_logged_as_a_possible_hyperdiction(
         while "hyperdiction" not in caplog.text and time.monotonic() < deadline:
             time.sleep(0.01)
     assert "ended in Putas, back where it left: a Thargoid hyperdiction?" in caplog.text
+
+
+# --- the journals of past game sessions (ADR 0052) ------------------------------------------
+
+LAVIGNY = "Lavigny's Legion"
+
+
+def past_session(journal: Path, name: str, day: int, reward: int, *, closed: bool = True) -> None:
+    stamp = f"2026-10-{day:02d}T20:00:00Z"
+    entries: list[dict[str, Any]] = [
+        {"timestamp": stamp, "event": "Fileheader", "part": 1, "gameversion": "4.4.1.1"},
+        {"timestamp": stamp, "event": "Commander", "FID": "F1234", "Name": "Fusion"},
+        {
+            "timestamp": stamp,
+            "event": "Bounty",
+            "Rewards": [{"Faction": LAVIGNY, "Reward": reward}],
+            "TotalReward": reward,
+        },
+    ]
+    if closed:
+        entries.append({"timestamp": stamp, "event": "Shutdown"})
+    lines = "".join(json.dumps(entry) + "\r\n" for entry in entries)
+    (journal / name).write_text(lines, encoding="utf-8", newline="")
+
+
+def unredeemed(view: dict[str, Any]) -> list[tuple[str, str]]:
+    return [
+        (line["label"], line["value"])
+        for line in blocks(view)["combat"]["lines"]
+        if "nredeemed" in line["label"] or line["label"] == "Past journals"
+    ]
+
+
+def test_vouchers_of_past_sessions_add_to_those_read_live(
+    tmp_path: Path, journal: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    past_session(journal, "Journal.2026-10-14T200000.01.log", 14, 33_552_700)
+    past_session(journal, "Journal.2026-10-18T080000.01.log", 18, 258_456, closed=False)
+    expected = [
+        (f"Unredeemed bounties, {LAVIGNY}", "33,811,156 CR, since 14 October 2026"),
+    ]
+    with caplog.at_level(logging.INFO):
+        desktop = Desktop(tmp_path, journal)
+        desktop.core.start()
+        try:
+            desktop.core.ready()
+            desktop.views.wait_for(lambda view: unredeemed(view) == expected)
+        finally:
+            desktop.core.stop()
+    assert "Past journals: 1 files counted" in caplog.text
+    # The next start reads the current file only, and finds the same
+    caplog.clear()
+    with caplog.at_level(logging.INFO):
+        again = Desktop(tmp_path, journal)
+        again.core.start()
+        try:
+            again.core.ready()
+            again.views.wait_for(lambda view: unredeemed(view) == expected)
+            again.core.handlers.settings.read_past_journals()
+            again.views.wait_for(lambda view: unredeemed(view) == expected)
+        finally:
+            again.core.stop()
+    assert "Reading the past journals again, as asked" in caplog.text
+
+
+def test_a_new_file_of_the_game_completes_the_one_before(desktop: Desktop, journal: Path) -> None:
+    desktop.core.ready()
+    past_session(journal, "Journal.2026-10-17T200000.01.log", 17, 1_000, closed=False)
+    desktop.views.wait_for(lambda view: bool(unredeemed(view)))
+    past_session(journal, "Journal.2026-10-18T080000.01.log", 18, 2_000, closed=False)
+    desktop.views.wait_for(
+        lambda view: (
+            unredeemed(view)
+            == [(f"Unredeemed bounties, {LAVIGNY}", "3,000 CR, since 17 October 2026")]
+        )
+    )

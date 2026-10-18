@@ -6,6 +6,7 @@ import re
 from collections.abc import Iterable, Mapping
 from typing import assert_never
 
+from edrockmaster.domain.combat.journal import VoucherKind
 from edrockmaster.domain.combat.session import (
     CombatEnded,
     CombatEndReason,
@@ -16,10 +17,9 @@ from edrockmaster.domain.combat.session import (
     SegmentStats,
     SiteAverage,
     Tally,
-    Vouchers,
-    VouchersUpdated,
 )
 from edrockmaster.domain.combat.sites import SiteType
+from edrockmaster.domain.combat.vouchers import HeldVoucher, VouchersUpdated
 from edrockmaster.ui.panel_model import (
     NumberFormat,
     PanelModel,
@@ -27,6 +27,7 @@ from edrockmaster.ui.panel_model import (
     Translate,
     default_number_format,
     format_credits,
+    format_day,
     format_duration,
     identity,
 )
@@ -79,7 +80,11 @@ CRIME_NAMES = {
 _ON_FOOT_PREFIX = "onFoot_"
 _WORD = re.compile(r"[A-Z]?[a-z]+|[A-Z]+(?![a-z])|\d+")
 FACTIONS_SHOWN = 3
-"""Victim factions with a line of their own; the others add up in one line."""
+"""Victim factions, or unredeemed vouchers, with a line of their own; the others add up in one."""
+_UNREDEEMED = {
+    VoucherKind.BOUNTY: "Unredeemed bounties, {faction}",
+    VoucherKind.COMBAT_BOND: "Unredeemed combat bonds, {faction}",
+}
 
 
 class CombatPresenter:
@@ -91,22 +96,22 @@ class CombatPresenter:
         self._running = False
         self._ended: CombatEndReason | None = None
         self._stats: CombatStats | None = None
-        self._vouchers: Vouchers | None = None
+        self._vouchers: VouchersUpdated | None = None
 
-    def apply(self, notifications: Iterable[CombatNotification]) -> PanelModel:
+    def apply(self, notifications: Iterable[CombatNotification | VouchersUpdated]) -> PanelModel:
         for notification in notifications:
             self._apply(notification)
         return self.render()
 
     def render(self) -> PanelModel:
         lines = list(self._session_lines(self._stats)) if self._stats else []
-        if self._vouchers is not None and self._vouchers.total:
-            lines.append(StatLine(self._tl("Unredeemed"), self._credits(self._vouchers.total)))
+        if self._vouchers is not None:
+            lines += self._voucher_lines(self._vouchers)
         return PanelModel(
             status=self._status(), lines=tuple(lines), alert=None, can_reset=self._running
         )
 
-    def _apply(self, notification: CombatNotification) -> None:
+    def _apply(self, notification: CombatNotification | VouchersUpdated) -> None:
         match notification:
             case CombatStarted():
                 self._running, self._ended, self._stats = True, None, None
@@ -114,8 +119,8 @@ class CombatPresenter:
                 self._stats = stats
             case CombatEnded(reason=reason, stats=stats):
                 self._running, self._ended, self._stats = False, reason, stats
-            case VouchersUpdated(vouchers=vouchers):
-                self._vouchers = vouchers
+            case VouchersUpdated():
+                self._vouchers = notification
             case _:  # pragma: no cover - exhaustiveness checked by mypy
                 assert_never(notification)
 
@@ -161,6 +166,32 @@ class CombatPresenter:
         if stats.crimes.by_kind:
             yield StatLine(tl("Crimes"), self._crimes_text(stats.crimes.by_kind))
         yield from self._faction_lines(stats.by_victim_faction)
+
+    def _voucher_lines(self, updated: VouchersUpdated) -> Iterable[StatLine]:
+        """The vouchers held (ADR 0052): the total if several, then the largest first."""
+        tl = self._tl
+        held = sorted(updated.vouchers.held, key=lambda voucher: -voucher.amount)
+        if len(held) > 1:
+            yield StatLine(tl("Unredeemed"), self._credits(updated.vouchers.total))
+        yield from (self._voucher_line(voucher) for voucher in held[:FACTIONS_SHOWN])
+        others = held[FACTIONS_SHOWN:]
+        if others:
+            label = tl("Unredeemed from {count} other factions").format(
+                count=self._number(len(others), 0)
+            )
+            yield StatLine(label, self._credits(sum(voucher.amount for voucher in others)))
+        if not updated.past.complete:
+            reading = tl("reading: {read} / {total}").format(
+                read=self._number(updated.past.read, 0), total=self._number(updated.past.total, 0)
+            )
+            yield StatLine(tl("Past journals"), reading)
+
+    def _voucher_line(self, voucher: HeldVoucher) -> StatLine:
+        tl = self._tl
+        value = tl("{credits}, since {day}").format(
+            credits=self._credits(voucher.amount), day=format_day(voucher.since, tl)
+        )
+        return StatLine(tl(_UNREDEEMED[voucher.kind]).format(faction=voucher.faction), value)
 
     def _crimes_text(self, by_kind: Mapping[str, int]) -> str:
         """Most frequent first; a crime of equal count in the order it came."""

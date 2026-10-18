@@ -28,6 +28,9 @@ The game writes whole lines, but a read can still fall in the middle of one: an
 incomplete line waits for the rest. A line that is not a journal entry is
 logged and skipped. The follower only reads; it never writes in the folder.
 
+Each file it opens is told first (``on_file``), before its entries: what is
+counted from the journals of past game sessions is told by file (ADR 0052).
+
 ``JournalWatcher`` calls ``poll()`` on a thread of its own, every second.
 """
 
@@ -45,6 +48,9 @@ from edrockmaster.domain.journal_reading import Entry
 
 type OnEntry = Callable[[Entry, bool], None]
 """Receives each entry, and whether it comes from a beta of the game."""
+
+type OnFile = Callable[[Path], None]
+"""Receives each file opened, before its entries."""
 
 POLL_SECONDS = 1.0
 """As often as EDMC polled a running game: reading a few new lines costs nothing."""
@@ -67,9 +73,11 @@ class JournalFollower:
         on_entry: OnEntry,
         logger: logging.Logger,
         sleep: Callable[[float], None] = time.sleep,
+        on_file: OnFile | None = None,
     ) -> None:
         self.directory = directory
         self._on_entry = on_entry
+        self._on_file = on_file
         self._logger = logger
         self._sleep = sleep
         self._file: Path | None = None
@@ -109,6 +117,8 @@ class JournalFollower:
             self._logger.info("Reading the journal from %s", path.name)
         self._file, self._offset, self._pending = path, 0, b""
         self._beta = is_beta_file(path)
+        if self._on_file is not None:
+            self._on_file(path)
 
     def _read(self) -> int:
         assert self._file is not None, "poll() opens a file before reading"

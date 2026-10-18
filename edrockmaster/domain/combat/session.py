@@ -22,14 +22,14 @@ arrival was seen. By ship, it is a conflict zone of unknown intensity; on foot,
 a ground conflict zone. The dropship to a ground conflict zone is an arrival on
 that site, and its retreat a departure.
 
-Vouchers are only known from the moment EDMC started: the journal does not
-restate the vouchers earned before.
+The vouchers those rewards give are followed apart, across game sessions
+(``vouchers.py``, ADR 0052).
 """
 
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum, auto
@@ -44,15 +44,14 @@ from edrockmaster.domain.combat.journal import (
     DestinationDropped,
     Embarked,
     Fact,
-    FactionReward,
     GameClosed,
+    GameIdentified,
     GameLoaded,
     MiningSeen,
     NormalSpaceEntered,
     OnFootArrived,
     SettlementApproached,
     SiteLeft,
-    VoucherKind,
     VouchersRedeemed,
 )
 from edrockmaster.domain.combat.sites import SiteType
@@ -209,18 +208,6 @@ class CombatStats:
 
 
 @dataclass(frozen=True, slots=True)
-class Vouchers:
-    """Unredeemed vouchers, by paying faction."""
-
-    bounties: Mapping[str, int]
-    combat_bonds: Mapping[str, int]
-
-    @property
-    def total(self) -> int:
-        return sum(self.bounties.values()) + sum(self.combat_bonds.values())
-
-
-@dataclass(frozen=True, slots=True)
 class CombatStarted:
     at: datetime
 
@@ -237,12 +224,7 @@ class CombatEnded:
     stats: CombatStats
 
 
-@dataclass(frozen=True, slots=True)
-class VouchersUpdated:
-    vouchers: Vouchers
-
-
-type CombatNotification = CombatStarted | CombatUpdated | CombatEnded | VouchersUpdated
+type CombatNotification = CombatStarted | CombatUpdated | CombatEnded
 
 
 @dataclass(slots=True)
@@ -344,7 +326,7 @@ type _Segment = tuple[SiteType, datetime, str | None]
 
 
 class CombatTracker:
-    """Aggregate root: follows the commander's combat, vouchers and crimes."""
+    """Aggregate root: follows the commander's combat and crimes."""
 
     def __init__(self) -> None:
         self._session: CombatSession | None = None
@@ -355,19 +337,10 @@ class CombatTracker:
         self._on_foot = False
         self._settlement: str | None = None
         self._mining_here = False
-        self._bounties: Counter[str] = Counter()
-        self._bonds: Counter[str] = Counter()
 
     @property
     def session(self) -> CombatSession | None:
         return self._session
-
-    @property
-    def vouchers(self) -> Vouchers:
-        return Vouchers(
-            bounties=MappingProxyType(dict(+self._bounties)),
-            combat_bonds=MappingProxyType(dict(+self._bonds)),
-        )
 
     def handle(self, fact: Fact) -> list[CombatNotification]:
         match fact:
@@ -385,8 +358,8 @@ class CombatTracker:
                 return self._on_move(fact)
             case MiningSeen() | CrimeCommitted():
                 return self._on_conduct(fact)
-            case VouchersRedeemed():
-                return self._on_redeemed(fact)
+            case VouchersRedeemed() | GameIdentified():
+                return []  # the vouchers and who plays: ``VoucherLedger``
             case CommanderDied() | GameClosed():
                 return self._on_exit(fact)
             case _:  # pragma: no cover - exhaustiveness checked by mypy
@@ -451,11 +424,6 @@ class CombatTracker:
         self._session.record_crime(fact)
         return [CombatUpdated(self._session.stats)]
 
-    def _on_redeemed(self, fact: VouchersRedeemed) -> list[CombatNotification]:
-        vouchers = self._bonds if fact.kind is VoucherKind.COMBAT_BOND else self._bounties
-        self._redeem(vouchers, fact.by_faction)
-        return [VouchersUpdated(self.vouchers)]
-
     def _on_exit(self, fact: CommanderDied | GameClosed) -> list[CombatNotification]:
         if isinstance(fact, CommanderDied):
             return self._on_death(fact.at)
@@ -496,33 +464,13 @@ class CombatTracker:
         if not self._session.on_segment and (segment := self._segment_for(reward)):
             self._session.open_segment(*segment)
         self._session.apply(reward)
-        if isinstance(reward, BountyAwarded):
-            self._earn(self._bounties, reward.rewards)
-        else:
-            self._earn(self._bonds, (FactionReward(reward.awarding_faction, reward.amount),))
-        notifications += [CombatUpdated(self._session.stats), VouchersUpdated(self.vouchers)]
+        notifications.append(CombatUpdated(self._session.stats))
         return notifications
 
     def _on_death(self, at: datetime) -> list[CombatNotification]:
         self._settlement = None
         self._arrive(_Place.NOWHERE, None, None)
-        notifications = self._ended(at, CombatEndReason.DIED)
-        if self.vouchers.total:
-            self._bounties.clear()
-            self._bonds.clear()
-            notifications.append(VouchersUpdated(self.vouchers))
-        return notifications
-
-    @staticmethod
-    def _earn(vouchers: Counter[str], rewards: Iterable[FactionReward]) -> None:
-        for reward in rewards:
-            vouchers[reward.faction] += reward.amount
-
-    @staticmethod
-    def _redeem(vouchers: Counter[str], paid: Iterable[FactionReward]) -> None:
-        # Vouchers earned before EDMC started are unknown: never go below zero
-        for reward in paid:
-            vouchers[reward.faction] = max(0, vouchers[reward.faction] - reward.amount)
+        return self._ended(at, CombatEndReason.DIED)
 
     def _ended(self, at: datetime, reason: CombatEndReason) -> list[CombatNotification]:
         ended = self._end(at, reason)

@@ -56,6 +56,7 @@ class FakeGui:
         settings = api.settings()
         api.save_settings(settings)
         api.open_folder("logs")
+        api.read_past_journals()
         layout = api.layout()
         api.save_layout("engineering", layout["engineering"])
 

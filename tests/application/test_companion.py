@@ -6,7 +6,8 @@ import pytest
 from edrockmaster.application.activity import Activity
 from edrockmaster.application.companion import Companion
 from edrockmaster.application.settings import DEFAULT_SETTINGS, PluginSettings
-from edrockmaster.domain.combat.session import CombatEnded, CombatStarted, VouchersUpdated
+from edrockmaster.domain.combat.session import CombatEnded, CombatStarted
+from edrockmaster.domain.combat.vouchers import VouchersUpdated
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.engineering.events import CollectionEnded, CollectionStarted
 from edrockmaster.domain.journal_reading import Entry

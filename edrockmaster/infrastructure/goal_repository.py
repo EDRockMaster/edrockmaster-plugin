@@ -12,8 +12,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
-from collections.abc import Callable, Iterator, Sequence
-from contextlib import contextmanager
+from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
 from typing import assert_never
 
@@ -26,7 +25,7 @@ from edrockmaster.domain.engineering.goals import (
     GoalId,
     ModificationGoal,
 )
-from edrockmaster.infrastructure.database import LocalDatabase
+from edrockmaster.infrastructure.database import LocalDatabase, transaction
 from edrockmaster.infrastructure.worker import Job
 
 type Dispatch = Callable[[Callable[[], None]], None]
@@ -101,18 +100,6 @@ def _modification_goal(row: _ModificationRow) -> ModificationGoal:
     )
 
 
-@contextmanager
-def _transaction(connection: sqlite3.Connection) -> Iterator[None]:
-    """The connection commits each statement: several go together here."""
-    connection.execute("BEGIN")
-    try:
-        yield
-    except BaseException:
-        connection.execute("ROLLBACK")
-        raise
-    connection.execute("COMMIT")
-
-
 def read_goals(connection: sqlite3.Connection) -> tuple[Goal, ...]:
     """Every goal, in the player's priority."""
     ranked = [
@@ -152,7 +139,7 @@ def _read_each_kind(connection: sqlite3.Connection) -> tuple[Goal, ...]:
 
 def insert_goal(connection: sqlite3.Connection, goal: Goal) -> None:
     """The goal, last in the priority."""
-    with _transaction(connection):
+    with transaction(connection):
         _insert(connection, goal)
         connection.execute(
             "INSERT INTO goal_priority (goal_id, rank) "
@@ -224,7 +211,7 @@ def update_goal(connection: sqlite3.Connection, goal: Goal) -> None:
 
 
 def delete_goal(connection: sqlite3.Connection, goal_id: GoalId) -> None:
-    with _transaction(connection):
+    with transaction(connection):
         connection.execute("DELETE FROM engineering_goal WHERE id = ?", (goal_id.value,))
         connection.execute("DELETE FROM class_upgrade_goal WHERE id = ?", (goal_id.value,))
         connection.execute("DELETE FROM modification_goal WHERE id = ?", (goal_id.value,))
@@ -234,7 +221,7 @@ def delete_goal(connection: sqlite3.Connection, goal_id: GoalId) -> None:
 
 def reorder_goals(connection: sqlite3.Connection, order: Sequence[GoalId]) -> None:
     """The goals the order names first, in its order, then the others as they were."""
-    with _transaction(connection):
+    with transaction(connection):
         ranked = [
             goal_id
             for (goal_id,) in connection.execute("SELECT goal_id FROM goal_priority ORDER BY rank")

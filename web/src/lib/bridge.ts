@@ -34,6 +34,8 @@ export interface CoreApi {
   save_settings(settings: Settings): Promise<void>;
   /** Show the folder of the journal recordings or of the logs in the file manager. */
   open_folder(folder: "recordings" | "logs"): Promise<void>;
+  /** Forget what the journals of past game sessions gave, and read them all again (ADR 0052). */
+  read_past_journals(): Promise<void>;
   /** The order of each view's cards, and those folded (ADR 0021). */
   layout(): Promise<Layout>;
   save_layout(view: keyof Layout, layout: { order: string[]; folded: string[] }): Promise<void>;

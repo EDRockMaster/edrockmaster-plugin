@@ -10,7 +10,9 @@ from edrockmaster.domain.combat.journal import (
     DestinationDropped,
     Embarked,
     FactionReward,
+    Galaxy,
     GameClosed,
+    GameIdentified,
     GameLoaded,
     MiningSeen,
     NormalSpaceEntered,
@@ -338,3 +340,52 @@ def test_bounty_on_the_commander_is_parsed() -> None:
         "Bounty": 2_000,
     }
     assert parse_entry(entry) == CrimeCommitted(AT, kind="murder", fine=0, bounty=2_000)
+
+
+# --- who plays, in which galaxy (ADR 0052) ---------------------------------------------------
+
+
+def test_the_commander_is_identified_by_their_frontier_id() -> None:
+    fact = parse_entry({"timestamp": TS, "event": "Commander", "FID": "F1234", "Name": "Fusion"})
+    assert fact == GameIdentified(AT, "F1234", None)
+
+
+@pytest.mark.parametrize(
+    ("version", "timestamp", "galaxy"),
+    [
+        ("4.4.1.1", TS, Galaxy.LIVE),
+        ("4.0.0.1450", "2022-11-29T12:00:00Z", Galaxy.LIVE),
+        ("3.8.0.407", "2022-11-29T12:00:00Z", Galaxy.LEGACY),
+        # Before Update 14, the 3.8 of Horizons was the only galaxy, the one that goes on live
+        ("3.8.0.407", "2022-11-28T23:59:59Z", Galaxy.LIVE),
+        ("3.0", "2018-02-27T10:00:00Z", Galaxy.LIVE),
+        ("2.4", "2017-10-01T10:00:00Z", Galaxy.LIVE),
+    ],
+)
+def test_the_file_header_tells_the_galaxy(version: str, timestamp: str, galaxy: Galaxy) -> None:
+    fact = parse_entry(
+        {"timestamp": timestamp, "event": "Fileheader", "part": 1, "gameversion": version}
+    )
+    assert isinstance(fact, GameIdentified)
+    assert (fact.fid, fact.galaxy) == (None, galaxy)
+
+
+def test_loading_the_game_tells_both() -> None:
+    fact = parse_entry(
+        {"timestamp": TS, "event": "LoadGame", "FID": "F1234", "gameversion": "4.4.1.1"}
+    )
+    assert fact == GameIdentified(AT, "F1234", Galaxy.LIVE)
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        {"timestamp": TS, "event": "Fileheader", "part": 1},
+        {"timestamp": TS, "event": "Fileheader", "gameversion": "beta"},
+        {"timestamp": TS, "event": "LoadGame", "Commander": "Fusion"},
+        {"timestamp": TS, "event": "Commander", "Name": "Fusion"},
+        {"timestamp": TS, "event": "Commander", "FID": ""},
+    ],
+)
+def test_nothing_identified_is_not_a_fact(entry: dict[str, object]) -> None:
+    assert parse_entry(entry) is None

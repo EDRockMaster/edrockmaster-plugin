@@ -102,6 +102,12 @@
 "Reckless weapons discharge" = "Tir imprudent";
 "Carrying a wanted passenger" = "Transport d'un passager recherché";
 "Unredeemed" = "Non encaissé";
+"Unredeemed bounties, {faction}" = "Primes non encaissées, {faction}";
+"Unredeemed combat bonds, {faction}" = "Obligations non encaissées, {faction}";
+"Unredeemed from {count} other factions" = "Non encaissé, {count} autres factions";
+"{credits}, since {day}" = "{credits}, depuis le {day}";
+"Past journals" = "Anciens journaux";
+"reading: {read} / {total}" = "lecture : {read} / {total}";
 
 /* ui/combat_presenter.py: community goal: contribution, percentile band, tier */
 "top {band} %" = "top {band} %";
@@ -612,3 +618,18 @@
 "Travel at least 300 ly from where you started." = "Voyager à au moins 300 al de votre point de départ.";
 "Travel at least 5,000 ly from where you started." = "Voyager à au moins 5 000 al de votre point de départ.";
 "Visit 5 settlements in the Colonia system." = "Visiter 5 colonies du système Colonia.";
+
+/* ui/panel_model.py: a day in words */
+"{day} {month} {year}" = "{day} {month} {year}";
+"January" = "janvier";
+"February" = "février";
+"March" = "mars";
+"April" = "avril";
+"May" = "mai";
+"June" = "juin";
+"July" = "juillet";
+"August" = "août";
+"September" = "septembre";
+"October" = "octobre";
+"November" = "novembre";
+"December" = "décembre";

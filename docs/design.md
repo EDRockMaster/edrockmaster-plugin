@@ -32,7 +32,8 @@ edrockmaster/
     combat/                     combat context
       journal.py                journal entry → combat fact
       sites.py                  combat sites, as the game names them on arrival
-      session.py                CombatTracker aggregate (sessions by site segments, vouchers, crimes)
+      session.py                CombatTracker aggregate (sessions by site segments, crimes)
+      vouchers.py               VoucherLedger aggregate: unredeemed vouchers per commander and galaxy (ADR 0052)
     trade/                      trade context
       journal.py                journal entry → trade fact
       session.py                TradeTracker aggregate (sessions, routes, flight time, cargo bought, losses)
@@ -58,9 +59,10 @@ edrockmaster/
     companion.py                Companion: records the journal once, hands each entry to every activity, owns the settings
     settings.py                 PluginSettings (alerts, sound, recorder, activities shown, sources) and their defaults
     community.py                what a community source answers: found, or off, busy, down (ADR 0039)
-    ports.py                    Clock, SettingsStore, Notifier, JournalRecorder, GoalRepository, GalaxyCatalogue, CommodityMarkets
+    ports.py                    Clock, SettingsStore, Notifier, JournalRecorder, GoalRepository, GalaxyCatalogue, CommodityMarkets, JournalArchive, PastJournalStore
     mining_service.py           mining use cases: handle a journal entry, reset the session, apply settings
-    combat_service.py           combat use cases: handle a journal entry, reset the session
+    combat_service.py           combat use cases: handle a journal entry, reset the session, the vouchers of past and live journals
+    past_journals.py            PastJournalReader: the journals of past game sessions, each read once (ADR 0052)
     trade_service.py            trade use cases: handle a journal entry, reset the session
     engineering_service.py      engineering use cases: journal, goals and their storage, reset
     situation_service.py        the commander's situation
@@ -71,6 +73,7 @@ edrockmaster/
     database.py                 the local SQLite database: opening, migrations, copy, moving aside (ADR 0018)
     migrations.py               the database schema, one migration per version
     goal_repository.py          GoalRepository on the local database
+    past_journal_store.py       PastJournalStore on the local database: the files read and the vouchers they gave
     catalogue_file.py           reads the engineering catalogue shipped with the application
     build_file.py               reads edrockmaster/build.json, written by the packaging
     sound.py                    Notifier: alert sounds, played by the host's function
@@ -91,6 +94,7 @@ edrockmaster/
   desktop/                      the application (ADR 0020): its composition root and its window
     journal_folder.py           where the game writes its journal; journal files in order
     journal_reader.py           JournalFollower (follows the journal as the game writes it), JournalWatcher (its thread)
+    journal_archive.py          FolderArchive: the journal files of the folder, for the past journals' reading
     core.py                     DesktopCore: the composition root, the core thread, the live view pushed
     handlers/                   the interface's calls, one handler per context (ADR 0041), and the CoreContext they reach the core through
     live_view.py                the live view, as schemas/live_view.schema.json describes it
@@ -126,7 +130,8 @@ All of this is pure computation on small objects (well under a millisecond per e
 - **Journal thread** (`EDRockMaster journal`): `JournalWatcher` reads the journal every second.
 - **Core thread** (`EDRockMaster core`, an `IoWorker` of its own): every call to the companion, the presenters and the view builders. The journal thread and the interface's calls only queue jobs for it; it calls `push`, which must not block.
 - **One I/O thread** (`infrastructure/worker.py`): a daemon thread fed by a `queue.Queue` of jobs (append to the recording file, the local database, the settings file; in 1B, uploads and authentication). What it reads reaches the core thread as a job queued there.
-- At exit: the watcher stops, then the core thread; the database closes in a last job of the I/O thread, which then stops.
+- **Past journals thread** (`EDRockMaster past journals`, an `IoWorker`): `PastJournalReader` reads the journals of past game sessions at start and each time the game opens a new file (ADR 0052). Its ports block: it `call`s jobs of the I/O thread and waits for them. What it reads reaches the core thread as a job queued there.
+- At exit: the watcher stops, then the past journals thread (a first reading still running starts again next time), then the core thread; the database closes in a last job of the I/O thread, which then stops.
 
 ## Mining session lifecycle
 
@@ -173,17 +178,29 @@ Combat covers bounty hunting, conflict zones and any kill ([ADR 0013](https://gi
 | Bounty elsewhere (a pirate while mining, near a station, after an interdiction): a bounty does not tell the place | **Miscellaneous**: counted in kills, credits and vouchers, in no rate |
 | Reward with no arrival seen (the game started on the site: `StartUp`, `Location` off station) | A segment of type **unknown**, from that reward; miscellaneous if the commander mines there (`ProspectedAsteroid`, `MiningRefined`, `AsteroidCracked`, prospector limpets; not collectors, which also pick up what pirates drop) |
 | `CommitCrime` during a session | Counted by kind of crime: fines and bounties on the commander, never deducted from the credits |
-| `Died` | Session ends; unredeemed vouchers are lost |
+| `Died` | Session ends; the commander's unredeemed vouchers are lost |
 | `Shutdown`, `ShutDown` | Session ends |
-| `RedeemVoucher` (bounties, combat bonds) | The vouchers paid are removed, per faction, never below zero |
+| `RedeemVoucher` (bounties, combat bonds) | Every voucher of that kind of each faction paid is removed: a broker pays less than the vouchers, combat bonds are paid more (ADR 0049) |
+| `Fileheader`, `Commander`, `LoadGame` | Who plays (`FID`) and in which galaxy (`gameversion` below 4 since Update 14, 29 November 2022: Legacy): each save has its own vouchers |
 | `CommunityGoal` | The goals the commander joined: contribution, percentile band, tier reached |
 | Manual reset (button of the combat block) | Session ends, a new one can start; still on the site, the next segment starts at the reset |
 
-Statistics of a combat session: its segments (site type, duration, kills, credits, rates), an average **per site type, weighted by time** (total kills and credits over total duration), time on combat sites, kills (and shared kills), bounty and combat bond credits earned (as the journal writes them, the game's notification amounts: a conflict zone's combat bonds were paid 3.3 to 3.7 times more at redemption, on the journals of 3 to 12 October 2026), miscellaneous kills, kills and credits **by victim faction** (`VictimFaction` of `Bounty` and `FactionKillBond`: the three with most kills, then the others together), crimes **by kind** (`CrimeType`, named in the player's language; a kind the application does not know is shown from its symbol, in English). Shown with the block: unredeemed vouchers (known since the journal file began only: the journal does not restate older ones). Superpower factions written `$faction_Federation;` are normalised to `Federation`. Another activity never ends a combat session: a miner may fight back and keep mining.
+Statistics of a combat session: its segments (site type, duration, kills, credits, rates), an average **per site type, weighted by time** (total kills and credits over total duration), time on combat sites, kills (and shared kills), bounty and combat bond credits earned (as the journal writes them, the game's notification amounts: a conflict zone's combat bonds were paid 3.3 to 3.7 times more at redemption, on the journals of 3 to 12 October 2026), miscellaneous kills, kills and credits **by victim faction** (`VictimFaction` of `Bounty` and `FactionKillBond`: the three with most kills, then the others together), crimes **by kind** (`CrimeType`, named in the player's language; a kind the application does not know is shown from its symbol, in English). Shown with the block: the unredeemed vouchers, below. Superpower factions written `$faction_Federation;` are normalised to `Federation`. Another activity never ends a combat session: a miner may fight back and keep mining.
 
 The *Activities* tab shows one block per activity the player chose (*Settings*), each with its own **Reset** button ([ADR 0013](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0013-combat-segments-and-live-panel.md)); the block of the last activity to **progress** is highlighted. For combat, a session or a segment that starts or ends, a reward or a crime is progress; leaving a site without a segment and vouchers are not. **Community goals** ([ADR 0032](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0032-community-goals-card.md)) have a card of their own, which is not a session and never progresses: shown only while a goal is joined, one tile per goal (title, system unless the title names it, contribution, percentile band, tier reached out of the top tier) with its expiry counted down by the interface, or "Complete: reward to collect". A goal goes when the game's list no longer has it, or at once with its reward (`CommunityGoalReward`) or its discard (`CommunityGoalDiscard`), after which the game writes no new list. For trade, a session that starts or ends, a purchase, a sale or a loss. A hidden activity is still followed: shown again, it is up to date.
 
 **Cards** (ADR 0021). The activity blocks and the parts of the *Engineering* view (ship: goals, shopping list, inventory, engineers; on foot: goals, shopping list, inventory, carrier, suits and weapons, engineers) are cards, one below the other (`CardStack.svelte`). The player moves a card by dragging its handle onto another (it takes that one's place), or with its arrows from the keyboard, and folds or unfolds it; a card is draggable only while its handle is held, so that its text and inputs stay usable. The layout of each view, every card in order and those folded, is kept between sessions: the interface asks the core for it once (`layout()`, schema `layout.schema.json`) and sends back each change of a view (`save_layout`); the core keeps it in `settings.json` (`desktop/layout.py`), as one JSON text. A stored order that leaves out a card (a new one) puts it last, a card it names that no longer exists is dropped, and a stored layout that cannot be read falls back to the first one. With the cards as wide as the window, an activity's statistics show as tiles side by side, and the inventory shows each material category on its own row, its grades side by side, with each grade's cap at the top of its column.
+
+### Unredeemed vouchers ([ADR 0052](https://git.nexagone.io/EDRockMaster/edrockmaster-architecture/src/branch/main/docs/adr/0052-journal-index.md))
+
+The journal never restates the vouchers held: they are only known by following them from the kill to the redemption or the death, and a bounty hunter may hand them in days later. So the application reads **every journal of the folder once**, and keeps what lasts across game sessions in the local database.
+
+- `VoucherLedger` (domain) follows the vouchers of every commander, per galaxy, per kind and paying faction, since the oldest one held.
+- `PastJournalReader` (application, on its own thread) reads the **complete** files the index does not know, oldest first: a file is complete once a newer one exists, or once it ends with `Shutdown`. Only the lines of the events it needs are decoded (`FolderArchive` skips the others by their name); betas are left out. Each file is indexed with the ledger it led to in **one transaction**: counted in full or not at all. A file of the index whose size changed, or an unknown file older than the newest of the index, means the order is lost: everything is read again from the files present. Files removed from the folder keep what they gave. `VERSION` (in `past_journals.py`) is raised by a fix that changes what a file gives: the store kept under another version is emptied and everything is read again.
+- The **current file** is read live, as before; `CombatService` keeps its voucher facts with their file, and adds them to what the past journals gave. When the reader counts that file later, its facts are dropped from the live ones: nothing is counted twice.
+- The first start with this version reads the whole history, on its own thread: the live view does not wait, and the combat card says *Past journals: reading 120 / 860* until it ends. Then each start reads the new files only. *Settings* offers *Read past journals again*.
+- **Shown**: one line per kind and paying faction, the largest first (*Unredeemed bounties, Lavigny's Legion: 33,552,700 CR, since 14 October 2026*), three at most, the others together; with several, their total first (*Unredeemed*). Amounts are the journal's: combat bonds are paid more at redemption (ADR 0049).
+- Without a local database, nothing is kept: every past journal is read again at each start, and the figures stay right.
 
 ## Trade
 
@@ -300,7 +317,7 @@ Contents:
 
 ## Local database
 
-One SQLite file for the application's durable **state**, which is neither a setting nor a recording (design decision ADR 0018). Each need has its own tables and its own repository port: the engineering goals (`GoalRepository`, ADR 0017), the answers of the community sources (ADR 0039). Nothing in it leaves the computer.
+One SQLite file for the application's durable **state**, which is neither a setting nor a recording (design decision ADR 0018). Each need has its own tables and its own repository port: the engineering goals (`GoalRepository`, ADR 0017), the answers of the community sources (ADR 0039), the journal files read and the unredeemed vouchers they gave (`PastJournalStore`, schema version 7, ADR 0052). Nothing in it leaves the computer.
 
 - **The I/O thread only.** The database opens in a job of the I/O thread at start, and closes in one at exit. `LocalDatabase.connection()` refuses any other thread. Repositories turn each call into a job; what they read reaches the core thread as a job queued there.
 - **Versioned schema.** `PRAGMA user_version` is the schema version; `infrastructure/migrations.py` lists the migrations, applied in order at opening, each in its own transaction, forward only. A released migration never changes. Before migrating a database of version N > 0, the file is copied (SQLite's backup API) to `edrockmaster.sqlite3.v<N>.bak`, and older copies are removed. WAL journal mode.

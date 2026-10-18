@@ -224,6 +224,7 @@ export function fakeCore(): CoreApi {
     settings: vi.fn(async () => structuredClone(SETTINGS)),
     save_settings: vi.fn(async () => {}),
     open_folder: vi.fn(async () => {}),
+    read_past_journals: vi.fn(async () => {}),
     layout: vi.fn(async () => structuredClone(FIRST_LAYOUT)),
     save_layout: vi.fn(async () => {}),
     mining_options: vi.fn(async () => structuredClone(MINING_OPTIONS)),

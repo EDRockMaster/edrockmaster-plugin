@@ -92,6 +92,10 @@ class InterfaceApi:
         """``recordings`` or ``logs``: any other name is refused by the handler."""
         self._core.handlers.settings.open_folder(name)
 
+    def read_past_journals(self) -> None:
+        """Forget what the journals of past game sessions gave, and read them all again."""
+        self._core.handlers.settings.read_past_journals()
+
     def layout(self) -> dict[str, Any]:
         """Returned to the page: the order of the cards of each view, and those folded."""
         return self._core.handlers.layout.layout()

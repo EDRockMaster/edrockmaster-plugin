@@ -5,7 +5,7 @@ from collections.abc import Iterator
 
 import pytest
 
-from edrockmaster.infrastructure.worker import IoWorker
+from edrockmaster.infrastructure.worker import IoWorker, WorkerStoppedError
 
 logger = logging.getLogger("test.worker")
 
@@ -106,3 +106,22 @@ def test_a_worker_may_have_its_own_thread_name() -> None:
     worker.submit(lambda: names.append(threading.current_thread().name))
     worker.stop()
     assert names == ["EDRockMaster core"]
+
+
+def test_a_call_waits_for_its_result_from_the_worker_thread(worker: IoWorker) -> None:
+    assert worker.call(lambda: threading.current_thread().name) == "EDRockMaster I/O"
+
+
+def test_a_call_raises_what_its_job_raised(worker: IoWorker) -> None:
+    def fail() -> None:
+        raise OSError("disk full")
+
+    with pytest.raises(OSError, match="disk full"):
+        worker.call(fail)
+    assert worker.call(lambda: 2) == 2
+
+
+def test_a_call_to_a_stopped_worker_fails(worker: IoWorker) -> None:
+    worker.stop()
+    with pytest.raises(WorkerStoppedError):
+        worker.call(lambda: 1)

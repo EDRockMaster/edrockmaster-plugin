@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Protocol
 
 from edrockmaster.application.community import Answer
 from edrockmaster.application.settings import PluginSettings
+from edrockmaster.domain.combat.vouchers import CommanderKey, VoucherLedger
 from edrockmaster.domain.engineering.goals import Goal, GoalId
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.mining.hotspots import HotspotPage, HotspotQuery
@@ -96,4 +98,59 @@ class CommodityMarkets(Protocol):
         refresh: bool = False,
     ) -> None:
         """Markets that buy the commodity around the system, as the source gives them."""
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class JournalFile:
+    """A journal file of the game (ADR 0052), by name; its size tells whether it changed."""
+
+    name: str
+    size: int
+
+
+@dataclass(frozen=True, slots=True)
+class IndexedFile:
+    """A journal file read and counted, with the commander playing at its end."""
+
+    file: JournalFile
+    commander: CommanderKey
+
+
+@dataclass(slots=True)
+class KeptHistory:
+    """What the journals of past game sessions gave, as kept (ADR 0052)."""
+
+    files: dict[str, IndexedFile] = field(default_factory=dict)
+    """The files read and counted, by name, those since removed from the folder included."""
+    ledger: VoucherLedger = field(default_factory=VoucherLedger)
+
+
+class JournalArchive(Protocol):
+    """The journal files in the folder; blocks (ADR 0052)."""
+
+    def files(self) -> Sequence[JournalFile]:
+        """Every journal file of the game but its betas, oldest first."""
+        ...
+
+    def entries(self, file: JournalFile, events: frozenset[str]) -> Iterable[Entry]:
+        """The entries of a file whose event is one of ``events``, in order."""
+        ...
+
+
+class PastJournalStore(Protocol):
+    """The index of the journal files read, and what they gave; blocks (ADR 0052).
+
+    ``version`` is the version of the rules that read the journal: a store kept
+    under another version is empty, so that every file is read again.
+    """
+
+    def load(self, version: int) -> KeptHistory: ...
+
+    def save(self, version: int, indexed: IndexedFile, ledger: VoucherLedger) -> None:
+        """Index a file and keep the ledger it led to, together or not at all."""
+        ...
+
+    def clear(self, version: int) -> None:
+        """Forget every file read and what they gave."""
         ...

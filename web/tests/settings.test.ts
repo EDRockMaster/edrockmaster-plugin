@@ -205,6 +205,17 @@ describe("SettingsView", () => {
     expect(api.save_settings).not.toHaveBeenCalled();
   });
 
+  it("reads the past journals again when asked, and says where to follow it", async () => {
+    const api = await opened("fr");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    await fireEvent.click(screen.getByRole("button", { name: "Relire les anciens journaux" }));
+    expect(api.read_past_journals).toHaveBeenCalledOnce();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Relecture en cours : la carte Combat montre l'avancement.",
+    );
+    expect(api.save_settings).not.toHaveBeenCalled();
+  });
+
   it("shows nothing to change outside pywebview", () => {
     render(SettingsView, { language: "en", journal: JOURNAL });
     expect(screen.getByText("Loading the settings…")).toBeInTheDocument();

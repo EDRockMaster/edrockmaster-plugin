@@ -12,7 +12,9 @@ from edrockmaster.domain.combat.journal import (
     DestinationDropped,
     Embarked,
     FactionReward,
+    Galaxy,
     GameClosed,
+    GameIdentified,
     GameLoaded,
     MiningSeen,
     NormalSpaceEntered,
@@ -30,7 +32,6 @@ from edrockmaster.domain.combat.session import (
     CombatTracker,
     CombatUpdated,
     Tally,
-    VouchersUpdated,
 )
 from edrockmaster.domain.combat.sites import SiteType
 
@@ -100,7 +101,7 @@ def on_site(tracker: CombatTracker) -> CombatTracker:
 def test_first_reward_starts_a_session() -> None:
     tracker = on_site(CombatTracker())
     notifications = tracker.handle(bounty(1))
-    assert kinds(notifications) == [CombatStarted, CombatUpdated, VouchersUpdated]
+    assert kinds(notifications) == [CombatStarted, CombatUpdated]
     assert notifications[0] == CombatStarted(at(1))
     assert tracker.session is not None
 
@@ -556,62 +557,17 @@ def test_crimes_without_a_session_are_ignored() -> None:
     assert tracker.session is None
 
 
-# --- vouchers -----------------------------------------------------------------------------
+# --- vouchers: followed apart (``VoucherLedger``) ------------------------------------------
 
 
-def test_vouchers_accumulate_per_faction() -> None:
-    tracker = on_site(CombatTracker())
-    tracker.handle(bounty(0, (FED, 100_000), (SIRIUS, 20_000)))
-    tracker.handle(bounty(1, (FED, 50_000)))
-    vouchers = tracker.handle(bond(2, 30_000))[-1]
-    assert isinstance(vouchers, VouchersUpdated)
-    assert vouchers.vouchers.bounties == {FED: 150_000, SIRIUS: 20_000}
-    assert vouchers.vouchers.combat_bonds == {FED: 30_000}
-    assert vouchers.vouchers.total == 200_000
-
-
-def test_redeeming_removes_the_vouchers_paid() -> None:
-    tracker = on_site(CombatTracker())
-    tracker.handle(bounty(0, (FED, 100_000), (SIRIUS, 20_000)))
-    tracker.handle(bond(1, 30_000))
-    [updated] = tracker.handle(redeemed(5, VoucherKind.BOUNTY, (FED, 100_000)))
-    assert isinstance(updated, VouchersUpdated)
-    assert updated.vouchers.bounties == {SIRIUS: 20_000}
-    [updated] = tracker.handle(redeemed(6, VoucherKind.COMBAT_BOND, (FED, 30_000)))
-    assert isinstance(updated, VouchersUpdated)
-    assert updated.vouchers.combat_bonds == {}
-
-
-def test_redeeming_vouchers_earned_before_edmc_started_never_goes_negative() -> None:
-    tracker = on_site(CombatTracker())
-    tracker.handle(bounty(0, (FED, 10_000)))
-    [updated] = tracker.handle(redeemed(1, VoucherKind.BOUNTY, (FED, 90_000), (SIRIUS, 5_000)))
-    assert isinstance(updated, VouchersUpdated)
-    assert updated.vouchers.bounties == {}
-
-
-def test_redeeming_does_not_touch_the_session() -> None:
+def test_redeeming_and_who_plays_do_not_touch_the_session() -> None:
     tracker = on_site(CombatTracker())
     tracker.handle(bounty(0))
-    tracker.handle(redeemed(1, VoucherKind.BOUNTY, (FED, 100_000)))
+    assert tracker.handle(redeemed(1, VoucherKind.BOUNTY, (FED, 100_000))) == []
+    assert tracker.handle(GameIdentified(at(2), "F1234", Galaxy.LIVE)) == []
     assert tracker.session is not None
     assert tracker.session.stats.bounty_credits == 100_000
 
 
-def test_miscellaneous_kills_earn_vouchers_too() -> None:
-    tracker = CombatTracker()
-    tracker.handle(NormalSpaceEntered(at(0)))
-    assert tracker.handle(bounty(1))[-1] == VouchersUpdated(tracker.vouchers)
-    assert tracker.vouchers.total == 100_000
-
-
-def test_death_loses_the_unredeemed_vouchers() -> None:
-    tracker = on_site(CombatTracker())
-    tracker.handle(bounty(0))
-    notifications = tracker.handle(CommanderDied(at(1)))
-    assert kinds(notifications) == [CombatEnded, VouchersUpdated]
-    assert tracker.vouchers.total == 0
-
-
-def test_death_without_vouchers_notifies_no_voucher_change() -> None:
+def test_death_without_a_session_notifies_nothing() -> None:
     assert CombatTracker().handle(CommanderDied(at(1))) == []

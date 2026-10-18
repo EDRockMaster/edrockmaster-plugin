@@ -9,6 +9,7 @@ from edrockmaster.ui import (
     combat_presenter,
     engineering_presenter,
     mining_presenter,
+    panel_model,
     trade_presenter,
 )
 from edrockmaster.ui.commodity_names import MINEABLE
@@ -45,6 +46,8 @@ def source_strings() -> set[str]:
     strings |= set(combat_presenter._END_REASONS.values())
     strings |= set(combat_presenter.SITE_NAMES.values())
     strings |= set(combat_presenter.CRIME_NAMES.values())
+    strings |= set(combat_presenter._UNREDEEMED.values())
+    strings |= set(panel_model.MONTHS)
     strings |= set(trade_presenter._END_REASONS.values())
     strings |= set(engineering_presenter._GAINED.values())
     strings |= set(engineering_presenter._END_REASONS.values())

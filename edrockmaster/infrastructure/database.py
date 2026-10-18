@@ -18,7 +18,8 @@ from __future__ import annotations
 import logging
 import sqlite3
 import threading
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -54,6 +55,18 @@ class Opening:
     """Where the unreadable file went, if it was moved aside."""
     reason: str | None = None
     """Why the file was moved aside, or why the database is unavailable."""
+
+
+@contextmanager
+def transaction(connection: sqlite3.Connection) -> Iterator[None]:
+    """The connection commits each statement: several go together here."""
+    connection.execute("BEGIN")
+    try:
+        yield
+    except BaseException:
+        connection.execute("ROLLBACK")
+        raise
+    connection.execute("COMMIT")
 
 
 def _now() -> datetime:

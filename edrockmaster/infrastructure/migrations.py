@@ -123,4 +123,42 @@ MIGRATIONS: tuple[Migration, ...] = (
             """,
         ),
     ),
+    Migration(
+        7,
+        (
+            # The journal files of past game sessions read and counted (ADR 0052), with the
+            # commander playing at their end; read_at in UTC, ISO 8601
+            """
+            CREATE TABLE journal_file_read (
+                name TEXT PRIMARY KEY CHECK (name <> ''),
+                size INTEGER NOT NULL CHECK (size >= 0),
+                commander TEXT NOT NULL,
+                galaxy TEXT NOT NULL CHECK (galaxy IN ('live', 'legacy')),
+                read_at TEXT NOT NULL CHECK (read_at <> '')
+            ) STRICT
+            """,
+            # The version of the rules that read them, and who played at the end of the last one
+            """
+            CREATE TABLE past_journals (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                version INTEGER NOT NULL CHECK (version >= 1),
+                commander TEXT NOT NULL,
+                galaxy TEXT NOT NULL CHECK (galaxy IN ('live', 'legacy'))
+            ) STRICT
+            """,
+            # What they gave: the vouchers each commander holds, per kind and paying faction,
+            # since the oldest of them (UTC, ISO 8601)
+            """
+            CREATE TABLE unredeemed_voucher (
+                commander TEXT NOT NULL,
+                galaxy TEXT NOT NULL CHECK (galaxy IN ('live', 'legacy')),
+                kind TEXT NOT NULL CHECK (kind IN ('bounty', 'combat_bond')),
+                faction TEXT NOT NULL,
+                amount INTEGER NOT NULL CHECK (amount > 0),
+                since TEXT NOT NULL CHECK (since <> ''),
+                PRIMARY KEY (commander, galaxy, kind, faction)
+            ) STRICT
+            """,
+        ),
+    ),
 )

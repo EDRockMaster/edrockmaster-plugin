@@ -9,7 +9,9 @@ interface after each change. The interface's calls go to a handler per context
 Threads: every call to the companion and to the presenter happens on the
 **core thread**, fed by a queue: the journal reader's thread and the
 interface's calls only submit jobs to it. The I/O thread of ADR 0018 does the
-disk work. ``push`` is called on the core thread and must not block.
+disk work. ``push`` is called on the core thread and must not block. The
+journals of past game sessions are read on a thread of their own (ADR 0052),
+at start and each time the game opens a new file, without holding the live view.
 """
 
 from __future__ import annotations
@@ -27,6 +29,7 @@ from edrockmaster.application.build import BuildInfo
 from edrockmaster.application.community import Source
 from edrockmaster.application.companion import Companion, Notification
 from edrockmaster.application.mining_search import MiningSearch
+from edrockmaster.application.past_journals import PastJournalReader, PastJournalsRead
 from edrockmaster.application.ports import Clock
 from edrockmaster.desktop.engineering_view import engineering_view
 from edrockmaster.desktop.folder_opener import open_in_file_manager
@@ -35,6 +38,7 @@ from edrockmaster.desktop.handlers.engineering import EngineeringHandler
 from edrockmaster.desktop.handlers.layout import LayoutHandler
 from edrockmaster.desktop.handlers.mining import MiningHandler
 from edrockmaster.desktop.handlers.settings import SettingsHandler
+from edrockmaster.desktop.journal_archive import FolderArchive
 from edrockmaster.desktop.journal_folder import default_journal_folder
 from edrockmaster.desktop.journal_reader import POLL_SECONDS, JournalFollower, JournalWatcher
 from edrockmaster.desktop.layout import LayoutStore
@@ -48,6 +52,7 @@ from edrockmaster.infrastructure.clock import SystemClock
 from edrockmaster.infrastructure.database import FILE_NAME as DATABASE_FILE_NAME
 from edrockmaster.infrastructure.database import LocalDatabase, Opening
 from edrockmaster.infrastructure.goal_repository import SqliteGoalRepository
+from edrockmaster.infrastructure.past_journal_store import SqlitePastJournalStore
 from edrockmaster.infrastructure.recorder_jsonl import JsonlJournalRecorder
 from edrockmaster.infrastructure.settings_file import FILE_NAME as SETTINGS_FILE_NAME
 from edrockmaster.infrastructure.settings_file import JsonFileConfig
@@ -69,6 +74,7 @@ if sys.platform == "win32":  # pragma: no cover
     import winsound
 
 CORE_THREAD = "EDRockMaster core"
+PAST_JOURNALS_THREAD = "EDRockMaster past journals"
 RECORDINGS_DIRECTORY = "recordings"
 PACKAGE_DIRECTORY = Path(__file__).resolve().parents[1]
 
@@ -146,6 +152,8 @@ class DesktopCore:
         self._poll_interval = poll_interval
         self._io = IoWorker(logger)
         self._core = IoWorker(logger, CORE_THREAD)
+        self._past_journals = IoWorker(logger, PAST_JOURNALS_THREAD)
+        self._past_reader: PastJournalReader | None = None
         self._translations = translator(language)
         self._number_format = number_format(language)
         self._presenter = ActivityPresenter(self._tl, self._format_number)
@@ -236,6 +244,7 @@ class DesktopCore:
                 open_folder=self._open_folder,
                 clear_source=lambda source: sources[source].clear(),
                 set_language=self._set_language,
+                read_past_journals=self._read_past_journals_again,
             ),
             layout=LayoutHandler(context, LayoutStore(config)),
             engineering=EngineeringHandler(context),
@@ -243,8 +252,14 @@ class DesktopCore:
         )
         companion.engineering.load_goals(self._apply)
         if self._journal_folder is not None:
+            self._past_reader = PastJournalReader(
+                FolderArchive(self._journal_folder, self._logger),
+                SqlitePastJournalStore(database, self._io, self._logger),
+                self._on_past_journals,
+            )
+            self._past_journals.start()
             follower = self._follower = JournalFollower(
-                self._journal_folder, self._on_entry, self._logger
+                self._journal_folder, self._on_entry, self._logger, on_file=self._on_journal_file
             )
             self._watcher = JournalWatcher(follower, self._logger, self._poll_interval)
             self._watcher.start()
@@ -254,6 +269,8 @@ class DesktopCore:
     def stop(self) -> None:
         if self._watcher is not None:
             self._watcher.stop()
+        # A first reading of years of journals may still run: it starts again next time
+        self._past_journals.stop(timeout=1.0)
         self._core.stop()
         if self._database is not None:
             self._io.submit(self._database.close)
@@ -329,6 +346,36 @@ class DesktopCore:
             ArdentMarkets(sources[Source.ARDENT], SourceClient(agent, opener=self._http_opener)),
             self._clock,
         )
+
+    # The journals of past game sessions (ADR 0052)
+
+    def _on_journal_file(self, path: Path) -> None:
+        """From the journal reader's thread: a file opened, the one before may now be complete."""
+        self._core.submit(lambda: self._require_companion().combat.journal_file_opened(path.name))
+        self._past_journals.submit(self._catch_up)
+
+    def _read_past_journals_again(self) -> None:
+        """The player asked: forget what the past journals gave, and read them all again."""
+        self._logger.info("Reading the past journals again, as asked")
+        self._past_journals.submit(self._read_again)
+
+    def _catch_up(self) -> None:
+        if self._past_reader is not None:
+            self._past_reader.catch_up()
+
+    def _read_again(self) -> None:
+        if self._past_reader is not None:
+            self._past_reader.read_again()
+
+    def _on_past_journals(self, read: PastJournalsRead) -> None:
+        """From the past journals' thread: queued for the core thread."""
+
+        def apply() -> None:
+            if read.past.complete:
+                self._logger.info("Past journals: %d files counted", len(read.indexed))
+            self._apply(self._require_companion().combat.past_journals_read(read))
+
+        self._core.submit(apply)
 
     # The core thread
 
