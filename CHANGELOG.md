@@ -6,15 +6,6 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
-### Fixed
-
-- **Unredeemed vouchers now match the game's panel**, however long ago you earned them (design decision ADR 0052). The application used to count only the newest journal file: a bounty hunter who hands in once a week saw the last evening's vouchers, not the 33 million CR the game held. It now reads every journal of the folder **once**, keeps what it found in its local database, and at each start reads only the new files. The combat card lists the vouchers per faction and kind, the largest first, with the day of the oldest (*Unredeemed bounties, Lavigny's Legion: 33,552,700 CR, since 14 October 2026*). Each commander, and Legacy apart from the live game, has their own.
-- A redemption at an Interstellar Factor, which pays less than the vouchers, now clears them: nothing of that faction is left.
-
-### Added
-
-- The first start after the update reads your whole history once, without holding up the application: the combat card shows *Past journals: reading 120 / 860* until it is done. *Settings* can **read past journals again**.
-
 ## [0.6.0] - 2026-10-12
 
 ### Added
@@ -28,6 +19,7 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 - **Limpets on board** in the mining card, and an **alert before they run out**: one sound and *5 limpets left* when they fall to 5 during a mining session, once, not at every launch. The number is set in *Settings* (empty for no alert).
 - **The current route**, on the right of the situation banner, while a route is plotted in the game: destination and jumps left, the next jump with its star in words and whether fuel can be scooped there, and where fuel can next be scooped. An **alert** before a dangerous star (white dwarf, neutron star, black hole), and when the fuel may not reach the next scoopable star (design decision ADR 0043).
 - **Community sources** in *Settings*: Spansh and Ardent Insight can each be turned off; the privacy policy says what they receive.
+- The first start after the update reads your whole history once, without holding up the application: the combat card shows *Past journals: reading 120 / 860* until it is done. *Settings* can **read past journals again**.
 
 ### Changed
 
@@ -40,6 +32,8 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 - *Settings* no longer drops changes not saved when you open another tab: it asks whether to save them, drop them or keep editing.
 - Black boxes, escape pods and wreckage picked up with collector limpets at a signal source no longer start a mining session: a collector limpet starts none, what it brings back does (fragments reaching the refinery). A collector no longer counts as mining in combat either, so that a bounty hunter collecting what pirates drop keeps their segment.
 - The combat card says *Combat bonds earned* and *Bounties earned*: what the session earned, not what is left to redeem (*Unredeemed* says that).
+- **Unredeemed vouchers now match the game's panel**, however long ago you earned them (design decision ADR 0052). The application used to count only the newest journal file: a bounty hunter who hands in once a week saw the last evening's vouchers, not the 33 million CR the game held. It now reads every journal of the folder **once**, keeps what it found in its local database, and at each start reads only the new files. The combat card lists the vouchers per faction and kind, the largest first, with the day of the oldest (*Unredeemed bounties, Lavigny's Legion: 33,552,700 CR, since 14 October 2026*). Each commander, and Legacy apart from the live game, has their own.
+- A redemption at an Interstellar Factor, which pays less than the vouchers, now clears them: nothing of that faction is left.
 
 ## [0.5.0] - 2026-10-11
 

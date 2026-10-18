@@ -6,15 +6,6 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
-### Corrigé
-
-- **Les bons non encaissés correspondent maintenant au panneau du jeu**, quel que soit le temps écoulé depuis leur gain (décision de conception ADR 0052). L'application ne comptait que le fichier de journal le plus récent : un chasseur de primes qui encaisse une fois par semaine voyait les bons de la dernière soirée, pas les 33 millions de CR que le jeu détenait. Elle lit désormais **une fois** chaque journal du dossier, garde ce qu'elle y a trouvé dans sa base locale, et à chaque démarrage ne lit que les nouveaux fichiers. La carte du combat liste les bons par faction et par nature, les plus gros d'abord, avec le jour du plus ancien (*Primes non encaissées, Lavigny's Legion : 33 552 700 CR, depuis le 14 octobre 2026*). Chaque commandant, et Legacy à part du jeu actuel, a les siens.
-- Un encaissement chez un courtier interstellaire, qui paie moins que les bons, les efface désormais : il ne reste rien de cette faction.
-
-### Ajouté
-
-- Le premier démarrage après la mise à jour lit tout votre historique une fois, sans bloquer l'application : la carte du combat affiche *Anciens journaux : lecture 120 / 860* jusqu'à la fin. Les *Réglages* permettent de **relire les anciens journaux**.
-
 ## [0.6.0] - 2026-10-12
 
 ### Ajouté
@@ -28,6 +19,7 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 - **Les drones à bord** dans la carte du minage, et une **alerte avant qu'ils manquent** : un son et *Plus que 5 drones* quand ils descendent à 5 pendant une session de minage, une fois, pas à chaque lancement. Le nombre se règle dans les *Réglages* (vide pour aucune alerte).
 - **La route en cours**, à droite du bandeau de situation, quand une route est tracée dans le jeu : destination et sauts restants, le prochain saut avec son étoile en clair et si le carburant y est récupérable, et où il le sera ensuite. Une **alerte** avant une étoile dangereuse (naine blanche, étoile à neutrons, trou noir), et quand le carburant risque de ne pas suffire jusqu'à la prochaine étoile à carburant récupérable (décision de conception ADR 0043).
 - **Sources communautaires** dans les *Réglages* : Spansh et Ardent Insight se désactivent chacun ; la politique de confidentialité dit ce qu'ils reçoivent.
+- Le premier démarrage après la mise à jour lit tout votre historique une fois, sans bloquer l'application : la carte du combat affiche *Anciens journaux : lecture 120 / 860* jusqu'à la fin. Les *Réglages* permettent de **relire les anciens journaux**.
 
 ### Modifié
 
@@ -40,6 +32,8 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 - Les *Réglages* ne perdent plus les modifications non enregistrées quand vous ouvrez un autre onglet : ils demandent s'il faut les enregistrer, les abandonner ou continuer à modifier.
 - Les boîtes noires, nacelles d'évacuation et débris d'épave ramassés avec des drones collecteurs sur une source de signal ne démarrent plus de session de minage : un drone collecteur n'en démarre aucune, c'est ce qu'il rapporte qui compte (les fragments qui arrivent à la raffinerie). Un collecteur ne compte plus non plus comme du minage au combat, pour qu'un chasseur de primes qui ramasse ce que lâchent les pirates garde son segment.
 - La carte du combat dit *Obligations gagnées* et *Primes gagnées* : ce que la session a gagné, pas ce qui reste à encaisser (*Non encaissé* le dit).
+- **Les bons non encaissés correspondent maintenant au panneau du jeu**, quel que soit le temps écoulé depuis leur gain (décision de conception ADR 0052). L'application ne comptait que le fichier de journal le plus récent : un chasseur de primes qui encaisse une fois par semaine voyait les bons de la dernière soirée, pas les 33 millions de CR que le jeu détenait. Elle lit désormais **une fois** chaque journal du dossier, garde ce qu'elle y a trouvé dans sa base locale, et à chaque démarrage ne lit que les nouveaux fichiers. La carte du combat liste les bons par faction et par nature, les plus gros d'abord, avec le jour du plus ancien (*Primes non encaissées, Lavigny's Legion : 33 552 700 CR, depuis le 14 octobre 2026*). Chaque commandant, et Legacy à part du jeu actuel, a les siens.
+- Un encaissement chez un courtier interstellaire, qui paie moins que les bons, les efface désormais : il ne reste rien de cette faction.
 
 ## [0.5.0] - 2026-10-11
 
