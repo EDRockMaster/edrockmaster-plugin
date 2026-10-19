@@ -6,6 +6,8 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-19
+
 ### Added
 
 - **The application on a phone or a tablet** (design decision ADR 0055): *Settings*, *Phone and tablet* shows a QR code; scan it with the camera of a phone or a tablet on your home network, and its browser opens the application, live, with everything the window does: goals, settings, the Mining tab's searches. Nothing goes through the internet. Off by default; *Use a new link* shuts out the devices already connected. The first time, Windows may ask to allow the application in its firewall, for private networks.
@@ -163,6 +165,7 @@ First version, for the first in-game test. The plugin works on its own, without 
 - No estimated value of the cargo: it needs the server's prices.
 - Not checked yet: EDMC's dark theme, the alert sound on Windows.
 
+[0.8.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.8.0
 [0.7.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.7.0
 [0.6.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.6.0
 [0.5.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.5.0

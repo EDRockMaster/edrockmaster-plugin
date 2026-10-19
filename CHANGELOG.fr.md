@@ -6,6 +6,8 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
+## [0.8.0] - 2026-10-19
+
 ### Ajouté
 
 - **L'application sur un téléphone ou une tablette** (décision de conception ADR 0055) : *Réglages*, *Téléphone et tablette* affiche un QR code ; scannez-le avec l'appareil photo d'un téléphone ou d'une tablette du réseau de la maison, et son navigateur ouvre l'application, en direct, avec tout ce que fait la fenêtre : objectifs, réglages, recherches de l'onglet Minage. Rien ne passe par internet. Désactivé par défaut ; *Utiliser un nouveau lien* exclut les appareils déjà connectés. La première fois, Windows peut demander d'autoriser l'application dans son pare-feu, pour les réseaux privés.
@@ -163,6 +165,7 @@ Première version, pour le premier essai en jeu. Le plugin fonctionne seul, sans
 - Pas de valeur estimée de la soute : elle demande les prix du serveur.
 - Pas encore vérifiés : le thème sombre d'EDMC, le son d'alerte sous Windows.
 
+[0.8.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.8.0
 [0.7.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.7.0
 [0.6.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.6.0
 [0.5.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.5.0
