@@ -165,8 +165,7 @@ jobs:
           installed="$local_app_data/EDRockMaster.Companion"
           mkdir -p "$data"
           echo kept > "$data/update-test.txt"
-          "$RUNNER_TEMP/setup-1.0.0.exe" --silent
-          taskkill //F //IM EDRockMaster.exe || true # the installer starts it
+          "$RUNNER_TEMP/setup-1.0.0.exe" --silent # installs without starting the application
           ls "$installed" "$installed/current"
           grep -q "<version>1.0.0</version>" "$installed/current/sq.version"
           log="$data/logs/edrockmaster.log"
