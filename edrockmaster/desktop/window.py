@@ -139,6 +139,9 @@ class InterfaceApi:
     def new_phone_link(self) -> dict[str, Any]:
         return self._core.handlers.phone.new_phone_link()
 
+    def use_phone_address(self, address: str) -> dict[str, Any]:
+        return self._core.handlers.phone.use_phone_address(address)
+
 
 REMOTE_CALLS = remote_calls(InterfaceApi, WINDOW_ONLY)
 

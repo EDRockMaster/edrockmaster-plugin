@@ -219,7 +219,7 @@ export const PHONE_ON: Phone = {
   error: null,
   link: "http://192.168.1.20:47800/?key=abc",
   qr: '<svg width="10" height="10" class="segno"></svg>',
-  otherLinks: ["http://10.0.0.5:47800/?key=abc"],
+  otherLinks: [{ address: "10.0.0.5", link: "http://10.0.0.5:47800/?key=abc" }],
 };
 
 export const PHONE_OFF: Phone = {
@@ -258,6 +258,11 @@ export function fakeCore(): CoreApi {
     set_phone: vi.fn(async (request: { enabled: boolean; port: number }) =>
       request.enabled ? { ...PHONE_ON, port: request.port } : { ...PHONE_OFF, port: request.port },
     ),
+    use_phone_address: vi.fn(async (address: string) => ({
+      ...PHONE_ON,
+      link: `http://${address}:47800/?key=abc`,
+      otherLinks: [{ address: "192.168.1.20", link: "http://192.168.1.20:47800/?key=abc" }],
+    })),
     new_phone_link: vi.fn(async () => ({
       ...PHONE_ON,
       link: "http://192.168.1.20:47800/?key=new",

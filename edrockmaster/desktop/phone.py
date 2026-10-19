@@ -1,10 +1,12 @@
 """The application on a phone or a tablet (ADR 0055): the local server, as the player wants it.
 
 ``PhonePreferences`` are kept in ``settings.json``, apart from the other settings: whether the
-local server listens, on which port, and the link key of the QR code, drawn the first time
-the phone is turned on. ``Phone`` starts the server, stops it, starts it again on another port,
-and hands it each live view; its link is the computer's address on the network that leads to
-the internet, with the key. ``phone_view`` gives the *Phone and tablet* section what it shows.
+local server listens, on which port, the link key of the QR code, drawn the first time the
+phone is turned on, and the address the player chose for it (ADR 0056). ``Phone`` starts the
+server, stops it, starts it again on another port, and hands it each live view. Its link is
+the address chosen while it is still the computer's, else the home network's most likely
+(``local_addresses``), with the key. ``phone_view`` gives the *Phone and tablet* section what
+it shows.
 """
 
 from __future__ import annotations
@@ -30,6 +32,7 @@ KEY_BYTES = 16
 KEY_ENABLED = "edrockmaster.desktop.phone"
 KEY_PORT = "edrockmaster.desktop.phone_port"
 KEY_LINK = "edrockmaster.desktop.phone_key"
+KEY_ADDRESS = "edrockmaster.desktop.phone_address"
 
 
 def new_key() -> str:
@@ -42,6 +45,8 @@ class PhonePreferences:
     port: int = DEFAULT_PORT
     key: str = ""
     """The link key of the QR code; empty until the phone is first turned on."""
+    address: str = ""
+    """The address the player chose for the QR code; empty: the most likely one."""
 
 
 class PhoneStore:
@@ -57,12 +62,14 @@ class PhoneStore:
             enabled=self._config.get_bool(KEY_ENABLED, default=False),
             port=port if port in PORTS else DEFAULT_PORT,
             key=self._config.get_str(KEY_LINK, default="") or "",
+            address=self._config.get_str(KEY_ADDRESS, default="") or "",
         )
 
     def save(self, preferences: PhonePreferences) -> None:
         self._config.set(KEY_ENABLED, preferences.enabled)
         self._config.set(KEY_PORT, str(preferences.port))
         self._config.set(KEY_LINK, preferences.key)
+        self._config.set(KEY_ADDRESS, preferences.address)
 
 
 class Server(Protocol):
@@ -169,8 +176,10 @@ def remote_calls(api: type, window_only: frozenset[str]) -> frozenset[str]:
 def phone_view(
     preferences: PhonePreferences, status: PhoneStatus, addresses: Sequence[str]
 ) -> dict[str, Any]:
-    """The *Phone and tablet* section of *Settings*, as ``phone.schema.json`` says."""
-    links = [f"http://{address}:{preferences.port}/?key={preferences.key}" for address in addresses]
+    """The *Phone and tablet* section of *Settings*, as ``phone.schema.json`` says: the address
+    chosen first while it is still the computer's (ADR 0056)."""
+    ordered = sorted(addresses, key=lambda address: address != preferences.address)
+    links = [f"http://{address}:{preferences.port}/?key={preferences.key}" for address in ordered]
     link = links[0] if status.listening and links else None
     return {
         "enabled": preferences.enabled,
@@ -182,5 +191,10 @@ def phone_view(
         "qr": segno.make(link, error="m").svg_inline(scale=5, border=2, dark="#000", light="#fff")
         if link
         else None,
-        "otherLinks": links[1:] if link else [],
+        "otherLinks": [
+            {"address": address, "link": other}
+            for address, other in zip(ordered[1:], links[1:], strict=True)
+        ]
+        if link
+        else [],
     }

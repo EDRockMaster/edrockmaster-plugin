@@ -40,6 +40,10 @@
   function newLink(): void {
     void core()?.new_phone_link().then(show);
   }
+
+  function useAddress(address: string): void {
+    void core()?.use_phone_address(address).then(show);
+  }
 </script>
 
 {#if phone === null}
@@ -68,8 +72,13 @@
           <code class="link">{phone.link}</code>
           {#if phone.otherLinks.length > 0}
             <p class="muted small">{t(language, "phone.otherLinks")}</p>
-            {#each phone.otherLinks as other (other)}
-              <code class="link small">{other}</code>
+            {#each phone.otherLinks as other (other.address)}
+              <div class="other">
+                <code class="link small">{other.link}</code>
+                <button type="button" onclick={() => useAddress(other.address)}>
+                  {t(language, "phone.useAddress")}
+                </button>
+              </div>
             {/each}
           {/if}
         </div>
@@ -91,6 +100,7 @@
       </button>
     </label>
     <p class="muted small">{t(language, "phone.firewall")}</p>
+    <p class="muted small">{t(language, "phone.vpn")}</p>
   {/if}
 {/if}
 
@@ -118,6 +128,12 @@
   .qr :global(svg) {
     flex: none;
     border-radius: var(--radius);
+  }
+  .other {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
   }
   .link {
     display: block;

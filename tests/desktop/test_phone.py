@@ -101,7 +101,9 @@ def test_turned_on_it_listens_and_shows_its_link(harness: Harness) -> None:
     assert key is not None
     assert len(key) >= 22  # 128 bits
     assert shown["link"] == f"http://192.168.1.20:47800/?key={key}"
-    assert shown["otherLinks"] == [f"http://10.0.0.5:47800/?key={key}"]
+    assert shown["otherLinks"] == [
+        {"address": "10.0.0.5", "link": f"http://10.0.0.5:47800/?key={key}"}
+    ]
     assert shown["qr"].startswith("<svg")
     assert server.parts["key"]() == key
     jsonschema.validate(shown, SCHEMA)
@@ -168,6 +170,32 @@ def test_the_views_reach_the_devices(harness: Harness) -> None:
     harness.handler.set_phone({"enabled": True, "port": DEFAULT_PORT})
     harness.phone.publish({"version": 1})
     assert harness.servers[0].published == [{"version": 1}]
+
+
+def test_the_player_chooses_the_address_of_the_qr_code(harness: Harness) -> None:
+    harness.handler.set_phone({"enabled": True, "port": DEFAULT_PORT})
+    shown = harness.handler.use_phone_address("10.0.0.5")
+    assert shown["link"].startswith("http://10.0.0.5:47800/")
+    assert [other["address"] for other in shown["otherLinks"]] == ["192.168.1.20"]
+    assert harness.config.get_str("edrockmaster.desktop.phone_address") == "10.0.0.5"
+    # Turned off and on, the choice stays
+    harness.handler.set_phone({"enabled": False, "port": DEFAULT_PORT})
+    shown = harness.handler.set_phone({"enabled": True, "port": DEFAULT_PORT})
+    assert shown["link"].startswith("http://10.0.0.5:47800/")
+
+
+def test_an_address_chosen_and_gone_gives_way_to_the_most_likely() -> None:
+    preferences = PhonePreferences(True, DEFAULT_PORT, "k", address="192.168.0.9")
+    shown = phone_view(preferences, PhoneStatus(listening=True), ["192.168.1.20", "10.2.0.2"])
+    assert shown["link"] == "http://192.168.1.20:47800/?key=k"
+
+
+@pytest.mark.parametrize("address", ["8.8.8.8", 3, None])
+def test_an_address_not_of_this_computer_is_refused(harness: Harness, address: object) -> None:
+    harness.handler.set_phone({"enabled": True, "port": DEFAULT_PORT})
+    shown = harness.handler.use_phone_address(address)
+    assert shown["link"].startswith("http://192.168.1.20:")
+    assert harness.config.get_str("edrockmaster.desktop.phone_address") == ""
 
 
 def test_stored_preferences_fall_back_when_invalid() -> None:
