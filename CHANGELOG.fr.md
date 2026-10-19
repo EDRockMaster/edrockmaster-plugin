@@ -6,6 +6,11 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
+### Corrigé
+
+- Les bons du dernier fichier de journal pouvaient être **comptés deux fois** au démarrage, quand les anciens journaux le comptaient pendant sa lecture en direct : ils ne le sont plus qu'une fois.
+- La carte de combat indique *Non encaissé : aucun* quand vous ne détenez aucun bon, pour que les crédits gagnés pendant une session ne passent pas pour des bons à encaisser.
+
 ## [0.6.0] - 2026-10-12
 
 ### Ajouté

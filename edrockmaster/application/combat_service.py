@@ -3,7 +3,9 @@
 The unredeemed vouchers are those of the journals of past game sessions, as
 ``PastJournalReader`` hands them over (ADR 0052), followed by the facts of the
 files it has not counted yet: the current one, read live. Each fact is noted
-with its file, so that a file the reader counts later is never counted twice.
+with its file, so that a file the reader counts later is never counted twice;
+the facts of a file it already counts are left out (at start, the newest file
+may be complete, counted by the reader while it is still read live).
 """
 
 from __future__ import annotations
@@ -53,6 +55,8 @@ class CombatService:
         self._file: str | None = None
         self._live: list[tuple[str | None, _VoucherFact]] = []
         """The facts of the files the past journals do not count yet, with their file."""
+        self._indexed: frozenset[str] = frozenset()
+        """The files the past journals count."""
 
     @property
     def current_stats(self) -> CombatStats | None:
@@ -77,7 +81,7 @@ class CombatService:
             return []
         notifications: list[CombatNotification | VouchersUpdated] = []
         notifications += self._tracker.handle(fact)
-        if _follows_vouchers(fact):
+        if _follows_vouchers(fact) and self._file not in self._indexed:
             self._live.append((self._file, fact))
             if self._ledger.apply(fact):
                 notifications.append(self._vouchers_updated())
@@ -85,7 +89,7 @@ class CombatService:
 
     def past_journals_read(self, read: PastJournalsRead) -> list[VouchersUpdated]:
         """The past journals' reading went on: their vouchers, then those read live since."""
-        self._past, self._base = read.past, read.ledger
+        self._past, self._base, self._indexed = read.past, read.ledger, read.indexed
         self._live = [(file, fact) for file, fact in self._live if file not in read.indexed]
         self._ledger = self._base.copy()
         for _, fact in self._live:

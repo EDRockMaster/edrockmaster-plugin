@@ -6,6 +6,11 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
+### Fixed
+
+- The vouchers of the last journal file could be **counted twice** at start, when the past journals counted it while it was still being read live: they are now counted once.
+- The combat card says *Unredeemed: none* when you hold no voucher, so that the credits earned in a session are not taken for vouchers still to redeem.
+
 ## [0.6.0] - 2026-10-12
 
 ### Added

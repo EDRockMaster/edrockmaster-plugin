@@ -119,6 +119,19 @@ def test_a_file_the_past_journals_count_is_not_counted_twice(service: CombatServ
     assert service.vouchers.bounties == {"Federation": 120_000}
 
 
+def test_a_file_counted_before_the_live_reading_ends_it_is_not_counted_twice(
+    service: CombatService,
+) -> None:
+    # At start, the past journals may count the newest file, complete, while it is read live
+    service.journal_file_opened(EARLIER)
+    service.past_journals_read(past(100_000, indexed=frozenset({EARLIER})))
+    service.handle_journal_entry(bounty_entry(0, 100_000))
+    assert service.vouchers.bounties == {"Federation": 100_000}
+    service.journal_file_opened(CURRENT)
+    service.handle_journal_entry(bounty_entry(1, 20_000))
+    assert service.vouchers.bounties == {"Federation": 120_000}
+
+
 def test_other_kills_than_vouchers_are_not_kept_for_later(service: CombatService) -> None:
     service.handle_journal_entry(refined_entry(0))
     assert service.past_journals_read(past())[0].vouchers.total == 0

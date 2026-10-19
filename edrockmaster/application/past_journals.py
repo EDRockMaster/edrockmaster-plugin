@@ -89,7 +89,8 @@ class PastJournalReader:
             kept = self._kept = KeptHistory()
         pending = [file for file in files if file.name not in kept.files]
         done = len(files) - len(pending)
-        self._report(kept, done, len(files))
+        if pending:
+            self._report(kept, done, len(files))
         for count, file in enumerate(pending, start=1):
             ledger = kept.ledger.copy()
             if not self._fold(file, ledger, newest=file is files[-1]):
