@@ -183,12 +183,28 @@ def test_a_port_already_held_is_refused() -> None:
 # --- the computer's addresses ---------------------------------------------------------------
 
 
-def test_the_primary_address_comes_first_without_the_loopback() -> None:
+def test_the_home_network_comes_first_without_the_loopback() -> None:
     addresses = local_addresses(
         resolve=lambda host: ["127.0.1.1", "10.0.0.5", "192.168.1.20", "10.0.0.5"],
         primary=lambda: "192.168.1.20",
     )
     assert addresses == ["192.168.1.20", "10.0.0.5"]
+
+
+def test_a_vpn_towards_the_internet_does_not_hide_the_home_network() -> None:
+    # A WireGuard VPN (ProtonVPN) on: the internet goes through 10.2.0.2 (ADR 0056)
+    addresses = local_addresses(
+        resolve=lambda host: ["10.2.0.2", "172.20.48.1", "192.168.1.20", "169.254.12.7"],
+        primary=lambda: "10.2.0.2",
+    )
+    assert addresses == ["192.168.1.20", "172.20.48.1", "10.2.0.2"]
+
+
+def test_within_a_range_the_address_towards_the_internet_comes_first() -> None:
+    addresses = local_addresses(
+        resolve=lambda host: ["192.168.56.1", "192.168.1.20"], primary=lambda: "192.168.1.20"
+    )
+    assert addresses == ["192.168.1.20", "192.168.56.1"]
 
 
 def test_without_a_network_no_primary_address() -> None:

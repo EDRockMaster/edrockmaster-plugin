@@ -58,6 +58,8 @@ export interface CoreApi {
   set_phone(request: { enabled: boolean; port: number }): Promise<Phone>;
   /** Another link: every device must scan the QR code again. */
   new_phone_link(): Promise<Phone>;
+  /** The QR code shows this address of the computer (ADR 0056). */
+  use_phone_address(address: string): Promise<Phone>;
 }
 
 /** Calls that act on the computer itself: a phone or a tablet does not make them. */

@@ -6,6 +6,10 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The QR code shows the home network's address** (design decision ADR 0056): with a VPN on, it gave the VPN's address (`10.2.0.2`), which a phone cannot reach. The addresses of the home network now come first, and *Use this address* lets you choose another one for the QR code, kept for the next times. The section says to allow local network access in a VPN's settings.
+
 ## [0.8.0] - 2026-10-19
 
 ### Added

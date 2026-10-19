@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://edrm.space/schemas/desktop/phone.schema.json",
   "title": "Phone",
-  "description": "The Phone and tablet section of Settings (ADR 0055): what phone(), set_phone() and new_phone_link() return.",
+  "description": "The Phone and tablet section of Settings (ADR 0055, ADR 0056): what phone(), set_phone(), new_phone_link() and use_phone_address() return.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -51,10 +51,23 @@
     },
     "otherLinks": {
       "type": "array",
+      "description": "The same link through the computer's other local addresses, the player may choose for the QR code.",
       "items": {
-        "type": "string"
-      },
-      "description": "The same link through the computer's other local addresses."
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "address",
+          "link"
+        ],
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "link": {
+            "type": "string"
+          }
+        }
+      }
     }
   }
 }

@@ -50,7 +50,7 @@ class PhoneHandler:
         with self._lock:
             # The link key is drawn the first time the phone is turned on, then kept
             key = self._preferences.key or (new_key() if enabled else "")
-            self._change(PhonePreferences(enabled=enabled, port=port, key=key))
+            self._change(replace(self._preferences, enabled=enabled, port=port, key=key))
         return self.phone()
 
     def new_phone_link(self) -> dict[str, Any]:
@@ -58,6 +58,15 @@ class PhoneHandler:
         with self._lock:
             self._change(replace(self._preferences, key=new_key()))
         self._context.logger.info("Phone and tablet: new link, the devices must scan again")
+        return self.phone()
+
+    def use_phone_address(self, address: object) -> dict[str, Any]:
+        """The QR code shows this address of the computer (ADR 0056); any other is refused."""
+        if not isinstance(address, str) or address not in self._phone.addresses():
+            self._context.logger.warning("Phone and tablet: not an address of this computer")
+            return self.phone()
+        with self._lock:
+            self._change(replace(self._preferences, address=address))
         return self.phone()
 
     def _change(self, preferences: PhonePreferences) -> None:

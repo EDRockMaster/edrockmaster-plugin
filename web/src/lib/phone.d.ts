@@ -1,7 +1,7 @@
 /* Generated from edrockmaster/desktop/schemas/phone.schema.json by 'pnpm types': do not edit. */
 
 /**
- * The Phone and tablet section of Settings (ADR 0055): what phone(), set_phone() and new_phone_link() return.
+ * The Phone and tablet section of Settings (ADR 0055, ADR 0056): what phone(), set_phone(), new_phone_link() and use_phone_address() return.
  */
 export interface Phone {
   /**
@@ -26,7 +26,10 @@ export interface Phone {
    */
   qr: string | null;
   /**
-   * The same link through the computer's other local addresses.
+   * The same link through the computer's other local addresses, the player may choose for the QR code.
    */
-  otherLinks: string[];
+  otherLinks: {
+    address: string;
+    link: string;
+  }[];
 }

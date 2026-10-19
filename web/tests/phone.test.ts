@@ -143,8 +143,17 @@ describe("the Phone and tablet section", () => {
     expect(api.set_phone).toHaveBeenCalledWith({ enabled: true, port: 47800 });
     expect(await screen.findByText(PHONE_ON.link as string)).toBeInTheDocument();
     expect(document.querySelector("svg.segno")).not.toBeNull();
-    expect(screen.getByText(PHONE_ON.otherLinks[0] as string)).toBeInTheDocument();
+    expect(screen.getByText(PHONE_ON.otherLinks[0]?.link as string)).toBeInTheDocument();
     expect(screen.getByText(/firewall/)).toBeInTheDocument();
+  });
+
+  it("shows another address of the computer in the QR code", async () => {
+    const api = opened();
+    await fireEvent.click(await screen.findByLabelText("Open on a phone or a tablet"));
+    await fireEvent.click(await screen.findByRole("button", { name: "Use this address" }));
+    expect(api.use_phone_address).toHaveBeenCalledWith("10.0.0.5");
+    expect(await screen.findByText("http://10.0.0.5:47800/?key=abc")).toBeInTheDocument();
+    expect(screen.getByText(/VPN/)).toBeInTheDocument();
   });
 
   it("gives a new link", async () => {
