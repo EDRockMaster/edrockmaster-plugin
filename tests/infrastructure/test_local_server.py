@@ -154,8 +154,9 @@ def test_stopping_ends_the_events_and_closes_the_port(site: Site) -> None:
     threading.Thread(target=read_to_the_end, daemon=True).start()
     site.server.stop()
     assert ended.wait(5)
+    # Linux refuses at once; Windows tries again until the time runs out
     with (
-        pytest.raises(ConnectionRefusedError),
+        pytest.raises((ConnectionRefusedError, TimeoutError)),
         socket.create_connection(("127.0.0.1", port), timeout=1),
     ):
         pass
