@@ -234,3 +234,15 @@ def test_the_player_is_told_why_the_window_failed(tmp_path: Path) -> None:
     assert "Unblock" not in message
     blocked = RuntimeError("Failed to resolve Python.Runtime.Loader.Initialize from U:\\x.dll")
     assert "Unblock" in window_module.failure_message(blocked, log)
+
+
+def test_a_device_s_calls_reach_the_window_s_api() -> None:
+    class Api:
+        def settings(self) -> dict[str, str]:
+            return {"language": "fr"}
+
+    api: Any = Api()
+    assert window_module.remote_call(api, "settings", []) == {"language": "fr"}
+    for name in ("open_folder", "restart_to_update", "_private", "nothing"):
+        with pytest.raises(KeyError):
+            window_module.remote_call(api, name, [])

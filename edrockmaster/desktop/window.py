@@ -32,6 +32,7 @@ from edrockmaster.desktop.core import DesktopCore, Push
 from edrockmaster.desktop.demo import write_demo_journal
 from edrockmaster.desktop.folder_opener import open_in_file_manager
 from edrockmaster.desktop.journal_folder import environment_override
+from edrockmaster.desktop.phone import Phone, remote_calls
 from edrockmaster.desktop.settings_view import LANGUAGES
 from edrockmaster.infrastructure.paths import data_directory
 from edrockmaster.infrastructure.strings_catalogue import system_language
@@ -43,6 +44,8 @@ LOG_FILE_BYTES = 1_000_000
 LOG_FILES_KEPT = 3
 DEMO = "--demo"
 WINDOW = {"width": 1100, "height": 760, "min_size": (520, 400), "background_color": "#0d0f12"}
+WINDOW_ONLY = frozenset({"open_folder", "restart_to_update"})
+"""Calls that act on the computer itself: a phone or a tablet does not make them (ADR 0055)."""
 
 
 class InterfaceApi:
@@ -125,6 +128,27 @@ class InterfaceApi:
     def estimate_cargo(self) -> dict[str, Any]:
         return self._core.handlers.mining.estimate_cargo()
 
+    # The phone and tablet (ADR 0055): answered at once, the local server started or stopped
+
+    def phone(self) -> dict[str, Any]:
+        return self._core.handlers.phone.phone()
+
+    def set_phone(self, request: dict[str, Any]) -> dict[str, Any]:
+        return self._core.handlers.phone.set_phone(request)
+
+    def new_phone_link(self) -> dict[str, Any]:
+        return self._core.handlers.phone.new_phone_link()
+
+
+REMOTE_CALLS = remote_calls(InterfaceApi, WINDOW_ONLY)
+
+
+def remote_call(api: InterfaceApi, name: str, arguments: list[Any]) -> Any:
+    """A call of a phone or a tablet; ``KeyError`` for one it may not make."""
+    if name not in REMOTE_CALLS:
+        raise KeyError(name)
+    return getattr(api, name)(*arguments)
+
 
 class _Window:
     """The pywebview window, known once created: the core's pushes go to it."""
@@ -195,6 +219,11 @@ def main(
             folder, core_data = _demo(demo, language, logger)
         window = _Window()
         push: Push = window.push
+
+        def call(name: str, arguments: list[Any]) -> Any:
+            return remote_call(api, name, arguments)
+
+        phone = Phone(call, lambda: INTERFACE.read_text(encoding="utf-8"), logger)
         core = DesktopCore(
             data_directory=core_data,
             journal_folder=folder,
@@ -203,12 +232,14 @@ def main(
             logger=logger,
             logs_directory=directory / "logs",
             open_folder=open_in_file_manager,
+            phone=phone,
         )
+        api = InterfaceApi(core, window)
         window.window = gui.create_window(
             # The title bar carries the full version (ADR 0016): the page does not repeat it
             f"{TITLE} {core.build.version}",
             html=INTERFACE.read_text(encoding="utf-8"),
-            js_api=InterfaceApi(core, window),
+            js_api=api,
             **WINDOW,
         )
         core.start()

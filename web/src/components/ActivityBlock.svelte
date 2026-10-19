@@ -79,9 +79,15 @@
     gap: var(--space-2) var(--space-3);
     margin: var(--space-2) 0 0;
   }
-  /* A community goal's title is long: its tiles are wider */
+  /* A community goal's title is long: its tiles are wider, never wider than a phone */
   dl.wide {
-    grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(22rem, 100%), 1fr));
+  }
+  /* On a phone (ADR 0055): two tiles side by side rather than one */
+  @media (max-width: 30rem) {
+    dl:not(.wide) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
   .tile {
     display: flex;

@@ -6,6 +6,10 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
+### Added
+
+- **The application on a phone or a tablet** (design decision ADR 0055): *Settings*, *Phone and tablet* shows a QR code; scan it with the camera of a phone or a tablet on your home network, and its browser opens the application, live, with everything the window does: goals, settings, the Mining tab's searches. Nothing goes through the internet. Off by default; *Use a new link* shuts out the devices already connected. The first time, Windows may ask to allow the application in its firewall, for private networks.
+
 ## [0.7.0] - 2026-10-19
 
 ### Changed

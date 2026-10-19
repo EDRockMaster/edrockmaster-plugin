@@ -1,8 +1,11 @@
 // The bridge with the Python core (ADR 0020): pywebview exposes the core's calls as
 // `window.pywebview.api`, and the core pushes the live view through `window.edrm.receive`.
-// Nothing goes through the network.
+// On a phone or a tablet (ADR 0055), the application's local server serves the same page,
+// marked `<meta name="edrm-transport" content="http">`: the calls go over HTTP
+// (`POST /api/<call>`), the live view comes as server-sent events (`/events`).
 import type { GoalCatalogue } from "./goal-catalogue";
 import type { Layout } from "./layout";
+import type { Phone } from "./phone";
 import type { LiveView } from "./live-view";
 import type {
   BuyersAnswer,
@@ -49,7 +52,16 @@ export interface CoreApi {
   find_buyers(request: BuyersRequest): Promise<BuyersAnswer>;
   /** The mining cargo at the best markets around the current system. */
   estimate_cargo(): Promise<CargoEstimateAnswer>;
+  /** The Phone and tablet section (ADR 0055): what it shows. */
+  phone(): Promise<Phone>;
+  /** The local server on or off, on a port: what the section shows then. */
+  set_phone(request: { enabled: boolean; port: number }): Promise<Phone>;
+  /** Another link: every device must scan the QR code again. */
+  new_phone_link(): Promise<Phone>;
 }
+
+/** Calls that act on the computer itself: a phone or a tablet does not make them. */
+export type WindowOnly = "open_folder" | "restart_to_update";
 
 /** A goal the player asks for; the core checks it against the catalogue. */
 export type GoalRequest =
@@ -90,6 +102,7 @@ declare global {
   interface Window {
     pywebview?: { api?: CoreApi };
     edrm?: { receive(view: LiveView): void };
+    EventSource: typeof EventSource;
   }
 }
 
@@ -99,6 +112,10 @@ declare global {
  * `pywebviewready` once they are there: until then, `ready` does not exist yet. */
 export function connect(onView: (view: LiveView) => void, target: Window = window): void {
   target.edrm = { receive: onView };
+  if (isRemote(target)) {
+    followEvents(onView, target);
+    return;
+  }
   if (typeof target.pywebview?.api?.ready === "function") {
     void target.pywebview.api.ready();
   } else {
@@ -109,5 +126,38 @@ export function connect(onView: (view: LiveView) => void, target: Window = windo
 }
 
 export function core(target: Window = window): CoreApi | undefined {
-  return target.pywebview?.api;
+  return isRemote(target) ? httpCore(target) : target.pywebview?.api;
+}
+
+/** Whether the page is on a phone or a tablet, served by the application's local server. */
+export function isRemote(target: Window = window): boolean {
+  return target.document?.querySelector('meta[name="edrm-transport"][content="http"]') != null;
+}
+
+/** The core's calls over HTTP. A refusal (another link, the server stopped) reloads the
+ * page, which then asks to scan the QR code again. */
+function httpCore(target: Window): CoreApi {
+  const call =
+    (name: string) =>
+    async (...args: unknown[]): Promise<unknown> => {
+      const answer = await target.fetch(`/api/${name}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ args }),
+      });
+      if (answer.status === 403) target.location.reload();
+      if (!answer.ok) throw new Error(`${name}: HTTP ${answer.status}`);
+      return answer.json();
+    };
+  return new Proxy({} as CoreApi, { get: (_, name) => call(String(name)) });
+}
+
+/** The live view as server-sent events; the browser reconnects by itself after a cut, but
+ * not after a refusal: the page is then reloaded. */
+function followEvents(onView: (view: LiveView) => void, target: Window): void {
+  const events = new target.EventSource("/events");
+  events.onmessage = (event: MessageEvent<string>) => onView(JSON.parse(event.data) as LiveView);
+  events.onerror = () => {
+    if (events.readyState === target.EventSource.CLOSED) target.location.reload();
+  };
 }

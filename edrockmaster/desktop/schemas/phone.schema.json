@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://edrm.space/schemas/desktop/phone.schema.json",
+  "title": "Phone",
+  "description": "The Phone and tablet section of Settings (ADR 0055): what phone(), set_phone() and new_phone_link() return.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "enabled",
+    "port",
+    "listening",
+    "error",
+    "link",
+    "qr",
+    "otherLinks"
+  ],
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "description": "The player turned the local server on."
+    },
+    "port": {
+      "type": "integer",
+      "minimum": 1024,
+      "maximum": 65535
+    },
+    "listening": {
+      "type": "boolean",
+      "description": "The local server listens now."
+    },
+    "error": {
+      "enum": [
+        "portInUse",
+        null
+      ],
+      "description": "Why it does not listen although turned on."
+    },
+    "link": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The address of the QR code, with the link key; null when nothing listens, or without a network address."
+    },
+    "qr": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The QR code of the link, as inline SVG."
+    },
+    "otherLinks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The same link through the computer's other local addresses."
+    }
+  }
+}

@@ -22,7 +22,7 @@ L'application ne fait rien d'autre sur votre ordinateur : elle ne lit aucun autr
 
 Tout reste sur votre ordinateur, dans `%LOCALAPPDATA%\EDRockMaster` :
 
-- **vos réglages** (`settings.json`) ;
+- **vos réglages** (`settings.json`), avec la clé du lien du QR code de *Téléphone et tablette* une fois activé ;
 - **vos objectifs d'ingénierie** (`edrockmaster.sqlite3`) : les blueprints et effets que vous visez, et le nombre de passes ;
 - **un journal technique** (`logs\`) : démarrage et arrêt de l'application, fichier de journal lu, erreurs ; il ne contient aucune statistique de votre partie ;
 - **vos bons non encaissés** (dans `edrockmaster.sqlite3`) : les primes et obligations de combat que vous détenez, par faction et par commandant (par son identifiant Frontier), et les noms des fichiers de journal déjà lus pour cela, afin que chacun ne soit lu qu'une fois ;
@@ -36,6 +36,8 @@ Hormis vos bons non encaissés, les statistiques de vos sessions et votre situat
 **Rien à nous** : EDRockMaster n'a pas de serveur, ni mesure d'audience, ni rapport de plantage.
 
 **Une recherche de mise à jour, vers GitHub.** Installée avec son installeur, l'application cherche une version plus récente au démarrage, puis une fois par jour, dans les releases publiques de son dépôt sur GitHub (`github.com`, `api.github.com`), et l'y télécharge. Les requêtes ne portent rien de vous : ni identifiant, ni statistiques ; GitHub voit l'adresse IP de votre ordinateur et l'heure, comme tout site web. Le canal *bêta* lit aussi les versions candidates. Désactivée dans *Réglages*, *Mises à jour* : l'application ne demande alors rien.
+
+**Vers votre téléphone ou votre tablette, seulement si vous l'activez.** *Réglages*, *Téléphone et tablette* (désactivé par défaut) permet à un téléphone ou une tablette du réseau de la maison d'ouvrir l'application dans son navigateur, par son QR code. L'application écoute alors votre réseau local, sur un port (47800 par défaut), et sert aux appareils qui ont le lien tout ce que montre la fenêtre, et les laisse le changer ; rien ne passe par internet, et rien ne nous parvient. Le lien contient une clé aléatoire ; quiconque, sur votre réseau, l'a voit et change ce que fait la fenêtre. Il circule en clair sur votre réseau (pas de HTTPS pour une adresse locale) : laissez-le désactivé sur un réseau public. Désactivée, l'application n'écoute rien ; *Utiliser un nouveau lien* exclut les appareils déjà connectés.
 
 **Vos recherches, à des outils communautaires, et seulement quand vous les faites.** L'onglet *Minage* et le bouton *Estimer la soute* demandent à deux outils communautaires indépendants ce que le journal ne dit pas :
 
@@ -56,6 +58,7 @@ Rien d'autre n'est envoyé : ni le nom de votre commandant, ni vos statistiques.
 - **Voir ou effacer vos données** : tout est dans `%LOCALAPPDATA%\EDRockMaster` ; supprimez le dossier pour les effacer. La désinstallation de l'application le conserve, pour que vos objectifs survivent à une réinstallation ; supprimez-le à la main si vous le souhaitez.
 - **Arrêter la lecture** : fermez l'application.
 - **Ne chercher aucune mise à jour** : désactivez *Rechercher les mises à jour* dans *Réglages*, *Mises à jour*.
+- **Fermer l'accès du téléphone et de la tablette** : désactivez-le dans *Réglages*, *Téléphone et tablette*, ou *Utilisez un nouveau lien*.
 - **N'interroger aucun outil communautaire** : désactivez Spansh et Ardent Insight dans *Réglages*, *Sources communautaires*.
 
 ## Enfants

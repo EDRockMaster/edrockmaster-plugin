@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { core } from "../lib/bridge";
+  import { core, isRemote } from "../lib/bridge";
+  import PhoneSection from "./PhoneSection.svelte";
   import { t, type Language } from "../lib/i18n";
   import type { LiveView } from "../lib/live-view";
   import type { Settings } from "../lib/settings";
@@ -34,6 +35,8 @@
   let form = $state<SettingsForm | null>(null);
   let message = $state<"saved" | "invalid" | null>(null);
   let readingAgain = $state(false);
+  // On a phone or a tablet (ADR 0055), the folders are on the computer: they are only named
+  const remote = isRemote();
 
   /** Forgets what the past journals gave and reads them all again (ADR 0052). */
   function readPastJournals(): void {
@@ -188,9 +191,11 @@
       <div class="folder">
         <span class="muted small">{t(language, "settings.recordingsFolder")}</span>
         <code class="small">{loaded.recordingsFolder}</code>
-        <button type="button" onclick={() => core()?.open_folder("recordings")}>
-          {t(language, "settings.openRecordings")}
-        </button>
+        {#if !remote}
+          <button type="button" onclick={() => core()?.open_folder("recordings")}>
+            {t(language, "settings.openRecordings")}
+          </button>
+        {/if}
       </div>
     </section>
 
@@ -232,12 +237,19 @@
     {/if}
 
     <section>
+      <h2>{t(language, "phone.title")}</h2>
+      <PhoneSection {language} />
+    </section>
+
+    <section>
       <h2>{t(language, "settings.logs")}</h2>
       <div class="folder">
         <code class="small">{loaded.logsFolder}</code>
-        <button type="button" onclick={() => core()?.open_folder("logs")}>
-          {t(language, "settings.openLogs")}
-        </button>
+        {#if !remote}
+          <button type="button" onclick={() => core()?.open_folder("logs")}>
+            {t(language, "settings.openLogs")}
+          </button>
+        {/if}
       </div>
     </section>
 
