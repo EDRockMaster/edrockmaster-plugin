@@ -168,9 +168,12 @@ class CombatPresenter:
         yield from self._faction_lines(stats.by_victim_faction)
 
     def _voucher_lines(self, updated: VouchersUpdated) -> Iterable[StatLine]:
-        """The vouchers held (ADR 0052): the total if several, then the largest first."""
+        """The vouchers held (ADR 0052): the total if several, then the largest first; none
+        said once the past journals are read."""
         tl = self._tl
         held = sorted(updated.vouchers.held, key=lambda voucher: -voucher.amount)
+        if not held and updated.past.complete:
+            yield StatLine(tl("Unredeemed"), tl("none"))
         if len(held) > 1:
             yield StatLine(tl("Unredeemed"), self._credits(updated.vouchers.total))
         yield from (self._voucher_line(voucher) for voucher in held[:FACTIONS_SHOWN])

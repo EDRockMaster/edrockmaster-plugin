@@ -274,9 +274,20 @@ def test_beyond_three_the_others_add_up(presenter: CombatPresenter) -> None:
     assert value(model, "Unredeemed from 2 other factions") == "3,000 CR"
 
 
-def test_no_line_without_vouchers(presenter: CombatPresenter) -> None:
+def test_without_vouchers_once_past_journals_are_read_it_says_none(
+    presenter: CombatPresenter,
+) -> None:
     presenter.apply([vouchers(held(LAVIGNY, 1_000))])
-    assert presenter.apply([vouchers()]).lines == ()
+    assert [(line.label, line.value) for line in presenter.apply([vouchers()]).lines] == [
+        ("Unredeemed", "none")
+    ]
+
+
+def test_without_vouchers_while_past_journals_are_read_it_says_nothing_yet(
+    presenter: CombatPresenter,
+) -> None:
+    model = presenter.apply([vouchers(past=PastJournals(1, 2))])
+    assert labels(model) == ["Past journals"]
 
 
 def test_reading_past_journals_is_shown_until_done(presenter: CombatPresenter) -> None:
@@ -292,6 +303,9 @@ def test_unredeemed_vouchers_in_french() -> None:
     assert [(line.label, line.value) for line in model.lines] == [
         ("Primes non encaissées, Lavigny's Legion", "1,000 CR, depuis le 14 octobre 2026"),
         ("Anciens journaux", "lecture : 1 / 2"),
+    ]
+    assert [(line.label, line.value) for line in presenter.apply([vouchers()]).lines] == [
+        ("Non encaissé", "aucun")
     ]
 
 

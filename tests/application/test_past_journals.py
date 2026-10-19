@@ -12,7 +12,7 @@ from edrockmaster.application.past_journals import (
 )
 from edrockmaster.application.ports import IndexedFile, JournalFile, KeptHistory
 from edrockmaster.domain.combat.journal import CommanderDied, Galaxy
-from edrockmaster.domain.combat.vouchers import CommanderKey, VoucherLedger
+from edrockmaster.domain.combat.vouchers import CommanderKey, PastJournals, VoucherLedger
 from edrockmaster.domain.journal_reading import Entry
 
 T0 = datetime(2026, 10, 14, 20, 0, tzinfo=UTC)
@@ -216,6 +216,14 @@ def test_reading_again_with_nothing_new_reads_nothing(harness: Harness) -> None:
     harness.reader.catch_up()
     assert harness.archive.reads == []
     assert harness.last.ledger.current.bounties == {LAVIGNY: 1_000}
+
+
+def test_with_nothing_new_a_single_result_is_reported(harness: Harness) -> None:
+    harness.archive.add(0, session(0, bounty(0, 1_000)))
+    harness.reader.catch_up()
+    harness.results.clear()
+    harness.reader.catch_up()
+    assert [read.past for read in harness.results] == [PastJournals(1, 1)]
 
 
 def test_a_part_without_a_commander_goes_on_with_the_previous_one(harness: Harness) -> None:

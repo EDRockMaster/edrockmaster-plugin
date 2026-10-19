@@ -102,6 +102,7 @@
 "Reckless weapons discharge" = "Tir imprudent";
 "Carrying a wanted passenger" = "Transport d'un passager recherché";
 "Unredeemed" = "Non encaissé";
+"none" = "aucun";
 "Unredeemed bounties, {faction}" = "Primes non encaissées, {faction}";
 "Unredeemed combat bonds, {faction}" = "Obligations non encaissées, {faction}";
 "Unredeemed from {count} other factions" = "Non encaissé, {count} autres factions";
