@@ -6,15 +6,15 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
-### Fixed
-
-- **The QR code shows the home network's address** (design decision ADR 0056): with a VPN on, it gave the VPN's address (`10.2.0.2`), which a phone cannot reach. The addresses of the home network now come first, and *Use this address* lets you choose another one for the QR code, kept for the next times. The section says to allow local network access in a VPN's settings.
-
 ## [0.8.0] - 2026-10-19
 
 ### Added
 
 - **The application on a phone or a tablet** (design decision ADR 0055): *Settings*, *Phone and tablet* shows a QR code; scan it with the camera of a phone or a tablet on your home network, and its browser opens the application, live, with everything the window does: goals, settings, the Mining tab's searches. Nothing goes through the internet. Off by default; *Use a new link* shuts out the devices already connected. The first time, Windows may ask to allow the application in its firewall, for private networks.
+
+### Fixed
+
+- **The QR code shows the home network's address** (design decision ADR 0056): with a VPN on, it gave the VPN's address (`10.2.0.2`), which a phone cannot reach. The addresses of the home network now come first, and *Use this address* lets you choose another one for the QR code, kept for the next times. The section says to allow local network access in a VPN's settings.
 
 ## [0.7.0] - 2026-10-19
 

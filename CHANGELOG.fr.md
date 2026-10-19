@@ -6,15 +6,15 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
-### Corrigé
-
-- **Le QR code montre l'adresse du réseau de la maison** (décision de conception ADR 0056) : VPN actif, il donnait l'adresse du VPN (`10.2.0.2`), qu'un téléphone ne peut pas joindre. Les adresses du réseau de la maison passent désormais en premier, et *Utiliser cette adresse* permet d'en choisir une autre pour le QR code, gardée pour les fois suivantes. La section dit d'autoriser l'accès au réseau local dans les réglages d'un VPN.
-
 ## [0.8.0] - 2026-10-19
 
 ### Ajouté
 
 - **L'application sur un téléphone ou une tablette** (décision de conception ADR 0055) : *Réglages*, *Téléphone et tablette* affiche un QR code ; scannez-le avec l'appareil photo d'un téléphone ou d'une tablette du réseau de la maison, et son navigateur ouvre l'application, en direct, avec tout ce que fait la fenêtre : objectifs, réglages, recherches de l'onglet Minage. Rien ne passe par internet. Désactivé par défaut ; *Utiliser un nouveau lien* exclut les appareils déjà connectés. La première fois, Windows peut demander d'autoriser l'application dans son pare-feu, pour les réseaux privés.
+
+### Corrigé
+
+- **Le QR code montre l'adresse du réseau de la maison** (décision de conception ADR 0056) : VPN actif, il donnait l'adresse du VPN (`10.2.0.2`), qu'un téléphone ne peut pas joindre. Les adresses du réseau de la maison passent désormais en premier, et *Utiliser cette adresse* permet d'en choisir une autre pour le QR code, gardée pour les fois suivantes. La section dit d'autoriser l'accès au réseau local dans les réglages d'un VPN.
 
 ## [0.7.0] - 2026-10-19
 
