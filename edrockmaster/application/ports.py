@@ -9,6 +9,7 @@ from typing import Protocol
 
 from edrockmaster.application.community import Answer
 from edrockmaster.application.settings import PluginSettings
+from edrockmaster.application.updates import UpdateChannel
 from edrockmaster.domain.combat.vouchers import CommanderKey, VoucherLedger
 from edrockmaster.domain.engineering.goals import Goal, GoalId
 from edrockmaster.domain.journal_reading import Entry
@@ -153,4 +154,25 @@ class PastJournalStore(Protocol):
 
     def clear(self, version: int) -> None:
         """Forget every file read and what they gave."""
+        ...
+
+
+class UpdateSource(Protocol):
+    """Where the installed application's updates come from; every call may block."""
+
+    @property
+    def installed_version(self) -> str: ...
+
+    def find(self, channel: UpdateChannel | None) -> str | None:
+        """The newest version of the channel above the one installed; ``None``: the channel
+        the application was packed for."""
+        ...
+
+    def download(self) -> None:
+        """Download the version found last."""
+        ...
+
+    def apply(self, *, restart: bool) -> None:
+        """Apply the version downloaded once the application has quit; then start it again,
+        or not."""
         ...

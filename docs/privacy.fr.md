@@ -2,7 +2,7 @@
 
 *[English](privacy.md) · Français*
 
-Dernière mise à jour : 12 octobre 2026. S'applique à l'application de bureau EDRockMaster Companion et au plugin EDRockMaster pour EDMarketConnector, publiés par DamScan, un projet personnel et non commercial.
+Dernière mise à jour : 19 octobre 2026. S'applique à l'application de bureau EDRockMaster Companion et au plugin EDRockMaster pour EDMarketConnector, publiés par DamScan, un projet personnel et non commercial.
 
 ## En bref
 
@@ -33,7 +33,9 @@ Hormis vos bons non encaissés, les statistiques de vos sessions et votre situat
 
 ## Ce que l'application envoie
 
-**Rien à nous** : EDRockMaster n'a pas de serveur, ni mesure d'audience, ni rapport de plantage, ni recherche de mise à jour (le Microsoft Store s'en charge).
+**Rien à nous** : EDRockMaster n'a pas de serveur, ni mesure d'audience, ni rapport de plantage.
+
+**Une recherche de mise à jour, vers GitHub.** Installée avec son installeur, l'application cherche une version plus récente au démarrage, puis une fois par jour, dans les releases publiques de son dépôt sur GitHub (`github.com`, `api.github.com`), et l'y télécharge. Les requêtes ne portent rien de vous : ni identifiant, ni statistiques ; GitHub voit l'adresse IP de votre ordinateur et l'heure, comme tout site web. Le canal *bêta* lit aussi les versions candidates. Désactivée dans *Réglages*, *Mises à jour* : l'application ne demande alors rien.
 
 **Vos recherches, à des outils communautaires, et seulement quand vous les faites.** L'onglet *Minage* et le bouton *Estimer la soute* demandent à deux outils communautaires indépendants ce que le journal ne dit pas :
 
@@ -44,7 +46,7 @@ Rien d'autre n'est envoyé : ni le nom de votre commandant, ni vos statistiques.
 
 ## Tiers
 
-- **Microsoft Store** : installe et met à jour l'application, selon la [déclaration de confidentialité de Microsoft](https://privacy.microsoft.com/fr-fr/privacystatement). EDRockMaster n'en reçoit aucune donnée personnelle.
+- **GitHub** : publie l'application et ses mises à jour, selon la [déclaration de confidentialité de GitHub](https://docs.github.com/fr/site-policy/privacy-policies/github-general-privacy-statement) ; interrogé par la recherche de mise à jour, comme dit plus haut.
 - **Microsoft Edge WebView2** : le composant de Windows qui dessine la fenêtre de l'application ; il fonctionne sur votre ordinateur.
 - **Données du jeu** : la liste des matériaux, blueprints et ingénieurs vient de données communautaires (EDCD) livrées dans l'application ; rien n'est téléchargé.
 - **Spansh** et **Ardent Insight** : interrogés seulement quand vous cherchez, comme dit plus haut ; désactivables dans *Réglages*.
@@ -53,6 +55,7 @@ Rien d'autre n'est envoyé : ni le nom de votre commandant, ni vos statistiques.
 
 - **Voir ou effacer vos données** : tout est dans `%LOCALAPPDATA%\EDRockMaster` ; supprimez le dossier pour les effacer. La désinstallation de l'application le conserve, pour que vos objectifs survivent à une réinstallation ; supprimez-le à la main si vous le souhaitez.
 - **Arrêter la lecture** : fermez l'application.
+- **Ne chercher aucune mise à jour** : désactivez *Rechercher les mises à jour* dans *Réglages*, *Mises à jour*.
 - **N'interroger aucun outil communautaire** : désactivez Spansh et Ardent Insight dans *Réglages*, *Sources communautaires*.
 
 ## Enfants

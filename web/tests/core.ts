@@ -207,6 +207,7 @@ export const SETTINGS: Settings = {
   recordingsFolder: "C:/Users/cmdr/AppData/Local/EDRockMaster/recordings",
   logsFolder: "C:/Users/cmdr/AppData/Local/EDRockMaster/logs",
   sources: { spansh: true, ardent: true },
+  updates: { installed: true, check: true, channel: "stable" },
 };
 
 /** The core's API as pywebview exposes it, every call recorded. */
@@ -215,6 +216,7 @@ export function fakeCore(): CoreApi {
     ready: vi.fn(async () => {}),
     reset: vi.fn(async () => {}),
     dismiss_notice: vi.fn(async () => {}),
+    restart_to_update: vi.fn(async () => {}),
     shown: vi.fn(async () => {}),
     catalogue: vi.fn(async () => GOAL_CATALOGUE),
     add_goal: vi.fn(async () => {}),

@@ -12,11 +12,14 @@ interface's calls only submit jobs to it. The I/O thread of ADR 0018 does the
 disk work. ``push`` is called on the core thread and must not block. The
 journals of past game sessions are read on a thread of their own (ADR 0052),
 at start and each time the game opens a new file, without holding the live view.
+An application installed by Velopack looks for its updates on a thread of its own
+too (ADR 0053).
 """
 
 from __future__ import annotations
 
 import logging
+import os
 import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -30,7 +33,8 @@ from edrockmaster.application.community import Source
 from edrockmaster.application.companion import Companion, Notification
 from edrockmaster.application.mining_search import MiningSearch
 from edrockmaster.application.past_journals import PastJournalReader, PastJournalsRead
-from edrockmaster.application.ports import Clock
+from edrockmaster.application.ports import Clock, UpdateSource
+from edrockmaster.application.updates import UpdateReady, UpdateService, default_channel
 from edrockmaster.desktop.engineering_view import engineering_view
 from edrockmaster.desktop.folder_opener import open_in_file_manager
 from edrockmaster.desktop.handlers.context import CoreContext
@@ -43,7 +47,8 @@ from edrockmaster.desktop.journal_folder import default_journal_folder
 from edrockmaster.desktop.journal_reader import POLL_SECONDS, JournalFollower, JournalWatcher
 from edrockmaster.desktop.layout import LayoutStore
 from edrockmaster.desktop.live_view import live_view
-from edrockmaster.desktop.settings_view import DesktopPreferencesStore
+from edrockmaster.desktop.settings_view import DesktopPreferencesStore, UpdateOffer
+from edrockmaster.desktop.updates import Updates
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.situation.route import JumpDiverted
 from edrockmaster.infrastructure.build_file import load_build
@@ -65,6 +70,7 @@ from edrockmaster.infrastructure.sources.http import open_url as default_opener
 from edrockmaster.infrastructure.sources.source import CommunitySource
 from edrockmaster.infrastructure.sources.spansh import SpanshCatalogue
 from edrockmaster.infrastructure.strings_catalogue import number_format, translator
+from edrockmaster.infrastructure.velopack_updates import VelopackUpdates
 from edrockmaster.infrastructure.worker import IoWorker
 from edrockmaster.ui.engineering_names import EngineeringNames
 from edrockmaster.ui.panel_model import LocalDataNotice
@@ -130,10 +136,14 @@ class DesktopCore:
         logs_directory: Path | None = None,
         open_folder: Callable[[Path], None] = open_in_file_manager,
         http_opener: Opener = default_opener,
+        update_source: Callable[[], UpdateSource | None] = lambda: VelopackUpdates.installed(
+            os.environ
+        ),
     ) -> None:
         """``journal_folder``: set by the environment, before the settings' and the usual one;
         ``language``: the system's, unless the settings choose another; ``logs_directory``:
-        where the log file is, in the data directory unless the demo keeps its data apart."""
+        where the log file is, in the data directory unless the demo keeps its data apart;
+        ``update_source``: the installation's updates, ``None`` if not installed to update."""
         self._data = data_directory
         self._folders = {
             "recordings": data_directory / RECORDINGS_DIRECTORY,
@@ -141,6 +151,9 @@ class DesktopCore:
         }
         self._open_folder = open_folder
         self._http_opener = http_opener
+        self._update_source = update_source
+        self._updates: Updates | None = None
+        self._update: UpdateReady | None = None
         self._journal_override = journal_folder
         self._usual_journal_folder = usual_journal_folder
         self._journal_folder: Path | None = journal_folder
@@ -223,6 +236,8 @@ class DesktopCore:
             self._tl, self._format_number, companion.settings.display, names
         )
         sources = self._sources(companion, database)
+        update_source = self._update_source()
+        default = default_channel(build.channel)
         context = CoreContext(
             on_core=self._core.submit,
             on_io=self._io.submit,
@@ -245,12 +260,24 @@ class DesktopCore:
                 clear_source=lambda source: sources[source].clear(),
                 set_language=self._set_language,
                 read_past_journals=self._read_past_journals_again,
+                update_offer=UpdateOffer(installed=update_source is not None, default=default),
+                updates_changed=self._check_updates,
             ),
             layout=LayoutHandler(context, LayoutStore(config)),
             engineering=EngineeringHandler(context),
             mining=MiningHandler(context, self._mining_search(sources)),
         )
         companion.engineering.load_goals(self._apply)
+        if update_source is None:
+            self._logger.info("Not installed to update itself: no updates")
+        else:
+            self._updates = Updates(
+                UpdateService(update_source, default),
+                self._handlers.settings.update_wish,
+                self._on_update_ready,
+                self._logger,
+            )
+            self._updates.start()
         if self._journal_folder is not None:
             self._past_reader = PastJournalReader(
                 FolderArchive(self._journal_folder, self._logger),
@@ -275,6 +302,9 @@ class DesktopCore:
         if self._database is not None:
             self._io.submit(self._database.close)
         self._io.stop()
+        if self._updates is not None:
+            self._updates.stop()
+            self._updates.at_exit()
         self._logger.info("EDRockMaster stopped")
 
     # Calls from the interface, from any thread
@@ -313,6 +343,26 @@ class DesktopCore:
 
     def dismiss_notice(self) -> None:
         self._core.submit(lambda: self._set_notice(None))
+
+    def restart_to_update(self) -> bool:
+        """The player restarts to update: ``True`` if the window is to close, the version ready
+        then applied and the application started again."""
+        return self._updates is not None and self._updates.restart()
+
+    # Updates (ADR 0053)
+
+    def _check_updates(self) -> None:
+        if self._updates is not None:
+            self._updates.check_now()
+
+    def _on_update_ready(self, ready: UpdateReady) -> None:
+        """From the updates thread: queued for the core thread."""
+
+        def show() -> None:
+            self._update = ready
+            self._send()
+
+        self._core.submit(show)
 
     def _sources(
         self, companion: Companion, database: LocalDatabase
@@ -432,6 +482,7 @@ class DesktopCore:
             current=self._presenter.current.value,
             blocks=self._presenter.blocks_of(companion.settings.display.activities),
             notice=self._notice,
+            update=self._update,
             journal_folder=self._journal_folder,
             journal_file=self._follower.current_file if self._follower else None,
             situation=companion.situation.situation,

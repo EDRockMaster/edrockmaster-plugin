@@ -6,6 +6,10 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
+### Ajouté
+
+- **Mises à jour automatiques** (décision de conception ADR 0053) : une fois installée avec son installeur, l'application cherche une version plus récente au démarrage, puis une fois par jour, la télécharge en arrière-plan, et l'installe quand vous la quittez, ou aussitôt avec *Redémarrer pour mettre à jour*. Elle ne redémarre jamais d'elle-même, en pleine session. *Réglages*, *Mises à jour* : désactivez la recherche, ou choisissez le canal **bêta** pour recevoir aussi les versions candidates ; de retour en stable, vous gardez votre version jusqu'à une version stable plus récente.
+
 ## [0.6.0] - 2026-10-12
 
 ### Ajouté

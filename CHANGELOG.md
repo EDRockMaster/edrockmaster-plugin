@@ -6,6 +6,10 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
+### Added
+
+- **Automatic updates** (design decision ADR 0053): once installed with its installer, the application looks for a newer version at start, then once a day, downloads it in the background, and installs it when you quit, or at once with *Restart to update*. It never restarts by itself, in the middle of a session. *Settings*, *Updates*: turn the check off, or choose the **beta** channel to get the release candidates too; back to stable, you keep your version until a newer stable one.
+
 ## [0.6.0] - 2026-10-12
 
 ### Added

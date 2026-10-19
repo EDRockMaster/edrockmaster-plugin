@@ -10,10 +10,12 @@ import pytest
 
 from edrockmaster.application.activity import Activity
 from edrockmaster.application.settings import DEFAULT_SETTINGS, DisplayMode, SourceSettings
+from edrockmaster.application.updates import UpdateChannel
 from edrockmaster.desktop.settings_view import (
     DesktopPreferences,
     DesktopPreferencesStore,
     SettingsError,
+    UpdateOffer,
     settings_from_request,
     settings_view,
 )
@@ -27,14 +29,29 @@ RECORDINGS = Path("/data/recordings").resolve()
 LOGS = Path("/data/logs").resolve()
 
 
-def view(language: str = "auto", folder: str | None = None) -> dict[str, Any]:
+INSTALLED = UpdateOffer(installed=True, default=UpdateChannel.STABLE)
+
+
+def view(
+    language: str = "auto",
+    folder: str | None = None,
+    preferences: DesktopPreferences | None = None,
+    offer: UpdateOffer = INSTALLED,
+) -> dict[str, Any]:
     return settings_view(
         DEFAULT_SETTINGS,
-        DesktopPreferences(language, folder),
+        preferences or DesktopPreferences(language, folder),
         JOURNAL,
         lambda text: text,
         {"recordings": RECORDINGS, "logs": LOGS},
+        updates=offer,
     )
+
+
+def from_request(
+    request: dict[str, Any], offer: UpdateOffer = INSTALLED
+) -> tuple[Any, DesktopPreferences]:
+    return settings_from_request(request, DEFAULT_SETTINGS, offer.default)
 
 
 def test_the_form_shows_the_settings() -> None:
@@ -59,7 +76,7 @@ def test_the_form_back_into_settings() -> None:
     request["alerts"].update(minimumContent="high", minimumRemaining=50, cores=False, limpets=None)
     request.update(sound=False, recordJournal=True, activities=["trade", "mining"], language="fr")
     request["journalFolder"] = f"  {JOURNAL}  "
-    settings, preferences = settings_from_request(request, DEFAULT_SETTINGS)
+    settings, preferences = from_request(request)
     assert dict(settings.alerts.thresholds) == {Commodity.from_symbol("painite"): 35.0}
     assert settings.alerts.minimum_content is ContentLevel.HIGH
     assert settings.alerts.minimum_remaining == 50.0
@@ -75,15 +92,13 @@ def test_the_community_sources_are_switched_in_the_form() -> None:
     request = view()
     assert request["sources"] == {"spansh": True, "ardent": True}
     request["sources"] = {"spansh": False, "ardent": True}
-    assert settings_from_request(request, DEFAULT_SETTINGS)[0].sources == SourceSettings(
-        spansh=False
-    )
+    assert from_request(request)[0].sources == SourceSettings(spansh=False)
 
 
 def test_an_empty_folder_means_the_usual_one() -> None:
     request = view()
     request["journalFolder"] = "  "
-    assert settings_from_request(request, DEFAULT_SETTINGS)[1].journal_folder is None
+    assert from_request(request)[1].journal_folder is None
 
 
 def changed(path: tuple[str, ...], value: object) -> dict[str, Any]:
@@ -119,11 +134,14 @@ def changed(path: tuple[str, ...], value: object) -> dict[str, Any]:
         (("language",), "de", "language"),
         (("journalFolder",), 3, "journalFolder"),
         (("journalFolder",), "relative/folder", "journalFolder"),
+        (("updates",), None, "updates"),
+        (("updates", "check"), "yes", "check"),
+        (("updates", "channel"), "nightly", "channel"),
     ],
 )
 def test_invalid_fields_are_refused(path: tuple[str, ...], value: object, field: str) -> None:
     with pytest.raises(SettingsError) as refused:
-        settings_from_request(changed(path, value), DEFAULT_SETTINGS)
+        from_request(changed(path, value))
     assert refused.value.field == field
 
 
@@ -135,6 +153,46 @@ def test_the_desktop_preferences_are_stored_next_to_the_plugin_s() -> None:
     assert store.load() == DesktopPreferences("fr", "D:/Journal")
     config.values["edrockmaster.desktop.language"] = "klingon"
     assert store.load().language == "auto"
+
+
+# --- updates (ADR 0053) ----------------------------------------------------------------------
+
+
+def test_the_updates_follow_the_build_s_channel_until_another_is_chosen() -> None:
+    assert view()["updates"] == {"installed": True, "check": True, "channel": "stable"}
+    candidate = UpdateOffer(installed=True, default=UpdateChannel.BETA)
+    assert view(offer=candidate)["updates"]["channel"] == "beta"
+    chosen = DesktopPreferences(update_channel=UpdateChannel.BETA)
+    assert view(preferences=chosen)["updates"]["channel"] == "beta"
+
+
+def test_an_application_not_installed_says_so() -> None:
+    clone = UpdateOffer(installed=False, default=None)
+    assert view(offer=clone)["updates"] == {"installed": False, "check": True, "channel": "stable"}
+
+
+def test_the_form_back_into_update_preferences() -> None:
+    request = view()
+    request["updates"] = {"installed": True, "check": False, "channel": "beta"}
+    preferences = from_request(request)[1]
+    assert (preferences.check_updates, preferences.update_channel) == (False, UpdateChannel.BETA)
+
+
+def test_the_build_s_channel_is_not_kept_as_a_choice() -> None:
+    # A candidate updated to the production that ends its acceptance then follows stable
+    candidate = UpdateOffer(installed=True, default=UpdateChannel.BETA)
+    assert from_request(view(offer=candidate), candidate)[1].update_channel is None
+
+
+def test_the_update_preferences_are_stored() -> None:
+    config = FakeConfig()
+    store = DesktopPreferencesStore(config)
+    store.save(DesktopPreferences(check_updates=False, update_channel=UpdateChannel.BETA))
+    assert store.load() == DesktopPreferences(
+        check_updates=False, update_channel=UpdateChannel.BETA
+    )
+    config.values["edrockmaster.desktop.update_channel"] = "nightly"
+    assert store.load().update_channel is None
 
 
 def test_the_form_follows_its_schema() -> None:

@@ -18,6 +18,8 @@ export interface CoreApi {
   ready(): Promise<void>;
   reset(activity: string): Promise<void>;
   dismiss_notice(): Promise<void>;
+  /** The window closes, the version ready is applied, the application starts again (ADR 0053). */
+  restart_to_update(): Promise<void>;
   /** The first live view is shown: the core logs that its pushes reach the page. */
   shown(): Promise<void>;
   /** What the goal form offers; it never changes (ADR 0017). */

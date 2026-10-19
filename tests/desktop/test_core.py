@@ -12,7 +12,9 @@ import jsonschema
 import pytest
 
 from edrockmaster.application.activity import Activity
+from edrockmaster.application.updates import UpdateChannel
 from edrockmaster.desktop.core import CORE_THREAD, DesktopCore, game_description
+from tests.application.test_updates import FakeSource
 from tests.desktop.schemas import LIVE_VIEW_SCHEMA as SCHEMA
 from tests.desktop.test_parity import write_journal
 from tests.test_replay import Replay
@@ -54,7 +56,13 @@ class Views:
 
 
 class Desktop:
-    def __init__(self, tmp_path: Path, journal: Path | None, language: str = "en") -> None:
+    def __init__(
+        self,
+        tmp_path: Path,
+        journal: Path | None,
+        language: str = "en",
+        update_source: FakeSource | None = None,
+    ) -> None:
         self.data = tmp_path / "data"
         self.views = Views()
         self.opened: list[Path] = []
@@ -68,6 +76,7 @@ class Desktop:
             usual_journal_folder=lambda: None,
             logs_directory=tmp_path / "logs",
             open_folder=self.opened.append,
+            update_source=lambda: update_source,
         )
 
 
@@ -522,3 +531,44 @@ def test_a_new_file_of_the_game_completes_the_one_before(desktop: Desktop, journ
             == [(f"Unredeemed bounties, {LAVIGNY}", "3,000 CR, since 17 October 2026")]
         )
     )
+
+
+# --- updates (ADR 0053) ------------------------------------------------------------------------
+
+
+def test_a_version_ready_is_shown_then_applied_at_exit(tmp_path: Path) -> None:
+    source = FakeSource(installed="0.7.0")
+    source.latest[None] = "0.7.1"  # a development build follows the channel it was packed for
+    desktop = Desktop(tmp_path, None, update_source=source)
+    desktop.core.start()
+    try:
+        desktop.core.ready()
+        view = desktop.views.wait_for(lambda v: v["update"] is not None)
+        assert view["update"] == {"version": "0.7.1"}
+        assert desktop.core.handlers.settings.settings()["updates"]["installed"]
+    finally:
+        desktop.core.stop()
+    assert source.applied == [False]
+
+
+def test_restart_to_update_applies_once(tmp_path: Path) -> None:
+    source = FakeSource()
+    source.latest[None] = "0.7.1"
+    desktop = Desktop(tmp_path, None, update_source=source)
+    desktop.core.start()
+    try:
+        desktop.core.ready()
+        desktop.views.wait_for(lambda v: v["update"] is not None)
+        assert desktop.core.restart_to_update()
+    finally:
+        desktop.core.stop()
+    assert source.applied == [True]
+
+
+def test_without_updates_nothing_to_restart(desktop: Desktop) -> None:
+    assert not desktop.core.restart_to_update()
+    assert desktop.core.handlers.settings.settings()["updates"] == {
+        "installed": False,
+        "check": True,
+        "channel": UpdateChannel.STABLE.value,
+    }

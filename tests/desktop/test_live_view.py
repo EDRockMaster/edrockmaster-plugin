@@ -7,6 +7,7 @@ from pathlib import Path
 import jsonschema
 
 from edrockmaster.application.activity import Activity
+from edrockmaster.application.updates import UpdateReady
 from edrockmaster.desktop.live_view import live_view
 from edrockmaster.domain.situation.journal import GameMode, RouteStop, Ship
 from edrockmaster.domain.situation.route import CurrentRoute
@@ -39,12 +40,17 @@ EMPTY_ENGINEERING: dict[str, object] = {
 VALIDATOR = jsonschema.Draft202012Validator(json.loads(SCHEMA.read_text(encoding="utf-8")))
 
 
-def view(situation: Situation, blocks: tuple[ActivityBlock, ...] = ()) -> dict[str, object]:
+def view(
+    situation: Situation,
+    blocks: tuple[ActivityBlock, ...] = (),
+    update: UpdateReady | None = None,
+) -> dict[str, object]:
     built = live_view(
         language="fr",
         current="mining",
         blocks=blocks,
         notice=None,
+        update=update,
         journal_folder=Path("journal"),
         journal_file=None,
         situation=situation,
@@ -142,3 +148,8 @@ def test_a_route_off_its_list() -> None:
     route = CurrentRoute((RouteStop("Sol", "G"), RouteStop("Procyon", "F")), None, None, 1, True)
     shown = view(Situation(route=route))["situation"]["route"]  # type: ignore[index]
     assert (shown["offRoute"], shown["next"], shown["nextScoopableIn"]) == (True, None, None)
+
+
+def test_a_version_ready_in_the_view() -> None:
+    assert view(Situation())["update"] is None
+    assert view(Situation(), update=UpdateReady("0.7.1"))["update"] == {"version": "0.7.1"}
