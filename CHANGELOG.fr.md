@@ -6,6 +6,10 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
+### Ajouté
+
+- **L'application sur un téléphone ou une tablette** (décision de conception ADR 0055) : *Réglages*, *Téléphone et tablette* affiche un QR code ; scannez-le avec l'appareil photo d'un téléphone ou d'une tablette du réseau de la maison, et son navigateur ouvre l'application, en direct, avec tout ce que fait la fenêtre : objectifs, réglages, recherches de l'onglet Minage. Rien ne passe par internet. Désactivé par défaut ; *Utiliser un nouveau lien* exclut les appareils déjà connectés. La première fois, Windows peut demander d'autoriser l'application dans son pare-feu, pour les réseaux privés.
+
 ## [0.7.0] - 2026-10-19
 
 ### Modifié

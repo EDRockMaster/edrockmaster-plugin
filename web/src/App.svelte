@@ -7,7 +7,7 @@
   import MiningView from "./components/MiningView.svelte";
   import SettingsView from "./components/SettingsView.svelte";
   import SituationBanner from "./components/SituationBanner.svelte";
-  import { connect, core } from "./lib/bridge";
+  import { connect, core, isRemote } from "./lib/bridge";
   import { t, type Language } from "./lib/i18n";
   import type { LiveView } from "./lib/live-view";
 
@@ -63,9 +63,11 @@
     {#if view.update !== null}
       <div class="update" role="status">
         <p>{t(language, "update.ready", { version: view.update.version })}</p>
-        <button type="button" onclick={() => core()?.restart_to_update()}>
-          {t(language, "update.restart")}
-        </button>
+        {#if !isRemote()}
+          <button type="button" onclick={() => core()?.restart_to_update()}>
+            {t(language, "update.restart")}
+          </button>
+        {/if}
       </div>
     {/if}
     <SituationBanner situation={view.situation} {language} />
@@ -153,6 +155,8 @@
   }
   .tabs {
     display: flex;
+    /* On a phone (ADR 0055), the tabs go on two lines rather than out of the screen */
+    flex-wrap: wrap;
     gap: var(--space-1);
     margin-bottom: var(--space-3);
     border-bottom: 1px solid var(--colour-border);

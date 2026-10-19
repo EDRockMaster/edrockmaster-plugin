@@ -9,6 +9,7 @@ import type {
   MarketOffer,
   MiningOptions,
 } from "../src/lib/mining";
+import type { Phone } from "../src/lib/phone";
 import type { Settings } from "../src/lib/settings";
 
 export const MINING_OPTIONS: MiningOptions = {
@@ -210,6 +211,26 @@ export const SETTINGS: Settings = {
   updates: { installed: true, check: true, channel: "stable" },
 };
 
+/** The Phone and tablet section, turned on (ADR 0055). */
+export const PHONE_ON: Phone = {
+  enabled: true,
+  port: 47800,
+  listening: true,
+  error: null,
+  link: "http://192.168.1.20:47800/?key=abc",
+  qr: '<svg width="10" height="10" class="segno"></svg>',
+  otherLinks: ["http://10.0.0.5:47800/?key=abc"],
+};
+
+export const PHONE_OFF: Phone = {
+  ...PHONE_ON,
+  enabled: false,
+  listening: false,
+  link: null,
+  qr: null,
+  otherLinks: [],
+};
+
 /** The core's API as pywebview exposes it, every call recorded. */
 export function fakeCore(): CoreApi {
   return {
@@ -233,5 +254,13 @@ export function fakeCore(): CoreApi {
     find_hotspots: vi.fn(async () => structuredClone(HOTSPOTS)),
     find_buyers: vi.fn(async () => structuredClone(BUYERS)),
     estimate_cargo: vi.fn(async () => structuredClone(ESTIMATE)),
+    phone: vi.fn(async () => structuredClone(PHONE_OFF)),
+    set_phone: vi.fn(async (request: { enabled: boolean; port: number }) =>
+      request.enabled ? { ...PHONE_ON, port: request.port } : { ...PHONE_OFF, port: request.port },
+    ),
+    new_phone_link: vi.fn(async () => ({
+      ...PHONE_ON,
+      link: "http://192.168.1.20:47800/?key=new",
+    })),
   };
 }

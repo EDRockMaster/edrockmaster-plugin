@@ -41,12 +41,14 @@ from edrockmaster.desktop.handlers.context import CoreContext
 from edrockmaster.desktop.handlers.engineering import EngineeringHandler
 from edrockmaster.desktop.handlers.layout import LayoutHandler
 from edrockmaster.desktop.handlers.mining import MiningHandler
+from edrockmaster.desktop.handlers.phone import PhoneHandler
 from edrockmaster.desktop.handlers.settings import SettingsHandler
 from edrockmaster.desktop.journal_archive import FolderArchive
 from edrockmaster.desktop.journal_folder import default_journal_folder
 from edrockmaster.desktop.journal_reader import POLL_SECONDS, JournalFollower, JournalWatcher
 from edrockmaster.desktop.layout import LayoutStore
 from edrockmaster.desktop.live_view import live_view
+from edrockmaster.desktop.phone import Phone, PhoneStore
 from edrockmaster.desktop.settings_view import DesktopPreferencesStore, UpdateOffer
 from edrockmaster.desktop.updates import Updates
 from edrockmaster.domain.journal_reading import Entry
@@ -114,6 +116,7 @@ class Handlers:
     layout: LayoutHandler
     engineering: EngineeringHandler
     mining: MiningHandler
+    phone: PhoneHandler
 
 
 def _alert_sound() -> None:  # pragma: no cover - the sound of the platform
@@ -139,11 +142,13 @@ class DesktopCore:
         update_source: Callable[[], UpdateSource | None] = lambda: VelopackUpdates.installed(
             os.environ
         ),
+        phone: Phone | None = None,
     ) -> None:
         """``journal_folder``: set by the environment, before the settings' and the usual one;
         ``language``: the system's, unless the settings choose another; ``logs_directory``:
         where the log file is, in the data directory unless the demo keeps its data apart;
-        ``update_source``: the installation's updates, ``None`` if not installed to update."""
+        ``update_source``: the installation's updates, ``None`` if not installed to update;
+        ``phone``: the local server for a phone or a tablet (ADR 0055), the window's own."""
         self._data = data_directory
         self._folders = {
             "recordings": data_directory / RECORDINGS_DIRECTORY,
@@ -152,6 +157,9 @@ class DesktopCore:
         self._open_folder = open_folder
         self._http_opener = http_opener
         self._update_source = update_source
+        self._phone = phone or Phone(
+            lambda name, arguments: None, lambda: "", logger, addresses=list
+        )
         self._updates: Updates | None = None
         self._update: UpdateReady | None = None
         self._journal_override = journal_folder
@@ -266,7 +274,9 @@ class DesktopCore:
             layout=LayoutHandler(context, LayoutStore(config)),
             engineering=EngineeringHandler(context),
             mining=MiningHandler(context, self._mining_search(sources)),
+            phone=PhoneHandler(context, store=PhoneStore(config), phone=self._phone),
         )
+        self._handlers.phone.start()
         companion.engineering.load_goals(self._apply)
         if update_source is None:
             self._logger.info("Not installed to update itself: no updates")
@@ -302,6 +312,7 @@ class DesktopCore:
         if self._database is not None:
             self._io.submit(self._database.close)
         self._io.stop()
+        self._phone.stop()
         if self._updates is not None:
             self._updates.stop()
             self._updates.at_exit()
@@ -492,6 +503,7 @@ class DesktopCore:
             self._push(view)
         except Exception:
             self._logger.exception("Could not send the live view to the interface")
+        self._phone.publish(view)
 
     # Language: the presenters translate through these, so that a change applies at once
 

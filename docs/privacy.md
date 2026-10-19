@@ -22,7 +22,7 @@ The application does nothing else on your computer: it reads no other file, and 
 
 Everything stays on your computer, in `%LOCALAPPDATA%\EDRockMaster`:
 
-- **your settings** (`settings.json`);
+- **your settings** (`settings.json`), with the link key of the *Phone and tablet* QR code once you have turned it on;
 - **your engineering goals** (`edrockmaster.sqlite3`): the blueprints and effects you aim at, and how many rolls;
 - **a technical log** (`logs\`): when the application starts and stops, which journal file it reads, errors; it holds no statistics of your play;
 - **your unredeemed vouchers** (in `edrockmaster.sqlite3`): the bounties and combat bonds you hold, per faction and commander (by their Frontier id), and the names of the journal files already read for them, so that each is read only once;
@@ -36,6 +36,8 @@ Apart from your unredeemed vouchers, your session statistics and your situation 
 **Nothing to us**: EDRockMaster has no server, no analytics, no crash reports.
 
 **An update check, to GitHub.** Installed with its installer, the application looks for a newer version at start, then once a day, in the public releases of its repository on GitHub (`github.com`, `api.github.com`), and downloads it from there. The requests carry nothing of yours: no identifier, no statistics; GitHub sees your computer's IP address and the time, as any web site does. The *beta* channel also reads the release candidates. Turned off in *Settings*, *Updates*: the application then asks nothing.
+
+**To your phone or tablet, only if you turn it on.** *Settings*, *Phone and tablet* (off by default) lets a phone or a tablet of your home network open the application in its browser, by its QR code. The application then listens on your local network, on one port (47800 by default), and serves the devices that have the link everything the window shows, and lets them change it; nothing goes through the internet, and nothing reaches us. The link holds a random key; anyone on your network who has it sees and changes what the window does. It travels unencrypted on your network (no HTTPS for a local address): leave it off on a public network. Turned off, the application listens on nothing; *Use a new link* shuts out the devices already connected.
 
 **Your searches, to community tools, and only when you make them.** The *Mining* tab and the *Estimate the cargo* button ask two independent community tools for what the journal does not tell:
 
@@ -56,6 +58,7 @@ Nothing else is sent: not your commander's name, nor your statistics. As with an
 - **See or delete your data**: everything is in `%LOCALAPPDATA%\EDRockMaster`; delete the folder to erase it. Uninstalling the application keeps it, so that your goals survive a reinstall; delete it by hand if you wish.
 - **Stop the reading**: close the application.
 - **Check for no updates**: turn *Check for updates* off in *Settings*, *Updates*.
+- **Close the phone and tablet's access**: turn it off in *Settings*, *Phone and tablet*, or *Use a new link*.
 - **Ask no community tool**: turn Spansh and Ardent Insight off in *Settings*, *Community sources*.
 
 ## Children
