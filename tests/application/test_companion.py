@@ -3,7 +3,7 @@ from datetime import timedelta
 
 import pytest
 
-from edrockmaster.application.activity import Activity
+from edrockmaster.application.activity import Activity, EndedSessionsForgotten
 from edrockmaster.application.companion import Companion
 from edrockmaster.application.settings import DEFAULT_SETTINGS, PluginSettings
 from edrockmaster.domain.combat.session import CombatEnded, CombatStarted
@@ -169,3 +169,23 @@ def test_the_situation_follows_the_journal(harness: Harness) -> None:
     [changed] = [n for n in harness.entry(jumped) if isinstance(n, SituationChanged)]
     assert changed.situation.system == "Sol"
     assert harness.companion.situation.situation.system == "Sol"
+
+
+# --- sessions of a past game (the live view shows the current game only) --------------------
+
+
+def test_a_game_loaded_forgets_the_sessions_ended_before(harness: Harness) -> None:
+    loaded = {"timestamp": timestamp(0), "event": "LoadGame", "Commander": "Nyx-Vela"}
+    assert EndedSessionsForgotten() in harness.entry(loaded)
+
+
+def test_a_game_closed_before_the_application_started_is_forgotten(harness: Harness) -> None:
+    # The clock is an hour after T0: the newest file, read again at start, ended earlier
+    assert EndedSessionsForgotten() in harness.entry(
+        {"timestamp": timestamp(30), "event": "Shutdown"}
+    )
+
+
+def test_a_game_closed_while_the_application_runs_keeps_its_sessions(harness: Harness) -> None:
+    closed = {"timestamp": timestamp(90), "event": "Shutdown"}
+    assert EndedSessionsForgotten() not in harness.entry(closed)

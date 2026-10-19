@@ -149,6 +149,14 @@ def test_ended_session_keeps_its_figures(reason: TradeEndReason, text: str) -> N
     assert lines(presenter)["Profit"] == "4,500,000 CR"
 
 
+def test_an_ended_session_of_a_past_game_is_forgotten() -> None:
+    presenter = TradePresenter()
+    presenter.apply([TradeStarted(T0), TradeEnded(T0, TradeEndReason.GAME_CLOSED, stats(route()))])
+    presenter.forget_ended()
+    assert presenter.render().status == "No trade session"
+    assert lines(presenter) == {}
+
+
 def test_texts_are_translated() -> None:
     presenter = TradePresenter(translate=lambda text: "fr:" + text)
     model = presenter.apply([TradeStarted(T0), TradeUpdated(stats(route()))])

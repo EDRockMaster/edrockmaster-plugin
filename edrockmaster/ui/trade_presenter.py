@@ -61,6 +61,11 @@ class TradePresenter:
         lines = tuple(self._lines(self._stats)) if self._stats else ()
         return PanelModel(status=self._status(), lines=lines, alert=None, can_reset=self._running)
 
+    def forget_ended(self) -> None:
+        """The session ended belongs to a past game: no longer shown (a running one stays)."""
+        if not self._running:
+            self._ended, self._stats = None, None
+
     def _apply(self, notification: TradeNotification) -> None:
         match notification:
             case TradeStarted():

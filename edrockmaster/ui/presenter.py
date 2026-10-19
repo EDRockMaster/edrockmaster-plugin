@@ -20,7 +20,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import assert_never
 
-from edrockmaster.application.activity import Activity
+from edrockmaster.application.activity import Activity, EndedSessionsForgotten
 from edrockmaster.application.companion import Notification
 from edrockmaster.application.settings import DisplayMode, DisplaySettings
 from edrockmaster.domain.combat.session import CombatEnded, CombatStarted, CombatUpdated
@@ -99,6 +99,9 @@ class ActivityPresenter:
         for notification in notifications:
             if isinstance(notification, SituationChanged | RouteAlertRaised | JumpDiverted):
                 continue  # not an activity: the desktop application's banner (ADR 0023)
+            if isinstance(notification, EndedSessionsForgotten):
+                self._forget_ended()
+                continue
             if isinstance(notification, _COMBAT):
                 self._combat.apply([notification])
                 if isinstance(notification, _COMBAT_PROGRESS):
@@ -137,6 +140,12 @@ class ActivityPresenter:
             for activity in activities
             if (model := self._model(activity)).lines or activity is not Activity.COMMUNITY_GOALS
         )
+
+    def _forget_ended(self) -> None:
+        self._mining.forget_ended()
+        self._combat.forget_ended()
+        self._trade.forget_ended()
+        self._engineering.forget_ended()
 
     def _progressed(self, activity: Activity) -> None:
         if activity in self._display.activities:

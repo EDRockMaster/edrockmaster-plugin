@@ -98,6 +98,11 @@ class EngineeringPresenter:
             can_reset=self._running,
         )
 
+    def forget_ended(self) -> None:
+        """The collection ended belongs to a past game: no longer shown (the goals stay)."""
+        if not self._running:
+            self._ended = None
+
     def _apply(self, notification: EngineeringNotification) -> None:
         match notification:
             case CollectionStarted():
