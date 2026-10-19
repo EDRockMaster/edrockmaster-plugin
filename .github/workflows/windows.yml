@@ -145,20 +145,25 @@ jobs:
       - name: Update test
         # Installed by Velopack's installer, the application finds a newer version in a local
         # feed, downloads it, and has it applied once its window is closed; the uninstall then
-        # leaves the player's data (ADR 0053). The same build, packed as 1.0.0 then as 1.0.1.
+        # leaves the player's data (ADR 0053). The same build, packed as 1.0.0 then as 1.0.1, on
+        # the channel it follows: its first update channel for a tag (beta for a candidate,
+        # stable for a production), the one it was packed for otherwise.
         run: |
           feed="$RUNNER_TEMP/feed"
+          channels="${{ steps.plan.outputs.channels }}"
+          channel="${channels%% *}"
+          channel="${channel:-test}"
           pack() {
             # The hooks run from Python (velopack.App().run()), which vpk cannot see in the
             # executable: this test is what checks them
-            vpk pack --packId EDRockMaster.Companion --packVersion "$1" --channel test \
+            vpk pack --packId EDRockMaster.Companion --packVersion "$1" --channel "$channel" \
               --packTitle "EDRockMaster Companion" --packAuthors DamScan \
               --packDir dist-desktop/pyinstaller/EDRockMaster --mainExe EDRockMaster.exe \
               --icon dist-desktop/assets/EDRockMaster.ico --runtime win-x64 \
               --skipVeloAppCheck --outputDir "$feed"
           }
           pack 1.0.0
-          cp "$feed/EDRockMaster.Companion-test-Setup.exe" "$RUNNER_TEMP/setup-1.0.0.exe"
+          cp "$feed/EDRockMaster.Companion-$channel-Setup.exe" "$RUNNER_TEMP/setup-1.0.0.exe"
           pack 1.0.1
           local_app_data="$(cygpath -u "$LOCALAPPDATA")"
           data="$local_app_data/EDRockMaster"
