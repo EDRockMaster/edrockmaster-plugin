@@ -7,8 +7,9 @@
 # - candidate: a vX.Y.Z-rc.N tag publishes a pre-release, on GitHub for the beta update channel,
 #   and on Gitea;
 # - production: a vX.Y.Z tag, refused unless a candidate is tagged on the same commit, publishes a
-#   release on GitHub, which announces it on Discord (a webhook of the GitHub repository, which
-#   ignores pre-releases), and on Gitea.
+#   release on GitHub and on Gitea.
+# GitHub announces every published release on Discord, candidates included (a webhook of the
+# GitHub repository).
 # The GitHub release needs the GH_RELEASE_TOKEN secret (fine-grained token limited to
 # EDRockMaster/edrockmaster-plugin, Contents: write).
 name: CI

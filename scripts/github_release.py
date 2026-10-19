@@ -7,8 +7,8 @@ update feeds (``vpk upload github``). The release job of the Gitea CI then:
 - ``fetch``: downloads the draft's files into a folder, for the Gitea release, and adds a
   ``SHA256SUMS`` file of them to both;
 - ``publish``: gives the draft its notes and name, marks a candidate as a pre-release, and
-  publishes it. Publishing a production triggers the Discord announcement (a webhook of the
-  repository, which ignores pre-releases); the updates of installed applications read the
+  publishes it. Publishing triggers the Discord announcement, of a candidate as of a
+  production (a webhook of the repository); the updates of installed applications read the
   published releases only.
 
 Talks to api.github.com explicitly: under Gitea Actions, GITHUB_API_URL points at Gitea, and
