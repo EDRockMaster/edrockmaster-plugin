@@ -21,8 +21,13 @@ class FakeWindow:
     def __init__(self) -> None:
         self.scripts: list[str] = []
 
+        self.destroyed = False
+
     def run_js(self, script: str) -> None:
         self.scripts.append(script)
+
+    def destroy(self) -> None:
+        self.destroyed = True
 
 
 class FakeGui:
@@ -47,6 +52,8 @@ class FakeGui:
             time.sleep(0.01)
         api.reset("mining")
         api.dismiss_notice()
+        api.restart_to_update()  # nothing ready: the window stays
+        assert not self.window.destroyed
         api.shown()
         assert api.catalogue()["modules"]
         api.add_goal({"kind": "effect", "module": "fsd", "name": "special_fsd_heavy"})

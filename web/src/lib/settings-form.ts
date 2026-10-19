@@ -55,6 +55,7 @@ export interface SettingsForm {
   language: Settings["language"];
   journalFolder: string;
   sources: Settings["sources"];
+  updates: Settings["updates"];
 }
 
 export function formOf(settings: Settings): SettingsForm {
@@ -72,6 +73,7 @@ export function formOf(settings: Settings): SettingsForm {
     language: settings.language,
     journalFolder: settings.journalFolder ?? "",
     sources: { ...settings.sources },
+    updates: { ...settings.updates },
   };
 }
 
@@ -108,6 +110,7 @@ export function settingsFrom(loaded: Settings, form: SettingsForm): Settings | n
     language: form.language,
     journalFolder: folder === "" ? null : folder,
     sources: { ...form.sources },
+    updates: { ...form.updates, installed: loaded.updates.installed },
   };
 }
 

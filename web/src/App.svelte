@@ -60,6 +60,14 @@
         </button>
       </div>
     {/if}
+    {#if view.update !== null}
+      <div class="update" role="status">
+        <p>{t(language, "update.ready", { version: view.update.version })}</p>
+        <button type="button" onclick={() => core()?.restart_to_update()}>
+          {t(language, "update.restart")}
+        </button>
+      </div>
+    {/if}
     <SituationBanner situation={view.situation} {language} />
     {#if view.journal.folder === null}
       <p class="journal" role="status">{t(language, "journal.missing")}</p>
@@ -125,6 +133,18 @@
     margin-bottom: var(--space-3);
   }
   .notice p {
+    margin: 0;
+  }
+  .update {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    border: 1px solid var(--colour-border);
+    border-radius: var(--radius);
+    padding: var(--space-2) var(--space-3);
+    margin-bottom: var(--space-3);
+  }
+  .update p {
     margin: 0;
   }
   .journal {

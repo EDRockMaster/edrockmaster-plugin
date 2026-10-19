@@ -10,6 +10,7 @@ dependencies = []
 [dependency-groups]
 desktop = [
     "pywebview>=6.2.1",
+    "velopack==1.2.161",
 ]
 dev = [
     "pytest>=8",

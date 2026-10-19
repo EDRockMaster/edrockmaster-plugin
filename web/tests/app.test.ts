@@ -79,6 +79,17 @@ describe("App", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("unavailable");
   });
 
+  it("says a version is ready, and restarts to update", async () => {
+    const api = withCore();
+    render(App);
+    push(view());
+    expect(screen.queryByText(/is ready/)).toBeNull();
+    push(view({ update: { version: "0.7.1" } }));
+    expect(screen.getByText(/Version 0.7.1 is ready/)).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole("button", { name: "Restart to update" }));
+    expect(api.restart_to_update).toHaveBeenCalledOnce();
+  });
+
   it("asks the core to reset an activity", async () => {
     const api = withCore();
     render(App);

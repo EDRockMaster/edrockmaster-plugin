@@ -6,8 +6,13 @@ from pathlib import Path
 import pytest
 
 from edrockmaster.application.community import Source
+from edrockmaster.application.updates import UpdateChannel
 from edrockmaster.desktop.handlers.settings import SettingsHandler
-from edrockmaster.desktop.settings_view import DesktopPreferences, DesktopPreferencesStore
+from edrockmaster.desktop.settings_view import (
+    DesktopPreferences,
+    DesktopPreferencesStore,
+    UpdateOffer,
+)
 from tests.desktop.handlers.fake_core import FakeCore
 from tests.fakes import FakeConfig
 
@@ -20,6 +25,7 @@ class Settings:
         self.languages: list[str] = []
         self.opened: list[Path] = []
         self.past_journals_read = 0
+        self.update_checks = 0
         self.folders = {"recordings": tmp_path / "recordings", "logs": tmp_path / "logs"}
         self.handler = SettingsHandler(
             self.core.context,
@@ -31,7 +37,12 @@ class Settings:
             clear_source=self.cleared.append,
             set_language=self.languages.append,
             read_past_journals=self.read_again,
+            update_offer=UpdateOffer(installed=True, default=UpdateChannel.STABLE),
+            updates_changed=self.check_updates,
         )
+
+    def check_updates(self) -> None:
+        self.update_checks += 1
 
     def read_again(self) -> None:
         self.past_journals_read += 1
@@ -113,3 +124,16 @@ def test_only_the_application_s_folders_open(
 def test_past_journals_are_read_again_when_asked(settings: Settings) -> None:
     settings.handler.read_past_journals()
     assert settings.past_journals_read == 1
+
+
+def test_update_settings_changed_check_again(settings: Settings) -> None:
+    assert settings.handler.update_wish() == (True, None)
+    request = settings.handler.settings()
+    request["language"] = "fr"
+    settings.handler.save_settings(request)
+    assert settings.update_checks == 0  # the language only
+    request["updates"]["channel"] = "beta"
+    settings.handler.save_settings(request)
+    assert settings.update_checks == 1
+    assert settings.handler.update_wish() == (True, UpdateChannel.BETA)
+    assert settings.config.get_str("edrockmaster.desktop.update_channel") == "beta"

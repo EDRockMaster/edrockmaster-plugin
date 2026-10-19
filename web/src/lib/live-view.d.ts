@@ -57,6 +57,12 @@ export interface LiveView {
    * Local data reset or unavailable (ADR 0018), until dismissed.
    */
   notice: "reset" | "unavailable" | null;
+  /**
+   * A newer version downloaded (ADR 0053): applied when the application quits, or restarts to update.
+   */
+  update: null | {
+    version: string;
+  };
   journal: {
     /**
      * The journal folder; null when none was found.

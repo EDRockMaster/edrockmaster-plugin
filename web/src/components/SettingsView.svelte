@@ -211,6 +211,26 @@
       </label>
     </section>
 
+    {#if loaded.updates.installed}
+      <section>
+        <h2>{t(language, "settings.updates")}</h2>
+        <label class="check">
+          <input type="checkbox" bind:checked={form.updates.check} />{t(
+            language,
+            "settings.updates.check",
+          )}
+        </label>
+        <label>
+          {t(language, "settings.updates.channel")}
+          <select bind:value={form.updates.channel} disabled={!form.updates.check}>
+            <option value="stable">{t(language, "settings.updates.stable")}</option>
+            <option value="beta">{t(language, "settings.updates.beta")}</option>
+          </select>
+        </label>
+        <p class="muted">{t(language, "settings.updates.help")}</p>
+      </section>
+    {/if}
+
     <section>
       <h2>{t(language, "settings.logs")}</h2>
       <div class="folder">

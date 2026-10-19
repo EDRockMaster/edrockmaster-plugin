@@ -15,7 +15,8 @@
     "journalFolderInUse",
     "recordingsFolder",
     "logsFolder",
-    "sources"
+    "sources",
+    "updates"
   ],
   "properties": {
     "alerts": {
@@ -152,6 +153,33 @@
         "ardent": {
           "type": "boolean",
           "description": "Ardent Insight: the markets that buy a commodity."
+        }
+      }
+    },
+    "updates": {
+      "type": "object",
+      "description": "Updates of the installed application (ADR 0053).",
+      "additionalProperties": false,
+      "required": [
+        "installed",
+        "check",
+        "channel"
+      ],
+      "properties": {
+        "installed": {
+          "type": "boolean",
+          "description": "Installed to update itself; false for a clone or a CI build (read only)."
+        },
+        "check": {
+          "type": "boolean",
+          "description": "Check for a newer version, and download it."
+        },
+        "channel": {
+          "enum": [
+            "stable",
+            "beta"
+          ],
+          "description": "stable: productions only; beta: candidates too. The build's channel unless another is chosen."
         }
       }
     }

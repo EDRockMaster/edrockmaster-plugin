@@ -49,8 +49,9 @@ class InterfaceApi:
     """What the interface may call. Each call only queues work for the core thread; the calls
     of a context go to its handler (ADR 0041)."""
 
-    def __init__(self, core: DesktopCore) -> None:
+    def __init__(self, core: DesktopCore, window: _Window) -> None:
         self._core = core
+        self._window = window
 
     def ready(self) -> None:
         self._core.ready()
@@ -60,6 +61,12 @@ class InterfaceApi:
 
     def dismiss_notice(self) -> None:
         self._core.dismiss_notice()
+
+    def restart_to_update(self) -> None:
+        """The window closes; the version ready is applied, then the application starts again
+        (ADR 0053)."""
+        if self._core.restart_to_update():
+            self._window.close()
 
     def shown(self) -> None:
         self._core.shown()
@@ -131,6 +138,10 @@ class _Window:
             payload = json.dumps(view, ensure_ascii=True)
             self.window.run_js(f"window.edrm && window.edrm.receive({payload})")
 
+    def close(self) -> None:
+        if self.window is not None:
+            self.window.destroy()
+
 
 def configure_logging(directory: Path) -> logging.Logger:
     """A rotating log file in the data directory, and the standard error."""
@@ -197,7 +208,7 @@ def main(
             # The title bar carries the full version (ADR 0016): the page does not repeat it
             f"{TITLE} {core.build.version}",
             html=INTERFACE.read_text(encoding="utf-8"),
-            js_api=InterfaceApi(core),
+            js_api=InterfaceApi(core, window),
             **WINDOW,
         )
         core.start()

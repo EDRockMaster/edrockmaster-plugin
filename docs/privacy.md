@@ -2,7 +2,7 @@
 
 *English · [Français](privacy.fr.md)*
 
-Last updated: 12 October 2026. Applies to the EDRockMaster Companion desktop application and to the EDRockMaster plugin for EDMarketConnector, published by DamScan, a personal and non-commercial project.
+Last updated: 19 October 2026. Applies to the EDRockMaster Companion desktop application and to the EDRockMaster plugin for EDMarketConnector, published by DamScan, a personal and non-commercial project.
 
 ## In short
 
@@ -33,7 +33,9 @@ Apart from your unredeemed vouchers, your session statistics and your situation 
 
 ## What the application sends
 
-**Nothing to us**: EDRockMaster has no server, no analytics, no crash reports, and no update check (the Microsoft Store handles updates).
+**Nothing to us**: EDRockMaster has no server, no analytics, no crash reports.
+
+**An update check, to GitHub.** Installed with its installer, the application looks for a newer version at start, then once a day, in the public releases of its repository on GitHub (`github.com`, `api.github.com`), and downloads it from there. The requests carry nothing of yours: no identifier, no statistics; GitHub sees your computer's IP address and the time, as any web site does. The *beta* channel also reads the release candidates. Turned off in *Settings*, *Updates*: the application then asks nothing.
 
 **Your searches, to community tools, and only when you make them.** The *Mining* tab and the *Estimate the cargo* button ask two independent community tools for what the journal does not tell:
 
@@ -44,7 +46,7 @@ Nothing else is sent: not your commander's name, nor your statistics. As with an
 
 ## Third parties
 
-- **Microsoft Store**: installs and updates the application, under [Microsoft's privacy statement](https://privacy.microsoft.com/privacystatement). EDRockMaster receives no personal data from it.
+- **GitHub**: publishes the application and its updates, under [GitHub's privacy statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement); asked by the update check, as said above.
 - **Microsoft Edge WebView2**: the component of Windows that draws the application's window; it runs on your computer.
 - **Game data**: the list of materials, blueprints and engineers comes from community data (EDCD) shipped inside the application; nothing is downloaded.
 - **Spansh** and **Ardent Insight**: asked only when you search, as said above; turned off in *Settings*.
@@ -53,6 +55,7 @@ Nothing else is sent: not your commander's name, nor your statistics. As with an
 
 - **See or delete your data**: everything is in `%LOCALAPPDATA%\EDRockMaster`; delete the folder to erase it. Uninstalling the application keeps it, so that your goals survive a reinstall; delete it by hand if you wish.
 - **Stop the reading**: close the application.
+- **Check for no updates**: turn *Check for updates* off in *Settings*, *Updates*.
 - **Ask no community tool**: turn Spansh and Ardent Insight off in *Settings*, *Community sources*.
 
 ## Children

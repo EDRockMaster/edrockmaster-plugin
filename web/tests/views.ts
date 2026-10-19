@@ -21,6 +21,7 @@ export function view(overrides: Partial<LiveView> = {}): LiveView {
       block({ activity: "trade", status: "No trade session", lines: [], canReset: false }),
     ],
     notice: null,
+    update: null,
     journal: { folder: "C:/Journal", file: "Journal.2026-10-08T014139.01.log" },
     situation: situation(),
     engineering: engineering(),

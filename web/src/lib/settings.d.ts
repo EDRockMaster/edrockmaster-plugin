@@ -63,4 +63,21 @@ export interface Settings {
      */
     ardent: boolean;
   };
+  /**
+   * Updates of the installed application (ADR 0053).
+   */
+  updates: {
+    /**
+     * Installed to update itself; false for a clone or a CI build (read only).
+     */
+    installed: boolean;
+    /**
+     * Check for a newer version, and download it.
+     */
+    check: boolean;
+    /**
+     * stable: productions only; beta: candidates too. The build's channel unless another is chosen.
+     */
+    channel: "stable" | "beta";
+  };
 }

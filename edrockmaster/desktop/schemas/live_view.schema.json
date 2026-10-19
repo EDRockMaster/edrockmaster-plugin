@@ -11,6 +11,7 @@
     "current",
     "activities",
     "notice",
+    "update",
     "journal",
     "situation",
     "engineering"
@@ -43,6 +44,26 @@
         "reset",
         "unavailable",
         null
+      ]
+    },
+    "update": {
+      "description": "A newer version downloaded (ADR 0053): applied when the application quits, or restarts to update.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "version"
+          ],
+          "properties": {
+            "version": {
+              "type": "string"
+            }
+          }
+        }
       ]
     },
     "journal": {

@@ -216,6 +216,30 @@ describe("SettingsView", () => {
     expect(api.save_settings).not.toHaveBeenCalled();
   });
 
+  it("chooses the update channel, or no updates at all", async () => {
+    const api = await opened();
+    await fireEvent.change(screen.getByLabelText("Channel"), { target: { value: "beta" } });
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(api.save_settings).toHaveBeenLastCalledWith({
+      ...SETTINGS,
+      updates: { installed: true, check: true, channel: "beta" },
+    });
+    await fireEvent.click(screen.getByLabelText(/Check for updates/));
+    expect(screen.getByLabelText("Channel")).toBeDisabled();
+  });
+
+  it("offers no updates to an application not installed to update itself", async () => {
+    const api = fakeCore();
+    api.settings = async () => ({
+      ...structuredClone(SETTINGS),
+      updates: { installed: false, check: true, channel: "stable" },
+    });
+    window.pywebview = { api };
+    render(SettingsView, { language: "en", journal: JOURNAL });
+    await waitFor(() => expect(screen.getByRole("form")).toBeInTheDocument());
+    expect(screen.queryByText("Updates")).toBeNull();
+  });
+
   it("shows nothing to change outside pywebview", () => {
     render(SettingsView, { language: "en", journal: JOURNAL });
     expect(screen.getByText("Loading the settings…")).toBeInTheDocument();

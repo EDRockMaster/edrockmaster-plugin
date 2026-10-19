@@ -1,5 +1,5 @@
-"""The Settings page's calls (ADR 0020): the settings, the application's folders, and reading
-the journals of past game sessions again (ADR 0052)."""
+"""The Settings page's calls (ADR 0020): the settings, the application's folders, reading
+the journals of past game sessions again (ADR 0052), and the updates (ADR 0053)."""
 
 from __future__ import annotations
 
@@ -8,11 +8,13 @@ from pathlib import Path
 from typing import Any
 
 from edrockmaster.application.community import Source
+from edrockmaster.application.updates import UpdateChannel
 from edrockmaster.desktop.handlers.context import CoreContext
 from edrockmaster.desktop.settings_view import (
     DesktopPreferences,
     DesktopPreferencesStore,
     SettingsError,
+    UpdateOffer,
     settings_from_request,
     settings_view,
 )
@@ -31,11 +33,15 @@ class SettingsHandler:
         clear_source: Callable[[Source], None],
         set_language: Callable[[str], None],
         read_past_journals: Callable[[], None],
+        update_offer: UpdateOffer,
+        updates_changed: Callable[[], None],
     ) -> None:
         """``journal_folder``: the one in use since the start; ``folders``: those the page may
         open, by name; ``clear_source``: forgets what a source answered, once turned off;
         ``set_language``: applies the language chosen, on the core thread;
-        ``read_past_journals``: forgets what the past journals gave and reads them again."""
+        ``read_past_journals``: forgets what the past journals gave and reads them again;
+        ``update_offer``: whether the application updates itself, and its build's channel;
+        ``updates_changed``: checks again, the update settings changed."""
         self._context = context
         self._store = store
         self._preferences = preferences
@@ -46,6 +52,14 @@ class SettingsHandler:
         self._set_language = set_language
         self.read_past_journals = read_past_journals
         """Does not block: the past journals are read on a thread of their own."""
+        self._update_offer = update_offer
+        self._updates_changed = updates_changed
+
+    def update_wish(self) -> tuple[bool, UpdateChannel | None]:
+        """Whether to check for updates, and the channel chosen. Reads an immutable object:
+        any thread."""
+        preferences = self._preferences
+        return preferences.check_updates, preferences.update_channel
 
     def settings(self) -> dict[str, Any]:
         """What the settings form shows. Reads immutable objects only: any thread."""
@@ -55,13 +69,16 @@ class SettingsHandler:
             self._journal_folder,
             self._context.tl,
             self._folders,
+            updates=self._update_offer,
         )
 
     def save_settings(self, request: Mapping[str, Any]) -> None:
         def save() -> None:
             companion = self._context.companion()
             try:
-                settings, preferences = settings_from_request(request, companion.settings)
+                settings, preferences = settings_from_request(
+                    request, companion.settings, self._update_offer.default
+                )
             except SettingsError as error:
                 self._context.logger.warning("Settings refused: %s", error)
                 return
@@ -76,8 +93,14 @@ class SettingsHandler:
                 self._store.save(preferences)
                 if preferences.journal_folder != self._preferences.journal_folder:
                     self._context.logger.info("Journal folder set, used from the next start")
+                updates_changed = self.update_wish() != (
+                    preferences.check_updates,
+                    preferences.update_channel,
+                )
                 self._preferences = preferences
                 self._set_language(preferences.language)
+                if updates_changed:
+                    self._updates_changed()
             self._context.refresh()
 
         self._context.on_core(save)

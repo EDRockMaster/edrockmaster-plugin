@@ -11,6 +11,7 @@ from datetime import UTC
 from pathlib import Path
 from typing import Any
 
+from edrockmaster.application.updates import UpdateReady
 from edrockmaster.domain.situation.route import CurrentRoute, scoopable
 from edrockmaster.domain.situation.situation import Situation
 from edrockmaster.ui.panel_model import ActivityBlock, LocalDataNotice, StatLine
@@ -24,6 +25,7 @@ def live_view(  # noqa: PLR0913 - one argument per part of the view
     current: str,
     blocks: tuple[ActivityBlock, ...],
     notice: LocalDataNotice | None,
+    update: UpdateReady | None,
     journal_folder: Path | None,
     journal_file: Path | None,
     situation: Situation,
@@ -44,6 +46,7 @@ def live_view(  # noqa: PLR0913 - one argument per part of the view
             for block in blocks
         ],
         "notice": notice.value if notice else None,
+        "update": {"version": update.version} if update else None,
         "journal": {
             "folder": str(journal_folder) if journal_folder else None,
             "file": journal_file.name if journal_file else None,

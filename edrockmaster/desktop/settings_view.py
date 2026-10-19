@@ -2,10 +2,12 @@
 
 The player's settings (alerts, sound, journal recordings, the activities shown)
 are stored in ``settings.json``, with the keys of the EDMC plugin. The
-application adds two of its own: the **language** of its texts (the system's
-by default), applied at once, and the **journal folder** when the game's is not
+application adds its own: the **language** of its texts (the system's
+by default), applied at once; the **journal folder** when the game's is not
 where it is usually found, applied at the next start (reading another folder
-at once would count its sessions on top of the current ones).
+at once would count its sessions on top of the current ones); and its
+**updates** (ADR 0053), whether to check for them and on which channel, the
+build's unless another is chosen.
 
 ``settings_view`` gives the interface what its form shows; ``settings_from_request``
 turns the form back into settings, refusing what is not valid.
@@ -20,6 +22,7 @@ from typing import Any
 
 from edrockmaster.application.activity import Activity
 from edrockmaster.application.settings import DisplaySettings, PluginSettings, SourceSettings
+from edrockmaster.application.updates import UpdateChannel
 from edrockmaster.domain.commodities import Commodity
 from edrockmaster.domain.mining.journal import ContentLevel
 from edrockmaster.domain.mining.prospecting import AlertSettings
@@ -29,7 +32,11 @@ from edrockmaster.ui.commodity_names import MINEABLE
 LANGUAGES = ("auto", "en", "fr")
 KEY_LANGUAGE = "edrockmaster.desktop.language"
 KEY_JOURNAL_FOLDER = "edrockmaster.desktop.journal_folder"
+KEY_CHECK_UPDATES = "edrockmaster.desktop.check_updates"
+KEY_UPDATE_CHANNEL = "edrockmaster.desktop.update_channel"
 _CONTENTS = {level.value: level for level in ContentLevel if level is not ContentLevel.UNKNOWN}
+
+_CHANNELS = {channel.value: channel for channel in UpdateChannel}
 
 MAX_LIMPETS = 999
 """The most limpets the alert may wait for: more than any ship carries."""
@@ -49,6 +56,17 @@ class DesktopPreferences:
     """``auto`` (the system's), ``en`` or ``fr``."""
     journal_folder: str | None = None
     """The journal folder set by hand; ``None``: where the game usually writes it."""
+    check_updates: bool = True
+    update_channel: UpdateChannel | None = None
+    """The channel chosen; ``None``: the build's."""
+
+
+@dataclass(frozen=True, slots=True)
+class UpdateOffer:
+    """Whether the application is installed to update itself, and the channel of its build."""
+
+    installed: bool
+    default: UpdateChannel | None
 
 
 class DesktopPreferencesStore:
@@ -60,21 +78,33 @@ class DesktopPreferencesStore:
     def load(self) -> DesktopPreferences:
         language = self._config.get_str(KEY_LANGUAGE, default="auto") or "auto"
         folder = self._config.get_str(KEY_JOURNAL_FOLDER, default="") or None
-        return DesktopPreferences(language if language in LANGUAGES else "auto", folder)
+        channel = self._config.get_str(KEY_UPDATE_CHANNEL, default="") or ""
+        return DesktopPreferences(
+            language if language in LANGUAGES else "auto",
+            folder,
+            check_updates=self._config.get_bool(KEY_CHECK_UPDATES, default=True),
+            update_channel=_CHANNELS.get(channel),
+        )
 
     def save(self, preferences: DesktopPreferences) -> None:
         self._config.set(KEY_LANGUAGE, preferences.language)
         self._config.set(KEY_JOURNAL_FOLDER, preferences.journal_folder or "")
+        self._config.set(KEY_CHECK_UPDATES, preferences.check_updates)
+        channel = preferences.update_channel
+        self._config.set(KEY_UPDATE_CHANNEL, channel.value if channel else "")
 
 
-def settings_view(
+def settings_view(  # noqa: PLR0913 - one argument per part of the form
     settings: PluginSettings,
     preferences: DesktopPreferences,
     journal_in_use: Path | None,
     translate: Callable[[str], str],
     folders: Mapping[str, Path],
+    *,
+    updates: UpdateOffer,
 ) -> dict[str, Any]:
     """``folders``: where the ``recordings`` and the ``logs`` are, which the form can open."""
+    channel = preferences.update_channel or updates.default or UpdateChannel.STABLE
     alerts = settings.alerts
     thresholds = {commodity.key: value for commodity, value in alerts.thresholds.items()}
     return {
@@ -99,13 +129,19 @@ def settings_view(
         "journalFolderInUse": str(journal_in_use) if journal_in_use else None,
         "recordingsFolder": str(folders["recordings"]),
         "logsFolder": str(folders["logs"]),
+        "updates": {
+            "installed": updates.installed,
+            "check": preferences.check_updates,
+            "channel": channel.value,
+        },
     }
 
 
 def settings_from_request(
-    request: Mapping[str, Any], current: PluginSettings
+    request: Mapping[str, Any], current: PluginSettings, default_channel: UpdateChannel | None
 ) -> tuple[PluginSettings, DesktopPreferences]:
-    """The settings the form asks for; ``SettingsError`` names the first invalid field."""
+    """The settings the form asks for; ``SettingsError`` names the first invalid field. The
+    build's channel is not kept as a choice: an update to another build follows its own."""
     alerts = _mapping(request, "alerts")
     settings = PluginSettings(
         alerts=_alerts(alerts),
@@ -124,7 +160,16 @@ def settings_from_request(
     folder = folder.strip() if folder else None
     if folder and not Path(folder).is_absolute():
         raise SettingsError("journalFolder", "not an absolute path")
-    return settings, DesktopPreferences(str(language), folder or None)
+    updates = _mapping(request, "updates")
+    channel = _CHANNELS.get(str(updates.get("channel")))
+    if channel is None:
+        raise SettingsError("channel", "not stable or beta")
+    return settings, DesktopPreferences(
+        str(language),
+        folder or None,
+        check_updates=_bool(updates, "check"),
+        update_channel=None if channel is default_channel else channel,
+    )
 
 
 def _mapping(request: Mapping[str, Any], field: str) -> Mapping[str, Any]:
