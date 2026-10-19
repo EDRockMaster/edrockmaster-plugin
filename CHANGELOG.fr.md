@@ -6,6 +6,8 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
+## [0.7.0] - 2026-10-19
+
 ### Modifié
 
 - **L'application quitte le Microsoft Store** (décision de conception ADR 0053) : elle s'installe depuis ses releases GitHub, avec `EDRockMaster.Companion-stable-Setup.exe`, sans droits d'administrateur, dans le menu Démarrer et sur le bureau ; un zip portable fonctionne sans installation. L'installeur n'est pas encore signé : Windows peut avertir d'un éditeur inconnu (*Informations complémentaires*, puis *Exécuter quand même*). Vos données restent dans `%LOCALAPPDATA%\EDRockMaster` : désinstallez d'abord une version du Store, la nouvelle retrouve tout.
@@ -157,6 +159,7 @@ Première version, pour le premier essai en jeu. Le plugin fonctionne seul, sans
 - Pas de valeur estimée de la soute : elle demande les prix du serveur.
 - Pas encore vérifiés : le thème sombre d'EDMC, le son d'alerte sous Windows.
 
+[0.7.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.7.0
 [0.6.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.6.0
 [0.5.0]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.5.0
 [0.2.2]: https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.2.2
