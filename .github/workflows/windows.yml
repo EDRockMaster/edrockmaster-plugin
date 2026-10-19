@@ -1,12 +1,13 @@
-# Windows build of the desktop application (ADR 0022). PyInstaller does not cross-compile, and
-# makeappx comes with the Windows SDK: this runs on GitHub Actions (windows-latest), on the public
-# GitHub mirror only. Gitea reads .gitea/workflows, which runs the checks and gates merging, and
-# ignores this folder. Building uses no secret; the package identity is in repository variables.
+# Windows build of the desktop application (ADR 0020, ADR 0053). PyInstaller does not cross-compile:
+# this runs on GitHub Actions (windows-latest), on the public GitHub mirror only. Gitea reads
+# .gitea/workflows, which runs the checks and gates merging, and ignores this folder.
 #
-# - every push of a branch that changes more than the documentation: the portable zip and an MSIX
-#   to check the packaging, kept 14 days; a newer push to the same branch cancels the older build;
-# - a tag vX.Y.Z-rc.N or vX.Y.Z: the MSIX to submit to the Store (package flight, then all),
-#   refused by the release plan as on Gitea (no production without a candidate on the commit).
+# - every push of a branch that changes more than the documentation: the application, its smoke
+#   tests and the update test (installed by Velopack, then updated to a newer version); the
+#   portable zip, kept 14 days; a newer push to the same branch cancels the older build;
+# - a tag vX.Y.Z-rc.N or vX.Y.Z, refused by the release plan as on Gitea (no production without a
+#   candidate on the commit): packed with Velopack for its update channels, then left on GitHub as
+#   a draft release, which the Gitea CI fetches, completes and publishes.
 name: Windows build
 
 on:
@@ -20,7 +21,7 @@ on:
       - ".gitea/**"
   workflow_dispatch:
 
-# A tag's build is never cancelled: its MSIX is the one submitted to the Store
+# A tag's build is never cancelled: it makes the tag's release
 concurrency:
   group: windows-${{ github.ref }}
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
@@ -31,6 +32,11 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
+    outputs:
+      version: ${{ steps.plan.outputs.build_version }}
+      channels: ${{ steps.plan.outputs.channels }}
+      prerelease: ${{ steps.plan.outputs.prerelease }}
+      vpk: ${{ steps.vpk.outputs.version }}
     defaults:
       run:
         shell: bash
@@ -77,21 +83,13 @@ jobs:
           else
             echo "channel=dev" >> "$GITHUB_OUTPUT"
             echo "build_version=$version-dev+$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
-            uv run python -c "import sys; sys.path.insert(0, 'scripts'); import release_plan; \
-              print('msix_version=' + release_plan.msix_version('$version', 'dev'))" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Package
-        env:
-          EDROCKMASTER_MSIX_NAME: ${{ vars.EDROCKMASTER_MSIX_NAME }}
-          EDROCKMASTER_MSIX_PUBLISHER: ${{ vars.EDROCKMASTER_MSIX_PUBLISHER }}
-          EDROCKMASTER_MSIX_PUBLISHER_NAME: ${{ vars.EDROCKMASTER_MSIX_PUBLISHER_NAME }}
-          EDROCKMASTER_MSIX_DISPLAY_NAME: ${{ vars.EDROCKMASTER_MSIX_DISPLAY_NAME }}
         run: >
           uv run python scripts/package_desktop.py
           "${{ steps.plan.outputs.build_version }}"
           "${{ steps.plan.outputs.channel }}"
-          "${{ steps.plan.outputs.msix_version }}"
           dist-desktop
 
       - name: Smoke test
@@ -133,13 +131,130 @@ jobs:
           [ "$(grep -c "The interface is ready" "$log")" -ge 2 ]
           ! grep -E "ERROR|Traceback" "$log"
 
-      - name: Keep the packages
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+      - name: Velopack
+        id: vpk
+        # vpk's version must be the library's (ADR 0053)
+        run: |
+          version="$(uv run python -c 'import importlib.metadata as m; print(m.version("velopack"))')"
+          dotnet tool install --global vpk --version "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Update test
+        # Installed by Velopack's installer, the application finds a newer version in a local
+        # feed, downloads it, and has it applied once its window is closed; the uninstall then
+        # leaves the player's data (ADR 0053). The same build, packed as 1.0.0 then as 1.0.1.
+        run: |
+          feed="$RUNNER_TEMP/feed"
+          pack() {
+            # The hooks run from Python (velopack.App().run()), which vpk cannot see in the
+            # executable: this test is what checks them
+            vpk pack --packId EDRockMaster.Companion --packVersion "$1" --channel test \
+              --packTitle "EDRockMaster Companion" --packAuthors DamScan \
+              --packDir dist-desktop/pyinstaller/EDRockMaster --mainExe EDRockMaster.exe \
+              --icon dist-desktop/assets/EDRockMaster.ico --runtime win-x64 \
+              --skipVeloAppCheck --outputDir "$feed"
+          }
+          pack 1.0.0
+          cp "$feed/EDRockMaster.Companion-test-Setup.exe" "$RUNNER_TEMP/setup-1.0.0.exe"
+          pack 1.0.1
+          local_app_data="$(cygpath -u "$LOCALAPPDATA")"
+          data="$local_app_data/EDRockMaster"
+          installed="$local_app_data/EDRockMaster.Companion"
+          mkdir -p "$data"
+          echo kept > "$data/update-test.txt"
+          "$RUNNER_TEMP/setup-1.0.0.exe" --silent # installs without starting the application
+          ls "$installed" "$installed/current"
+          grep -q "<version>1.0.0</version>" "$installed/current/sq.version"
+          log="$data/logs/edrockmaster.log"
+          EDROCKMASTER_UPDATE_SOURCE="$(cygpath -w "$feed")" "$installed/current/EDRockMaster.exe" &
+          for _ in $(seq 1 120); do
+            grep -q "Update 1.0.1 downloaded" "$log" 2>/dev/null && break
+            sleep 1
+          done
+          grep -q "Update 1.0.1 downloaded" "$log"
+          # Closes the window, as the player would: the version ready is applied once it has quit
+          taskkill //IM EDRockMaster.exe
+          for _ in $(seq 1 120); do
+            grep -q "<version>1.0.1</version>" "$installed/current/sq.version" 2>/dev/null && break
+            sleep 1
+          done
+          tail -n 20 "$log"
+          grep -q "<version>1.0.1</version>" "$installed/current/sq.version"
+          ! grep -E "ERROR|Traceback" "$log"
+          "$installed/Update.exe" uninstall --silent
+          for _ in $(seq 1 60); do
+            [ ! -e "$installed/current" ] && break
+            sleep 1
+          done
+          [ ! -e "$installed/current" ]
+          [ "$(cat "$data/update-test.txt")" = kept ]
+
+      - name: Pack the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for channel in ${{ steps.plan.outputs.channels }}; do
+            # The channel's latest release, for the delta; none before the channel's first one
+            pre=""
+            [ "$channel" = beta ] && pre="--pre"
+            vpk download github --repoUrl "https://github.com/$GITHUB_REPOSITORY" \
+              --channel "$channel" $pre --token "$GH_TOKEN" --outputDir releases \
+              || echo "No earlier release on the $channel channel"
+            vpk pack --packId EDRockMaster.Companion \
+              --packVersion "${{ steps.plan.outputs.build_version }}" --channel "$channel" \
+              --packTitle "EDRockMaster Companion" --packAuthors DamScan \
+              --packDir dist-desktop/pyinstaller/EDRockMaster --mainExe EDRockMaster.exe \
+              --icon dist-desktop/assets/EDRockMaster.ico --runtime win-x64 \
+              --skipVeloAppCheck --outputDir releases
+          done
+
+      - name: Keep the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v7
+        with:
+          name: EDRockMaster-release-${{ steps.plan.outputs.build_version }}
+          path: releases/
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Keep the application
         uses: actions/upload-artifact@v7
         with:
           name: EDRockMaster-windows-${{ steps.plan.outputs.build_version }}
-          path: |
-            dist-desktop/*.zip
-            dist-desktop/*.msix
-            dist-desktop/assets/store/*.png
+          path: dist-desktop/*.zip
           retention-days: 14
           if-no-files-found: error
+
+  release:
+    # The tag's release, left as a draft with what Velopack made, for each channel: the Gitea CI
+    # gives it its notes and publishes it (ADR 0053)
+    needs: windows
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: EDRockMaster-release-${{ needs.windows.outputs.version }}
+          path: releases
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet tool install --global vpk --version "${{ needs.windows.outputs.vpk }}"
+      - name: Draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pre=""
+          [ "${{ needs.windows.outputs.prerelease }}" = true ] && pre="--pre"
+          for channel in ${{ needs.windows.outputs.channels }}; do
+            vpk upload github --repoUrl "https://github.com/$GITHUB_REPOSITORY" \
+              --token "$GH_TOKEN" --outputDir releases --channel "$channel" \
+              --tag "$GITHUB_REF_NAME" --releaseName "EDRockMaster $GITHUB_REF_NAME" \
+              --targetCommitish "$GITHUB_SHA" --merge $pre
+          done

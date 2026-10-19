@@ -1,7 +1,7 @@
 """Write the demo journal of the desktop application from the published fixtures.
 
 The demo mode (``--demo``) replays this journal so that screenshots, for the
-Microsoft Store or the documentation, show the application at work without a
+documentation or the website, show the application at work without a
 player's name. It is a mining session in a resource extraction site, with its
 combat bonds, from ``tests/fixtures/`` (already free of personal data), under
 the fictional Commander Jameson in Open play, with the materials, engineers and

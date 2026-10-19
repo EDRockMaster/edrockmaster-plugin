@@ -1,7 +1,7 @@
 """The demo mode of the desktop application: a sample journal instead of the player's.
 
-``--demo`` shows the application at work, for screenshots (Microsoft Store,
-documentation) or to discover it without playing: it reads a journal shipped
+``--demo`` shows the application at work, for screenshots (the
+documentation, the website) or to discover it without playing: it reads a journal shipped
 with it (``demo_journal.jsonl``, written by ``scripts/make_demo_journal.py``),
 whose timestamps are moved so that it ends now, as if the session was still
 running. Its settings and goals live in a temporary folder, deleted at exit:

@@ -22,10 +22,10 @@ Elle lit le journal qu'Elite Dangerous écrit sur l'ordinateur du joueur et affi
 
 ## Installation
 
-- **Joueurs** : depuis le Microsoft Store, *EDRockMaster Companion* (Windows 10 21H1 ou plus récent, 64 bits).
-- **Testeurs** : le zip portable d'un [build Windows](https://github.com/EDRockMaster/edrockmaster-plugin/actions/workflows/windows.yml) ; débloquer le zip téléchargé (*Propriétés → Débloquer*), l'extraire sur un disque local et lancer `EDRockMaster.exe`.
+- **Joueurs** : télécharger `EDRockMaster.Companion-stable-Setup.exe` depuis la [dernière release](https://github.com/EDRockMaster/edrockmaster-plugin/releases/latest) et le lancer (Windows 10 ou plus récent, 64 bits). Il installe sans droits d'administrateur, ajoute l'application au menu Démarrer et au bureau, et l'application se met ensuite à jour d'elle-même (ADR 0053). L'installeur n'est pas encore signé : Windows peut avertir d'un éditeur inconnu, *Informations complémentaires*, puis *Exécuter quand même*. Désinstaller depuis *Applications installées* : vos données restent dans `%LOCALAPPDATA%\EDRockMaster`. Sans installer : le zip portable de la même release.
+- **Testeurs** : choisir *Bêta* dans *Réglages*, *Mises à jour* pour recevoir aussi les candidates, ou installer `EDRockMaster.Companion-beta-Setup.exe` depuis la dernière pré-release. Un build de développement : le zip d'un [build Windows](https://github.com/EDRockMaster/edrockmaster-plugin/actions/workflows/windows.yml) ; le débloquer (*Propriétés → Débloquer*), l'extraire sur un disque local et lancer `EDRockMaster.exe`.
 
-Ce qui a changé à chaque version : [journal des modifications](CHANGELOG.fr.md). Données personnelles : [politique de confidentialité](docs/privacy.fr.md) (rien n'est envoyé nulle part aujourd'hui).
+Ce qui a changé à chaque version : [journal des modifications](CHANGELOG.fr.md). Données personnelles : [politique de confidentialité](docs/privacy.fr.md) (rien ne nous est envoyé).
 
 ## Structure
 
@@ -33,13 +33,13 @@ Ce qui a changé à chaque version : [journal des modifications](CHANGELOG.fr.md
 - `web/` : l'interface (Svelte 5 et TypeScript, ADR 0021), construite en un seul fichier HTML livré avec l'application.
 - `L10n/` : traductions des textes du cœur (`fr.strings`).
 - `tests/fixtures/` : extraits de vrais journaux, sans données personnelles.
-- `packaging/windows/` : spécification PyInstaller et manifeste MSIX (ADR 0022).
-- `scripts/` : emballage Windows (`package_desktop.py`, `make_icons.py`, avec le fichier de build de l'ADR 0016), notes de version (`release_notes.sh`), version (`version.sh`), canal de release (`release_plan.py`), barrière du build Windows sur Gitea (`windows_build_gate.py`, ADR 0034), release GitHub (`github_release.py`), enregistrement vers donnée de test (`sanitise_recording.py`), donnée de test vers fichier de journal (`fixture_to_journal.py`), journal de démo (`make_demo_journal.py`), données du jeu pour l'ingénierie (`import_engineering_data.py`, ADR 0017, ADR 0027).
+- `packaging/windows/` : spécification PyInstaller (ADR 0020) ; Velopack empaquette son dossier dans le workflow Windows (ADR 0053).
+- `scripts/` : emballage Windows (`package_desktop.py`, `make_icons.py`, avec le fichier de build de l'ADR 0016), notes de version (`release_notes.sh`), version (`version.sh`), canal de release (`release_plan.py`), barrière du build Windows sur Gitea (`windows_build_gate.py`, ADR 0034), release GitHub, complétée et publiée (`github_release.py`), enregistrement vers donnée de test (`sanitise_recording.py`), donnée de test vers fichier de journal (`fixture_to_journal.py`), journal de démo (`make_demo_journal.py`), données du jeu pour l'ingénierie (`import_engineering_data.py`, ADR 0017, ADR 0027).
 
 ## Documentation
 
 - [Conception de l'application de bureau](docs/design.fr.md)
-- [Politique de confidentialité](docs/privacy.fr.md), [fiche du Microsoft Store](docs/store-listing.fr.md) et [soumission au Store](docs/store-submission.fr.md)
+- [Politique de confidentialité](docs/privacy.fr.md)
 
 ## Développement
 
@@ -55,12 +55,12 @@ Sous Linux, pywebview a besoin de GTK et de WebKit2GTK avec leur liaison Python 
 
 ## Publier une version
 
-Pas de production sans recette (ADR 0012, ADR 0022) :
+Pas de production sans recette (ADR 0012, ADR 0053) :
 
 1. Mettre la nouvelle version dans `pyproject.toml` et `edrockmaster/__init__.py` (`VERSION`), selon SemVer, et ajouter son entrée à `CHANGELOG.md` et `CHANGELOG.fr.md`. Les tests vérifient que les versions concordent et que les deux entrées existent. Fusionner par une PR.
-2. **Candidate** : taguer le commit de fusion `vX.Y.Z-rc.1` et pousser le tag. Gitea publie les notes de version en pré-release privée ; le build Windows de ce commit donne le MSIX, soumis dans Partner Center aux testeurs : une simple mise à jour tant que l'application est privée, le **vol de paquet** une fois qu'elle est publique ([soumission au Store](docs/store-submission.fr.md)).
-3. **Recette** : installer la candidate depuis le Store et jouer. Un problème : le corriger par une PR, puis taguer `vX.Y.Z-rc.2` sur le nouveau commit de fusion.
-4. **Production** : taguer `vX.Y.Z` sur le **même commit** que la candidate recettée et pousser. La CI refuse un tag de production sans candidate sur ce commit (`scripts/release_plan.py`), puis publie les notes sur Gitea et GitHub, qui annonce la version sur Discord ; le MSIX de production, reconstruit depuis ce commit, est soumis à tous les clients.
+2. **Candidate** : taguer le commit de fusion `vX.Y.Z-rc.1` et pousser le tag. Le build Windows l'empaquette avec Velopack pour le canal de mise à jour **bêta** et laisse sa release GitHub en brouillon ; la CI Gitea lui donne ses notes, copie ses fichiers dans une release Gitea et la publie en **pré-release**. Les applications du canal bêta s'y mettent à jour.
+3. **Recette** : jouer avec la candidate, installée avec son installeur `beta` ou mise à jour sur le canal bêta. Un problème : le corriger par une PR, puis taguer `vX.Y.Z-rc.2` sur le nouveau commit de fusion.
+4. **Production** : taguer `vX.Y.Z` sur le **même commit** que la candidate recettée et pousser. La CI refuse un tag de production sans candidate sur ce commit (`scripts/release_plan.py`) ; le build Windows l'empaquette pour les canaux **stable** et **bêta**, et la CI Gitea la publie en release sur GitHub, qui l'annonce sur Discord, et sur Gitea. Les applications installées se mettent à jour d'elles-mêmes.
 
 Le code garde la version `X.Y.Z` de la candidate à la production ; l'emballage écrit `edrockmaster/build.json` avec la version complète, le commit et le canal (ADR 0016).
 
