@@ -22,10 +22,10 @@ It reads the journal that Elite Dangerous writes on the player's computer and sh
 
 ## Installation
 
-- **Players**: from the Microsoft Store, *EDRockMaster Companion* (Windows 10 21H1 or later, 64-bit).
-- **Testers**: the portable zip of a [Windows build](https://github.com/EDRockMaster/edrockmaster-plugin/actions/workflows/windows.yml); unblock the downloaded zip (*Properties → Unblock*), extract it on a local disk and run `EDRockMaster.exe`.
+- **Players**: download `EDRockMaster.Companion-stable-Setup.exe` from the [latest release](https://github.com/EDRockMaster/edrockmaster-plugin/releases/latest) and run it (Windows 10 or later, 64-bit). It installs without administrator rights, adds the application to the Start menu and the desktop, and the application then updates itself (ADR 0053). The installer is not signed yet: Windows may warn about an unknown publisher, *More info*, then *Run anyway*. Uninstall from *Installed apps*: your data stays in `%LOCALAPPDATA%\EDRockMaster`. Without installing: the portable zip of the same release.
+- **Testers**: choose *Beta* in *Settings*, *Updates* to get the release candidates too, or install `EDRockMaster.Companion-beta-Setup.exe` from the latest pre-release. A development build: the zip of a [Windows build](https://github.com/EDRockMaster/edrockmaster-plugin/actions/workflows/windows.yml); unblock it (*Properties → Unblock*), extract it on a local disk and run `EDRockMaster.exe`.
 
-What changed in each version: [changelog](CHANGELOG.md). Privacy: [privacy policy](docs/privacy.md) (nothing is sent anywhere today).
+What changed in each version: [changelog](CHANGELOG.md). Privacy: [privacy policy](docs/privacy.md) (nothing is sent to us).
 
 ## Layout
 
@@ -33,13 +33,13 @@ What changed in each version: [changelog](CHANGELOG.md). Privacy: [privacy polic
 - `web/`: the interface (Svelte 5 and TypeScript, ADR 0021), built into one HTML file shipped with the application.
 - `L10n/`: translations of the core's texts (`fr.strings`).
 - `tests/fixtures/`: excerpts of real journals, free of personal data.
-- `packaging/windows/`: PyInstaller specification and MSIX manifest (ADR 0022).
-- `scripts/`: Windows packaging (`package_desktop.py`, `make_icons.py`, with the build file of ADR 0016), release notes (`release_notes.sh`), version (`version.sh`), release channel (`release_plan.py`), Windows build gate on Gitea (`windows_build_gate.py`, ADR 0034), GitHub release (`github_release.py`), recording to test fixture (`sanitise_recording.py`), fixture to journal file (`fixture_to_journal.py`), demo journal (`make_demo_journal.py`), game data of engineering (`import_engineering_data.py`, ADR 0017, ADR 0027).
+- `packaging/windows/`: PyInstaller specification (ADR 0020); Velopack packs its folder in the Windows workflow (ADR 0053).
+- `scripts/`: Windows packaging (`package_desktop.py`, `make_icons.py`, with the build file of ADR 0016), release notes (`release_notes.sh`), version (`version.sh`), release channel (`release_plan.py`), Windows build gate on Gitea (`windows_build_gate.py`, ADR 0034), GitHub release, finished and published (`github_release.py`), recording to test fixture (`sanitise_recording.py`), fixture to journal file (`fixture_to_journal.py`), demo journal (`make_demo_journal.py`), game data of engineering (`import_engineering_data.py`, ADR 0017, ADR 0027).
 
 ## Documentation
 
 - [Design of the desktop application](docs/design.md)
-- [Privacy policy](docs/privacy.md), [Microsoft Store listing](docs/store-listing.md) and [Store submission](docs/store-submission.md)
+- [Privacy policy](docs/privacy.md)
 
 ## Development
 
@@ -55,12 +55,12 @@ On Linux, pywebview needs GTK and WebKit2GTK with their Python binding (PyGObjec
 
 ## Releasing
 
-No production without acceptance (ADR 0012, ADR 0022):
+No production without acceptance (ADR 0012, ADR 0053):
 
 1. Set the new version in `pyproject.toml` and `edrockmaster/__init__.py` (`VERSION`), following SemVer, and add its entry to `CHANGELOG.md` and `CHANGELOG.fr.md`. Tests check that versions match and that both entries exist. Merge through a pull request.
-2. **Candidate**: tag the merge commit `vX.Y.Z-rc.1` and push the tag. Gitea publishes the release notes as a private pre-release; the Windows build of that commit gives the MSIX, submitted in Partner Center to the testers: an ordinary update while the application is private, the **package flight** once it is public ([Store submission](docs/store-submission.md)).
-3. **Acceptance**: install the candidate from the Store and play. A problem: fix it through a pull request, then tag `vX.Y.Z-rc.2` on the new merge commit.
-4. **Production**: tag `vX.Y.Z` on the **same commit** as the accepted candidate and push. The CI refuses a production tag without a candidate on that commit (`scripts/release_plan.py`), then publishes the notes on Gitea and GitHub, which announces the release on Discord; the production MSIX, rebuilt from that commit, is submitted to every customer.
+2. **Candidate**: tag the merge commit `vX.Y.Z-rc.1` and push the tag. The Windows build packs it with Velopack for the **beta** update channel and leaves its GitHub release as a draft; the Gitea CI gives it its notes, copies its files to a Gitea release and publishes it as a **pre-release**. Applications on the beta channel update to it.
+3. **Acceptance**: play with the candidate, installed with its `beta` installer or updated on the beta channel. A problem: fix it through a pull request, then tag `vX.Y.Z-rc.2` on the new merge commit.
+4. **Production**: tag `vX.Y.Z` on the **same commit** as the accepted candidate and push. The CI refuses a production tag without a candidate on that commit (`scripts/release_plan.py`); the Windows build packs it for the **stable** and **beta** channels, and the Gitea CI publishes it as a release on GitHub, which announces it on Discord, and on Gitea. Installed applications update themselves.
 
 The code keeps the version `X.Y.Z` from candidate to production; the packaging writes `edrockmaster/build.json` with the full version, the commit and the channel (ADR 0016).
 

@@ -1,14 +1,16 @@
 # CI on Gitea Actions (the cluster's runner). The GitHub mirror runs only the Windows build of the
-# desktop application (.github/workflows/windows.yml, ADR 0022), whose result the windows job
+# desktop application (.github/workflows/windows.yml, ADR 0053), whose result the windows job
 # below waits for (ADR 0034).
-# Release channels (ADR 0012, ADR 0022, ADR 0024): the Windows workflow on GitHub builds the
-# packages; this one gates merging and publishes the release notes.
-# - candidate: a vX.Y.Z-rc.N tag publishes a private pre-release on Gitea (notes only); its
-#   package goes to the Store's testers as a package flight;
-# - production: a vX.Y.Z tag, refused unless a candidate is tagged on the same commit, publishes
-#   its notes on Gitea and on GitHub, which announces it on Discord (a webhook of the GitHub
-#   repository). The GitHub release needs the GH_RELEASE_TOKEN secret (fine-grained token limited
-#   to EDRockMaster/edrockmaster-plugin, Contents: write).
+# Release channels (ADR 0012, ADR 0053): the Windows workflow on GitHub packs a tag with Velopack
+# and leaves its GitHub release as a draft; this workflow gates merging, then gives the release
+# its notes, copies its files to Gitea and publishes it.
+# - candidate: a vX.Y.Z-rc.N tag publishes a pre-release, on GitHub for the beta update channel,
+#   and on Gitea;
+# - production: a vX.Y.Z tag, refused unless a candidate is tagged on the same commit, publishes a
+#   release on GitHub, which announces it on Discord (a webhook of the GitHub repository, which
+#   ignores pre-releases), and on Gitea.
+# The GitHub release needs the GH_RELEASE_TOKEN secret (fine-grained token limited to
+# EDRockMaster/edrockmaster-plugin, Contents: write).
 name: CI
 
 on:
@@ -85,7 +87,7 @@ jobs:
         run: python3 scripts/windows_build_gate.py "$COMMIT" ${REF:+--ref "$REF"}
 
   release:
-    needs: test
+    needs: [test, windows]
     if: startsWith(gitea.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     env:
@@ -106,7 +108,17 @@ jobs:
           mkdir -p dist
           {
             if [ "${{ steps.plan.outputs.channel }}" = candidate ]; then
-              printf '**Release candidate**, for acceptance by the testers: not for players.\n\n'
+              cat <<'EOF_HEAD'
+          **Release candidate**, for the testers on the beta update channel: install `EDRockMaster.Companion-beta-Setup.exe`, or choose *Beta* in *Settings*, *Updates*.
+
+          EOF_HEAD
+            else
+              cat <<'EOF_HEAD'
+          Download `EDRockMaster.Companion-stable-Setup.exe` below and run it. Windows may warn about an unknown publisher: *More info*, then *Run anyway*. Once installed, the application updates itself.
+
+          Téléchargez `EDRockMaster.Companion-stable-Setup.exe` ci-dessous et lancez-le. Windows peut avertir d'un éditeur inconnu : *Informations complémentaires*, puis *Exécuter quand même*. Une fois installée, l'application se met à jour d'elle-même.
+
+          EOF_HEAD
             fi
             scripts/release_notes.sh "$(scripts/version.sh)"
           } > dist/release-notes.md
@@ -115,14 +127,18 @@ jobs:
             cat dist/release-notes.md
             echo "EOF_NOTES"
           } >> "$GITHUB_OUTPUT"
+      - name: Files of the Windows build
+        # A script rather than a marketplace action: under Gitea Actions, GITHUB_API_URL points
+        # at Gitea, and JavaScript actions keep that value even when the step overrides it
+        run: python3 scripts/github_release.py fetch "$TAG" dist/files
       - name: Gitea release
         uses: akkuman/gitea-release-action@v1
         with:
           name: EDRockMaster ${{ gitea.ref_name }}
           body: ${{ steps.notes.outputs.body }}
           prerelease: ${{ steps.plan.outputs.prerelease }}
+          files: dist/files/*
       - name: GitHub release
-        if: env.GH_RELEASE_TOKEN != '' && steps.plan.outputs.channel == 'production'
-        # A script rather than a marketplace action: under Gitea Actions, GITHUB_API_URL points
-        # at Gitea, and JavaScript actions keep that value even when the step overrides it
-        run: python3 scripts/github_release.py "$TAG" "${{ gitea.sha }}" dist/release-notes.md
+        run: >
+          python3 scripts/github_release.py publish "$TAG" dist/release-notes.md
+          ${{ steps.plan.outputs.prerelease == 'true' && '--prerelease' || '--release' }}

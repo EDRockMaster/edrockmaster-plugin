@@ -6,6 +6,11 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
+### Changed
+
+- **The application leaves the Microsoft Store** (design decision ADR 0053): it is installed from its GitHub releases, with `EDRockMaster.Companion-stable-Setup.exe`, without administrator rights, in the Start menu and on the desktop; a portable zip runs without installing. The installer is not signed yet: Windows may warn about an unknown publisher (*More info*, then *Run anyway*). Your data stays in `%LOCALAPPDATA%\EDRockMaster`: uninstall a version from the Store first, the new one finds everything.
+- **Release candidates are public pre-releases**, for the testers on the beta update channel.
+
 ### Added
 
 - **Automatic updates** (design decision ADR 0053): once installed with its installer, the application looks for a newer version at start, then once a day, downloads it in the background, and installs it when you quit, or at once with *Restart to update*. It never restarts by itself, in the middle of a session. *Settings*, *Updates*: turn the check off, or choose the **beta** channel to get the release candidates too; back to stable, you keep your version until a newer stable one.

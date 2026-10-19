@@ -6,6 +6,11 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
+### Modifié
+
+- **L'application quitte le Microsoft Store** (décision de conception ADR 0053) : elle s'installe depuis ses releases GitHub, avec `EDRockMaster.Companion-stable-Setup.exe`, sans droits d'administrateur, dans le menu Démarrer et sur le bureau ; un zip portable fonctionne sans installation. L'installeur n'est pas encore signé : Windows peut avertir d'un éditeur inconnu (*Informations complémentaires*, puis *Exécuter quand même*). Vos données restent dans `%LOCALAPPDATA%\EDRockMaster` : désinstallez d'abord une version du Store, la nouvelle retrouve tout.
+- **Les versions candidates sont des pré-releases publiques**, pour les testeurs du canal de mise à jour bêta.
+
 ### Ajouté
 
 - **Mises à jour automatiques** (décision de conception ADR 0053) : une fois installée avec son installeur, l'application cherche une version plus récente au démarrage, puis une fois par jour, la télécharge en arrière-plan, et l'installe quand vous la quittez, ou aussitôt avec *Redémarrer pour mettre à jour*. Elle ne redémarre jamais d'elle-même, en pleine session. *Réglages*, *Mises à jour* : désactivez la recherche, ou choisissez le canal **bêta** pour recevoir aussi les versions candidates ; de retour en stable, vous gardez votre version jusqu'à une version stable plus récente.

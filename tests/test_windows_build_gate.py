@@ -72,7 +72,7 @@ def test_after_code_the_commit_s_own_build_must_come() -> None:
 
 
 def test_no_build_needed_when_the_branch_changed_documentation_only() -> None:
-    files = changes({("base", "c"): ["docs/store-listing.md"]})
+    files = changes({("base", "c"): ["docs/privacy.md"]})
     decision = gate.decide("c", ["c", "b"], {}, changed=files, base="base", patterns=PATTERNS)
     assert decision == gate.NO_BUILD_NEEDED
 
