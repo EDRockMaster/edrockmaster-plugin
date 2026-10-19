@@ -6,12 +6,6 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
-### Corrigé
-
-- Les bons du dernier fichier de journal pouvaient être **comptés deux fois** au démarrage, quand les anciens journaux le comptaient pendant sa lecture en direct : ils ne le sont plus qu'une fois.
-- La carte de combat indique *Non encaissé : aucun* quand vous ne détenez aucun bon, pour que les crédits gagnés pendant une session ne passent pas pour des bons à encaisser.
-- **Une session d'une partie précédente n'est plus affichée** : au démarrage, les cartes montraient la dernière session de la partie précédente (vieille d'une semaine, parfois), dont les gains passaient facilement pour des bons encore détenus. Les sessions terminées sont oubliées au chargement d'une partie, et au démarrage quand le jeu était fermé ; une session en cours, les bons non encaissés et les objectifs d'ingénierie restent.
-
 ## [0.6.0] - 2026-10-12
 
 ### Ajouté
@@ -40,6 +34,9 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 - La carte du combat dit *Obligations gagnées* et *Primes gagnées* : ce que la session a gagné, pas ce qui reste à encaisser (*Non encaissé* le dit).
 - **Les bons non encaissés correspondent maintenant au panneau du jeu**, quel que soit le temps écoulé depuis leur gain (décision de conception ADR 0052). L'application ne comptait que le fichier de journal le plus récent : un chasseur de primes qui encaisse une fois par semaine voyait les bons de la dernière soirée, pas les 33 millions de CR que le jeu détenait. Elle lit désormais **une fois** chaque journal du dossier, garde ce qu'elle y a trouvé dans sa base locale, et à chaque démarrage ne lit que les nouveaux fichiers. La carte du combat liste les bons par faction et par nature, les plus gros d'abord, avec le jour du plus ancien (*Primes non encaissées, Lavigny's Legion : 33 552 700 CR, depuis le 14 octobre 2026*). Chaque commandant, et Legacy à part du jeu actuel, a les siens.
 - Un encaissement chez un courtier interstellaire, qui paie moins que les bons, les efface désormais : il ne reste rien de cette faction.
+- Les bons du dernier fichier de journal pouvaient être **comptés deux fois** au démarrage, quand les anciens journaux le comptaient pendant sa lecture en direct : ils ne le sont plus qu'une fois.
+- La carte de combat indique *Non encaissé : aucun* quand vous ne détenez aucun bon, pour que les crédits gagnés pendant une session ne passent pas pour des bons à encaisser.
+- **Une session d'une partie précédente n'est plus affichée** : au démarrage, les cartes montraient la dernière session de la partie précédente (vieille d'une semaine, parfois), dont les gains passaient facilement pour des bons encore détenus. Les sessions terminées sont oubliées au chargement d'une partie, et au démarrage quand le jeu était fermé ; une session en cours, les bons non encaissés et les objectifs d'ingénierie restent.
 
 ## [0.5.0] - 2026-10-11
 

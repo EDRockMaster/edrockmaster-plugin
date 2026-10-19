@@ -6,12 +6,6 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
-### Fixed
-
-- The vouchers of the last journal file could be **counted twice** at start, when the past journals counted it while it was still being read live: they are now counted once.
-- The combat card says *Unredeemed: none* when you hold no voucher, so that the credits earned in a session are not taken for vouchers still to redeem.
-- **A session of a past game is no longer shown**: at start, the cards showed the last session of the previous game (a week old, perhaps), its earnings easily taken for vouchers still held. The sessions ended are forgotten when a game is loaded, and at start when the game was closed; a running session, the unredeemed vouchers and the engineering goals stay.
-
 ## [0.6.0] - 2026-10-12
 
 ### Added
@@ -40,6 +34,9 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 - The combat card says *Combat bonds earned* and *Bounties earned*: what the session earned, not what is left to redeem (*Unredeemed* says that).
 - **Unredeemed vouchers now match the game's panel**, however long ago you earned them (design decision ADR 0052). The application used to count only the newest journal file: a bounty hunter who hands in once a week saw the last evening's vouchers, not the 33 million CR the game held. It now reads every journal of the folder **once**, keeps what it found in its local database, and at each start reads only the new files. The combat card lists the vouchers per faction and kind, the largest first, with the day of the oldest (*Unredeemed bounties, Lavigny's Legion: 33,552,700 CR, since 14 October 2026*). Each commander, and Legacy apart from the live game, has their own.
 - A redemption at an Interstellar Factor, which pays less than the vouchers, now clears them: nothing of that faction is left.
+- The vouchers of the last journal file could be **counted twice** at start, when the past journals counted it while it was still being read live: they are now counted once.
+- The combat card says *Unredeemed: none* when you hold no voucher, so that the credits earned in a session are not taken for vouchers still to redeem.
+- **A session of a past game is no longer shown**: at start, the cards showed the last session of the previous game (a week old, perhaps), its earnings easily taken for vouchers still held. The sessions ended are forgotten when a game is loaded, and at start when the game was closed; a running session, the unredeemed vouchers and the engineering goals stay.
 
 ## [0.5.0] - 2026-10-11
 
