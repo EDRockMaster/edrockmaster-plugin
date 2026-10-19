@@ -241,6 +241,22 @@ def test_ended_combat_keeps_its_statistics(
     assert value(model, "Kills") == "6"
 
 
+def test_an_ended_session_of_a_past_game_is_forgotten_not_the_vouchers(
+    presenter: CombatPresenter,
+) -> None:
+    presenter.apply(
+        [
+            CombatStarted(T0),
+            CombatEnded(T0, CombatEndReason.GAME_CLOSED, stats(current=False)),
+            vouchers(held(LAVIGNY, 1_000)),
+        ]
+    )
+    presenter.forget_ended()
+    model = presenter.render()
+    assert model.status == "No combat session"
+    assert labels(model) == ["Unredeemed bounties, Lavigny's Legion"]
+
+
 def test_one_kind_of_unredeemed_vouchers_is_one_line(presenter: CombatPresenter) -> None:
     model = presenter.apply([vouchers(held(LAVIGNY, 33_552_700))])
     assert [(line.label, line.value) for line in model.lines] == [

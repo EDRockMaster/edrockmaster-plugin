@@ -70,6 +70,11 @@ class MiningPresenter:
 
     # --- state ----------------------------------------------------------------------------
 
+    def forget_ended(self) -> None:
+        """The session ended belongs to a past game: no longer shown (a running one stays)."""
+        if not self._running:
+            self._ended, self._stats, self._ring = None, None, None
+
     def _apply(self, notification: MiningNotification) -> None:
         match notification:
             case SessionStarted(ring=ring):
@@ -86,7 +91,8 @@ class MiningPresenter:
                 self._running, self._ended = False, reason
                 self._stats, self._alert = stats, None
             case SaleRecorded(stats=stats):
-                self._stats = stats
+                if self._stats is not None:  # not a session forgotten with its past game
+                    self._stats = stats
             case _:  # pragma: no cover - exhaustiveness checked by mypy
                 assert_never(notification)
 

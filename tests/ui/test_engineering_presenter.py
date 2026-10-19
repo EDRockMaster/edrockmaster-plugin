@@ -164,6 +164,16 @@ def test_the_end_of_a_collection() -> None:
     assert not model.can_reset
 
 
+def test_an_ended_collection_of_a_past_game_is_forgotten_not_the_goals() -> None:
+    presenter = EngineeringPresenter(names())
+    presenter.apply([CollectionStarted(T0)])
+    presenter.apply([CollectionEnded(T0, CollectionEndReason.GAME_CLOSED), updated(None)])
+    presenter.forget_ended()
+    model = presenter.apply([updated(None, progress(RANGE, ready=True))])
+    assert model.status == "No engineering session"
+    assert ("Goals ready", "1 of 1") in [(line.label, line.value) for line in model.lines]
+
+
 def test_names_without_a_catalogue_or_unknown_to_it() -> None:
     bare = EngineeringNames(None, identity)
     assert bare.material("arsenic") == "arsenic"

@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
-from edrockmaster.application.activity import Activity
+from edrockmaster.application.activity import Activity, EndedSessionsForgotten
 from edrockmaster.application.settings import DisplayMode, DisplaySettings
 from edrockmaster.domain.combat.journal import VoucherKind
 from edrockmaster.domain.combat.session import (
@@ -195,3 +195,20 @@ def test_the_situation_is_no_activity() -> None:
     presenter.apply([SituationChanged(Situation(system="Sol"))])
     assert presenter.current is Activity.COMBAT
     assert presenter.render().status == "Combat"
+
+
+def test_sessions_of_a_past_game_are_forgotten_by_every_activity() -> None:
+    presenter = ActivityPresenter(display=STACKED)
+    presenter.apply(
+        [
+            TradeStarted(T0),
+            TradeEnded(T0, TradeEndReason.GAME_CLOSED, STATS_TRADE),
+            CombatStarted(T0),
+            CombatUpdated(STATS),
+        ]
+    )
+    presenter.apply([EndedSessionsForgotten()])
+    statuses = {block.activity: block.model.status for block in presenter.blocks()}
+    assert statuses[Activity.TRADE] == "No trade session"
+    assert presenter.blocks_of((Activity.COMBAT,))[0].model.can_reset  # still running
+    assert shown(presenter) is Activity.COMBAT

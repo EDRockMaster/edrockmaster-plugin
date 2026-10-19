@@ -164,6 +164,22 @@ def test_sales_after_the_session_update_its_statistics(presenter: MiningPresente
     assert model.status == "Session ended: docked"
 
 
+def test_an_ended_session_of_a_past_game_is_forgotten(presenter: MiningPresenter) -> None:
+    presenter.apply([SessionEnded(T0, EndReason.GAME_CLOSED, stats())])
+    presenter.forget_ended()
+    sold = stats(sold_tons=MappingProxyType({PAINITE: 20}), credits_earned=1_000)
+    model = presenter.apply([SaleRecorded(T0, PAINITE, 20, 1_000, sold)])
+    assert model.status == "No mining session"
+    assert model.lines == ()
+
+
+def test_a_running_session_is_not_forgotten(presenter: MiningPresenter) -> None:
+    presenter.apply([SessionStarted(T0, None, None), SessionUpdated(stats())])
+    presenter.forget_ended()
+    assert presenter.render().can_reset
+    assert "Refined" in labels(presenter.render())
+
+
 def test_numbers_use_the_given_format() -> None:
     presenter = MiningPresenter(format_number=lambda number, decimals: f"<{number:.{decimals}f}>")
     model = presenter.apply([SessionUpdated(stats(minutes=60, tons={PAINITE: 20}))])
