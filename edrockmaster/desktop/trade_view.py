@@ -36,11 +36,21 @@ def _sort_key(name: str) -> str:
     )
 
 
+def _name(commodity: TradedCommodity, translate: Translate) -> str:
+    # As the game names it on a market, not as a material
+    return translate(f"{commodity.name}|commodity")
+
+
+def commodity_name(catalogue: CommodityCatalogue, key: str, translate: Translate) -> str:
+    """A commodity's name in the player's language; its key if the catalogue does not know it."""
+    commodity = catalogue.get(key)
+    return _name(commodity, translate) if commodity is not None else key
+
+
 def _commodity_view(commodity: TradedCommodity, translate: Translate) -> dict[str, Any]:
     return {
         "commodity": commodity.key,
-        # As the game names it on a market, not as a material
-        "name": translate(f"{commodity.name}|commodity"),
+        "name": _name(commodity, translate),
         "rare": commodity.rare,
     }
 

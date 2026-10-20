@@ -64,3 +64,19 @@ def test_the_station_s_market_once_opened_until_undocked(service: TradeService) 
     undocked: Entry = {"timestamp": timestamp(60), "event": "Undocked", "MarketID": 1}
     assert service.handle_journal_entry(undocked) == [StationMarketChanged(None)]
     assert service.station_market is None
+
+
+def test_the_cargo_to_sell_as_the_game_restates_it(service: TradeService) -> None:
+    assert service.cargo_to_sell == {}
+    cargo: Entry = {
+        "timestamp": timestamp(0),
+        "event": "Cargo",
+        "Vessel": "Ship",
+        "Count": 14,
+        "Inventory": [
+            {"Name": "gold", "Count": 10, "Stolen": 0},
+            {"Name": "drones", "Name_Localised": "Limpet", "Count": 4, "Stolen": 0},
+        ],
+    }
+    service.handle_journal_entry(cargo)
+    assert service.cargo_to_sell == {"gold": 10}

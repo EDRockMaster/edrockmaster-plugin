@@ -99,7 +99,7 @@
               onreset={(activity) => core()?.reset(activity)}
             />
             {#if card.block.activity === "mining"}
-              <CargoEstimate {language} />
+              <CargoEstimate {language} hold="mining" />
             {/if}
           {/snippet}
         </CardStack>

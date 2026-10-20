@@ -5,7 +5,8 @@ from __future__ import annotations
 
 from edrockmaster.application.ports import Clock
 from edrockmaster.domain.journal_reading import Entry
-from edrockmaster.domain.trade.journal import parse_entry
+from edrockmaster.domain.trade.cargo import cargo_to_sell
+from edrockmaster.domain.trade.journal import CargoInventory, parse_entry
 from edrockmaster.domain.trade.session import TradeNotification, TradeStats, TradeTracker
 from edrockmaster.domain.trade.station_market import (
     StationMarket,
@@ -23,6 +24,7 @@ class TradeService:
         self._clock = clock
         self._tracker = TradeTracker()
         self._market = StationMarketTracker()
+        self._cargo: CargoInventory | None = None
 
     @property
     def current_stats(self) -> TradeStats | None:
@@ -33,10 +35,17 @@ class TradeService:
         """Immutable: may be read from any thread."""
         return self._market.market
 
+    @property
+    def cargo_to_sell(self) -> dict[str, int]:
+        """The ship's cargo the player may sell, tons by commodity key."""
+        return cargo_to_sell(self._cargo)
+
     def handle_journal_entry(self, entry: Entry) -> list[TradeServiceNotification]:
         fact = parse_entry(entry)
         if fact is None:
             return []
+        if isinstance(fact, CargoInventory):
+            self._cargo = fact
         return [*self._tracker.handle(fact), *self._market.handle(fact)]
 
     def reset_session(self) -> list[TradeNotification]:

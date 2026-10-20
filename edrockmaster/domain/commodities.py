@@ -4,7 +4,7 @@ A market offer serves both ways (ADR 0047): the markets that buy a commodity, wh
 the player sells it, and those that sell it, where the player buys it. The filters a
 source cannot apply are applied here (ADR 0040), so that what the player sees does
 not depend on the source that answered. The galaxy's prices of a commodity help judge
-an offer.
+an offer; a cargo is estimated at the best market for each of its commodities.
 """
 
 from __future__ import annotations
@@ -234,3 +234,27 @@ def select_offers(
             key=lambda offer: (best * offer.price, offer.distance),
         )
     )
+
+
+@dataclass(frozen=True, slots=True)
+class CargoLine:
+    """A commodity of the cargo, and the best market found for it."""
+
+    commodity: str
+    tons: int
+    best: MarketOffer | None
+    """``None``: no market found, or the source gave nothing."""
+
+    @property
+    def value(self) -> int | None:
+        return self.tons * self.best.price if self.best is not None else None
+
+
+@dataclass(frozen=True, slots=True)
+class CargoEstimate:
+    lines: tuple[CargoLine, ...]
+
+    @property
+    def total(self) -> int:
+        """What the priced lines are worth together."""
+        return sum(line.value for line in self.lines if line.value is not None)

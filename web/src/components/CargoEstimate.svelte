@@ -1,12 +1,13 @@
 <script lang="ts">
-  // The value of the mining cargo, on demand only (ADR 0040): the best market around the current
-  // system for each commodity mined and not sold yet.
+  // A cargo's worth, on demand only (ADR 0040, ADR 0047): the best market around the current
+  // system for each commodity. The mining card's: what was mined and not sold yet; the Trade
+  // tab's: all the ship carries that may be sold.
   import { core } from "../lib/bridge";
   import { t, type Language } from "../lib/i18n";
-  import type { CargoEstimateAnswer } from "../lib/mining";
+  import type { CargoEstimateAnswer, CargoEstimateRequest } from "../lib/markets";
   import { number, statusText } from "../lib/mining-search";
 
-  let { language }: { language: Language } = $props();
+  let { language, hold }: { language: Language; hold: CargoEstimateRequest["hold"] } = $props();
 
   let estimate = $state<CargoEstimateAnswer | null>(null);
   let asking = $state(false);
@@ -17,7 +18,7 @@
     if (api === undefined) return;
     asking = true;
     try {
-      estimate = await api.estimate_cargo();
+      estimate = await api.estimate_cargo({ hold });
       now = Date.now();
     } finally {
       asking = false;
@@ -57,7 +58,11 @@
         {/each}
       </ul>
     {/if}
-    <p class="muted small" role="status">{statusText(estimate, now, language)}</p>
+    <p class="muted small" role="status">
+      {estimate.status === "empty" && hold === "ship"
+        ? t(language, "trade.cargo.empty")
+        : statusText(estimate, now, language)}
+    </p>
   {/if}
 </div>
 

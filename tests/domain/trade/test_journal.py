@@ -163,6 +163,25 @@ def test_cargo_inventory_of_the_ship() -> None:
     assert fact == CargoInventory(AT, ((PALLADIUM, 1040), (Commodity("drones"), 2)))
 
 
+def test_the_goods_of_a_mission_are_told_apart() -> None:
+    # As the journal's documentation writes them: a line of their own, with the mission
+    fact = parse_entry(
+        {
+            "timestamp": TS,
+            "event": "Cargo",
+            "Vessel": "Ship",
+            "Count": 30,
+            "Inventory": [
+                {"Name": "gold", "Count": 10, "Stolen": 0},
+                {"Name": "gold", "Count": 12, "Stolen": 0, "MissionID": 65380900},
+                {"Name": "tea", "Count": 8, "Stolen": 0, "MissionID": 65380901},
+            ],
+        }
+    )
+    gold, tea = Commodity("gold"), Commodity("tea")
+    assert fact == CargoInventory(AT, ((gold, 22), (tea, 8)), for_missions=((gold, 12), (tea, 8)))
+
+
 @pytest.mark.parametrize(
     "entry",
     [

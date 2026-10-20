@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://edrm.space/schemas/desktop/markets.schema.json",
   "title": "Markets",
-  "description": "Where to buy and where to sell a commodity, for the Mining and Trade tabs (ADR 0040, ADR 0047): find_markets(MarketsRequest) returns MarketsAnswer.",
+  "description": "Where to buy and where to sell a commodity, and a cargo's worth, for the Mining and Trade tabs (ADR 0040, ADR 0047): find_markets(MarketsRequest) returns MarketsAnswer; estimate_cargo(CargoEstimateRequest) returns CargoEstimateAnswer.",
   "type": "object",
   "properties": {
     "MarketsRequest": {
@@ -10,6 +10,12 @@
     },
     "MarketsAnswer": {
       "$ref": "#/$defs/MarketsAnswer"
+    },
+    "CargoEstimateRequest": {
+      "$ref": "#/$defs/CargoEstimateRequest"
+    },
+    "CargoEstimateAnswer": {
+      "$ref": "#/$defs/CargoEstimateAnswer"
     }
   },
   "$defs": {
@@ -185,6 +191,129 @@
         },
         "carrier": {
           "type": "boolean"
+        }
+      }
+    },
+    "CargoEstimateAnswer": {
+      "title": "CargoEstimateAnswer",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "source",
+        "readAt",
+        "unavailable",
+        "system",
+        "lines",
+        "total"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "found",
+            "off",
+            "busy",
+            "down",
+            "invalid",
+            "noSystem",
+            "empty"
+          ],
+          "description": "found: the source answered (now or from the cache); off, busy, down: it gave nothing (ADR 0039); invalid: the form was refused; noSystem: the current system is not known yet; empty: no cargo to estimate."
+        },
+        "source": {
+          "enum": [
+            "spansh",
+            "ardent",
+            null
+          ],
+          "description": "The source that answered, or would have."
+        },
+        "readAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "When the source was read (UTC): now, or when the cached answer was."
+        },
+        "unavailable": {
+          "enum": [
+            "off",
+            "busy",
+            "down",
+            null
+          ],
+          "description": "Set when the source failed and the cache answered, or when part of an estimate could not be priced."
+        },
+        "system": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The system the markets are searched around."
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "commodity",
+              "name",
+              "tons",
+              "value",
+              "offer"
+            ],
+            "properties": {
+              "commodity": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "tons": {
+                "type": "integer"
+              },
+              "value": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "Credits at the best market; null if none found."
+              },
+              "offer": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/MarketOffer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "total": {
+          "type": "integer",
+          "description": "What the priced lines are worth together."
+        }
+      }
+    },
+    "CargoEstimateRequest": {
+      "title": "CargoEstimateRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hold"
+      ],
+      "properties": {
+        "hold": {
+          "enum": [
+            "mining",
+            "ship"
+          ],
+          "description": "mining: the mining session's unsold cargo; ship: all the ship carries that may be sold (neither limpets nor the goods of missions)."
         }
       }
     }

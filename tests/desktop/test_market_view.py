@@ -6,7 +6,13 @@ from typing import Any
 import pytest
 
 from edrockmaster.application.community import Failed, Found, Source, Unavailable
-from edrockmaster.desktop.market_view import market_query, markets_refused, markets_view
+from edrockmaster.desktop.market_view import (
+    estimate_refused,
+    estimate_view,
+    market_query,
+    markets_refused,
+    markets_view,
+)
 from edrockmaster.domain.commodities import Side
 from edrockmaster.domain.ships import PadSize
 
@@ -69,3 +75,17 @@ def test_dates_are_utc() -> None:
     paris = datetime.fromisoformat("2026-10-12T11:00:00+02:00")
     view = markets_view(Found((), Source.ARDENT, paris))
     assert view["readAt"] == datetime(2026, 10, 12, 9, 0, tzinfo=UTC).isoformat()
+
+
+def test_a_failed_estimate_gives_no_line() -> None:
+    estimate = estimate_view(Failed(Source.ARDENT, Unavailable.BUSY), "Borann", str)
+    assert (estimate["status"], estimate["system"], estimate["lines"]) == ("busy", "Borann", [])
+    assert estimate_refused("empty") == {
+        "status": "empty",
+        "source": None,
+        "readAt": None,
+        "unavailable": None,
+        "system": None,
+        "lines": [],
+        "total": 0,
+    }

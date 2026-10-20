@@ -1,9 +1,8 @@
-"""What the mining cargo is worth (ADR 0040)."""
+"""What a cargo is worth at the best markets around (ADR 0040, ADR 0047)."""
 
 from datetime import UTC, datetime, timedelta
 
-from edrockmaster.domain.commodities import MarketOffer
-from edrockmaster.domain.mining.markets import CargoEstimate, CargoLine
+from edrockmaster.domain.commodities import CargoEstimate, CargoLine, MarketOffer
 from edrockmaster.domain.ships import PadSize
 
 NOW = datetime(2026, 10, 11, 12, 0, tzinfo=UTC)

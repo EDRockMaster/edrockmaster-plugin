@@ -278,7 +278,7 @@ class DesktopCore:
             ),
             layout=LayoutHandler(context, LayoutStore(config)),
             engineering=EngineeringHandler(context),
-            mining=MiningHandler(context, MiningSearch(self._galaxy(sources), markets)),
+            mining=MiningHandler(context, MiningSearch(self._galaxy(sources))),
             trade=TradeHandler(context, load_commodities(), markets),
             phone=PhoneHandler(context, store=PhoneStore(config), phone=self._phone),
         )

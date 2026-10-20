@@ -7,8 +7,13 @@ import type { GoalCatalogue } from "./goal-catalogue";
 import type { Layout } from "./layout";
 import type { Phone } from "./phone";
 import type { LiveView } from "./live-view";
-import type { MarketsAnswer, MarketsRequest } from "./markets";
-import type { CargoEstimateAnswer, HotspotRequest, HotspotsAnswer, MiningOptions } from "./mining";
+import type {
+  CargoEstimateAnswer,
+  CargoEstimateRequest,
+  MarketsAnswer,
+  MarketsRequest,
+} from "./markets";
+import type { HotspotRequest, HotspotsAnswer, MiningOptions } from "./mining";
 import type { Settings } from "./settings";
 import type {
   PricesAnswer,
@@ -50,7 +55,7 @@ export interface CoreApi {
   /** Where to mine: asks Spansh, or its cached answer (ADR 0039). */
   find_hotspots(request: HotspotRequest): Promise<HotspotsAnswer>;
   /** The mining cargo at the best markets around the current system. */
-  estimate_cargo(): Promise<CargoEstimateAnswer>;
+  estimate_cargo(request: CargoEstimateRequest): Promise<CargoEstimateAnswer>;
   /** What the Trade tab's forms start from: the commodities by category (ADR 0047). */
   trade_options(): Promise<TradeOptions>;
   /** Where to buy or sell a commodity, for the Mining and Trade tabs: asks Ardent Insight, or

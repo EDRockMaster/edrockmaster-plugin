@@ -1,5 +1,5 @@
-"""The Trade tab's calls (ADR 0047), and where to buy and sell for both tabs: each search waits
-for the sources' answer (``waiting.py``), as do the galaxy's prices."""
+"""The Trade tab's calls (ADR 0047), and where to buy and sell and the cargo's worth for both
+tabs: each search waits for the sources' answer (``waiting.py``), as do the galaxy's prices."""
 
 from __future__ import annotations
 
@@ -9,8 +9,10 @@ from typing import Any
 from edrockmaster.application.community import Failed, Source, Unavailable
 from edrockmaster.application.market_search import MarketSearch
 from edrockmaster.desktop.handlers.context import CoreContext
-from edrockmaster.desktop.handlers.waiting import wait_for_sources
+from edrockmaster.desktop.handlers.waiting import Done, wait_for_sources
 from edrockmaster.desktop.market_view import (
+    estimate_refused,
+    estimate_view,
     market_query,
     markets_refused,
     markets_view,
@@ -18,6 +20,7 @@ from edrockmaster.desktop.market_view import (
     text,
 )
 from edrockmaster.desktop.trade_view import (
+    commodity_name,
     options_view,
     prices_refused,
     prices_view,
@@ -96,3 +99,39 @@ class TradeHandler:
                 market, self._catalogue, Failed(Source.ARDENT, Unavailable.DOWN), self._context.tl
             ),
         )
+
+    def estimate_cargo(self, request: Mapping[str, Any]) -> dict[str, Any]:
+        """A cargo at the best market around the current system for each commodity: the mining
+        session's unsold cargo (``hold: mining``), or all the ship carries that may be sold
+        (``hold: ship``)."""
+        hold = request.get("hold")
+        if hold not in ("mining", "ship"):
+            self._context.logger.warning("Estimate refused: hold %r", hold)
+            return estimate_refused("invalid")
+
+        def start(done: Done) -> None:
+            companion = self._context.companion()
+            situation = companion.situation.situation
+            if situation.system is None:
+                done(estimate_refused("noSystem"))
+                return
+            if hold == "ship":
+                cargo = companion.trade.cargo_to_sell
+            else:
+                stats = companion.mining.current_stats
+                cargo = {c.key: tons for c, tons in (stats.unsold_tons if stats else {}).items()}
+            if not any(tons > 0 for tons in cargo.values()):
+                done(estimate_refused("empty"))
+                return
+            system = situation.system
+            self._markets.estimate_cargo(
+                cargo,
+                system,
+                needed_pad(situation.ship.symbol) if situation.ship else None,
+                lambda answer: done(estimate_view(answer, system, self._name)),
+            )
+
+        return wait_for_sources(self._context, start, lambda: estimate_refused("down"))
+
+    def _name(self, key: str) -> str:
+        return commodity_name(self._catalogue, key, self._context.tl)

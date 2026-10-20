@@ -2,9 +2,9 @@
 
 ``hotspot_query`` turns a form into a query, refusing what is not valid
 (``ValueError``); the ``*_view`` functions turn an answer into what the interface
-shows, as ``schemas/mining.schema.json`` describes it. Where to sell is the market
-search's, shared with the Trade tab (``market_view.py``). Names are in the player's
-language; numbers and dates are left to the interface.
+shows, as ``schemas/mining.schema.json`` describes it. Where to sell and the cargo's
+worth are the market search's, shared with the Trade tab (``market_view.py``). Names are in
+the player's language; numbers and dates are left to the interface.
 """
 
 from __future__ import annotations
@@ -18,7 +18,6 @@ from edrockmaster.desktop.market_view import (
     date,
     not_asked,
     number,
-    offer_view,
     pad_name,
     status,
     text,
@@ -32,7 +31,6 @@ from edrockmaster.domain.mining.hotspots import (
     ReserveLevel,
     hotspot_commodity,
 )
-from edrockmaster.domain.mining.markets import CargoEstimate
 from edrockmaster.domain.ships import PadSize
 from edrockmaster.ui.commodity_names import commodity_name
 
@@ -78,15 +76,9 @@ def hotspot_query(request: Mapping[str, Any]) -> HotspotQuery:
     )
 
 
-_EMPTY: dict[str, dict[str, Any]] = {
-    "hotspots": {"total": 0, "hasMore": False, "rings": []},
-    "estimate": {"system": None, "lines": [], "total": 0},
-}
-
-
-def refused(answer: str, reason: str) -> dict[str, Any]:
-    """An empty ``answer`` (hotspots, estimate) the core did not ask (``market_view.not_asked``)."""
-    return {**not_asked(reason), **_EMPTY[answer]}
+def refused(reason: str) -> dict[str, Any]:
+    """Hotspots the core did not ask (``market_view.not_asked``)."""
+    return {**not_asked(reason), "total": 0, "hasMore": False, "rings": []}
 
 
 def hotspots_view(answer: Answer[HotspotPage], translate: Translate) -> dict[str, Any]:
@@ -118,27 +110,4 @@ def hotspots_view(answer: Answer[HotspotPage], translate: Translate) -> dict[str
             }
             for ring in page.rings
         ],
-    }
-
-
-def estimate_view(
-    answer: Answer[CargoEstimate], system: str, translate: Translate
-) -> dict[str, Any]:
-    view = status(answer)
-    if not isinstance(answer, Found):
-        return {**view, "system": system, "lines": [], "total": 0}
-    return {
-        **view,
-        "system": system,
-        "lines": [
-            {
-                "commodity": line.commodity,
-                "name": _name(line.commodity, translate),
-                "tons": line.tons,
-                "value": line.value,
-                "offer": offer_view(line.best) if line.best is not None else None,
-            }
-            for line in answer.value.lines
-        ],
-        "total": answer.value.total,
     }
