@@ -180,10 +180,11 @@ describe("MiningView", () => {
 describe("CargoEstimate", () => {
   it("asks only when pressed, and shows each commodity's market", async () => {
     const api = withCore();
-    render(CargoEstimate, { language: "en" });
+    render(CargoEstimate, { language: "en", hold: "mining" });
     expect(api.estimate_cargo).not.toHaveBeenCalled();
     await fireEvent.click(screen.getByRole("button", { name: "Estimate the cargo" }));
     await screen.findByText("Worth about 273,762 CR");
+    expect(api.estimate_cargo).toHaveBeenCalledWith({ hold: "mining" });
     expect(
       screen.getByText("3 t of Painite: 273,762 CR at Borisenko's Folly (Arouca)"),
     ).toBeInTheDocument();
@@ -201,7 +202,7 @@ describe("CargoEstimate", () => {
       lines: [],
       total: 0,
     });
-    render(CargoEstimate, { language: "fr" });
+    render(CargoEstimate, { language: "fr", hold: "mining" });
     await fireEvent.click(screen.getByRole("button", { name: "Estimer la soute" }));
     await screen.findByText("Rien dans la soute de cette session à estimer.");
   });

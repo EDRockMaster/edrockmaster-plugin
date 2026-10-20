@@ -45,8 +45,11 @@ BUYERS = {
 }
 
 
+MINING_HOLD = {"hold": "mining"}
+
+
 def valid(definition: str, view: dict[str, Any]) -> dict[str, Any]:
-    schema = "markets" if definition == "MarketsAnswer" else "mining"
+    schema = "markets" if definition in ("MarketsAnswer", "CargoEstimateAnswer") else "mining"
     result: dict[str, Any] = validate(schema, definition, view)
     return result
 
@@ -187,7 +190,7 @@ def test_a_source_down_and_a_source_turned_off(mining: Mining) -> None:
 
 
 def test_no_estimate_before_the_system_or_a_cargo_is_known(mining: Mining) -> None:
-    answer = mining.core.handlers.mining.estimate_cargo()
+    answer = mining.core.handlers.trade.estimate_cargo(MINING_HOLD)
     assert valid("CargoEstimateAnswer", answer)["status"] == "noSystem"
 
 
@@ -211,7 +214,7 @@ def test_the_cargo_at_the_best_markets(tmp_path: Path) -> None:
         answer: dict[str, Any] = {}
         deadline = time.monotonic() + 20
         while time.monotonic() < deadline:
-            answer = started.core.handlers.mining.estimate_cargo()
+            answer = started.core.handlers.trade.estimate_cargo(MINING_HOLD)
             if answer["status"] == "found":
                 break
             time.sleep(0.05)
@@ -238,7 +241,7 @@ def test_no_estimate_without_cargo(tmp_path: Path) -> None:
         answer: dict[str, Any] = {}
         deadline = time.monotonic() + 20
         while time.monotonic() < deadline:
-            answer = started.core.handlers.mining.estimate_cargo()
+            answer = started.core.handlers.trade.estimate_cargo(MINING_HOLD)
             if answer["status"] != "noSystem":
                 break
             time.sleep(0.05)

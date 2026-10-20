@@ -1,11 +1,12 @@
 <script lang="ts">
-  // The Trade tab (ADR 0047): the market of the station the commander is docked at, the
-  // commodities by category, then the galaxy's prices of the one chosen, and where to buy and
+  // The Trade tab (ADR 0047): the market of the station the commander is docked at, the cargo's
+  // worth, the commodities by category, then the galaxy's prices of the one chosen, and where to buy and
   // where to sell it around the current system (the market search shared with the Mining tab).
   import { core } from "../lib/bridge";
   import { t, type Language } from "../lib/i18n";
   import type { TradeOptions } from "../lib/trade";
   import { filterCatalogue } from "../lib/trade-catalogue";
+  import CargoEstimate from "./CargoEstimate.svelte";
   import GalaxyPrices from "./GalaxyPrices.svelte";
   import type { LiveView } from "../lib/live-view";
   import MarketSearch from "./MarketSearch.svelte";
@@ -47,6 +48,10 @@
         : t(language, "trade.market.title")}
     </h2>
     <StationMarket {language} stamp={stationMarket} onchoose={choose} />
+  </section>
+  <section aria-labelledby="cargo-title">
+    <h2 id="cargo-title">{t(language, "trade.cargo")}</h2>
+    <CargoEstimate {language} hold="ship" />
   </section>
   <section aria-labelledby="commodities-title">
     <h2 id="commodities-title">{t(language, "trade.commodities")}</h2>

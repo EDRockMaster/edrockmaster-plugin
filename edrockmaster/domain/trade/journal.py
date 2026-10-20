@@ -118,6 +118,8 @@ class CargoInventory:
 
     at: datetime
     tons: tuple[tuple[Commodity, int], ...]
+    for_missions: tuple[tuple[Commodity, int], ...] = ()
+    """Part of ``tons``: the goods of missions, which are delivered, not sold."""
 
 
 class TransferDirection(Enum):
@@ -246,13 +248,15 @@ def _ejected(entry: Entry, at: datetime) -> CargoEjected:
 def _cargo(entry: Entry, at: datetime) -> CargoInventory | None:
     if entry.get("Vessel") != "Ship" or "Inventory" not in entry:
         return None
-    return CargoInventory(
-        at,
-        tuple(
-            (commodity(item, "Name"), required(item, "Count", int))
-            for item in items(entry, "Inventory")
-        ),
-    )
+    tons: dict[Commodity, int] = {}
+    for_missions: dict[Commodity, int] = {}
+    # A commodity carried for a mission has a line of its own, with the mission
+    for item in items(entry, "Inventory"):
+        goods, count = commodity(item, "Name"), required(item, "Count", int)
+        tons[goods] = tons.get(goods, 0) + count
+        if "MissionID" in item:
+            for_missions[goods] = for_missions.get(goods, 0) + count
+    return CargoInventory(at, tuple(tons.items()), tuple(for_missions.items()))
 
 
 def _market_read(entry: Entry, at: datetime) -> MarketRead | None:

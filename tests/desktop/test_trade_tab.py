@@ -170,3 +170,42 @@ def test_the_station_s_market_compared_with_the_galaxy(tmp_path: Path) -> None:
     assert round(metals["commodities"][0]["buy"]["gap"], 3) == 0.027
     [request] = started.sources.requests
     assert request.full_url.endswith("/commodities")
+
+
+def test_the_ship_s_cargo_at_the_best_markets(tmp_path: Path) -> None:
+    folder = tmp_path / "journal"
+    folder.mkdir()
+    started = Mining(tmp_path, folder)
+    started.core.start()
+    try:
+        inventory = [
+            {"Name": "painite", "Count": 10, "Stolen": 0},
+            {"Name": "drones", "Name_Localised": "Limpet", "Count": 4, "Stolen": 0},
+            {"Name": "tea", "Count": 8, "Stolen": 0, "MissionID": 65380901},
+        ]
+        lines = [
+            journal_line("Location", StarSystem="Borann", SystemAddress=5070611621289),
+            journal_line("Cargo", Vessel="Ship", Count=22, Inventory=inventory),
+        ]
+        (folder / "Journal.2026-10-12T080000.01.log").write_text("".join(lines), newline="")
+        answer: dict[str, Any] = {}
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline:
+            answer = started.core.handlers.trade.estimate_cargo({"hold": "ship"})
+            if answer["status"] == "found":
+                break
+            time.sleep(0.05)
+    finally:
+        started.core.stop()
+    validate("markets", "CargoEstimateAnswer", answer)
+    # Neither the limpets nor the tea of a mission
+    assert [(line["name"], line["tons"]) for line in answer["lines"]] == [("Painite", 10)]
+    assert answer["total"] == 10 * 91254
+    assert (
+        validate(
+            "markets",
+            "CargoEstimateAnswer",
+            started.core.handlers.trade.estimate_cargo({"hold": "x"}),
+        )["status"]
+        == "invalid"
+    )

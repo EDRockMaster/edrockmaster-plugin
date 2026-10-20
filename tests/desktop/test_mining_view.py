@@ -6,7 +6,6 @@ import pytest
 
 from edrockmaster.application.community import Failed, Source, Unavailable
 from edrockmaster.desktop.mining_view import (
-    estimate_view,
     hotspot_query,
     hotspots_view,
     refused,
@@ -47,9 +46,6 @@ def test_a_hotspot_form_not_valid_is_refused(change: dict[str, Any]) -> None:
         hotspot_query({**HOTSPOTS, **change})
 
 
-def test_a_failed_source_gives_empty_answers() -> None:
-    failed = Failed(Source.ARDENT, Unavailable.BUSY)
+def test_a_failed_source_gives_no_ring() -> None:
     assert hotspots_view(Failed(Source.SPANSH, Unavailable.OFF), str)["rings"] == []
-    estimate = estimate_view(failed, "Borann", str)
-    assert (estimate["status"], estimate["system"], estimate["lines"]) == ("busy", "Borann", [])
-    assert refused("hotspots", "invalid")["hasMore"] is False
+    assert refused("invalid")["hasMore"] is False

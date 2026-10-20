@@ -1,20 +1,21 @@
-"""Where to buy and where to sell, for the Mining and Trade tabs (ADR 0040, ADR 0047).
+"""Where to buy and where to sell, and a cargo's worth, for the Mining and Trade tabs (ADR 0040,
+ADR 0047).
 
 ``market_query`` turns a form into a query, refusing what is not valid
-(``ValueError``); ``markets_view`` turns an answer into what the interface shows, as
-``schemas/markets.schema.json`` describes it. The helpers below serve the other
+(``ValueError``); ``markets_view`` and ``estimate_view`` turn an answer into what the
+interface shows, as ``schemas/markets.schema.json`` describes it. The helpers below serve the other
 answers of the sources too (``mining_view.py``, ``trade_view.py``). Numbers and dates
 are left to the interface.
 """
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 from typing import Any
 
-from edrockmaster.application.community import Answer, Failed
-from edrockmaster.domain.commodities import MarketOffer, MarketQuery, Side
+from edrockmaster.application.community import Answer, Failed, Found
+from edrockmaster.domain.commodities import CargoEstimate, MarketOffer, MarketQuery, Side
 from edrockmaster.domain.ships import PadSize
 
 _PADS = {pad.name.lower(): pad for pad in PadSize}
@@ -120,3 +121,31 @@ def markets_view(answer: Answer[tuple[MarketOffer, ...]]) -> dict[str, Any]:
 
 def markets_refused(reason: str) -> dict[str, Any]:
     return {**not_asked(reason), "offers": []}
+
+
+def estimate_view(
+    answer: Answer[CargoEstimate], system: str, name: Callable[[str], str]
+) -> dict[str, Any]:
+    """``name``: a commodity's name in the player's language, by its key."""
+    view = status(answer)
+    if not isinstance(answer, Found):
+        return {**view, "system": system, "lines": [], "total": 0}
+    return {
+        **view,
+        "system": system,
+        "lines": [
+            {
+                "commodity": line.commodity,
+                "name": name(line.commodity),
+                "tons": line.tons,
+                "value": line.value,
+                "offer": offer_view(line.best) if line.best is not None else None,
+            }
+            for line in answer.value.lines
+        ],
+        "total": answer.value.total,
+    }
+
+
+def estimate_refused(reason: str) -> dict[str, Any]:
+    return {**not_asked(reason), "system": None, "lines": [], "total": 0}

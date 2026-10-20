@@ -233,3 +233,32 @@ describe("the station's market", () => {
     expect(screen.getByRole("region", { name: "Gold across the galaxy" })).toBeInTheDocument();
   });
 });
+
+describe("the cargo to sell", () => {
+  it("estimates what the ship carries, when asked", async () => {
+    const api = withCore();
+    render(TradeView, { language: "en", stationMarket: null });
+    const cargo = screen.getByRole("region", { name: "Your cargo" });
+    expect(api.estimate_cargo).not.toHaveBeenCalled();
+    await fireEvent.click(within(cargo).getByRole("button", { name: "Estimate the cargo" }));
+    await within(cargo).findByText("Worth about 273,762 CR");
+    expect(api.estimate_cargo).toHaveBeenCalledWith({ hold: "ship" });
+  });
+
+  it("says when there is nothing to sell", async () => {
+    const api = withCore();
+    vi.mocked(api.estimate_cargo).mockResolvedValueOnce({
+      status: "empty",
+      source: null,
+      readAt: null,
+      unavailable: null,
+      system: null,
+      lines: [],
+      total: 0,
+    });
+    render(TradeView, { language: "en", stationMarket: null });
+    const cargo = screen.getByRole("region", { name: "Your cargo" });
+    await fireEvent.click(within(cargo).getByRole("button", { name: "Estimate the cargo" }));
+    await within(cargo).findByText("Nothing to sell in the hold.");
+  });
+});
