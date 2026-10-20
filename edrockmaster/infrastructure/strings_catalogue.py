@@ -17,6 +17,8 @@ from pathlib import Path
 L10N_DIRECTORY = Path(__file__).resolve().parents[2] / "L10n"
 LANGUAGES = ("en", "fr")
 _LINE = re.compile(r'^\s*"((?:[^"\\]|\\.)+)"\s*=\s*"((?:[^"\\]|\\.)+)"\s*;\s*$')
+_CONTEXT = re.compile(r"\|[a-z]+$")
+"""The context a text may name after a bar (``translator``)."""
 _NARROW_NO_BREAK_SPACE = chr(0x202F)  # as French typography separates thousands
 
 
@@ -38,11 +40,20 @@ def _unescape(text: str) -> str:
 
 
 def translator(language: str, directory: Path = L10N_DIRECTORY) -> Callable[[str], str]:
-    """``tl()`` for a language: the translation, else the English text."""
-    if language == "en":
-        return lambda text: text
-    translations = read_strings(directory / f"{language}.strings")
-    return lambda text: translations.get(text, text)
+    """``tl()`` for a language: the translation, else the English text.
+
+    A text may name its context after a bar, ``"Wreckage Components|commodity"``, when the
+    game names the same English text otherwise elsewhere (here, a material): its translation
+    is the one with the context, else the one without; the context is never shown."""
+    translations = {} if language == "en" else read_strings(directory / f"{language}.strings")
+
+    def translate(text: str) -> str:
+        if text in translations:
+            return translations[text]
+        plain = _CONTEXT.sub("", text)
+        return translations.get(plain, plain)
+
+    return translate
 
 
 def number_format(language: str) -> Callable[[float, int], str]:

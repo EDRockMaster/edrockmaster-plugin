@@ -122,11 +122,16 @@ class InterfaceApi:
     def find_hotspots(self, request: dict[str, Any]) -> dict[str, Any]:
         return self._core.handlers.mining.find_hotspots(request)
 
-    def find_buyers(self, request: dict[str, Any]) -> dict[str, Any]:
-        return self._core.handlers.mining.find_buyers(request)
-
     def estimate_cargo(self) -> dict[str, Any]:
         return self._core.handlers.mining.estimate_cargo()
+
+    # The Trade tab (ADR 0047); where to buy and sell serves the Mining tab too
+
+    def trade_options(self) -> dict[str, Any]:
+        return self._core.handlers.trade.trade_options()
+
+    def find_markets(self, request: dict[str, Any]) -> dict[str, Any]:
+        return self._core.handlers.trade.find_markets(request)
 
     # The phone and tablet (ADR 0055): answered at once, the local server started or stopped
 

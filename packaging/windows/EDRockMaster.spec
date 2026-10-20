@@ -18,6 +18,7 @@ a = Analysis(
         (str(PACKAGE / "build.json"), "edrockmaster"),
         (str(PACKAGE / "domain" / "engineering" / "catalogue.json"), "edrockmaster/domain/engineering"),
         (str(PACKAGE / "domain" / "situation" / "ship_names.json"), "edrockmaster/domain/situation"),
+        (str(PACKAGE / "domain" / "trade" / "commodities.json"), "edrockmaster/domain/trade"),
         (str(PACKAGE / "desktop" / "schemas"), "edrockmaster/desktop/schemas"),
         (str(PACKAGE / "desktop" / "demo_journal.jsonl"), "edrockmaster/desktop"),
         (str(PACKAGE / "desktop" / "interface" / "index.html"), "edrockmaster/desktop/interface"),

@@ -11,7 +11,12 @@ const DYNAMIC_KEYS = [
   ...["mining", "combat", "trade", "engineering", "communityGoals"].map(
     (activity) => `activity.${activity}`,
   ),
-  ...["activities", "mining", "engineering", "blueprints", "settings"].map((tab) => `tab.${tab}`),
+  ...["activities", "mining", "trade", "engineering", "blueprints", "settings"].map(
+    (tab) => `tab.${tab}`,
+  ),
+  ...["minVolume", "none", "column.price", "column.volume"].flatMap((key) =>
+    ["buy", "sell"].map((side) => `market.${key}.${side}`),
+  ),
   ...["raw", "manufactured", "encoded", "other"].map((c) => `engineering.category.${c}`),
   ...["known", "invited", "acquainted", "unlocked", "barred", "unknown"].map(
     (status) => `engineering.status.${status}`,

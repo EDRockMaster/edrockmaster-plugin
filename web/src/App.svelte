@@ -7,14 +7,15 @@
   import MiningView from "./components/MiningView.svelte";
   import SettingsView from "./components/SettingsView.svelte";
   import SituationBanner from "./components/SituationBanner.svelte";
+  import TradeView from "./components/TradeView.svelte";
   import { connect, core, isRemote } from "./lib/bridge";
   import { t, type Language } from "./lib/i18n";
   import type { LiveView } from "./lib/live-view";
 
   let view = $state<LiveView | null>(null);
   const language: Language = $derived(view?.language ?? "en");
-  type Tab = "activities" | "mining" | "engineering" | "blueprints" | "settings";
-  const TABS: Tab[] = ["activities", "mining", "engineering", "blueprints", "settings"];
+  type Tab = "activities" | "mining" | "trade" | "engineering" | "blueprints" | "settings";
+  const TABS: Tab[] = ["activities", "mining", "trade", "engineering", "blueprints", "settings"];
   let tab = $state<Tab>("activities");
   // Leaving the settings with changes not saved asks first
   let settingsUnsaved = $state(false);
@@ -104,6 +105,8 @@
         </CardStack>
       {:else if tab === "mining"}
         <MiningView {language} />
+      {:else if tab === "trade"}
+        <TradeView {language} />
       {:else if tab === "engineering"}
         <EngineeringView engineering={view.engineering} {language} />
       {:else if tab === "blueprints"}

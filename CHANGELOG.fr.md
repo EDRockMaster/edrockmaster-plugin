@@ -6,6 +6,14 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
+### Ajouté
+
+- **Un onglet Commerce** (décision de conception ADR 0047) : toutes les marchandises du jeu, par catégorie (produits chimiques, métaux, minéraux…, les marchandises rares signalées), et un champ pour en trouver une par son nom. Choisissez-en une : *Où acheter* et *Où vendre* cherchent les marchés autour de votre système actuel (Ardent Insight, comme l'onglet Minage), le meilleur prix d'abord, avec la piste de votre vaisseau et, comme stock ou demande minimum, sa capacité de soute ; tout peut être changé avant de chercher. À venir dans cet onglet : la fourchette de prix de la galaxie, le marché de la station, votre soute à vendre, les routes commerciales.
+
+### Modifié
+
+- *Où vendre* de l'onglet Minage est désormais la même recherche que celle de l'onglet Commerce, et permet de fixer une demande minimum.
+
 ### Corrigé
 
 - **Les écrans tiennent sur un téléphone** (décision de conception ADR 0055) : sur un téléphone (un iPhone 12, 390 pixels de large), l'onglet *Ingénierie* débordait de l'écran (la liste *Module* aussi large que son choix le plus long, la liste des ingénieurs), et les résultats de l'onglet *Minage* (six colonnes) aussi. Listes et champs ne dépassent plus l'écran, les cartes en prennent toute la largeur, et sur un écran étroit chaque résultat d'un tableau s'affiche en bloc, chaque valeur sous le nom de sa colonne. Vérifié jusqu'à 320 pixels.

@@ -1,7 +1,8 @@
 // What the Mining tab shows of the community sources' answers (ADR 0039, ADR 0040): their age,
 // their status, and the names of what the sources give in English.
 import { t, type Key, type Language } from "./i18n";
-import type { HotspotRequest, MarketOffer } from "./mining";
+import type { MarketOffer } from "./markets";
+import type { HotspotRequest } from "./mining";
 
 export type Reserve = HotspotRequest["reserves"][number];
 export type Pad = NonNullable<MarketOffer["pad"]>;

@@ -2,11 +2,11 @@
 
 *[English](privacy.md) · Français*
 
-Dernière mise à jour : 19 octobre 2026. S'applique à l'application de bureau EDRockMaster Companion et au plugin EDRockMaster pour EDMarketConnector, publiés par DamScan, un projet personnel et non commercial.
+Dernière mise à jour : 20 octobre 2026. S'applique à l'application de bureau EDRockMaster Companion et au plugin EDRockMaster pour EDMarketConnector, publiés par DamScan, un projet personnel et non commercial.
 
 ## En bref
 
-EDRockMaster lit le journal qu'Elite Dangerous écrit sur votre ordinateur, calcule les statistiques de vos sessions **sur votre ordinateur**, et **ne nous envoie rien** : EDRockMaster n'a pas de serveur. Ni compte, ni mesure d'audience, ni publicité, ni pistage. Seulement quand vous cherchez dans l'onglet *Minage*, ou estimez votre soute, l'application demande à des outils communautaires sur internet ce que le journal ne dit pas (ci-dessous).
+EDRockMaster lit le journal qu'Elite Dangerous écrit sur votre ordinateur, calcule les statistiques de vos sessions **sur votre ordinateur**, et **ne nous envoie rien** : EDRockMaster n'a pas de serveur. Ni compte, ni mesure d'audience, ni publicité, ni pistage. Seulement quand vous cherchez dans les onglets *Minage* ou *Commerce*, ou estimez votre soute, l'application demande à des outils communautaires sur internet ce que le journal ne dit pas (ci-dessous).
 
 ## Ce que l'application lit
 
@@ -39,10 +39,10 @@ Hormis vos bons non encaissés, les statistiques de vos sessions et votre situat
 
 **Vers votre téléphone ou votre tablette, seulement si vous l'activez.** *Réglages*, *Téléphone et tablette* (désactivé par défaut) permet à un téléphone ou une tablette du réseau de la maison d'ouvrir l'application dans son navigateur, par son QR code. L'application écoute alors votre réseau local, sur un port (47800 par défaut), et sert aux appareils qui ont le lien tout ce que montre la fenêtre, et les laisse le changer ; rien ne passe par internet, et rien ne nous parvient. Le lien contient une clé aléatoire ; quiconque, sur votre réseau, l'a voit et change ce que fait la fenêtre. Il circule en clair sur votre réseau (pas de HTTPS pour une adresse locale) : laissez-le désactivé sur un réseau public. Désactivée, l'application n'écoute rien ; *Utiliser un nouveau lien* exclut les appareils déjà connectés.
 
-**Vos recherches, à des outils communautaires, et seulement quand vous les faites.** L'onglet *Minage* et le bouton *Estimer la soute* demandent à deux outils communautaires indépendants ce que le journal ne dit pas :
+**Vos recherches, à des outils communautaires, et seulement quand vous les faites.** Les onglets *Minage* et *Commerce* et le bouton *Estimer la soute* demandent à deux outils communautaires indépendants ce que le journal ne dit pas :
 
 - **Spansh** (`spansh.co.uk`), pour les anneaux et leurs hotspots autour d'un système : il reçoit la marchandise, le nom du système et vos filtres ;
-- **Ardent Insight** (`ardent-insight.com`), pour les marchés qui achètent une marchandise : il reçoit la marchandise, le nom du système et la distance ; pour une estimation, une requête par marchandise de votre soute de minage, autour de votre système actuel.
+- **Ardent Insight** (`ardent-insight.com`), pour les marchés qui achètent ou vendent une marchandise : il reçoit la marchandise, le nom du système, la distance et la demande ou le stock minimum choisis (l'onglet *Commerce* le remplit avec la capacité de soute de votre vaisseau) ; pour une estimation, une requête par marchandise de votre soute de minage, autour de votre système actuel.
 
 Rien d'autre n'est envoyé : ni le nom de votre commandant, ni vos statistiques. Comme tout site web, ils voient l'adresse IP de votre ordinateur et l'heure. Ce sont des projets bénévoles tenus par d'autres joueurs, sans politique de confidentialité de leur part à notre connaissance. Chacun se désactive dans *Réglages*, *Sources communautaires* ; désactivé, il n'est jamais interrogé, et ce qu'il avait répondu est oublié.
 
@@ -50,7 +50,7 @@ Rien d'autre n'est envoyé : ni le nom de votre commandant, ni vos statistiques.
 
 - **GitHub** : publie l'application et ses mises à jour, selon la [déclaration de confidentialité de GitHub](https://docs.github.com/fr/site-policy/privacy-policies/github-general-privacy-statement) ; interrogé par la recherche de mise à jour, comme dit plus haut.
 - **Microsoft Edge WebView2** : le composant de Windows qui dessine la fenêtre de l'application ; il fonctionne sur votre ordinateur.
-- **Données du jeu** : la liste des matériaux, blueprints et ingénieurs vient de données communautaires (EDCD) livrées dans l'application ; rien n'est téléchargé.
+- **Données du jeu** : la liste des matériaux, blueprints, ingénieurs et marchandises vient de données communautaires (EDCD) livrées dans l'application ; rien n'est téléchargé.
 - **Spansh** et **Ardent Insight** : interrogés seulement quand vous cherchez, comme dit plus haut ; désactivables dans *Réglages*.
 
 ## Vos choix

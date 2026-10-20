@@ -17,6 +17,16 @@ def test_french_comes_from_the_plugin_s_strings_file() -> None:
     assert translator("en")("No mining session") == "No mining session"
 
 
+def test_a_text_s_context_picks_its_translation_and_is_never_shown() -> None:
+    tl = translator("fr")
+    # The material and the commodity of the same English name, as the game names them
+    assert tl("Wreckage Components") == "Composants d'épave"
+    assert tl("Wreckage Components|commodity") == "Débris d'épave"
+    assert tl("Gold|commodity") == "Or"  # no translation in context: the plain one
+    assert tl("Unobtainium|commodity") == "Unobtainium"
+    assert translator("en")("Wreckage Components|commodity") == "Wreckage Components"
+
+
 def test_escaped_quotes_and_a_missing_file(tmp_path: Path) -> None:
     path = tmp_path / "xx.strings"
     path.write_text('/* comment */\n"Say \\"hi\\"" = "Dis \\"salut\\"";\n', encoding="utf-8")

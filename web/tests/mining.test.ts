@@ -4,7 +4,7 @@ import CargoEstimate from "../src/components/CargoEstimate.svelte";
 import MiningView from "../src/components/MiningView.svelte";
 import type { CoreApi } from "../src/lib/bridge";
 import { age, number, ringType, statusText, type SourceStatus } from "../src/lib/mining-search";
-import { BUYERS, ESTIMATE, fakeCore, HOTSPOTS } from "./core";
+import { ESTIMATE, fakeCore, HOTSPOTS, MARKETS } from "./core";
 
 const NOW = Date.parse("2026-10-12T09:00:00Z");
 
@@ -87,7 +87,7 @@ describe("MiningView", () => {
     const api = await opened();
     expect(screen.getByLabelText("Landing pad")).toHaveValue("large");
     expect(api.find_hotspots).not.toHaveBeenCalled();
-    expect(api.find_buyers).not.toHaveBeenCalled();
+    expect(api.find_markets).not.toHaveBeenCalled();
   });
 
   it("finds rings, then more of them, then refreshes", async () => {
@@ -135,12 +135,14 @@ describe("MiningView", () => {
     expect(await screen.findByText("Copied")).toBeInTheDocument();
     await fireEvent.click(screen.getByRole("button", { name: "Sell near here" }));
     await screen.findByText("Borisenko's Folly");
-    expect(api.find_buyers).toHaveBeenCalledWith({
+    expect(api.find_markets).toHaveBeenCalledWith({
+      side: "sell",
       commodity: "painite",
       system: "Borann",
       maxDistance: 50,
       pad: "large",
       carriers: false,
+      minVolume: 1,
       refresh: false,
     });
     const row = rowOf("Borisenko's Folly");
@@ -152,12 +154,12 @@ describe("MiningView", () => {
 
   it("sells with carriers and any pad, and says when no market buys", async () => {
     const api = await opened();
-    vi.mocked(api.find_buyers).mockResolvedValueOnce({ ...BUYERS, offers: [] });
+    vi.mocked(api.find_markets).mockResolvedValueOnce({ ...MARKETS, offers: [] });
     await fireEvent.change(screen.getByLabelText("Landing pad"), { target: { value: "any" } });
     await fireEvent.click(screen.getByLabelText("Include fleet carriers"));
     await fireEvent.click(button("Search", 1));
     await screen.findByText(/No market buys it/);
-    expect(api.find_buyers).toHaveBeenCalledWith(
+    expect(api.find_markets).toHaveBeenCalledWith(
       expect.objectContaining({ pad: null, carriers: true }),
     );
   });

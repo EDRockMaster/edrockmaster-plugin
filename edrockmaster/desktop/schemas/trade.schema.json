@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://edrm.space/schemas/desktop/trade.schema.json",
+  "title": "TradeTab",
+  "description": "The Trade tab (ADR 0047): trade_options() returns TradeOptions; where to buy and sell is find_markets (markets.schema.json). Names in the player's language.",
+  "type": "object",
+  "properties": {
+    "TradeOptions": {
+      "$ref": "#/$defs/TradeOptions"
+    }
+  },
+  "$defs": {
+    "TradeOptions": {
+      "title": "TradeOptions",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "categories",
+        "system",
+        "pad",
+        "cargoCapacity",
+        "sources"
+      ],
+      "properties": {
+        "categories": {
+          "type": "array",
+          "description": "The market's categories in the game's order, each with its commodities by name.",
+          "items": {
+            "$ref": "#/$defs/CommodityCategory"
+          }
+        },
+        "system": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The current system, once the journal names it."
+        },
+        "pad": {
+          "enum": [
+            "small",
+            "medium",
+            "large",
+            null
+          ],
+          "description": "The pad the ship needs; null until the journal names the ship."
+        },
+        "cargoCapacity": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "The ship's cargo capacity in tonnes, from its loadout."
+        },
+        "sources": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ardent"
+          ],
+          "properties": {
+            "ardent": {
+              "type": "boolean",
+              "description": "Whether the player lets the application ask Ardent Insight."
+            }
+          }
+        }
+      }
+    },
+    "CommodityCategory": {
+      "title": "CommodityCategory",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "category",
+        "name",
+        "commodities"
+      ],
+      "properties": {
+        "category": {
+          "type": "string",
+          "description": "chemicals, consumer_items, foods, industrial_materials…"
+        },
+        "name": {
+          "type": "string"
+        },
+        "commodities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "commodity",
+              "name",
+              "rare"
+            ],
+            "properties": {
+              "commodity": {
+                "type": "string",
+                "description": "The key the sources and the journal use (gold, lowtemperaturediamond)."
+              },
+              "name": {
+                "type": "string"
+              },
+              "rare": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

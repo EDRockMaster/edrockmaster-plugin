@@ -7,15 +7,10 @@ import type { GoalCatalogue } from "./goal-catalogue";
 import type { Layout } from "./layout";
 import type { Phone } from "./phone";
 import type { LiveView } from "./live-view";
-import type {
-  BuyersAnswer,
-  BuyersRequest,
-  CargoEstimateAnswer,
-  HotspotRequest,
-  HotspotsAnswer,
-  MiningOptions,
-} from "./mining";
+import type { MarketsAnswer, MarketsRequest } from "./markets";
+import type { CargoEstimateAnswer, HotspotRequest, HotspotsAnswer, MiningOptions } from "./mining";
 import type { Settings } from "./settings";
+import type { TradeOptions } from "./trade";
 
 export interface CoreApi {
   ready(): Promise<void>;
@@ -48,10 +43,13 @@ export interface CoreApi {
   mining_options(): Promise<MiningOptions>;
   /** Where to mine: asks Spansh, or its cached answer (ADR 0039). */
   find_hotspots(request: HotspotRequest): Promise<HotspotsAnswer>;
-  /** Where to sell: asks Ardent Insight, or its cached answer. */
-  find_buyers(request: BuyersRequest): Promise<BuyersAnswer>;
   /** The mining cargo at the best markets around the current system. */
   estimate_cargo(): Promise<CargoEstimateAnswer>;
+  /** What the Trade tab's forms start from: the commodities by category (ADR 0047). */
+  trade_options(): Promise<TradeOptions>;
+  /** Where to buy or sell a commodity, for the Mining and Trade tabs: asks Ardent Insight, or
+   * its cached answer. */
+  find_markets(request: MarketsRequest): Promise<MarketsAnswer>;
   /** The Phone and tablet section (ADR 0055): what it shows. */
   phone(): Promise<Phone>;
   /** The local server on or off, on a port: what the section shows then. */
