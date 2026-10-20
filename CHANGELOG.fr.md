@@ -6,8 +6,11 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
+## [0.8.0] - 2026-10-19
+
 ### Ajouté
 
+- **L'application sur un téléphone ou une tablette** (décision de conception ADR 0055) : *Réglages*, *Téléphone et tablette* affiche un QR code ; scannez-le avec l'appareil photo d'un téléphone ou d'une tablette du réseau de la maison, et son navigateur ouvre l'application, en direct, avec tout ce que fait la fenêtre : objectifs, réglages, recherches de l'onglet Minage. Rien ne passe par internet. Désactivé par défaut ; *Utiliser un nouveau lien* exclut les appareils déjà connectés. La première fois, Windows peut demander d'autoriser l'application dans son pare-feu, pour les réseaux privés.
 - **Un onglet Commerce** (décision de conception ADR 0047) : toutes les marchandises du jeu, par catégorie (produits chimiques, métaux, minéraux…, les marchandises rares signalées), et un champ pour en trouver une par son nom. Choisissez-en une : *Où acheter* et *Où vendre* cherchent les marchés autour de votre système actuel (Ardent Insight, comme l'onglet Minage), le meilleur prix d'abord, avec la piste de votre vaisseau et, comme stock ou demande minimum, sa capacité de soute ; tout peut être changé avant de chercher. Au-dessus, la marchandise **dans la galaxie** : le prix le plus bas, moyen et le plus haut que demandent et paient les marchés, pour juger une offre (Ardent Insight, une réponse pour toutes les marchandises, gardée un jour). En tête de l'onglet, **le marché de la station** : amarré, ouvrez le marché en jeu, et l'onglet montre ce que la station vend et achète, par catégorie, avec stock et demande ; *Comparer avec la galaxie* donne à chaque prix son écart avec la moyenne de la galaxie (*+18 %*, en vert quand il vous avantage). Dessous, **votre soute** : *Estimer la soute* évalue tout ce que porte votre vaisseau aux meilleurs marchés autour de vous, minerai, achats ou récupération (sans les drones ni les marchandises de missions), comme la carte de minage pour sa soute. Et les **routes commerciales** (décision de conception ADR 0057) : depuis votre station, Spansh calcule les étapes, quoi acheter à chacune et où le vendre, avec le bénéfice ; le formulaire part de la capacité de soute et de la portée de saut de votre vaisseau, et de vos crédits au chargement du jeu. Spansh met une minute ou deux : l'onglet affiche le temps d'attente, et peut annuler.
 
 ### Modifié
@@ -16,18 +19,9 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ### Corrigé
 
+- **Le QR code montre l'adresse du réseau de la maison** (décision de conception ADR 0056) : VPN actif, il donnait l'adresse du VPN (`10.2.0.2`), qu'un téléphone ne peut pas joindre. Les adresses du réseau de la maison passent désormais en premier, et *Utiliser cette adresse* permet d'en choisir une autre pour le QR code, gardée pour les fois suivantes. La section dit d'autoriser l'accès au réseau local dans les réglages d'un VPN.
 - **Les écrans tiennent sur un téléphone** (décision de conception ADR 0055) : sur un téléphone (un iPhone 12, 390 pixels de large), l'onglet *Ingénierie* débordait de l'écran (la liste *Module* aussi large que son choix le plus long, la liste des ingénieurs), et les résultats de l'onglet *Minage* (six colonnes) aussi. Listes et champs ne dépassent plus l'écran, les cartes en prennent toute la largeur, et sur un écran étroit chaque résultat d'un tableau s'affiche en bloc, chaque valeur sous le nom de sa colonne. Vérifié jusqu'à 320 pixels.
 - **Un téléphone affiche l'application tout de suite** : activé pendant que le jeu n'écrivait rien, un téléphone qui scannait le QR code restait sur *Démarrage…* jusqu'au prochain événement du jeu.
-
-## [0.8.0] - 2026-10-19
-
-### Ajouté
-
-- **L'application sur un téléphone ou une tablette** (décision de conception ADR 0055) : *Réglages*, *Téléphone et tablette* affiche un QR code ; scannez-le avec l'appareil photo d'un téléphone ou d'une tablette du réseau de la maison, et son navigateur ouvre l'application, en direct, avec tout ce que fait la fenêtre : objectifs, réglages, recherches de l'onglet Minage. Rien ne passe par internet. Désactivé par défaut ; *Utiliser un nouveau lien* exclut les appareils déjà connectés. La première fois, Windows peut demander d'autoriser l'application dans son pare-feu, pour les réseaux privés.
-
-### Corrigé
-
-- **Le QR code montre l'adresse du réseau de la maison** (décision de conception ADR 0056) : VPN actif, il donnait l'adresse du VPN (`10.2.0.2`), qu'un téléphone ne peut pas joindre. Les adresses du réseau de la maison passent désormais en premier, et *Utiliser cette adresse* permet d'en choisir une autre pour le QR code, gardée pour les fois suivantes. La section dit d'autoriser l'accès au réseau local dans les réglages d'un VPN.
 
 ## [0.7.0] - 2026-10-19
 

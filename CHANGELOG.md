@@ -6,8 +6,11 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-19
+
 ### Added
 
+- **The application on a phone or a tablet** (design decision ADR 0055): *Settings*, *Phone and tablet* shows a QR code; scan it with the camera of a phone or a tablet on your home network, and its browser opens the application, live, with everything the window does: goals, settings, the Mining tab's searches. Nothing goes through the internet. Off by default; *Use a new link* shuts out the devices already connected. The first time, Windows may ask to allow the application in its firewall, for private networks.
 - **A Trade tab** (design decision ADR 0047): every commodity of the game, by category (chemicals, metals, minerals…, the rare goods marked), and a field to find one by name. Choose one: *Where to buy* and *Where to sell* search the markets around your current system (Ardent Insight, as the Mining tab does), the best price first, with your ship's landing pad and, as the least stock or demand, its cargo capacity; all can be changed before searching. Above them, the commodity **across the galaxy**: the lowest, average and highest price the markets ask and pay, to judge an offer (Ardent Insight, one answer for every commodity, kept a day). On top of the tab, **the station's market**: docked, open the commodity market in game, and the tab shows what the station sells and buys, by category, with stock and demand; *Compare with the galaxy* gives each price its gap with the galaxy's average (*+18 %*, green when it is in your favour). Below it, **your cargo**: *Estimate the cargo* prices all your ship carries at the best markets around you, whether mined, bought or salvaged (neither limpets nor mission goods), as the mining card does for its cargo. And **trade routes** (design decision ADR 0057): from your station, Spansh plans the hops, what to buy at each and where to sell it, with the profit; the form starts from your ship's cargo capacity and jump range, and your credits at the game's load. Spansh takes a minute or two: the tab shows the time waited, and can cancel.
 
 ### Changed
@@ -16,18 +19,9 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ### Fixed
 
+- **The QR code shows the home network's address** (design decision ADR 0056): with a VPN on, it gave the VPN's address (`10.2.0.2`), which a phone cannot reach. The addresses of the home network now come first, and *Use this address* lets you choose another one for the QR code, kept for the next times. The section says to allow local network access in a VPN's settings.
 - **The screens fit a phone** (design decision ADR 0055): on a phone (an iPhone 12 at 390 pixels wide), the *Engineering* tab went past the screen (the *Module* list as wide as its longest choice, the engineers' list), and the *Mining* tab's results (six columns) too. Lists and fields never go wider than the screen, the cards use its whole width, and on a narrow screen each result of a table shows as a block, each value under its column's name. Checked down to 320 pixels.
 - **A phone shows the application at once**: turned on while the game wrote nothing, a phone scanning the QR code stayed on *Starting…* until the game's next event.
-
-## [0.8.0] - 2026-10-19
-
-### Added
-
-- **The application on a phone or a tablet** (design decision ADR 0055): *Settings*, *Phone and tablet* shows a QR code; scan it with the camera of a phone or a tablet on your home network, and its browser opens the application, live, with everything the window does: goals, settings, the Mining tab's searches. Nothing goes through the internet. Off by default; *Use a new link* shuts out the devices already connected. The first time, Windows may ask to allow the application in its firewall, for private networks.
-
-### Fixed
-
-- **The QR code shows the home network's address** (design decision ADR 0056): with a VPN on, it gave the VPN's address (`10.2.0.2`), which a phone cannot reach. The addresses of the home network now come first, and *Use this address* lets you choose another one for the QR code, kept for the next times. The section says to allow local network access in a VPN's settings.
 
 ## [0.7.0] - 2026-10-19
 
