@@ -10,6 +10,7 @@ from edrockmaster.domain.trade.session import (
     TradeStarted,
     TradeUpdated,
 )
+from edrockmaster.domain.trade.station_market import StationMarketChanged
 from tests.fakes import FixedClock
 from tests.journal_entries import T0, market_buy_entry, timestamp
 
@@ -45,3 +46,21 @@ def test_reset_ends_the_session_at_the_clock_time(service: TradeService, clock: 
     assert (ended.at, ended.reason) == (clock.current, TradeEndReason.MANUAL)
     assert service.current_stats is None
     assert service.reset_session() == []
+
+
+def test_the_station_s_market_once_opened_until_undocked(service: TradeService) -> None:
+    item = {"Name": "$gold_name;", "BuyPrice": 46000, "SellPrice": 45500, "Stock": 9, "Demand": 0}
+    market: Entry = {
+        "timestamp": timestamp(0),
+        "event": "Market",
+        "MarketID": 1,
+        "StationName": "Amano Terminal",
+        "StarSystem": "Ngalinn",
+        "Items": [item],
+    }
+    [opened] = service.handle_journal_entry(market)
+    assert isinstance(opened, StationMarketChanged)
+    assert service.station_market == opened.market
+    undocked: Entry = {"timestamp": timestamp(60), "event": "Undocked", "MarketID": 1}
+    assert service.handle_journal_entry(undocked) == [StationMarketChanged(None)]
+    assert service.station_market is None

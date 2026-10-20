@@ -504,6 +504,7 @@ class DesktopCore:
             journal_file=self._follower.current_file if self._follower else None,
             situation=companion.situation.situation,
             engineering=engineering_view(companion.engineering, self._require_names()),
+            station_market=companion.trade.station_market,
         )
         try:
             self._push(view)

@@ -1,15 +1,20 @@
 <script lang="ts">
-  // The Trade tab (ADR 0047): the commodities by category, then the galaxy's prices of the one
-  // chosen, and where to buy and where to sell it around the current system (the market search
-  // shared with the Mining tab).
+  // The Trade tab (ADR 0047): the market of the station the commander is docked at, the
+  // commodities by category, then the galaxy's prices of the one chosen, and where to buy and
+  // where to sell it around the current system (the market search shared with the Mining tab).
   import { core } from "../lib/bridge";
   import { t, type Language } from "../lib/i18n";
   import type { TradeOptions } from "../lib/trade";
   import { filterCatalogue } from "../lib/trade-catalogue";
   import GalaxyPrices from "./GalaxyPrices.svelte";
+  import type { LiveView } from "../lib/live-view";
   import MarketSearch from "./MarketSearch.svelte";
+  import StationMarket from "./StationMarket.svelte";
 
-  let { language }: { language: Language } = $props();
+  let {
+    language,
+    stationMarket = null,
+  }: { language: Language; stationMarket?: LiveView["stationMarket"] } = $props();
 
   let options = $state<TradeOptions | null>(null);
   let filter = $state("");
@@ -35,6 +40,14 @@
 </script>
 
 <div class="trade">
+  <section aria-labelledby="market-title">
+    <h2 id="market-title">
+      {stationMarket?.station
+        ? t(language, "trade.market", { station: stationMarket.station })
+        : t(language, "trade.market.title")}
+    </h2>
+    <StationMarket {language} stamp={stationMarket} onchoose={choose} />
+  </section>
   <section aria-labelledby="commodities-title">
     <h2 id="commodities-title">{t(language, "trade.commodities")}</h2>
     <label class="filter">

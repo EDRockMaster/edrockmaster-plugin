@@ -59,6 +59,7 @@ from edrockmaster.domain.trade.journal import (
     GoodsHandedOver,
     GoodsSold,
     Market,
+    MarketRead,
     Transfer,
     TransferDirection,
     Undocked,
@@ -361,6 +362,8 @@ class TradeTracker:
                 return self._on_cargo(fact)
             case CommanderDied() | GameClosed():
                 return self._on_exit(fact)
+            case MarketRead():
+                return []  # the station's market, not a trade (``station_market.py``)
             case _:  # pragma: no cover - exhaustiveness checked by mypy
                 assert_never(fact)
 

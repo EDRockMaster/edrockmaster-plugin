@@ -15,6 +15,8 @@ from edrockmaster.domain.trade.journal import (
     GoodsHandedOver,
     GoodsSold,
     Market,
+    MarketLine,
+    MarketRead,
     Transfer,
     TransferDirection,
     Undocked,
@@ -299,3 +301,43 @@ def test_a_transfer_in_an_unknown_direction_is_ignored() -> None:
 )
 def test_malformed_transfers_are_ignored(transfers: object) -> None:
     assert parse_entry({"timestamp": TS, "event": "CargoTransfer", "Transfers": transfers}) is None
+
+
+def market_entry(**fields: object) -> dict[str, object]:
+    return {
+        "timestamp": TS,
+        "event": "Market",
+        "MarketID": AMANO,
+        "StationName": "Amano Terminal",
+        "StationType": "Coriolis",
+        "StarSystem": "Ngalinn",
+        **fields,
+    }
+
+
+def test_a_market_opened_gives_its_commodities() -> None:
+    # As Market.json writes them (ADR 0047), a field the application does not use left out
+    gold = {
+        "id": 128049202,
+        "Name": "$gold_name;",
+        "Name_Localised": "Or",
+        "Category": "$MARKET_category_metals;",
+        "BuyPrice": 46000,
+        "SellPrice": 45500,
+        "MeanPrice": 47609,
+        "Stock": 1200,
+        "Demand": 0,
+    }
+    fact = parse_entry(market_entry(Items=[gold]))
+    assert fact == MarketRead(
+        AT,
+        Market(AMANO, "Amano Terminal", "Ngalinn"),
+        (MarketLine(Commodity("gold"), buy_price=46000, sell_price=45500, stock=1200, demand=0),),
+    )
+    assert isinstance(fact, MarketRead)
+    assert fact.lines[0].commodity.localised == "Or"
+
+
+def test_a_market_without_its_commodities_says_nothing() -> None:
+    # An older line read again at start: Market.json describes a later one
+    assert parse_entry(market_entry()) is None

@@ -12,6 +12,8 @@ from edrockmaster.desktop.live_view import live_view
 from edrockmaster.domain.situation.journal import GameMode, RouteStop, Ship
 from edrockmaster.domain.situation.route import CurrentRoute
 from edrockmaster.domain.situation.situation import Situation
+from edrockmaster.domain.trade.journal import Market
+from edrockmaster.domain.trade.station_market import StationMarket
 from edrockmaster.ui.panel_model import ActivityBlock, PanelModel, StatLine
 from tests.desktop.schemas import LIVE_VIEW_SCHEMA as SCHEMA
 
@@ -44,6 +46,7 @@ def view(
     situation: Situation,
     blocks: tuple[ActivityBlock, ...] = (),
     update: UpdateReady | None = None,
+    station_market: StationMarket | None = None,
 ) -> dict[str, object]:
     built = live_view(
         language="fr",
@@ -55,6 +58,7 @@ def view(
         journal_file=None,
         situation=situation,
         engineering=EMPTY_ENGINEERING,
+        station_market=station_market,
     )
     VALIDATOR.validate(built)
     return built
@@ -153,3 +157,14 @@ def test_a_route_off_its_list() -> None:
 def test_a_version_ready_in_the_view() -> None:
     assert view(Situation())["update"] is None
     assert view(Situation(), update=UpdateReady("0.7.1"))["update"] == {"version": "0.7.1"}
+
+
+def test_the_station_s_market_is_told_by_when_it_was_read() -> None:
+    # The Trade tab asks for the market itself when this changes (ADR 0047)
+    assert view(Situation())["stationMarket"] is None
+    read_at = datetime.fromisoformat("2026-10-20T20:00:00+02:00")
+    market = StationMarket(Market(1, "Amano Terminal", "Ngalinn"), read_at, ())
+    assert view(Situation(), station_market=market)["stationMarket"] == {
+        "station": "Amano Terminal",
+        "readAt": "2026-10-20T18:00:00+00:00",
+    }

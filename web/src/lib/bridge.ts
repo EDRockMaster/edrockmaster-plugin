@@ -10,7 +10,13 @@ import type { LiveView } from "./live-view";
 import type { MarketsAnswer, MarketsRequest } from "./markets";
 import type { CargoEstimateAnswer, HotspotRequest, HotspotsAnswer, MiningOptions } from "./mining";
 import type { Settings } from "./settings";
-import type { PricesAnswer, PricesRequest, TradeOptions } from "./trade";
+import type {
+  PricesAnswer,
+  PricesRequest,
+  StationMarketAnswer,
+  StationMarketRequest,
+  TradeOptions,
+} from "./trade";
 
 export interface CoreApi {
   ready(): Promise<void>;
@@ -52,6 +58,8 @@ export interface CoreApi {
   find_markets(request: MarketsRequest): Promise<MarketsAnswer>;
   /** A commodity's prices across the galaxy: asks Ardent Insight, or its answer of the day. */
   galaxy_prices(request: PricesRequest): Promise<PricesAnswer>;
+  /** The market of the station the commander is docked at, compared with the galaxy if asked. */
+  station_market(request: StationMarketRequest): Promise<StationMarketAnswer>;
   /** The Phone and tablet section (ADR 0055): what it shows. */
   phone(): Promise<Phone>;
   /** The local server on or off, on a port: what the section shows then. */

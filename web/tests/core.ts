@@ -6,7 +6,7 @@ import type { MarketOffer, MarketsAnswer } from "../src/lib/markets";
 import type { CargoEstimateAnswer, HotspotsAnswer, MiningOptions } from "../src/lib/mining";
 import type { Phone } from "../src/lib/phone";
 import type { Settings } from "../src/lib/settings";
-import type { PricesAnswer, TradeOptions } from "../src/lib/trade";
+import type { PricesAnswer, StationMarketAnswer, TradeOptions } from "../src/lib/trade";
 
 export const MINING_OPTIONS: MiningOptions = {
   commodities: [
@@ -70,6 +70,38 @@ export const PRICES: PricesAnswer = {
   buy: { lowest: 3800, average: 44779, highest: 59270 },
   sell: { lowest: 3799, average: 47791, highest: 282678 },
   computedAt: "2026-09-07T03:00:43+00:00",
+};
+
+export const STATION_MARKET: StationMarketAnswer = {
+  market: {
+    station: "Yamazaki Landing",
+    system: "Sol",
+    carrier: false,
+    readAt: "2026-10-12T08:00:00+00:00",
+    categories: [
+      {
+        category: "metals",
+        name: "Metals",
+        commodities: [
+          {
+            commodity: "gold",
+            name: "Gold",
+            rare: false,
+            buy: { price: 46000, stock: 1200, gap: null },
+            sell: { price: 45500, demand: 30, gap: null },
+          },
+          {
+            commodity: "silver",
+            name: "Silver",
+            rare: false,
+            buy: null,
+            sell: { price: 4700, demand: 900, gap: null },
+          },
+        ],
+      },
+    ],
+  },
+  comparison: null,
 };
 
 export const TRADE_OPTIONS: TradeOptions = {
@@ -287,6 +319,7 @@ export function fakeCore(): CoreApi {
     trade_options: vi.fn(async () => structuredClone(TRADE_OPTIONS)),
     find_markets: vi.fn(async () => structuredClone(MARKETS)),
     galaxy_prices: vi.fn(async () => structuredClone(PRICES)),
+    station_market: vi.fn(async () => ({ market: null, comparison: null })),
     phone: vi.fn(async () => structuredClone(PHONE_OFF)),
     set_phone: vi.fn(async (request: { enabled: boolean; port: number }) =>
       request.enabled ? { ...PHONE_ON, port: request.port } : { ...PHONE_OFF, port: request.port },

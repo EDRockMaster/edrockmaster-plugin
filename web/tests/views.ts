@@ -25,6 +25,7 @@ export function view(overrides: Partial<LiveView> = {}): LiveView {
     journal: { folder: "C:/Journal", file: "Journal.2026-10-08T014139.01.log" },
     situation: situation(),
     engineering: engineering(),
+    stationMarket: null,
     ...overrides,
   };
 }

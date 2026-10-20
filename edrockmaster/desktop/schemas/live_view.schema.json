@@ -14,7 +14,8 @@
     "update",
     "journal",
     "situation",
-    "engineering"
+    "engineering",
+    "stationMarket"
   ],
   "properties": {
     "version": {
@@ -95,6 +96,34 @@
     },
     "engineering": {
       "$ref": "#/$defs/engineering"
+    },
+    "stationMarket": {
+      "description": "The market of the station the commander is docked at, once opened (ADR 0047): the Trade tab asks for it (station_market) when this changes.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "station",
+            "readAt"
+          ],
+          "properties": {
+            "station": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "readAt": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        }
+      ]
     }
   },
   "$defs": {

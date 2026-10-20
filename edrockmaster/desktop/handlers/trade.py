@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from edrockmaster.application.community import Failed, Source, Unavailable
 from edrockmaster.application.market_search import MarketSearch
 from edrockmaster.desktop.handlers.context import CoreContext
 from edrockmaster.desktop.handlers.waiting import wait_for_sources
@@ -16,7 +17,12 @@ from edrockmaster.desktop.market_view import (
     refresh,
     text,
 )
-from edrockmaster.desktop.trade_view import options_view, prices_refused, prices_view
+from edrockmaster.desktop.trade_view import (
+    options_view,
+    prices_refused,
+    prices_view,
+    station_market_view,
+)
 from edrockmaster.domain.ships import needed_pad
 from edrockmaster.domain.trade.catalogue import CommodityCatalogue
 
@@ -70,4 +76,23 @@ class TradeHandler:
                 commodity, lambda answer: done(prices_view(answer)), refresh=refresh(request)
             ),
             lambda: prices_refused("down"),
+        )
+
+    def station_market(self, request: Mapping[str, Any]) -> dict[str, Any]:
+        """The market of the station the commander is docked at, once opened; with
+        ``compare``, each price's gap with the galaxy's average (one answer for all)."""
+        market = self._context.companion().trade.station_market
+        if market is None or request.get("compare") is not True:
+            return station_market_view(market, self._catalogue, None, self._context.tl)
+        return wait_for_sources(
+            self._context,
+            lambda done: self._markets.find_galaxy_prices(
+                lambda answer: done(
+                    station_market_view(market, self._catalogue, answer, self._context.tl)
+                ),
+                refresh=refresh(request),
+            ),
+            lambda: station_market_view(
+                market, self._catalogue, Failed(Source.ARDENT, Unavailable.DOWN), self._context.tl
+            ),
         )

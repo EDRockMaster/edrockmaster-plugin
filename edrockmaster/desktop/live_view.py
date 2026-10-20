@@ -14,6 +14,7 @@ from typing import Any
 from edrockmaster.application.updates import UpdateReady
 from edrockmaster.domain.situation.route import CurrentRoute, scoopable
 from edrockmaster.domain.situation.situation import Situation
+from edrockmaster.domain.trade.station_market import StationMarket
 from edrockmaster.ui.panel_model import ActivityBlock, LocalDataNotice, StatLine
 
 VERSION = 1
@@ -30,6 +31,7 @@ def live_view(  # noqa: PLR0913 - one argument per part of the view
     journal_file: Path | None,
     situation: Situation,
     engineering: dict[str, Any],
+    station_market: StationMarket | None,
 ) -> dict[str, Any]:
     return {
         "version": VERSION,
@@ -53,6 +55,12 @@ def live_view(  # noqa: PLR0913 - one argument per part of the view
         },
         "situation": _situation(situation),
         "engineering": engineering,
+        "stationMarket": None
+        if station_market is None
+        else {
+            "station": station_market.market.station,
+            "readAt": station_market.read_at.astimezone(UTC).isoformat(),
+        },
     }
 
 

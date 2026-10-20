@@ -5,7 +5,13 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from edrockmaster.domain.commodities import MarketOffer, MarketQuery, Side, select_offers
+from edrockmaster.domain.commodities import (
+    MarketOffer,
+    MarketQuery,
+    PriceRange,
+    Side,
+    select_offers,
+)
 from edrockmaster.domain.ships import PadSize
 
 NOW = datetime(2026, 10, 11, 12, 0, tzinfo=UTC)
@@ -82,3 +88,10 @@ def test_a_demand_or_stock_too_small_is_left_out() -> None:
     query = MarketQuery(Side.BUY, "gold", "Sol", min_volume=100)
     big = replace(OUTPOST, volume=100)
     assert select_offers([ORBIS, big], query, NOW) == (big,)
+
+
+def test_a_price_s_gap_with_the_galaxy_s_average() -> None:
+    gold = PriceRange(lowest=3800, average=40000, highest=59270)
+    assert gold.gap(47200) == 0.18
+    assert gold.gap(30000) == -0.25
+    assert PriceRange(0, 0, 0).gap(100) is None

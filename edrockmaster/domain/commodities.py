@@ -159,6 +159,12 @@ class PriceRange:
     average: int
     highest: int
 
+    def gap(self, price: int) -> float | None:
+        """How far a price is from the average, as a fraction: 0.18 is 18 % above it."""
+        if self.average <= 0:
+            return None
+        return (price - self.average) / self.average
+
 
 @dataclass(frozen=True, slots=True)
 class GalaxyPrices:

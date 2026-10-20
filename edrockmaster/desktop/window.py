@@ -136,6 +136,9 @@ class InterfaceApi:
     def galaxy_prices(self, request: dict[str, Any]) -> dict[str, Any]:
         return self._core.handlers.trade.galaxy_prices(request)
 
+    def station_market(self, request: dict[str, Any]) -> dict[str, Any]:
+        return self._core.handlers.trade.station_market(request)
+
     # The phone and tablet (ADR 0055): answered at once, the local server started or stopped
 
     def phone(self) -> dict[str, Any]:

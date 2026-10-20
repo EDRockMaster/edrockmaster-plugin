@@ -1,6 +1,7 @@
 """The galaxy's prices of a commodity (ADR 0047): one answer for every commodity, from which the
 search picks the one chosen."""
 
+from collections.abc import Mapping
 from datetime import UTC, datetime
 
 from edrockmaster.application.community import Answer, Failed, Found, Source, Unavailable
@@ -40,3 +41,11 @@ def test_a_commodity_the_source_does_not_know_has_no_prices() -> None:
 def test_a_failed_source_is_passed_on() -> None:
     markets = FakeMarkets({}, Failed(Source.ARDENT, Unavailable.OFF))
     assert prices_of(markets, "gold") == Failed(Source.ARDENT, Unavailable.OFF)
+
+
+def test_every_commodity_s_prices_at_once() -> None:
+    markets = FakeMarkets({}, Found({"gold": GOLD}, Source.ARDENT, NOW))
+    answers: list[Answer[Mapping[str, GalaxyPrices]]] = []
+    MarketSearch(markets, FixedClock(NOW)).find_galaxy_prices(answers.append, refresh=True)
+    assert answers == [Found({"gold": GOLD}, Source.ARDENT, NOW)]
+    assert markets.prices_asked == [True]

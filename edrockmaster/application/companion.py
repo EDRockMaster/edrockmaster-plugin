@@ -23,20 +23,19 @@ from edrockmaster.application.ports import (
 )
 from edrockmaster.application.settings import PluginSettings
 from edrockmaster.application.situation_service import SituationNotification, SituationService
-from edrockmaster.application.trade_service import TradeService
+from edrockmaster.application.trade_service import TradeService, TradeServiceNotification
 from edrockmaster.domain.combat.session import CombatNotification
 from edrockmaster.domain.combat.vouchers import VouchersUpdated
 from edrockmaster.domain.community_goals.goals import CommunityGoalsNotification
 from edrockmaster.domain.engineering.catalogue import Catalogue
 from edrockmaster.domain.engineering.events import EngineeringNotification
 from edrockmaster.domain.journal_reading import Entry, MalformedEntryError, timestamp
-from edrockmaster.domain.trade.session import TradeNotification
 
 type Notification = (
     MiningNotification
     | CombatNotification
     | VouchersUpdated
-    | TradeNotification
+    | TradeServiceNotification
     | EngineeringNotification
     | CommunityGoalsNotification
     | SituationNotification

@@ -24,6 +24,9 @@ follower adds the file's content to such a line, on the same terms.
 holds its systems. Two routes plotted 20 seconds apart leave the second in the
 file: the first line, read again at start, gets no list.
 
+``Market`` too (ADR 0047): the line says the player opened a station's commodity
+market, ``Market.json`` holds its commodities and prices, for that market only.
+
 The game writes whole lines, but a read can still fall in the middle of one: an
 incomplete line waits for the rest. A line that is not a journal entry is
 logged and skipped. The follower only reads; it never writes in the folder.
@@ -60,6 +63,7 @@ _HALF_WRITTEN = object()
 CARGO_FILE = "Cargo.json"
 SHIP_LOCKER_FILE = "ShipLocker.json"
 NAV_ROUTE_FILE = "NavRoute.json"
+MARKET_FILE = "Market.json"
 _LOCKER_SECTIONS = ("Items", "Components", "Consumables", "Data")
 FILE_RETRY_SECONDS = 0.05
 FILE_WAIT_SECONDS = 1.0
@@ -164,6 +168,13 @@ class JournalFollower:
             return self._from_file(entry, SHIP_LOCKER_FILE, _LOCKER_SECTIONS, lambda _data: True)
         if entry["event"] == "NavRoute" and "Route" not in entry:
             return self._from_file(entry, NAV_ROUTE_FILE, ("Route",), lambda _data: True)
+        if entry["event"] == "Market" and "Items" not in entry:
+            return self._from_file(
+                entry,
+                MARKET_FILE,
+                ("Items",),
+                lambda data: data.get("MarketID") == entry.get("MarketID"),
+            )
         return entry
 
     def _from_file(

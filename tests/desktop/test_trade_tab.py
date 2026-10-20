@@ -1,5 +1,6 @@
 """The Trade tab through the desktop core (ADR 0047): real threads and database, no network."""
 
+import json
 import time
 from collections.abc import Iterator
 from pathlib import Path
@@ -118,3 +119,54 @@ def test_prices_with_the_source_down(trade: Mining) -> None:
     trade.sources.down = True
     answer = trade.core.handlers.trade.galaxy_prices({"commodity": "gold"})
     assert (validate("trade", "PricesAnswer", answer)["status"], answer["buy"]) == ("down", None)
+
+
+def test_the_station_s_market_compared_with_the_galaxy(tmp_path: Path) -> None:
+    folder = tmp_path / "journal"
+    folder.mkdir()
+    started = Mining(tmp_path, folder)
+    started.core.start()
+    handler = started.core.handlers.trade
+    try:
+        assert (
+            validate("trade", "StationMarketAnswer", handler.station_market({"compare": True}))[
+                "market"
+            ]
+            is None
+        )
+        assert started.sources.requests == []  # no market: nothing to compare
+        stamp = {"MarketID": 1, "StationName": "Yamazaki Landing", "StarSystem": "Sol"}
+        gold = {"Name": "$gold_name;", "BuyPrice": 46000, "SellPrice": 45500, "Stock": 9}
+        (folder / "Market.json").write_text(
+            json.dumps(
+                {
+                    "timestamp": "2026-10-12T08:00:00Z",
+                    "event": "Market",
+                    **stamp,
+                    "Items": [{**gold, "Demand": 0}],
+                }
+            )
+        )
+        (folder / "Journal.2026-10-12T080000.01.log").write_text(
+            journal_line("Market", **stamp), newline=""
+        )
+        answer: dict[str, Any] = {}
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline:
+            answer = handler.station_market({"compare": False})
+            if answer["market"] is not None:
+                break
+            time.sleep(0.05)
+        assert validate("trade", "StationMarketAnswer", answer)["comparison"] is None
+        compared = validate(
+            "trade", "StationMarketAnswer", handler.station_market({"compare": True})
+        )
+    finally:
+        started.core.stop()
+    assert compared["comparison"]["status"] == "found"
+    [metals] = compared["market"]["categories"]
+    assert metals["commodities"][0]["name"] == "Or"
+    # 46,000 CR asked, against an average of 44,779 CR
+    assert round(metals["commodities"][0]["buy"]["gap"], 3) == 0.027
+    [request] = started.sources.requests
+    assert request.full_url.endswith("/commodities")

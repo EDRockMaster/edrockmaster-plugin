@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://edrm.space/schemas/desktop/trade.schema.json",
   "title": "TradeTab",
-  "description": "The Trade tab (ADR 0047): trade_options() returns TradeOptions; galaxy_prices(PricesRequest) returns PricesAnswer; where to buy and sell is find_markets (markets.schema.json). Names in the player's language.",
+  "description": "The Trade tab (ADR 0047): trade_options() returns TradeOptions; galaxy_prices(PricesRequest) returns PricesAnswer; station_market(StationMarketRequest) returns StationMarketAnswer; where to buy and sell is find_markets (markets.schema.json). Names in the player's language.",
   "type": "object",
   "properties": {
     "TradeOptions": {
@@ -13,6 +13,12 @@
     },
     "PricesAnswer": {
       "$ref": "#/$defs/PricesAnswer"
+    },
+    "StationMarketRequest": {
+      "$ref": "#/$defs/StationMarketRequest"
+    },
+    "StationMarketAnswer": {
+      "$ref": "#/$defs/StationMarketAnswer"
     }
   },
   "$defs": {
@@ -233,6 +239,250 @@
         },
         "highest": {
           "type": "integer"
+        }
+      }
+    },
+    "StationMarketRequest": {
+      "title": "StationMarketRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "compare"
+      ],
+      "properties": {
+        "compare": {
+          "type": "boolean",
+          "description": "Compare each price with the galaxy's average: asks Ardent Insight (one answer for every commodity, kept a day)."
+        },
+        "refresh": {
+          "type": "boolean"
+        }
+      }
+    },
+    "StationMarketAnswer": {
+      "title": "StationMarketAnswer",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "market",
+        "comparison"
+      ],
+      "properties": {
+        "market": {
+          "description": "null until the commander, docked, opens the station's commodity market; and again once they leave.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/StationMarket"
+            }
+          ]
+        },
+        "comparison": {
+          "description": "null when not asked: no comparison.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "source",
+                "readAt",
+                "unavailable"
+              ],
+              "properties": {
+                "status": {
+                  "enum": [
+                    "found",
+                    "off",
+                    "busy",
+                    "down",
+                    "invalid"
+                  ],
+                  "description": "found: the source answered (now or from the cache); off, busy, down: it gave nothing (ADR 0039); invalid: the request was refused."
+                },
+                "source": {
+                  "enum": [
+                    "spansh",
+                    "ardent",
+                    null
+                  ],
+                  "description": "The source that answered, or would have."
+                },
+                "readAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "description": "When the source was read (UTC): now, or when the cached answer was."
+                },
+                "unavailable": {
+                  "enum": [
+                    "off",
+                    "busy",
+                    "down",
+                    null
+                  ],
+                  "description": "Set when the source failed and the cache answered."
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "StationMarket": {
+      "title": "StationMarket",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "station",
+        "system",
+        "carrier",
+        "readAt",
+        "categories"
+      ],
+      "properties": {
+        "station": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "system": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "carrier": {
+          "type": "boolean"
+        },
+        "readAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the player opened the market (UTC)."
+        },
+        "categories": {
+          "type": "array",
+          "description": "The categories in the game's order, each with the commodities the station sells or buys, by name.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "category",
+              "name",
+              "commodities"
+            ],
+            "properties": {
+              "category": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "commodities": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/StationMarketLine"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "StationMarketLine": {
+      "title": "StationMarketLine",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "commodity",
+        "name",
+        "rare",
+        "buy",
+        "sell"
+      ],
+      "properties": {
+        "commodity": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "rare": {
+          "type": "boolean"
+        },
+        "buy": {
+          "description": "What the station sells: null without a stock.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "price",
+                "stock",
+                "gap"
+              ],
+              "properties": {
+                "price": {
+                  "type": "integer",
+                  "description": "Credits per tonne the station asks."
+                },
+                "stock": {
+                  "type": "integer"
+                },
+                "gap": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "The price's gap with the galaxy's average, as a fraction (0.18: 18 % above); null until compared, or without an average."
+                }
+              }
+            }
+          ]
+        },
+        "sell": {
+          "description": "What the station buys: null without a demand.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "price",
+                "demand",
+                "gap"
+              ],
+              "properties": {
+                "price": {
+                  "type": "integer",
+                  "description": "Credits per tonne the station pays."
+                },
+                "demand": {
+                  "type": "integer"
+                },
+                "gap": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "The price's gap with the galaxy's average, as a fraction (0.18: 18 % above); null until compared, or without an average."
+                }
+              }
+            }
+          ]
         }
       }
     }
