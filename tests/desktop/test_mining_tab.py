@@ -11,21 +11,17 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import jsonschema
 import pytest
 
 from edrockmaster.desktop.core import DesktopCore
+from tests.desktop.schemas import validate
 from tests.fakes import FixedClock
 from tests.infrastructure.sources.test_http import FakeResponse
 
-SCHEMA = json.loads(
-    (
-        Path(__file__).resolve().parents[2] / "edrockmaster/desktop/schemas/mining.schema.json"
-    ).read_text(encoding="utf-8")
-)
 SOURCES = Path(__file__).resolve().parents[1] / "fixtures" / "sources"
 SPANSH = json.loads((SOURCES / "spansh-bodies-search-painite-borann-2026-10-11.json").read_text())
 ARDENT = json.loads((SOURCES / "ardent-nearby-imports-painite-borann-2026-10-11.json").read_text())
+EXPORTS = json.loads((SOURCES / "ardent-nearby-exports-gold-sol-2026-10-20.json").read_text())
 NOW = datetime(2026, 10, 12, 9, 0, tzinfo=UTC)
 logger = logging.getLogger("test.mining_tab")
 
@@ -38,22 +34,25 @@ HOTSPOTS = {
     "page": 0,
 }
 BUYERS = {
+    "side": "sell",
     "commodity": "painite",
     "system": "Borann",
     "maxDistance": 50,
     "pad": "large",
     "carriers": False,
+    "minVolume": 1,
 }
 
 
 def valid(definition: str, view: dict[str, Any]) -> dict[str, Any]:
-    schema = {**SCHEMA, "$ref": f"#/$defs/{definition}"}
-    jsonschema.Draft202012Validator(schema).validate(view)
-    return view
+    schema = "markets" if definition == "MarketsAnswer" else "mining"
+    result: dict[str, Any] = validate(schema, definition, view)
+    return result
 
 
 class Sources:
-    """Spansh and Ardent as recorded; ``down`` makes them unreachable."""
+    """Spansh and Ardent (importers and exporters) as recorded; ``down`` makes them
+    unreachable."""
 
     def __init__(self) -> None:
         self.requests: list[urllib.request.Request] = []
@@ -66,7 +65,8 @@ class Sources:
             self.hold.wait(5)
         if self.down:
             raise urllib.error.URLError("no network")
-        answer = SPANSH if "spansh" in request.full_url else ARDENT
+        url = request.full_url
+        answer = SPANSH if "spansh" in url else EXPORTS if "/nearby/exports" in url else ARDENT
         return FakeResponse(json.dumps(answer).encode())
 
 
@@ -125,7 +125,7 @@ def test_where_to_mine(mining: Mining) -> None:
 
 
 def test_where_to_sell(mining: Mining) -> None:
-    answer = valid("BuyersAnswer", mining.core.handlers.mining.find_buyers(BUYERS))
+    answer = valid("MarketsAnswer", mining.core.handlers.trade.find_markets(BUYERS))
     assert answer["status"] == "found"
     assert [offer["station"] for offer in answer["offers"]] == [
         "Borisenko's Folly",
@@ -142,22 +142,26 @@ def test_where_to_sell(mining: Mining) -> None:
         ("find_hotspots", {**HOTSPOTS, "commodity": "gold"}),
         ("find_hotspots", {**HOTSPOTS, "reserves": ["bottomless"]}),
         ("find_hotspots", {**HOTSPOTS, "page": -1}),
-        ("find_buyers", {**BUYERS, "pad": "huge"}),
-        ("find_buyers", {**BUYERS, "carriers": "no"}),
-        ("find_buyers", {**BUYERS, "maxDistance": 900}),
+        ("find_markets", {**BUYERS, "pad": "huge"}),
+        ("find_markets", {**BUYERS, "carriers": "no"}),
+        ("find_markets", {**BUYERS, "maxDistance": 900}),
+        ("find_markets", {**BUYERS, "side": "steal"}),
+        ("find_markets", {**BUYERS, "minVolume": 0}),
+        ("find_markets", {**BUYERS, "minVolume": 1.5}),
     ],
 )
 def test_a_form_the_core_refuses_asks_nothing(
     mining: Mining, call: str, request_: dict[str, Any]
 ) -> None:
-    answer = getattr(mining.core.handlers.mining, call)(request_)
+    handlers = mining.core.handlers
+    answer = getattr(handlers.trade if call == "find_markets" else handlers.mining, call)(request_)
     assert answer["status"] == "invalid"
     assert mining.sources.requests == []
 
 
 def test_a_source_down_and_a_source_turned_off(mining: Mining) -> None:
     mining.sources.down = True
-    assert mining.core.handlers.mining.find_buyers(BUYERS)["status"] == "down"
+    assert mining.core.handlers.trade.find_markets(BUYERS)["status"] == "down"
     mining.sources.down = False
     mining.core.handlers.mining.find_hotspots(HOTSPOTS)
     settings = mining.core.handlers.settings.settings()

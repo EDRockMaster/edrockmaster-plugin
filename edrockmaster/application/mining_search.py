@@ -1,8 +1,8 @@
-"""Where to mine and where to sell (ADR 0040), on the community sources (ADR 0039).
+"""Where to mine, and what the mining cargo is worth (ADR 0040), on the community sources
+(ADR 0039). Where to sell is the market search's (``market_search.py``), shared with the
+Trade tab.
 
 The sources are asked only when the player searches or asks for an estimate.
-Their offers are filtered by the domain (``select_offers``), so that what the
-player sees does not depend on the source that answered.
 """
 
 from __future__ import annotations
@@ -10,25 +10,18 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 
 from edrockmaster.application.community import Answer, Failed, Found
-from edrockmaster.application.ports import Clock, CommodityMarkets, GalaxyCatalogue
+from edrockmaster.application.market_search import MarketSearch, Offers
+from edrockmaster.application.ports import GalaxyCatalogue
+from edrockmaster.domain.commodities import MarketQuery, Side
 from edrockmaster.domain.mining.hotspots import HotspotPage, HotspotQuery
-from edrockmaster.domain.mining.markets import (
-    CargoEstimate,
-    CargoLine,
-    MarketOffer,
-    SaleQuery,
-    select_offers,
-)
+from edrockmaster.domain.mining.markets import CargoEstimate, CargoLine
 from edrockmaster.domain.ships import PadSize
-
-type Offers = tuple[MarketOffer, ...]
 
 
 class MiningSearch:
-    def __init__(self, catalogue: GalaxyCatalogue, markets: CommodityMarkets, clock: Clock) -> None:
+    def __init__(self, catalogue: GalaxyCatalogue, markets: MarketSearch) -> None:
         self._catalogue = catalogue
         self._markets = markets
-        self._clock = clock
 
     def find_hotspots(
         self,
@@ -38,23 +31,6 @@ class MiningSearch:
         refresh: bool = False,
     ) -> None:
         self._catalogue.find_hotspots(query, on_answer, refresh=refresh)
-
-    def find_buyers(
-        self,
-        query: SaleQuery,
-        on_answer: Callable[[Answer[Offers]], None],
-        *,
-        refresh: bool = False,
-    ) -> None:
-        """The markets the query accepts, the best price first."""
-
-        def selected(answer: Answer[Offers]) -> None:
-            if isinstance(answer, Found):
-                offers = select_offers(answer.value, query, self._clock.now())
-                answer = Found(offers, answer.source, answer.read_at, answer.unavailable)
-            on_answer(answer)
-
-        self._markets.find_buyers(query, selected, refresh=refresh)
 
     def estimate_cargo(
         self,
@@ -83,8 +59,9 @@ class MiningSearch:
             return collected
 
         for commodity in tons:
-            self.find_buyers(
-                SaleQuery(commodity, reference, needed_pad=needed_pad), collect(commodity)
+            self._markets.find_offers(
+                MarketQuery(Side.SELL, commodity, reference, needed_pad=needed_pad),
+                collect(commodity),
             )
 
 

@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://edrm.space/schemas/desktop/markets.schema.json",
+  "title": "Markets",
+  "description": "Where to buy and where to sell a commodity, for the Mining and Trade tabs (ADR 0040, ADR 0047): find_markets(MarketsRequest) returns MarketsAnswer.",
+  "type": "object",
+  "properties": {
+    "MarketsRequest": {
+      "$ref": "#/$defs/MarketsRequest"
+    },
+    "MarketsAnswer": {
+      "$ref": "#/$defs/MarketsAnswer"
+    }
+  },
+  "$defs": {
+    "MarketsRequest": {
+      "title": "MarketsRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "side",
+        "commodity",
+        "system",
+        "maxDistance",
+        "pad",
+        "carriers",
+        "minVolume"
+      ],
+      "properties": {
+        "side": {
+          "enum": [
+            "buy",
+            "sell"
+          ],
+          "description": "buy: the markets that sell the commodity; sell: those that buy it."
+        },
+        "commodity": {
+          "type": "string"
+        },
+        "system": {
+          "type": "string"
+        },
+        "maxDistance": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 500
+        },
+        "pad": {
+          "enum": [
+            "small",
+            "medium",
+            "large",
+            null
+          ],
+          "description": "The pad the ship needs; null: any market."
+        },
+        "carriers": {
+          "type": "boolean"
+        },
+        "refresh": {
+          "type": "boolean"
+        },
+        "minVolume": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The least stock (buy) or demand (sell), in tonnes."
+        }
+      }
+    },
+    "MarketsAnswer": {
+      "title": "MarketsAnswer",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "source",
+        "readAt",
+        "unavailable",
+        "offers"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "found",
+            "off",
+            "busy",
+            "down",
+            "invalid"
+          ],
+          "description": "found: the source answered (now or from the cache); off, busy, down: it gave nothing (ADR 0039); invalid: the form was refused."
+        },
+        "source": {
+          "enum": [
+            "spansh",
+            "ardent",
+            null
+          ],
+          "description": "The source that answered, or would have."
+        },
+        "readAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "When the source was read (UTC): now, or when the cached answer was."
+        },
+        "unavailable": {
+          "enum": [
+            "off",
+            "busy",
+            "down",
+            null
+          ],
+          "description": "Set when the source failed and the cache answered, or when part of an estimate could not be priced."
+        },
+        "offers": {
+          "type": "array",
+          "description": "Best price first: the highest a market pays, or the lowest it asks.",
+          "items": {
+            "$ref": "#/$defs/MarketOffer"
+          }
+        }
+      }
+    },
+    "MarketOffer": {
+      "title": "MarketOffer",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "station",
+        "system",
+        "stationType",
+        "pad",
+        "arrival",
+        "price",
+        "volume",
+        "distance",
+        "updated",
+        "carrier"
+      ],
+      "properties": {
+        "station": {
+          "type": "string"
+        },
+        "system": {
+          "type": "string"
+        },
+        "stationType": {
+          "type": "string",
+          "description": "As the source names it: Coriolis, Orbis, Outpost, FleetCarrier…"
+        },
+        "pad": {
+          "enum": [
+            "small",
+            "medium",
+            "large",
+            null
+          ],
+          "description": "The largest landing pad; null when the source does not say."
+        },
+        "arrival": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Light seconds from the arrival point."
+        },
+        "price": {
+          "type": "integer",
+          "description": "Credits per tonne: what the market pays (sell), or asks (buy)."
+        },
+        "volume": {
+          "type": "integer",
+          "description": "Tonnes: the market's demand (sell), or its stock (buy)."
+        },
+        "distance": {
+          "type": "number",
+          "description": "Light years from the reference system."
+        },
+        "updated": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the source last saw the price (UTC)."
+        },
+        "carrier": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

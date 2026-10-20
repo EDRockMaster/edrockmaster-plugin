@@ -1,0 +1,115 @@
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import TradeView from "../src/components/TradeView.svelte";
+import type { CoreApi } from "../src/lib/bridge";
+import { filterCatalogue, folded } from "../src/lib/trade-catalogue";
+import { fakeCore, MARKETS, TRADE_OPTIONS } from "./core";
+
+function withCore(): CoreApi {
+  const api = fakeCore();
+  window.pywebview = { api };
+  return api;
+}
+
+afterEach(() => {
+  delete window.pywebview;
+});
+
+describe("the trade catalogue", () => {
+  it("finds a name whatever its case and accents", () => {
+    expect(folded("Éther Liquide")).toBe("ether liquide");
+    expect(folded("Œufs coriaces")).toBe("oeufs coriaces");
+    const found = filterCatalogue(TRADE_OPTIONS.categories, " GOLD ");
+    expect(found.map((category) => category.category)).toEqual(["metals"]);
+    expect(found[0]?.commodities.map((row) => row.commodity)).toEqual([
+      "gold",
+      "sothiscrystallinegold",
+    ]);
+  });
+
+  it("looks the start of the words up, not their middle", () => {
+    const found = filterCatalogue(TRADE_OPTIONS.categories, "crys");
+    expect(found[0]?.commodities.map((row) => row.commodity)).toEqual(["sothiscrystallinegold"]);
+    expect(filterCatalogue(TRADE_OPTIONS.categories, "old")).toEqual([]);
+  });
+
+  it("finds a commodity by its key, and keeps everything for no text", () => {
+    expect(filterCatalogue(TRADE_OPTIONS.categories, "hydrogenfuel")[0]?.commodities).toHaveLength(
+      1,
+    );
+    expect(filterCatalogue(TRADE_OPTIONS.categories, "")).toEqual(TRADE_OPTIONS.categories);
+    expect(filterCatalogue(TRADE_OPTIONS.categories, "unobtainium")).toEqual([]);
+  });
+});
+
+describe("TradeView", () => {
+  async function opened(): Promise<CoreApi> {
+    const api = withCore();
+    render(TradeView, { language: "en" });
+    await screen.findByText("Metals");
+    return api;
+  }
+
+  it("lists the categories folded, and asks nothing yet", async () => {
+    const api = await opened();
+    const metals = screen.getByText("Metals").closest("details");
+    expect(metals).not.toHaveAttribute("open");
+    expect(within(metals as HTMLElement).getByText("rare")).toBeInTheDocument();
+    expect(screen.getByText(/Choose a commodity/)).toBeInTheDocument();
+    expect(api.find_markets).not.toHaveBeenCalled();
+  });
+
+  it("filters the commodities, opening the categories found", async () => {
+    await opened();
+    await fireEvent.input(screen.getByLabelText("Find a commodity"), {
+      target: { value: "water" },
+    });
+    expect(screen.queryByText("Metals")).not.toBeInTheDocument();
+    expect(screen.getByText("Chemicals").closest("details")).toHaveAttribute("open");
+    await fireEvent.input(screen.getByLabelText("Find a commodity"), {
+      target: { value: "unobtainium" },
+    });
+    expect(screen.getByText("No commodity by this name.")).toBeInTheDocument();
+  });
+
+  it("finds where to buy a commodity, a cargo hold's worth at least", async () => {
+    const api = await opened();
+    await fireEvent.click(screen.getByRole("button", { name: "Gold" }));
+    expect(screen.getByRole("button", { name: "Gold" })).toHaveAttribute("aria-pressed", "true");
+    const buy = screen.getByRole("region", { name: "Where to buy Gold" });
+    expect(within(buy).getByLabelText("Around the system")).toHaveValue("Sol");
+    expect(within(buy).getByLabelText("Stock, at least (t)")).toHaveValue(720);
+    await fireEvent.click(within(buy).getByRole("button", { name: "Search" }));
+    await within(buy).findByText("Borisenko's Folly");
+    expect(api.find_markets).toHaveBeenCalledWith({
+      side: "buy",
+      commodity: "gold",
+      system: "Sol",
+      maxDistance: 50,
+      pad: "large",
+      carriers: false,
+      minVolume: 720,
+      refresh: false,
+    });
+    expect(within(buy).getByText("Price asked")).toBeInTheDocument();
+    expect(within(buy).getByText("95")).toHaveAttribute("data-label", "Stock");
+  });
+
+  it("finds where to sell, and forgets the markets of the last commodity", async () => {
+    const api = await opened();
+    vi.mocked(api.find_markets).mockResolvedValueOnce({ ...MARKETS, offers: [] });
+    await fireEvent.click(screen.getByRole("button", { name: "Gold" }));
+    const sell = screen.getByRole("region", { name: "Where to sell Gold" });
+    await fireEvent.input(within(sell).getByLabelText("Demand, at least (t)"), {
+      target: { value: "10" },
+    });
+    await fireEvent.click(within(sell).getByRole("button", { name: "Search" }));
+    await within(sell).findByText(/No market buys it/);
+    expect(api.find_markets).toHaveBeenCalledWith(
+      expect.objectContaining({ side: "sell", minVolume: 10 }),
+    );
+    await fireEvent.click(screen.getByRole("button", { name: "Water" }));
+    await waitFor(() => expect(screen.queryByText(/No market buys it/)).not.toBeInTheDocument());
+    expect(screen.getByRole("region", { name: "Where to sell Water" })).toBeInTheDocument();
+  });
+});

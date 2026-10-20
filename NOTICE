@@ -25,5 +25,10 @@ deduced from rules read in game, or read from public sources, which it names).
 and from data/engineers.toml: where each engineer is and how to unlock them, written by the
 project in its own words from the game and from public sources, which each entry names.
 
+edrockmaster/domain/trade/commodities.json holds game data of Elite Dangerous too: the
+commodities the game trades, their categories and English names, written by
+scripts/import_commodities.py from EDCD/FDevIDs' commodity.csv and rare_commodity.csv at the
+commit it records. Same owner and terms as above.
+
 Elite Dangerous is a trademark of Frontier Developments plc. EDRockMaster is not endorsed by
 or affiliated with Frontier Developments plc.

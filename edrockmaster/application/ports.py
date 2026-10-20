@@ -11,11 +11,11 @@ from edrockmaster.application.community import Answer
 from edrockmaster.application.settings import PluginSettings
 from edrockmaster.application.updates import UpdateChannel
 from edrockmaster.domain.combat.vouchers import CommanderKey, VoucherLedger
+from edrockmaster.domain.commodities import MarketOffer, MarketQuery
 from edrockmaster.domain.engineering.goals import Goal, GoalId
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.mining.hotspots import HotspotPage, HotspotQuery
 from edrockmaster.domain.mining.limpets import LimpetAlertRaised
-from edrockmaster.domain.mining.markets import MarketOffer, SaleQuery
 from edrockmaster.domain.mining.prospecting import ProspectorAlertRaised
 from edrockmaster.domain.situation.route import RouteAlertRaised
 
@@ -89,16 +89,18 @@ class GalaxyCatalogue(Protocol):
 
 
 class CommodityMarkets(Protocol):
-    """Markets as a community source knows them (ADR 0039, ADR 0040); does not block."""
+    """Markets as a community source knows them (ADR 0039, ADR 0040, ADR 0047); does not
+    block."""
 
-    def find_buyers(
+    def find_offers(
         self,
-        query: SaleQuery,
+        query: MarketQuery,
         on_answer: Callable[[Answer[tuple[MarketOffer, ...]]], None],
         *,
         refresh: bool = False,
     ) -> None:
-        """Markets that buy the commodity around the system, as the source gives them."""
+        """Markets that buy (``Side.SELL``) or sell (``Side.BUY``) the commodity around the
+        system, as the source gives them."""
         ...
 
 

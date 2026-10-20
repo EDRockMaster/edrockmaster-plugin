@@ -140,6 +140,23 @@ def test_a_ship_bought_or_swapped_keeps_its_name_in_the_game_s_language() -> Non
     assert situation.ship == Ship("pantherMkII", "Panther Clipper Mk II", "Clip")
 
 
+def test_the_loadout_gives_the_cargo_capacity() -> None:
+    loadout = {"event": "Loadout", "Ship": "type9", "ShipName": "", "CargoCapacity": 720}
+    situation = situation_after(LOAD_GAME, loadout)
+    assert situation.ship is not None
+    assert situation.ship.cargo_capacity == 720
+    # A ship swapped is not known until its Loadout
+    swapped = {"event": "ShipyardSwap", "ShipType": "mamba", "ShipType_Localised": "Mamba"}
+    swapped_ship = situation_after(LOAD_GAME, loadout, swapped).ship
+    assert swapped_ship is not None
+    assert swapped_ship.cargo_capacity is None
+    # Renamed, it keeps its capacity
+    renamed = {"event": "SetUserShipName", "UserShipName": "Nova", "UserShipId": "NV-1"}
+    renamed_ship = situation_after(LOAD_GAME, loadout, renamed).ship
+    assert renamed_ship is not None
+    assert renamed_ship.cargo_capacity == 720
+
+
 def test_renaming_the_ship() -> None:
     renamed = {"event": "SetUserShipName", "UserShipName": "Nova", "UserShipId": "NV-1"}
     assert situation_after(renamed).ship is None  # no ship known yet

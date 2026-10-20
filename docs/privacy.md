@@ -2,11 +2,11 @@
 
 *English · [Français](privacy.fr.md)*
 
-Last updated: 19 October 2026. Applies to the EDRockMaster Companion desktop application and to the EDRockMaster plugin for EDMarketConnector, published by DamScan, a personal and non-commercial project.
+Last updated: 20 October 2026. Applies to the EDRockMaster Companion desktop application and to the EDRockMaster plugin for EDMarketConnector, published by DamScan, a personal and non-commercial project.
 
 ## In short
 
-EDRockMaster reads the journal that Elite Dangerous writes on your computer, computes your session statistics **on your computer**, and **sends nothing to us**: EDRockMaster has no server. There is no account, no analytics, no advertising, no tracking. Only when you search the *Mining* tab, or estimate your cargo, does it ask community tools on the internet for what the journal does not tell (below).
+EDRockMaster reads the journal that Elite Dangerous writes on your computer, computes your session statistics **on your computer**, and **sends nothing to us**: EDRockMaster has no server. There is no account, no analytics, no advertising, no tracking. Only when you search the *Mining* or *Trade* tab, or estimate your cargo, does it ask community tools on the internet for what the journal does not tell (below).
 
 ## What the application reads
 
@@ -39,10 +39,10 @@ Apart from your unredeemed vouchers, your session statistics and your situation 
 
 **To your phone or tablet, only if you turn it on.** *Settings*, *Phone and tablet* (off by default) lets a phone or a tablet of your home network open the application in its browser, by its QR code. The application then listens on your local network, on one port (47800 by default), and serves the devices that have the link everything the window shows, and lets them change it; nothing goes through the internet, and nothing reaches us. The link holds a random key; anyone on your network who has it sees and changes what the window does. It travels unencrypted on your network (no HTTPS for a local address): leave it off on a public network. Turned off, the application listens on nothing; *Use a new link* shuts out the devices already connected.
 
-**Your searches, to community tools, and only when you make them.** The *Mining* tab and the *Estimate the cargo* button ask two independent community tools for what the journal does not tell:
+**Your searches, to community tools, and only when you make them.** The *Mining* and *Trade* tabs and the *Estimate the cargo* button ask two independent community tools for what the journal does not tell:
 
 - **Spansh** (`spansh.co.uk`), for the rings and their hotspots around a system: it receives the commodity, the system's name and your filters;
-- **Ardent Insight** (`ardent-insight.com`), for the markets that buy a commodity: it receives the commodity, the system's name and the distance; for an estimate, one request per commodity of your mining cargo, around your current system.
+- **Ardent Insight** (`ardent-insight.com`), for the markets that buy or sell a commodity: it receives the commodity, the system's name, the distance and the least demand or stock you set (the *Trade* tab fills it with your ship's cargo capacity); for an estimate, one request per commodity of your mining cargo, around your current system.
 
 Nothing else is sent: not your commander's name, nor your statistics. As with any web site, they see your computer's IP address and the time. They are hobby projects run by other players, under no privacy policy of theirs that we know of. Each can be turned off in *Settings*, *Community sources*; turned off, it is never asked, and what it answered is forgotten.
 
@@ -50,7 +50,7 @@ Nothing else is sent: not your commander's name, nor your statistics. As with an
 
 - **GitHub**: publishes the application and its updates, under [GitHub's privacy statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement); asked by the update check, as said above.
 - **Microsoft Edge WebView2**: the component of Windows that draws the application's window; it runs on your computer.
-- **Game data**: the list of materials, blueprints and engineers comes from community data (EDCD) shipped inside the application; nothing is downloaded.
+- **Game data**: the list of materials, blueprints, engineers and commodities comes from community data (EDCD) shipped inside the application; nothing is downloaded.
 - **Spansh** and **Ardent Insight**: asked only when you search, as said above; turned off in *Settings*.
 
 ## Your choices

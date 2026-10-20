@@ -6,6 +6,14 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
+### Added
+
+- **A Trade tab** (design decision ADR 0047): every commodity of the game, by category (chemicals, metals, minerals…, the rare goods marked), and a field to find one by name. Choose one: *Where to buy* and *Where to sell* search the markets around your current system (Ardent Insight, as the Mining tab does), the best price first, with your ship's landing pad and, as the least stock or demand, its cargo capacity; all can be changed before searching. Next to come in this tab: the galaxy's price range, the station's market, your cargo to sell, trade routes.
+
+### Changed
+
+- The Mining tab's *Where to sell* is now the same search as the Trade tab's, and lets you set a least demand.
+
 ### Fixed
 
 - **The screens fit a phone** (design decision ADR 0055): on a phone (an iPhone 12 at 390 pixels wide), the *Engineering* tab went past the screen (the *Module* list as wide as its longest choice, the engineers' list), and the *Mining* tab's results (six columns) too. Lists and fields never go wider than the screen, the cards use its whole width, and on a narrow screen each result of a table shows as a block, each value under its column's name. Checked down to 320 pixels.

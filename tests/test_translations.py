@@ -4,7 +4,9 @@ import ast
 import re
 from pathlib import Path
 
+from edrockmaster.domain.trade.catalogue import CommodityCategory
 from edrockmaster.infrastructure.catalogue_file import load_catalogue
+from edrockmaster.infrastructure.commodity_catalogue_file import load_commodities
 from edrockmaster.ui import (
     combat_presenter,
     engineering_presenter,
@@ -67,6 +69,9 @@ def source_strings() -> set[str]:
         item.english_name for item in catalogue.on_foot_items.values() if item.kind == "suit"
     }
     strings |= {mod.english_name for mod in catalogue.on_foot_modifications.values()}
+    # The commodities the game trades and their categories (ADR 0047)
+    strings |= {commodity.name for commodity in load_commodities().commodities}
+    strings |= {category.value for category in CommodityCategory}
     # Where the engineers are and how to unlock them (ADR 0031); systems and bases keep their name
     for sheet in catalogue.engineer_details.values():
         strings |= {text for text in (sheet.invitation, sheet.unlock, sheet.referral) if text}

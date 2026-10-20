@@ -2,15 +2,11 @@ import { vi } from "vitest";
 import type { CoreApi } from "../src/lib/bridge";
 import { FIRST_LAYOUT } from "../src/lib/cards";
 import type { GoalCatalogue } from "../src/lib/goal-catalogue";
-import type {
-  BuyersAnswer,
-  CargoEstimateAnswer,
-  HotspotsAnswer,
-  MarketOffer,
-  MiningOptions,
-} from "../src/lib/mining";
+import type { MarketOffer, MarketsAnswer } from "../src/lib/markets";
+import type { CargoEstimateAnswer, HotspotsAnswer, MiningOptions } from "../src/lib/mining";
 import type { Phone } from "../src/lib/phone";
 import type { Settings } from "../src/lib/settings";
+import type { TradeOptions } from "../src/lib/trade";
 
 export const MINING_OPTIONS: MiningOptions = {
   commodities: [
@@ -52,18 +48,43 @@ export const OFFER: MarketOffer = {
   pad: "large",
   arrival: 83.9,
   price: 91254,
-  demand: 95,
+  volume: 95,
   distance: 20,
   updated: "2026-10-11T10:11:18+00:00",
   carrier: false,
 };
 
-export const BUYERS: BuyersAnswer = {
+export const MARKETS: MarketsAnswer = {
   status: "found",
   source: "ardent",
   readAt: "2026-10-12T08:00:00+00:00",
   unavailable: null,
   offers: [OFFER],
+};
+
+export const TRADE_OPTIONS: TradeOptions = {
+  categories: [
+    {
+      category: "chemicals",
+      name: "Chemicals",
+      commodities: [
+        { commodity: "hydrogenfuel", name: "Hydrogen Fuel", rare: false },
+        { commodity: "water", name: "Water", rare: false },
+      ],
+    },
+    {
+      category: "metals",
+      name: "Metals",
+      commodities: [
+        { commodity: "gold", name: "Gold", rare: false },
+        { commodity: "sothiscrystallinegold", name: "Sothis Crystalline Gold", rare: true },
+      ],
+    },
+  ],
+  system: "Sol",
+  pad: "large",
+  cargoCapacity: 720,
+  sources: { ardent: true },
 };
 
 export const ESTIMATE: CargoEstimateAnswer = {
@@ -252,8 +273,9 @@ export function fakeCore(): CoreApi {
     save_layout: vi.fn(async () => {}),
     mining_options: vi.fn(async () => structuredClone(MINING_OPTIONS)),
     find_hotspots: vi.fn(async () => structuredClone(HOTSPOTS)),
-    find_buyers: vi.fn(async () => structuredClone(BUYERS)),
     estimate_cargo: vi.fn(async () => structuredClone(ESTIMATE)),
+    trade_options: vi.fn(async () => structuredClone(TRADE_OPTIONS)),
+    find_markets: vi.fn(async () => structuredClone(MARKETS)),
     phone: vi.fn(async () => structuredClone(PHONE_OFF)),
     set_phone: vi.fn(async (request: { enabled: boolean; port: number }) =>
       request.enabled ? { ...PHONE_ON, port: request.port } : { ...PHONE_OFF, port: request.port },

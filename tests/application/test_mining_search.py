@@ -1,4 +1,5 @@
-"""Where to mine and where to sell (ADR 0040), with sources that answer at once."""
+"""Where to mine, where to buy and sell, and the cargo's worth (ADR 0040, ADR 0047), with
+sources that answer at once."""
 
 from collections.abc import Callable
 from dataclasses import replace
@@ -7,9 +8,11 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from edrockmaster.application.community import Answer, Failed, Found, Source, Unavailable
+from edrockmaster.application.market_search import MarketSearch
 from edrockmaster.application.mining_search import MiningSearch
+from edrockmaster.domain.commodities import MarketOffer, MarketQuery, Side
 from edrockmaster.domain.mining.hotspots import HotspotPage, HotspotQuery, hotspot_commodity
-from edrockmaster.domain.mining.markets import CargoEstimate, CargoLine, MarketOffer, SaleQuery
+from edrockmaster.domain.mining.markets import CargoEstimate, CargoLine
 from edrockmaster.domain.ships import PadSize
 from tests.fakes import FixedClock
 
@@ -24,7 +27,7 @@ OFFER = MarketOffer(
     pad=PadSize.LARGE,
     arrival=83.9,
     price=91254,
-    demand=95,
+    volume=95,
     distance=20.0,
     updated=NOW - timedelta(hours=1),
     is_carrier=False,
@@ -51,11 +54,11 @@ class FakeCatalogue:
 class FakeMarkets:
     def __init__(self, answers: dict[str, Answer[tuple[MarketOffer, ...]]]) -> None:
         self.answers = answers
-        self.asked: list[SaleQuery] = []
+        self.asked: list[MarketQuery] = []
 
-    def find_buyers(
+    def find_offers(
         self,
-        query: SaleQuery,
+        query: MarketQuery,
         on_answer: Callable[[Answer[tuple[MarketOffer, ...]]], None],
         *,
         refresh: bool = False,
@@ -68,8 +71,12 @@ def found(*offers: MarketOffer, read_at: datetime = READ) -> Answer[tuple[Market
     return Found(offers, Source.ARDENT, read_at)
 
 
+def markets_of(markets: FakeMarkets) -> MarketSearch:
+    return MarketSearch(markets, FixedClock(NOW))
+
+
 def search(markets: FakeMarkets, catalogue: FakeCatalogue | None = None) -> MiningSearch:
-    return MiningSearch(catalogue or FakeCatalogue(), markets, FixedClock(NOW))
+    return MiningSearch(catalogue or FakeCatalogue(), markets_of(markets))
 
 
 def test_hotspots_are_asked_of_the_catalogue() -> None:
@@ -86,16 +93,23 @@ def test_hotspots_are_asked_of_the_catalogue() -> None:
 def test_the_buyers_are_selected_by_the_domain() -> None:
     markets = FakeMarkets({"painite": found(OFFER, BETTER_MEDIUM, CARRIER)})
     answers: list[Answer[tuple[MarketOffer, ...]]] = []
-    query = SaleQuery("painite", "Borann", needed_pad=PadSize.LARGE)
-    search(markets).find_buyers(query, answers.append)
+    query = MarketQuery(Side.SELL, "painite", "Borann", needed_pad=PadSize.LARGE)
+    markets_of(markets).find_offers(query, answers.append)
     assert answers == [Found((OFFER,), Source.ARDENT, READ)]
+
+
+def test_the_sellers_cheapest_first() -> None:
+    markets = FakeMarkets({"painite": found(CARRIER, BETTER_MEDIUM, OFFER)})
+    answers: list[Answer[tuple[MarketOffer, ...]]] = []
+    markets_of(markets).find_offers(MarketQuery(Side.BUY, "painite", "Borann"), answers.append)
+    assert answers == [Found((OFFER, BETTER_MEDIUM), Source.ARDENT, READ)]
 
 
 def test_a_failed_source_is_passed_on() -> None:
     failed = Failed(Source.ARDENT, Unavailable.BUSY)
     answers: list[Answer[tuple[MarketOffer, ...]]] = []
-    search(FakeMarkets({"painite": failed})).find_buyers(
-        SaleQuery("painite", "Sol"), answers.append
+    markets_of(FakeMarkets({"painite": failed})).find_offers(
+        MarketQuery(Side.SELL, "painite", "Sol"), answers.append
     )
     assert answers == [failed]
 
@@ -109,7 +123,10 @@ def test_the_cargo_at_the_best_market_for_each_commodity() -> None:
     search(markets).estimate_cargo(
         {"painite": 10, "platinum": 4, "gold": 0}, "Borann", None, answers.append
     )
-    assert [query.commodity for query in markets.asked] == ["painite", "platinum"]
+    assert [(query.side, query.commodity) for query in markets.asked] == [
+        (Side.SELL, "painite"),
+        (Side.SELL, "platinum"),
+    ]
     [estimate] = answers
     assert estimate == Found(
         CargoEstimate((CargoLine("painite", 10, BETTER_MEDIUM), CargoLine("platinum", 4, None))),

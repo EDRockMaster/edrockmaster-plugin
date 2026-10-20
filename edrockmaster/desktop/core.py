@@ -31,6 +31,7 @@ from edrockmaster.application.activity import Activity
 from edrockmaster.application.build import BuildInfo
 from edrockmaster.application.community import Source
 from edrockmaster.application.companion import Companion, Notification
+from edrockmaster.application.market_search import MarketSearch
 from edrockmaster.application.mining_search import MiningSearch
 from edrockmaster.application.past_journals import PastJournalReader, PastJournalsRead
 from edrockmaster.application.ports import Clock, UpdateSource
@@ -43,6 +44,7 @@ from edrockmaster.desktop.handlers.layout import LayoutHandler
 from edrockmaster.desktop.handlers.mining import MiningHandler
 from edrockmaster.desktop.handlers.phone import PhoneHandler
 from edrockmaster.desktop.handlers.settings import SettingsHandler
+from edrockmaster.desktop.handlers.trade import TradeHandler
 from edrockmaster.desktop.journal_archive import FolderArchive
 from edrockmaster.desktop.journal_folder import default_journal_folder
 from edrockmaster.desktop.journal_reader import POLL_SECONDS, JournalFollower, JournalWatcher
@@ -56,6 +58,7 @@ from edrockmaster.domain.situation.route import JumpDiverted
 from edrockmaster.infrastructure.build_file import load_build
 from edrockmaster.infrastructure.catalogue_file import load_catalogue
 from edrockmaster.infrastructure.clock import SystemClock
+from edrockmaster.infrastructure.commodity_catalogue_file import load_commodities
 from edrockmaster.infrastructure.database import FILE_NAME as DATABASE_FILE_NAME
 from edrockmaster.infrastructure.database import LocalDatabase, Opening
 from edrockmaster.infrastructure.goal_repository import SqliteGoalRepository
@@ -116,6 +119,7 @@ class Handlers:
     layout: LayoutHandler
     engineering: EngineeringHandler
     mining: MiningHandler
+    trade: TradeHandler
     phone: PhoneHandler
 
 
@@ -244,6 +248,7 @@ class DesktopCore:
             self._tl, self._format_number, companion.settings.display, names
         )
         sources = self._sources(companion, database)
+        markets = self._markets(sources)
         update_source = self._update_source()
         default = default_channel(build.channel)
         context = CoreContext(
@@ -273,7 +278,8 @@ class DesktopCore:
             ),
             layout=LayoutHandler(context, LayoutStore(config)),
             engineering=EngineeringHandler(context),
-            mining=MiningHandler(context, self._mining_search(sources)),
+            mining=MiningHandler(context, MiningSearch(self._galaxy(sources), markets)),
+            trade=TradeHandler(context, load_commodities(), markets),
             phone=PhoneHandler(context, store=PhoneStore(config), phone=self._phone),
         )
         self._handlers.phone.start()
@@ -396,17 +402,17 @@ class DesktopCore:
             Source.ARDENT: source(Source.ARDENT, lambda: companion.settings.sources.ardent),
         }
 
-    def _mining_search(self, sources: dict[Source, CommunitySource]) -> MiningSearch:
-        agent = user_agent(self.build)
-        return MiningSearch(
-            SpanshCatalogue(
-                sources[Source.SPANSH],
-                SourceClient(agent, opener=self._http_opener),
-                self._logger,
-            ),
-            ArdentMarkets(sources[Source.ARDENT], SourceClient(agent, opener=self._http_opener)),
-            self._clock,
+    def _galaxy(self, sources: dict[Source, CommunitySource]) -> SpanshCatalogue:
+        return SpanshCatalogue(
+            sources[Source.SPANSH],
+            SourceClient(user_agent(self.build), opener=self._http_opener),
+            self._logger,
         )
+
+    def _markets(self, sources: dict[Source, CommunitySource]) -> MarketSearch:
+        """Where to buy and sell, for the Mining and Trade tabs."""
+        client = SourceClient(user_agent(self.build), opener=self._http_opener)
+        return MarketSearch(ArdentMarkets(sources[Source.ARDENT], client), self._clock)
 
     # The journals of past game sessions (ADR 0052)
 

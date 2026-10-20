@@ -37,6 +37,8 @@ class Ship:
     """The name the player gave it."""
     ident: str | None = None
     """The registration the player gave it."""
+    cargo_capacity: int | None = None
+    """Tonnes, from ``Loadout``; ``None`` until the journal gives it."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -276,9 +278,18 @@ def _loadout(entry: Entry, at: datetime) -> ShipChanged:
     return ShipChanged(
         at,
         Ship(
-            required(entry, "Ship", str), None, _text(entry, "ShipName"), _text(entry, "ShipIdent")
+            required(entry, "Ship", str),
+            None,
+            _text(entry, "ShipName"),
+            _text(entry, "ShipIdent"),
+            _capacity(entry),
         ),
     )
+
+
+def _capacity(entry: Entry) -> int | None:
+    capacity = entry.get("CargoCapacity")
+    return capacity if isinstance(capacity, int) and not isinstance(capacity, bool) else None
 
 
 def _swapped(entry: Entry, at: datetime) -> ShipChanged:
