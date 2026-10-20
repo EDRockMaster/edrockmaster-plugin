@@ -61,8 +61,9 @@ class Harness:
             addresses=lambda: ["192.168.1.20", "10.0.0.5"],
             server=self.server,
         )
+        self.core = FakeCore()
         self.handler = PhoneHandler(
-            FakeCore().context, store=PhoneStore(self.config), phone=self.phone
+            self.core.context, store=PhoneStore(self.config), phone=self.phone
         )
 
     def server(self, **parts: Any) -> FakeServer:
@@ -170,6 +171,18 @@ def test_the_views_reach_the_devices(harness: Harness) -> None:
     harness.handler.set_phone({"enabled": True, "port": DEFAULT_PORT})
     harness.phone.publish({"version": 1})
     assert harness.servers[0].published == [{"version": 1}]
+
+
+def test_a_server_started_gets_the_current_view_at_once(harness: Harness) -> None:
+    # A device scanning the QR code while the game writes nothing must not wait for its next
+    # event: the view is pushed again as soon as the server listens
+    harness.handler.set_phone({"enabled": True, "port": DEFAULT_PORT})
+    assert harness.core.refreshes == 1
+    harness.handler.set_phone({"enabled": True, "port": DEFAULT_PORT})  # already listening
+    harness.handler.set_phone({"enabled": True, "port": 48000})  # another server
+    assert harness.core.refreshes == 2
+    harness.handler.set_phone({"enabled": False, "port": 48000})
+    assert harness.core.refreshes == 2
 
 
 def test_the_player_chooses_the_address_of_the_qr_code(harness: Harness) -> None:

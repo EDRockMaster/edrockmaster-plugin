@@ -240,4 +240,13 @@
   .body {
     margin: var(--space-2) 0 0 2.5rem;
   }
+  /* On a phone (ADR 0055), the body takes the card's whole width */
+  @media (max-width: 30rem) {
+    .card {
+      padding: var(--space-2);
+    }
+    .body {
+      margin-left: 0;
+    }
+  }
 </style>

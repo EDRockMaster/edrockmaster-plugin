@@ -6,6 +6,11 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The screens fit a phone** (design decision ADR 0055): on a phone (an iPhone 12 at 390 pixels wide), the *Engineering* tab went past the screen (the *Module* list as wide as its longest choice, the engineers' list), and the *Mining* tab's results (six columns) too. Lists and fields never go wider than the screen, the cards use its whole width, and on a narrow screen each result of a table shows as a block, each value under its column's name. Checked down to 320 pixels.
+- **A phone shows the application at once**: turned on while the game wrote nothing, a phone scanning the QR code stayed on *Starting…* until the game's next event.
+
 ## [0.8.0] - 2026-10-19
 
 ### Added

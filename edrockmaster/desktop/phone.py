@@ -118,6 +118,11 @@ class Phone:
     def status(self) -> PhoneStatus:
         return self._status
 
+    @property
+    def server(self) -> Server | None:
+        """The server listening, if any: another one after a restart."""
+        return self._server
+
     def addresses(self) -> list[str]:
         return self._addresses()
 
