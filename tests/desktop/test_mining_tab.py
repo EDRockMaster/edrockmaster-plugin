@@ -114,7 +114,7 @@ def test_where_to_mine(mining: Mining) -> None:
         10,
         "pristine",
     )
-    assert {other["name"] for other in borann["others"]} >= {"Platine", "Sérendibite"}
+    assert {other["name"] for other in borann["others"]} >= {"Platine", "Serendibite"}
     [request] = mining.sources.requests
     assert str(request.get_header("User-agent")).startswith("EDRockMaster/")
     # The same search again comes from the cache

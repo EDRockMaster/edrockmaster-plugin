@@ -70,7 +70,10 @@ def source_strings() -> set[str]:
     }
     strings |= {mod.english_name for mod in catalogue.on_foot_modifications.values()}
     # The commodities the game trades and their categories (ADR 0047)
-    strings |= {commodity.name for commodity in load_commodities().commodities}
+    commodities = {commodity.name for commodity in load_commodities().commodities}
+    strings |= commodities
+    # A commodity the game names otherwise than a material of the same English name
+    strings |= {key for key in translations("fr") if key.removesuffix("|commodity") in commodities}
     strings |= {category.value for category in CommodityCategory}
     # Where the engineers are and how to unlock them (ADR 0031); systems and bases keep their name
     for sheet in catalogue.engineer_details.values():

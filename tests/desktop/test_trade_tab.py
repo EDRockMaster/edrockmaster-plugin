@@ -38,6 +38,10 @@ def test_the_commodities_by_category_in_the_player_s_language(trade: Mining) -> 
     names = [row["name"] for row in metals["commodities"]]
     # By name in French, accents aside
     assert names[:5] == ["Acier", "Alliage de platine", "Aluminium", "Argent", "Béryllium"]
+    salvage = categories["salvage"]
+    assert salvage["name"] == "Ferraille"  # as the game names it
+    wreckage = next(r for r in salvage["commodities"] if r["commodity"] == "wreckagecomponents")
+    assert wreckage["name"] == "Débris d'épave"  # not the material's name
     assert {"commodity": "gold", "name": "Or", "rare": False} in metals["commodities"]
     rare = next(row for row in categories["legal_drugs"]["commodities"] if row["rare"])
     assert rare["name"]

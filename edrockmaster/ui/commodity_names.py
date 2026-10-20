@@ -25,7 +25,7 @@ MINEABLE: tuple[tuple[str, str], ...] = (
     ("serendibite", "Serendibite"),
     ("silver", "Silver"),
     ("tritium", "Tritium"),
-    ("opal", "Void Opals"),
+    ("opal", "Void Opal"),
 )
 """Commodity key and English name, for the alert thresholds of the preferences."""
 

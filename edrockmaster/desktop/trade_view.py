@@ -46,7 +46,8 @@ def options_view(  # noqa: PLR0913 - what the forms start from
                     (
                         {
                             "commodity": commodity.key,
-                            "name": translate(commodity.name),
+                            # As the game names it on a market, not as a material
+                            "name": translate(f"{commodity.name}|commodity"),
                             "rare": commodity.rare,
                         }
                         for commodity in commodities
