@@ -35,6 +35,7 @@ from edrockmaster.application.market_search import MarketSearch
 from edrockmaster.application.mining_search import MiningSearch
 from edrockmaster.application.past_journals import PastJournalReader, PastJournalsRead
 from edrockmaster.application.ports import Clock, UpdateSource
+from edrockmaster.application.route_planner import RoutePlanner
 from edrockmaster.application.updates import UpdateReady, UpdateService, default_channel
 from edrockmaster.desktop.engineering_view import engineering_view
 from edrockmaster.desktop.folder_opener import open_in_file_manager
@@ -74,6 +75,7 @@ from edrockmaster.infrastructure.sources.http import Opener, SourceClient, user_
 from edrockmaster.infrastructure.sources.http import open_url as default_opener
 from edrockmaster.infrastructure.sources.source import CommunitySource
 from edrockmaster.infrastructure.sources.spansh import SpanshCatalogue
+from edrockmaster.infrastructure.sources.spansh_routes import SpanshRoutes
 from edrockmaster.infrastructure.strings_catalogue import number_format, translator
 from edrockmaster.infrastructure.velopack_updates import VelopackUpdates
 from edrockmaster.infrastructure.worker import IoWorker
@@ -249,6 +251,8 @@ class DesktopCore:
         )
         sources = self._sources(companion, database)
         markets = self._markets(sources)
+        # One client for Spansh: its searches and its routes go at its pace together
+        spansh = SourceClient(user_agent(self.build), opener=self._http_opener)
         update_source = self._update_source()
         default = default_channel(build.channel)
         context = CoreContext(
@@ -278,8 +282,15 @@ class DesktopCore:
             ),
             layout=LayoutHandler(context, LayoutStore(config)),
             engineering=EngineeringHandler(context),
-            mining=MiningHandler(context, MiningSearch(self._galaxy(sources))),
-            trade=TradeHandler(context, load_commodities(), markets),
+            mining=MiningHandler(
+                context, MiningSearch(SpanshCatalogue(sources[Source.SPANSH], spansh, self._logger))
+            ),
+            trade=TradeHandler(
+                context,
+                load_commodities(),
+                markets,
+                RoutePlanner(SpanshRoutes(sources[Source.SPANSH], spansh)),
+            ),
             phone=PhoneHandler(context, store=PhoneStore(config), phone=self._phone),
         )
         self._handlers.phone.start()
@@ -401,13 +412,6 @@ class DesktopCore:
             Source.SPANSH: source(Source.SPANSH, lambda: companion.settings.sources.spansh),
             Source.ARDENT: source(Source.ARDENT, lambda: companion.settings.sources.ardent),
         }
-
-    def _galaxy(self, sources: dict[Source, CommunitySource]) -> SpanshCatalogue:
-        return SpanshCatalogue(
-            sources[Source.SPANSH],
-            SourceClient(user_agent(self.build), opener=self._http_opener),
-            self._logger,
-        )
 
     def _markets(self, sources: dict[Source, CommunitySource]) -> MarketSearch:
         """Where to buy and sell, for the Mining and Trade tabs."""

@@ -6,7 +6,12 @@ import type { CargoEstimateAnswer, MarketOffer, MarketsAnswer } from "../src/lib
 import type { HotspotsAnswer, MiningOptions } from "../src/lib/mining";
 import type { Phone } from "../src/lib/phone";
 import type { Settings } from "../src/lib/settings";
-import type { PricesAnswer, StationMarketAnswer, TradeOptions } from "../src/lib/trade";
+import type {
+  PricesAnswer,
+  RouteAnswer,
+  StationMarketAnswer,
+  TradeOptions,
+} from "../src/lib/trade";
 
 export const MINING_OPTIONS: MiningOptions = {
   commodities: [
@@ -124,9 +129,58 @@ export const TRADE_OPTIONS: TradeOptions = {
     },
   ],
   system: "Sol",
+  station: "Abraham Lincoln",
   pad: "large",
   cargoCapacity: 720,
-  sources: { ardent: true },
+  jumpRange: 18.47,
+  credits: 123_456_789,
+  sources: { ardent: true, spansh: true },
+};
+
+export const ROUTE: RouteAnswer = {
+  status: "found",
+  source: "spansh",
+  readAt: "2026-10-20T19:17:15+00:00",
+  unavailable: null,
+  job: null,
+  hops: [
+    {
+      source: {
+        station: "Abraham Lincoln",
+        system: "Sol",
+        arrival: 505,
+        pricesUpdated: "2026-10-20T18:11:24+00:00",
+      },
+      destination: {
+        station: "Finger Ring",
+        system: "LHS 149",
+        arrival: 2551,
+        pricesUpdated: "2026-10-18T15:23:03+00:00",
+      },
+      distance: 29.846,
+      profit: 25_200,
+      commodities: [
+        {
+          name: "Hydrogen Fuel",
+          tons: 720,
+          buyPrice: 85,
+          sellPrice: 120,
+          profit: 35,
+          totalProfit: 25_200,
+        },
+      ],
+    },
+  ],
+  profit: 25_200,
+};
+
+export const ROUTE_PENDING: RouteAnswer = {
+  ...ROUTE,
+  status: "pending",
+  readAt: null,
+  job: "JOB-1",
+  hops: [],
+  profit: 0,
 };
 
 export const ESTIMATE: CargoEstimateAnswer = {
@@ -320,6 +374,8 @@ export function fakeCore(): CoreApi {
     find_markets: vi.fn(async () => structuredClone(MARKETS)),
     galaxy_prices: vi.fn(async () => structuredClone(PRICES)),
     station_market: vi.fn(async () => ({ market: null, comparison: null })),
+    plan_route: vi.fn(async () => structuredClone(ROUTE_PENDING)),
+    follow_route: vi.fn(async () => structuredClone(ROUTE)),
     phone: vi.fn(async () => structuredClone(PHONE_OFF)),
     set_phone: vi.fn(async (request: { enabled: boolean; port: number }) =>
       request.enabled ? { ...PHONE_ON, port: request.port } : { ...PHONE_OFF, port: request.port },

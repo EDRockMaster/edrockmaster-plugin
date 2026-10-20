@@ -1,5 +1,6 @@
 """The *Trade* tab (ADR 0047): what its forms start from, the galaxy's prices of a commodity,
-and the station's market, as ``schemas/trade.schema.json`` describes them. Where to buy and
+the station's market and the trade routes (ADR 0057), as ``schemas/trade.schema.json``
+describes them. Where to buy and
 where to sell are the market search's, shared with the Mining tab (``market_view.py``).
 
 Names are in the player's language, the commodities of a category sorted by them.
@@ -9,11 +10,22 @@ from __future__ import annotations
 
 import unicodedata
 from collections.abc import Callable, Mapping
+from datetime import timedelta
 from typing import Any
 
-from edrockmaster.application.community import Answer, Failed, Found
+from edrockmaster.application.community import Answer, Failed, Found, Pending
+from edrockmaster.application.route_planner import RouteProgress
 from edrockmaster.application.settings import SourceSettings
-from edrockmaster.desktop.market_view import date, not_asked, pad_name, status
+from edrockmaster.desktop.market_view import (
+    PADS,
+    date,
+    not_asked,
+    number,
+    pad_name,
+    status,
+    text,
+    whole,
+)
 from edrockmaster.domain.commodities import GalaxyPrices, PriceRange
 from edrockmaster.domain.ships import PadSize
 from edrockmaster.domain.trade.catalogue import (
@@ -22,6 +34,7 @@ from edrockmaster.domain.trade.catalogue import (
     TradedCommodity,
 )
 from edrockmaster.domain.trade.journal import MarketLine
+from edrockmaster.domain.trade.routes import RouteHop, RouteQuery, RouteStation
 from edrockmaster.domain.trade.station_market import StationMarket
 
 type Translate = Callable[[str], str]
@@ -59,12 +72,16 @@ def options_view(  # noqa: PLR0913 - what the forms start from
     catalogue: CommodityCatalogue,
     *,
     system: str | None,
+    station: str | None,
     pad: PadSize | None,
     cargo_capacity: int | None,
+    jump_range: float | None,
+    credits: int | None,
     sources: SourceSettings,
     translate: Translate,
 ) -> dict[str, Any]:
-    """The commodities by category, the current system, the ship's pad and cargo capacity."""
+    """The commodities by category; the current system and station, the ship's pad, cargo
+    capacity and jump range, and the commander's credits at load."""
     return {
         "categories": [
             {
@@ -78,9 +95,12 @@ def options_view(  # noqa: PLR0913 - what the forms start from
             for category, commodities in catalogue.by_category().items()
         ],
         "system": system,
+        "station": station,
         "pad": pad_name(pad),
         "cargoCapacity": cargo_capacity,
-        "sources": {"ardent": sources.ardent},
+        "jumpRange": jump_range,
+        "credits": credits,
+        "sources": {"ardent": sources.ardent, "spansh": sources.spansh},
     }
 
 
@@ -184,3 +204,81 @@ def _market_view(
             if any(commodity.category is category for _line, commodity in known)
         ],
     }
+
+
+def route_query(request: Mapping[str, Any]) -> RouteQuery:
+    """The route form as a query; ``ValueError`` for what is not valid."""
+    pad = request.get("pad")
+    if pad is not None and pad not in PADS:
+        raise ValueError(f"pad: not one of {sorted(PADS)}")
+    flags = {name: request.get(name) for name in ("planetary", "carriers")}
+    for name, value in flags.items():
+        if not isinstance(value, bool):
+            raise ValueError(f"{name}: not true or false")
+    return RouteQuery(
+        text(request, "system"),
+        text(request, "station"),
+        cargo_capacity=whole(request, "cargoCapacity"),
+        credits=whole(request, "credits"),
+        max_hops=whole(request, "maxHops"),
+        max_hop_distance=number(request, "maxHopDistance"),
+        needed_pad=PADS[pad] if pad is not None else None,
+        max_price_age=timedelta(days=whole(request, "maxPriceDays")),
+        planetary=flags["planetary"] is True,
+        carriers=flags["carriers"] is True,
+    )
+
+
+def _station_view(station: RouteStation) -> dict[str, Any]:
+    return {
+        "station": station.station,
+        "system": station.system,
+        "arrival": station.arrival,
+        "pricesUpdated": date(station.prices_updated),
+    }
+
+
+def _hop_view(hop: RouteHop, translate: Translate) -> dict[str, Any]:
+    return {
+        "source": _station_view(hop.source),
+        "destination": _station_view(hop.destination),
+        "distance": hop.distance,
+        "profit": hop.profit,
+        "commodities": [
+            {
+                # Spansh names commodities in English, as the catalogue does
+                "name": translate(f"{goods.name}|commodity"),
+                "tons": goods.tons,
+                "buyPrice": goods.buy_price,
+                "sellPrice": goods.sell_price,
+                "profit": goods.profit,
+                "totalProfit": goods.total_profit,
+            }
+            for goods in hop.commodities
+        ],
+    }
+
+
+def route_view(progress: RouteProgress, translate: Translate) -> dict[str, Any]:
+    """The route found, the job Spansh is still computing, or why Spansh gave nothing."""
+    if isinstance(progress, Pending):
+        return {
+            **not_asked("pending"),
+            "source": progress.source.value,
+            "job": progress.job,
+            "hops": [],
+            "profit": 0,
+        }
+    if isinstance(progress, Failed):
+        return {**status(progress), "job": None, "hops": [], "profit": 0}
+    route = progress.value
+    return {
+        **status(progress),
+        "job": None,
+        "hops": [_hop_view(hop, translate) for hop in route.hops],
+        "profit": route.profit,
+    }
+
+
+def route_refused(reason: str) -> dict[str, Any]:
+    return {**not_asked(reason), "job": None, "hops": [], "profit": 0}

@@ -18,7 +18,8 @@ from edrockmaster.application.community import Answer, Failed, Found
 from edrockmaster.domain.commodities import CargoEstimate, MarketOffer, MarketQuery, Side
 from edrockmaster.domain.ships import PadSize
 
-_PADS = {pad.name.lower(): pad for pad in PadSize}
+PADS = {pad.name.lower(): pad for pad in PadSize}
+"""The pads by the names the interface gives them."""
 _SIDES = {side.value: side for side in Side}
 
 
@@ -60,8 +61,8 @@ def market_query(request: Mapping[str, Any]) -> MarketQuery:
     if side not in _SIDES:
         raise ValueError(f"side: not one of {sorted(_SIDES)}")
     pad = request.get("pad")
-    if pad is not None and pad not in _PADS:
-        raise ValueError(f"pad: not one of {sorted(_PADS)}")
+    if pad is not None and pad not in PADS:
+        raise ValueError(f"pad: not one of {sorted(PADS)}")
     carriers = request.get("carriers")
     if not isinstance(carriers, bool):
         raise ValueError("carriers: not true or false")
@@ -70,7 +71,7 @@ def market_query(request: Mapping[str, Any]) -> MarketQuery:
         text(request, "commodity"),
         text(request, "system"),
         max_distance=number(request, "maxDistance"),
-        needed_pad=_PADS[pad] if pad is not None else None,
+        needed_pad=PADS[pad] if pad is not None else None,
         carriers=carriers,
         min_volume=whole(request, "minVolume"),
     )

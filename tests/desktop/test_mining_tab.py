@@ -23,6 +23,9 @@ SPANSH = json.loads((SOURCES / "spansh-bodies-search-painite-borann-2026-10-11.j
 ARDENT = json.loads((SOURCES / "ardent-nearby-imports-painite-borann-2026-10-11.json").read_text())
 EXPORTS = json.loads((SOURCES / "ardent-nearby-exports-gold-sol-2026-10-20.json").read_text())
 PRICES = json.loads((SOURCES / "ardent-commodities-2026-10-20.json").read_text())
+ROUTE_QUEUED = json.loads((SOURCES / "spansh-trade-route-queued-sol-2026-10-20.json").read_text())
+ROUTE_STARTED = json.loads((SOURCES / "spansh-trade-route-started-sol-2026-10-20.json").read_text())
+ROUTE = json.loads((SOURCES / "spansh-trade-route-sol-2026-10-20.json").read_text())
 NOW = datetime(2026, 10, 12, 9, 0, tzinfo=UTC)
 logger = logging.getLogger("test.mining_tab")
 
@@ -55,13 +58,14 @@ def valid(definition: str, view: dict[str, Any]) -> dict[str, Any]:
 
 
 class Sources:
-    """Spansh and Ardent (importers, exporters and prices) as recorded; ``down`` makes them
-    unreachable."""
+    """Spansh (bodies, a trade route computed after a first look) and Ardent (importers, exporters
+    and prices) as recorded; ``down`` makes them unreachable."""
 
     def __init__(self) -> None:
         self.requests: list[urllib.request.Request] = []
         self.down = False
         self.hold: threading.Event | None = None
+        self.route_reads = 0
 
     def __call__(self, request: urllib.request.Request, timeout: float) -> FakeResponse:
         self.requests.append(request)
@@ -70,8 +74,15 @@ class Sources:
         if self.down:
             raise urllib.error.URLError("no network")
         url = request.full_url
+        if "/api/results/" in url:
+            self.route_reads += 1
+            return FakeResponse(
+                json.dumps(ROUTE_STARTED if self.route_reads == 1 else ROUTE).encode()
+            )
         answer = (
-            SPANSH
+            ROUTE_QUEUED
+            if "/api/trade/route" in url
+            else SPANSH
             if "spansh" in url
             else EXPORTS
             if "/nearby/exports" in url

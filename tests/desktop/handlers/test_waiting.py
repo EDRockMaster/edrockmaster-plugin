@@ -38,13 +38,23 @@ class SilentSearch:
 
 def test_a_search_that_takes_too_long_is_down(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(waiting, "SEARCH_TIMEOUT", 0.05)
-    handler = TradeHandler(FakeCore().context, load_commodities(), SilentSearch())  # type: ignore[arg-type]
+    handler = TradeHandler(
+        FakeCore().context,
+        load_commodities(),
+        SilentSearch(),  # type: ignore[arg-type]
+        SilentSearch(),  # type: ignore[arg-type]
+    )
     answer = handler.find_markets(BUYERS)
     assert (answer["status"], answer["offers"]) == ("down", [])
 
 
 def test_a_search_that_fails_fails_the_call() -> None:
     search = SilentSearch(RuntimeError("broken"))
-    handler = TradeHandler(FakeCore().context, load_commodities(), search)  # type: ignore[arg-type]
+    handler = TradeHandler(
+        FakeCore().context,
+        load_commodities(),
+        search,  # type: ignore[arg-type]
+        search,  # type: ignore[arg-type]
+    )
     with pytest.raises(RuntimeError, match="broken"):
         handler.find_markets(BUYERS)

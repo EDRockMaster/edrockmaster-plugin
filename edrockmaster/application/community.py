@@ -44,4 +44,13 @@ class Failed:
     reason: Unavailable
 
 
+@dataclass(frozen=True, slots=True)
+class Pending:
+    """The source took the request as a job, and is still working on it (ADR 0057)."""
+
+    source: Source
+    job: str
+    """What to ask the source for the job's result."""
+
+
 type Answer[T] = Found[T] | Failed
