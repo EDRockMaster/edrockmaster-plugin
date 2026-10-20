@@ -12,6 +12,9 @@
   --colour-focus: #5fb3ff;
   /* A system name the player can copy in one click */
   --colour-system: #ecd27a;
+  /* A price better or worse than the galaxy's average */
+  --colour-good: #6fcf7f;
+  --colour-bad: #ff6b6b;
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 1rem;

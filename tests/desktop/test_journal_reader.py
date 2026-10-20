@@ -365,6 +365,42 @@ def test_an_older_route_read_at_start_gets_no_systems(tmp_path: Path) -> None:
     assert "Route" not in handed[0]
 
 
+MARKET_LINE = {"MarketID": 3228873472, "StationName": "Yamazaki Landing", "StarSystem": "Sol"}
+ITEMS = [{"id": 128049202, "Name": "$gold_name;", "BuyPrice": 9200, "SellPrice": 9100}]
+
+
+def market_file(journal: Journal, market_id: int = 3228873472) -> None:
+    content = {
+        "timestamp": CARGO_AT,
+        "event": "Market",
+        **MARKET_LINE,
+        "MarketID": market_id,
+        "Items": ITEMS,
+    }
+    (journal.directory / "Market.json").write_text(json.dumps(content), encoding="utf-8")
+
+
+def test_a_market_gets_its_commodities_from_market_json(tmp_path: Path) -> None:
+    # The line says the player opened the market; the file holds its prices (ADR 0047)
+    handed: list[Entry] = []
+    follower = JournalFollower(tmp_path, lambda entry, _beta: handed.append(entry), logger)
+    journal = Journal(tmp_path)
+    market_file(journal)
+    journal.write(FIRST, line("Market", **MARKET_LINE))
+    follower.poll()
+    assert handed == [{"timestamp": CARGO_AT, "event": "Market", **MARKET_LINE, "Items": ITEMS}]
+
+
+def test_the_market_json_of_another_market_is_left_out(tmp_path: Path) -> None:
+    handed: list[Entry] = []
+    follower = JournalFollower(tmp_path, lambda entry, _beta: handed.append(entry), logger)
+    journal = Journal(tmp_path)
+    market_file(journal, market_id=1)
+    journal.write(FIRST, line("Market", **MARKET_LINE))
+    follower.poll()
+    assert "Items" not in handed[0]
+
+
 def test_the_watcher_polls_on_its_own_thread_until_stopped(journal: Journal) -> None:
     seen = threading.Event()
     threads: list[str] = []

@@ -39,6 +39,7 @@ from edrockmaster.domain.engineering.events import (
 from edrockmaster.domain.situation.route import JumpDiverted, RouteAlertRaised
 from edrockmaster.domain.situation.situation import SituationChanged
 from edrockmaster.domain.trade.session import TradeEnded, TradeStarted, TradeUpdated
+from edrockmaster.domain.trade.station_market import StationMarketChanged
 from edrockmaster.ui.combat_presenter import CombatPresenter
 from edrockmaster.ui.community_goals_presenter import CommunityGoalsPresenter
 from edrockmaster.ui.engineering_names import EngineeringNames
@@ -99,6 +100,8 @@ class ActivityPresenter:
         for notification in notifications:
             if isinstance(notification, SituationChanged | RouteAlertRaised | JumpDiverted):
                 continue  # not an activity: the desktop application's banner (ADR 0023)
+            if isinstance(notification, StationMarketChanged):
+                continue  # not an activity: the Trade tab's (ADR 0047)
             if isinstance(notification, EndedSessionsForgotten):
                 self._forget_ended()
                 continue

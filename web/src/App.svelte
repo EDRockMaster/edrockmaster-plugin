@@ -106,7 +106,7 @@
       {:else if tab === "mining"}
         <MiningView {language} />
       {:else if tab === "trade"}
-        <TradeView {language} />
+        <TradeView {language} stationMarket={view.stationMarket} />
       {:else if tab === "engineering"}
         <EngineeringView engineering={view.engineering} {language} />
       {:else if tab === "blueprints"}

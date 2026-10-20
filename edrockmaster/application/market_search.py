@@ -40,6 +40,15 @@ class MarketSearch:
 
         self._markets.find_offers(query, selected, refresh=refresh)
 
+    def find_galaxy_prices(
+        self,
+        on_answer: Callable[[Answer[Mapping[str, GalaxyPrices]]], None],
+        *,
+        refresh: bool = False,
+    ) -> None:
+        """Every commodity's prices across the galaxy, by key: one answer for all."""
+        self._markets.find_prices(on_answer, refresh=refresh)
+
     def find_prices(
         self,
         commodity: str,
@@ -59,4 +68,4 @@ class MarketSearch:
             else:
                 on_answer(answer)
 
-        self._markets.find_prices(picked, refresh=refresh)
+        self.find_galaxy_prices(picked, refresh=refresh)

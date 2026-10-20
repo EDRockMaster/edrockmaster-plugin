@@ -75,6 +75,13 @@ export interface LiveView {
   };
   situation: Situation;
   engineering: Engineering;
+  /**
+   * The market of the station the commander is docked at, once opened (ADR 0047): the Trade tab asks for it (station_market) when this changes.
+   */
+  stationMarket: null | {
+    station: string | null;
+    readAt: string;
+  };
 }
 export interface Block {
   activity: Activity;

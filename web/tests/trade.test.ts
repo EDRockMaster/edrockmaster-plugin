@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import TradeView from "../src/components/TradeView.svelte";
 import type { CoreApi } from "../src/lib/bridge";
 import { filterCatalogue, folded } from "../src/lib/trade-catalogue";
-import { fakeCore, MARKETS, PRICES, TRADE_OPTIONS } from "./core";
+import { fakeCore, MARKETS, PRICES, STATION_MARKET, TRADE_OPTIONS } from "./core";
 
 function withCore(): CoreApi {
   const api = fakeCore();
@@ -162,5 +162,74 @@ describe("TradeView", () => {
     const prices = screen.getByRole("region", { name: "Gold across the galaxy" });
     await within(prices).findByText(/Ardent Insight is turned off/);
     expect(within(prices).queryByText(/knows no price/)).not.toBeInTheDocument();
+  });
+});
+
+describe("the station's market", () => {
+  const STAMP = { station: "Yamazaki Landing", readAt: "2026-10-12T08:00:00+00:00" };
+
+  function compared(): typeof STATION_MARKET {
+    const answer = structuredClone(STATION_MARKET);
+    const [gold, silver] = answer.market?.categories[0]?.commodities ?? [];
+    if (gold?.buy && gold.sell && silver?.sell) {
+      gold.buy.gap = 0.027;
+      gold.sell.gap = -0.048;
+      silver.sell.gap = 0.15;
+    }
+    answer.comparison = {
+      status: "found",
+      source: "ardent",
+      readAt: STAMP.readAt,
+      unavailable: null,
+    };
+    return answer;
+  }
+
+  it("says how to see it while no market is opened", async () => {
+    const api = withCore();
+    render(TradeView, { language: "en", stationMarket: null });
+    await screen.findByText(/open its commodity market/);
+    expect(api.station_market).toHaveBeenCalledWith({ compare: false });
+  });
+
+  it("shows what the station sells and buys, by category", async () => {
+    vi.mocked(withCore().station_market).mockResolvedValue(structuredClone(STATION_MARKET));
+    render(TradeView, { language: "en", stationMarket: STAMP });
+    const market = screen.getByRole("region", { name: "Market of Yamazaki Landing" });
+    await within(market).findByText("46,000 CR");
+    const gold = within(market).getByRole("button", { name: "Gold" }).closest("tr") as HTMLElement;
+    expect(within(gold).getByText("1,200")).toHaveAttribute("data-label", "Stock");
+    const silver = within(market).getByRole("button", { name: "Silver" }).closest("tr");
+    expect(within(silver as HTMLElement).getByText("4,700 CR")).toHaveAttribute(
+      "data-label",
+      "Price paid",
+    );
+  });
+
+  it("compares each price with the galaxy's average, and keeps comparing", async () => {
+    const api = withCore();
+    vi.mocked(api.station_market).mockResolvedValue(compared());
+    const { rerender } = render(TradeView, { language: "en", stationMarket: STAMP });
+    const market = screen.getByRole("region", { name: "Market of Yamazaki Landing" });
+    await fireEvent.click(
+      await within(market).findByRole("button", { name: "Compare with the galaxy" }),
+    );
+    expect(api.station_market).toHaveBeenLastCalledWith({ compare: true });
+    const cheap = await within(market).findByText("+3%");
+    expect(cheap).toHaveAttribute("data-label", "Asked vs. average");
+    expect(within(market).getByText("-5%")).toHaveClass("bad");
+    expect(within(market).getByText("+15%")).toHaveClass("good");
+    // Another market opened: compared at once
+    await rerender({ language: "en", stationMarket: { ...STAMP, readAt: "2026-10-12T09:00:00Z" } });
+    await waitFor(() => expect(api.station_market).toHaveBeenLastCalledWith({ compare: true }));
+    expect(api.station_market).toHaveBeenCalledTimes(3);
+  });
+
+  it("opens a commodity of the market below", async () => {
+    vi.mocked(withCore().station_market).mockResolvedValue(structuredClone(STATION_MARKET));
+    render(TradeView, { language: "en", stationMarket: STAMP });
+    const market = screen.getByRole("region", { name: "Market of Yamazaki Landing" });
+    await fireEvent.click(await within(market).findByRole("button", { name: "Gold" }));
+    expect(screen.getByRole("region", { name: "Gold across the galaxy" })).toBeInTheDocument();
   });
 });

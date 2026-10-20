@@ -65,6 +65,28 @@ class GoodsSold:
 
 
 @dataclass(frozen=True, slots=True)
+class MarketLine:
+    """A commodity on a station's market, as the player saw it."""
+
+    commodity: Commodity
+    buy_price: int
+    """What the station asks; 0 when it sells none."""
+    sell_price: int
+    """What the station pays."""
+    stock: int
+    demand: int
+
+
+@dataclass(frozen=True, slots=True)
+class MarketRead:
+    """The player opened a station's commodity market (``Market``, with ``Market.json``)."""
+
+    at: datetime
+    market: Market
+    lines: tuple[MarketLine, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class Docked:
     at: datetime
     market: Market
@@ -153,6 +175,7 @@ type Fact = (
     | CargoTransferred
     | CommanderDied
     | GameClosed
+    | MarketRead
 )
 
 
@@ -232,6 +255,25 @@ def _cargo(entry: Entry, at: datetime) -> CargoInventory | None:
     )
 
 
+def _market_read(entry: Entry, at: datetime) -> MarketRead | None:
+    if "Items" not in entry:
+        return None  # an older line: Market.json describes a later one
+    return MarketRead(
+        at,
+        _market(entry),
+        tuple(
+            MarketLine(
+                commodity(item, "Name"),
+                buy_price=required(item, "BuyPrice", int),
+                sell_price=required(item, "SellPrice", int),
+                stock=required(item, "Stock", int),
+                demand=required(item, "Demand", int),
+            )
+            for item in items(entry, "Items")
+        ),
+    )
+
+
 def _transfer(item: Entry) -> Transfer | None:
     try:
         direction = TransferDirection(required(item, "Direction", str))
@@ -273,6 +315,7 @@ _PARSERS: dict[str, Parser[Fact | None]] = {
     "StartUp": _loaded,  # synthetic event from EDMC when started with the game running
     "EjectCargo": _ejected,
     "Cargo": _cargo,
+    "Market": _market_read,
     "CargoTransfer": _transferred,
     "EngineerContribution": _handed_over,
     "Died": _died,

@@ -16,6 +16,8 @@ Elite Dangerous écrit un journal de votre partie dans votre dossier *Parties en
 - ce que vous avez fait : astéroïdes prospectés, marchandises raffinées, achats et ventes, victimes et primes, matériaux collectés, travaux des ingénieurs ;
 - les noms **d'autres joueurs** dans certains événements : membres de votre escadrille, cibles de primes.
 
+À côté du journal, elle lit les fichiers que le jeu écrit avec lui : la soute, le casier du vaisseau, l'itinéraire tracé, et le dernier marché de marchandises que vous avez ouvert (ses prix).
+
 L'application ne fait rien d'autre sur votre ordinateur : elle ne lit aucun autre fichier, et n'utilise ni caméra, ni micro, ni localisation.
 
 ## Ce que l'application garde, et où
@@ -42,7 +44,7 @@ Hormis vos bons non encaissés, les statistiques de vos sessions et votre situat
 **Vos recherches, à des outils communautaires, et seulement quand vous les faites.** Les onglets *Minage* et *Commerce* et le bouton *Estimer la soute* demandent à deux outils communautaires indépendants ce que le journal ne dit pas :
 
 - **Spansh** (`spansh.co.uk`), pour les anneaux et leurs hotspots autour d'un système : il reçoit la marchandise, le nom du système et vos filtres ;
-- **Ardent Insight** (`ardent-insight.com`), pour les marchés qui achètent ou vendent une marchandise : il reçoit la marchandise, le nom du système, la distance et la demande ou le stock minimum choisis (l'onglet *Commerce* le remplit avec la capacité de soute de votre vaisseau) ; pour une estimation, une requête par marchandise de votre soute de minage, autour de votre système actuel. Pour les prix d'une marchandise dans la galaxie (onglet *Commerce*), il ne reçoit rien de vous : une requête donne les prix de toutes les marchandises, demandée au plus une fois par jour sauf si vous actualisez.
+- **Ardent Insight** (`ardent-insight.com`), pour les marchés qui achètent ou vendent une marchandise : il reçoit la marchandise, le nom du système, la distance et la demande ou le stock minimum choisis (l'onglet *Commerce* le remplit avec la capacité de soute de votre vaisseau) ; pour une estimation, une requête par marchandise de votre soute de minage, autour de votre système actuel. Pour les prix d'une marchandise dans la galaxie, ou pour leur comparer le marché de la station (onglet *Commerce*), il ne reçoit rien de vous : une requête donne les prix de toutes les marchandises, demandée au plus une fois par jour sauf si vous actualisez.
 
 Rien d'autre n'est envoyé : ni le nom de votre commandant, ni vos statistiques. Comme tout site web, ils voient l'adresse IP de votre ordinateur et l'heure. Ce sont des projets bénévoles tenus par d'autres joueurs, sans politique de confidentialité de leur part à notre connaissance. Chacun se désactive dans *Réglages*, *Sources communautaires* ; désactivé, il n'est jamais interrogé, et ce qu'il avait répondu est oublié.
 
