@@ -13,6 +13,7 @@ import json
 import platform
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections.abc import Callable, Mapping
 from email.message import Message
@@ -91,6 +92,12 @@ class SourceClient:
     def post(self, url: str, body: Mapping[str, Any]) -> Any:
         data = json.dumps(body).encode()
         headers = {**self._headers(), "Content-Type": "application/json"}
+        return self._send(urllib.request.Request(url, data=data, headers=headers, method="POST"))
+
+    def post_form(self, url: str, form: Mapping[str, str | int]) -> Any:
+        """A form, as a site's page posts it."""
+        data = urllib.parse.urlencode(form).encode()
+        headers = {**self._headers(), "Content-Type": "application/x-www-form-urlencoded"}
         return self._send(urllib.request.Request(url, data=data, headers=headers, method="POST"))
 
     def _headers(self) -> dict[str, str]:

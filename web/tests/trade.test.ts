@@ -3,7 +3,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import TradeView from "../src/components/TradeView.svelte";
 import type { CoreApi } from "../src/lib/bridge";
 import { filterCatalogue, folded } from "../src/lib/trade-catalogue";
-import { fakeCore, MARKETS, PRICES, STATION_MARKET, TRADE_OPTIONS } from "./core";
+import {
+  fakeCore,
+  MARKETS,
+  PRICES,
+  ROUTE,
+  ROUTE_PENDING,
+  STATION_MARKET,
+  TRADE_OPTIONS,
+} from "./core";
 
 function withCore(): CoreApi {
   const api = fakeCore();
@@ -260,5 +268,94 @@ describe("the cargo to sell", () => {
     const cargo = screen.getByRole("region", { name: "Your cargo" });
     await fireEvent.click(within(cargo).getByRole("button", { name: "Estimate the cargo" }));
     await within(cargo).findByText("Nothing to sell in the hold.");
+  });
+});
+
+describe("trade routes", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  async function routes(): Promise<{ api: CoreApi; section: HTMLElement }> {
+    const api = withCore();
+    render(TradeView, { language: "en", stationMarket: null });
+    await screen.findByText("Metals");
+    return { api, section: screen.getByRole("region", { name: "Trade routes" }) };
+  }
+
+  it("starts from the station, the ship and the credits at load", async () => {
+    const { api, section } = await routes();
+    expect(within(section).getByLabelText("From the system")).toHaveValue("Sol");
+    expect(within(section).getByLabelText("Station")).toHaveValue("Abraham Lincoln");
+    expect(within(section).getByLabelText("Cargo capacity (t)")).toHaveValue(720);
+    expect(within(section).getByLabelText("Light years per hop")).toHaveValue(18.4);
+    expect(within(section).getByLabelText(/Credits/)).toHaveValue(123_456_789);
+    expect(within(section).getByText(/Spansh receives/)).toBeInTheDocument();
+    expect(api.plan_route).not.toHaveBeenCalled();
+  });
+
+  it("asks Spansh, follows its job every 5 seconds, and shows the route", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { api, section } = await routes();
+    vi.mocked(api.follow_route).mockResolvedValueOnce(structuredClone(ROUTE_PENDING));
+    await fireEvent.click(within(section).getByRole("button", { name: "Plan a route" }));
+    const request = {
+      system: "Sol",
+      station: "Abraham Lincoln",
+      cargoCapacity: 720,
+      credits: 123_456_789,
+      maxHops: 3,
+      maxHopDistance: 18.4,
+      pad: "large",
+      maxPriceDays: 2,
+      planetary: false,
+      carriers: false,
+    };
+    expect(api.plan_route).toHaveBeenCalledWith({ ...request, refresh: false });
+    await within(section).findByText(/Spansh is computing the route/);
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(api.follow_route).toHaveBeenCalledWith({ ...request, job: "JOB-1" });
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(api.follow_route).toHaveBeenCalledTimes(2);
+    await within(section).findByText("Profit: 25,200 CR");
+    expect(
+      within(section).getByText(/Abraham Lincoln \(Sol\) → Finger Ring \(LHS 149\)/),
+    ).toBeInTheDocument();
+    expect(within(section).getByText("85 CR")).toHaveAttribute("data-label", "Buy at");
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(api.follow_route).toHaveBeenCalledTimes(2); // done: no more asking
+  });
+
+  it("stops following when cancelled", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { api, section } = await routes();
+    await fireEvent.click(within(section).getByRole("button", { name: "Plan a route" }));
+    await fireEvent.click(await within(section).findByRole("button", { name: "Cancel" }));
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(api.follow_route).not.toHaveBeenCalled();
+  });
+
+  it("gives up after five minutes", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { api, section } = await routes();
+    vi.mocked(api.follow_route).mockResolvedValue(structuredClone(ROUTE_PENDING));
+    await fireEvent.click(within(section).getByRole("button", { name: "Plan a route" }));
+    await vi.advanceTimersByTimeAsync(5 * 60_000 + 5_000);
+    await within(section).findByText(/Spansh did not answer within 5 minutes/);
+    const asked = vi.mocked(api.follow_route).mock.calls.length;
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(api.follow_route).toHaveBeenCalledTimes(asked);
+  });
+
+  it("shows a route kept at once, and why Spansh gave nothing", async () => {
+    const { api, section } = await routes();
+    vi.mocked(api.plan_route)
+      .mockResolvedValueOnce(structuredClone(ROUTE))
+      .mockResolvedValueOnce({ ...ROUTE, status: "off", readAt: null, hops: [], profit: 0 });
+    await fireEvent.click(within(section).getByRole("button", { name: "Plan a route" }));
+    await within(section).findByText("Profit: 25,200 CR");
+    await fireEvent.click(within(section).getByRole("button", { name: "Plan a route" }));
+    await within(section).findByText(/Spansh is turned off/);
+    expect(api.follow_route).not.toHaveBeenCalled();
   });
 });

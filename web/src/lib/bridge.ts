@@ -18,6 +18,8 @@ import type { Settings } from "./settings";
 import type {
   PricesAnswer,
   PricesRequest,
+  RouteAnswer,
+  RouteRequest,
   StationMarketAnswer,
   StationMarketRequest,
   TradeOptions,
@@ -65,6 +67,10 @@ export interface CoreApi {
   galaxy_prices(request: PricesRequest): Promise<PricesAnswer>;
   /** The market of the station the commander is docked at, compared with the galaxy if asked. */
   station_market(request: StationMarketRequest): Promise<StationMarketAnswer>;
+  /** A trade route from Spansh (ADR 0057): kept, or its job, pending. */
+  plan_route(request: RouteRequest & { refresh?: boolean }): Promise<RouteAnswer>;
+  /** Spansh's job asked once: pending until the route is computed. */
+  follow_route(request: RouteRequest & { job: string }): Promise<RouteAnswer>;
   /** The Phone and tablet section (ADR 0055): what it shows. */
   phone(): Promise<Phone>;
   /** The local server on or off, on a port: what the section shows then. */

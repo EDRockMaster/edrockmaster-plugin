@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Protocol
 
-from edrockmaster.application.community import Answer
+from edrockmaster.application.community import Answer, Pending
 from edrockmaster.application.settings import PluginSettings
 from edrockmaster.application.updates import UpdateChannel
 from edrockmaster.domain.combat.vouchers import CommanderKey, VoucherLedger
@@ -18,6 +18,7 @@ from edrockmaster.domain.mining.hotspots import HotspotPage, HotspotQuery
 from edrockmaster.domain.mining.limpets import LimpetAlertRaised
 from edrockmaster.domain.mining.prospecting import ProspectorAlertRaised
 from edrockmaster.domain.situation.route import RouteAlertRaised
+from edrockmaster.domain.trade.routes import RouteQuery, TradeRoute
 
 
 class Clock(Protocol):
@@ -110,6 +111,27 @@ class CommodityMarkets(Protocol):
         refresh: bool = False,
     ) -> None:
         """Every commodity's prices across the galaxy, by key, in one answer."""
+        ...
+
+
+class TradeRoutes(Protocol):
+    """A community source's trade route planner (ADR 0047, ADR 0057), which computes a route as a
+    job; does not block."""
+
+    def plan(
+        self,
+        query: RouteQuery,
+        on_answer: Callable[[Answer[TradeRoute] | Pending], None],
+        *,
+        refresh: bool = False,
+    ) -> None:
+        """Send the query: its route if kept, else the job, ``Pending``."""
+        ...
+
+    def follow(
+        self, query: RouteQuery, job: str, on_answer: Callable[[Answer[TradeRoute] | Pending], None]
+    ) -> None:
+        """Ask for the job's route once: ``Pending`` while the source computes it."""
         ...
 
 

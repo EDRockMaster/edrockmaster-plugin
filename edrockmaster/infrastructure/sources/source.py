@@ -8,6 +8,10 @@ handed to the core thread.
 
 The answer is kept as the source gave it, and read again each time: a parser
 that changes reads the old answers too.
+
+A source may take a request as a job and answer later (ADR 0057): ``follow``
+asks as ``ask`` does, but an answer the parser reads as ``Pending`` is handed on
+and not kept; the job's result, once read, is kept under the same request.
 """
 
 from __future__ import annotations
@@ -19,7 +23,14 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any
 
-from edrockmaster.application.community import Answer, Failed, Found, Source, Unavailable
+from edrockmaster.application.community import (
+    Answer,
+    Failed,
+    Found,
+    Pending,
+    Source,
+    Unavailable,
+)
 from edrockmaster.infrastructure.database import LocalDatabase
 from edrockmaster.infrastructure.sources.http import SourceError
 from edrockmaster.infrastructure.worker import Job
@@ -89,6 +100,25 @@ class CommunitySource:
 
         def job() -> None:
             answer = self._answer(request, fetch, parse, max_age, refresh=refresh)
+            assert not isinstance(answer, Pending), "only a job's parser gives Pending"
+            self._dispatch(lambda: on_answer(answer))
+
+        self._submit(job)
+
+    def follow[T](  # noqa: PLR0913 - as ``ask``
+        self,
+        request: str,
+        fetch: Callable[[], Any],
+        parse: Callable[[Any], T | Pending],
+        max_age: timedelta,
+        on_answer: Callable[[Answer[T] | Pending], None],
+        *,
+        refresh: bool = False,
+    ) -> None:
+        """As ``ask``, for a source that answers with a job: ``Pending`` until its result."""
+
+        def job() -> None:
+            answer = self._answer(request, fetch, parse, max_age, refresh=refresh)
             self._dispatch(lambda: on_answer(answer))
 
         self._submit(job)
@@ -102,15 +132,15 @@ class CommunitySource:
 
         self._submit(job)
 
-    def _answer[T](
+    def _answer[T](  # noqa: PLR0911 - a return for each way the source answers
         self,
         request: str,
         fetch: Callable[[], Any],
-        parse: Callable[[Any], T],
+        parse: Callable[[Any], T | Pending],
         max_age: timedelta,
         *,
         refresh: bool,
-    ) -> Answer[T]:
+    ) -> Answer[T] | Pending:
         if not self._enabled():
             return Failed(self.source, Unavailable.OFF)
         connection = self._database.connection() if self._database.is_open else None
@@ -120,7 +150,7 @@ class CommunitySource:
             return self._read(parse, *cached)
         try:
             answer = fetch()
-            found = Found(parse(answer), self.source, now)
+            value = parse(answer)
         except SourceError as error:
             self._logger.info("%s gave nothing (%s): %s", self.source.value, error.reason, error)
             if cached is None:
@@ -129,19 +159,27 @@ class CommunitySource:
         except (KeyError, TypeError, ValueError) as error:
             self._logger.warning("%s answered in an unknown format: %r", self.source.value, error)
             return Failed(self.source, Unavailable.DOWN)
+        if isinstance(value, Pending):
+            return value  # nothing to keep yet
         if connection is not None:
             store_cached(connection, self.source, request, answer, now)
-        return found
+        return Found(value, self.source, now)
 
     def _read[T](
         self,
-        parse: Callable[[Any], T],
+        parse: Callable[[Any], T | Pending],
         answer: Any,
         read_at: datetime,
         unavailable: Unavailable | None = None,
-    ) -> Answer[T]:
+    ) -> Answer[T] | Pending:
+        """A kept answer: never ``Pending``, which is not kept."""
         try:
-            return Found(parse(answer), self.source, read_at, unavailable)
+            value = parse(answer)
+            return (
+                value
+                if isinstance(value, Pending)
+                else Found(value, self.source, read_at, unavailable)
+            )
         except (KeyError, TypeError, ValueError) as error:
             self._logger.warning("Cached answer of %s unreadable: %r", self.source.value, error)
             return Failed(self.source, unavailable or Unavailable.DOWN)

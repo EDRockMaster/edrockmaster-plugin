@@ -8,6 +8,7 @@ from typing import Any
 
 from edrockmaster.application.community import Failed, Source, Unavailable
 from edrockmaster.application.market_search import MarketSearch
+from edrockmaster.application.route_planner import RoutePlanner
 from edrockmaster.desktop.handlers.context import CoreContext
 from edrockmaster.desktop.handlers.waiting import Done, wait_for_sources
 from edrockmaster.desktop.market_view import (
@@ -24,6 +25,9 @@ from edrockmaster.desktop.trade_view import (
     options_view,
     prices_refused,
     prices_view,
+    route_query,
+    route_refused,
+    route_view,
     station_market_view,
 )
 from edrockmaster.domain.ships import needed_pad
@@ -32,21 +36,30 @@ from edrockmaster.domain.trade.catalogue import CommodityCatalogue
 
 class TradeHandler:
     def __init__(
-        self, context: CoreContext, catalogue: CommodityCatalogue, markets: MarketSearch
+        self,
+        context: CoreContext,
+        catalogue: CommodityCatalogue,
+        markets: MarketSearch,
+        routes: RoutePlanner,
     ) -> None:
         self._context = context
         self._catalogue = catalogue
         self._markets = markets
+        self._routes = routes
 
     def trade_options(self) -> dict[str, Any]:
         """What the tab's forms start from. Reads immutable objects only: any thread."""
         companion = self._context.companion()
         ship = companion.situation.situation.ship
+        situation = companion.situation.situation
         return options_view(
             self._catalogue,
-            system=companion.situation.situation.system,
+            system=situation.system,
+            station=situation.station,
             pad=needed_pad(ship.symbol) if ship else None,
             cargo_capacity=ship.cargo_capacity if ship else None,
+            jump_range=ship.jump_range if ship else None,
+            credits=situation.credits,
             sources=companion.settings.sources,
             translate=self._context.tl,
         )
@@ -135,3 +148,35 @@ class TradeHandler:
 
     def _name(self, key: str) -> str:
         return commodity_name(self._catalogue, key, self._context.tl)
+
+    def plan_route(self, request: Mapping[str, Any]) -> dict[str, Any]:
+        """Send a trade route's request (ADR 0057): the route if kept, else Spansh's job."""
+        try:
+            query = route_query(request)
+        except ValueError as error:
+            self._context.logger.warning("Trade route refused: %s", error)
+            return route_refused("invalid")
+        return wait_for_sources(
+            self._context,
+            lambda done: self._routes.plan(
+                query,
+                lambda progress: done(route_view(progress, self._context.tl)),
+                refresh=refresh(request),
+            ),
+            lambda: route_refused("down"),
+        )
+
+    def follow_route(self, request: Mapping[str, Any]) -> dict[str, Any]:
+        """Ask Spansh once for the route of a job: the interface asks again while pending."""
+        try:
+            query, job = route_query(request), text(request, "job")
+        except ValueError as error:
+            self._context.logger.warning("Trade route refused: %s", error)
+            return route_refused("invalid")
+        return wait_for_sources(
+            self._context,
+            lambda done: self._routes.follow(
+                query, job, lambda progress: done(route_view(progress, self._context.tl))
+            ),
+            lambda: route_refused("down"),
+        )

@@ -8,7 +8,14 @@ from typing import Any
 
 import pytest
 
-from edrockmaster.application.community import Answer, Failed, Found, Source, Unavailable
+from edrockmaster.application.community import (
+    Answer,
+    Failed,
+    Found,
+    Pending,
+    Source,
+    Unavailable,
+)
 from edrockmaster.infrastructure.database import FILE_NAME, LocalDatabase
 from edrockmaster.infrastructure.sources.http import SourceError
 from edrockmaster.infrastructure.sources.source import CommunitySource, read_cached
@@ -121,3 +128,35 @@ def test_without_a_database_the_source_is_asked_each_time(tmp_path: Path) -> Non
     assert setup.ask(lambda: {"value": 1}) == Found(1, Source.ARDENT, NOW)
     assert setup.ask(lambda: {"value": 2}) == Found(2, Source.ARDENT, NOW)
     setup.source.clear()  # nothing to clear
+
+
+def job_answer(answer: Any) -> int | Pending:
+    if answer["status"] == "queued":
+        return Pending(Source.SPANSH, str(answer["job"]))
+    return int(answer["value"])
+
+
+def follow(setup: Setup, fetch: Callable[[], Any], *, refresh: bool = False) -> object:
+    answers: list[Answer[int] | Pending] = []
+    setup.source.follow(
+        "route", fetch, job_answer, timedelta(minutes=15), answers.append, refresh=refresh
+    )
+    return answers[-1]
+
+
+def test_a_job_still_running_is_pending_and_not_kept(setup: Setup) -> None:
+    # Spansh computes a route as a job (ADR 0057): its answer comes later
+    assert follow(setup, lambda: {"status": "queued", "job": "J"}) == Pending(Source.SPANSH, "J")
+    assert read_cached(setup.database.connection(), Source.ARDENT, "route") is None
+
+
+def test_a_job_s_result_is_kept_under_its_request(setup: Setup) -> None:
+    assert follow(setup, lambda: {"status": "ok", "value": 7}, refresh=True) == Found(
+        7, Source.ARDENT, NOW
+    )
+    # Asked again: the result kept, nothing sent
+    assert follow(setup, down) == Found(7, Source.ARDENT, NOW)
+
+
+def test_a_job_with_the_source_down_is_the_failure(setup: Setup) -> None:
+    assert follow(setup, down) == Failed(Source.ARDENT, Unavailable.DOWN)

@@ -96,6 +96,17 @@ def test_a_get_and_a_post_say_who_asks_and_read_json() -> None:
     assert source.timeouts == [15.0, 15.0]
 
 
+def test_a_form_is_posted_as_a_site_posts_it() -> None:
+    # Spansh's route planner takes the form its site sends (ADR 0057)
+    source, clock = FakeSource({"job": "J"}), Clock()
+    assert client(source, clock).post_form(
+        "https://example.org/route", {"system": "Sol", "max_hops": 3}
+    ) == {"job": "J"}
+    [post] = source.requests
+    assert post.data == b"system=Sol&max_hops=3"
+    assert post.get_header("Content-type") == "application/x-www-form-urlencoded"
+
+
 def test_a_gzip_answer_is_read() -> None:
     body = FakeResponse(gzip.compress(b'{"ok": true}'), encoding="gzip")
     assert client(FakeSource(body), Clock()).get("https://example.org") == {"ok": True}

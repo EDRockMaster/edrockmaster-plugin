@@ -2,8 +2,13 @@
 
 from datetime import UTC, datetime
 
-from edrockmaster.application.community import Failed, Found, Source, Unavailable
-from edrockmaster.desktop.trade_view import prices_refused, prices_view, station_market_view
+from edrockmaster.application.community import Failed, Found, Pending, Source, Unavailable
+from edrockmaster.desktop.trade_view import (
+    prices_refused,
+    prices_view,
+    route_view,
+    station_market_view,
+)
 from edrockmaster.domain.commodities import Commodity, GalaxyPrices, PriceRange
 from edrockmaster.domain.trade.journal import Market, MarketLine
 from edrockmaster.domain.trade.station_market import StationMarket
@@ -125,3 +130,16 @@ def test_no_market_while_not_docked_or_not_opened() -> None:
         "market": None,
         "comparison": {"status": "off", "source": "ardent", "readAt": None, "unavailable": None},
     }
+
+
+def test_a_route_spansh_could_not_give() -> None:
+    assert route_view(Failed(Source.SPANSH, Unavailable.BUSY), french) == {
+        "status": "busy",
+        "source": "spansh",
+        "readAt": None,
+        "unavailable": None,
+        "job": None,
+        "hops": [],
+        "profit": 0,
+    }
+    assert route_view(Pending(Source.SPANSH, "J"), french)["job"] == "J"

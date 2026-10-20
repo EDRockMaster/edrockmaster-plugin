@@ -67,6 +67,8 @@ class Situation:
     """The other members of the commander's wing."""
     game_running: bool = False
     route: CurrentRoute | None = None
+    credits: int | None = None
+    """At the game's load (``LoadGame``): the journal gives no running balance."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,6 +111,7 @@ class SituationTracker:
                     group=fact.group,
                     wing=(),
                     game_running=True,
+                    credits=fact.credits if fact.credits is not None else now.credits,
                 )
             case Located(system=system, station=station):
                 return replace(now, system=system, station=station, game_running=True)

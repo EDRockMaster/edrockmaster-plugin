@@ -1,0 +1,160 @@
+{
+  "created_at": "2026-10-20T19:15:48",
+  "job": "A847C390-CCBA-11F1-A196-CA1F9215DF0A",
+  "parameters": {
+    "max_cargo": "720",
+    "max_hop_distance": "30",
+    "max_hops": "3",
+    "max_price_age": "172800",
+    "max_system_distance": "10000000",
+    "requires_large_pad": 1,
+    "starting_capital": "100000000",
+    "starting_station_id": 45534
+  },
+  "result": [
+    {
+      "commodities": [
+        {
+          "amount": 720,
+          "destination_commodity": {
+            "buy_price": 127,
+            "demand": 1,
+            "sell_price": 120,
+            "supply": 729535
+          },
+          "name": "Hydrogen Fuel",
+          "profit": 35,
+          "source_commodity": {
+            "buy_price": 85,
+            "demand": 1,
+            "sell_price": 80,
+            "supply": 1551454
+          },
+          "total_profit": 25200
+        }
+      ],
+      "cumulative_profit": 25200,
+      "destination": {
+        "distance_to_arrival": 2551,
+        "market_id": 4256501763,
+        "market_updated_at": 1792389783,
+        "station": "Finger Ring",
+        "system": "LHS 149",
+        "system_id64": 5069000877473,
+        "x": 1.375,
+        "y": -28.03125,
+        "z": -10.15625
+      },
+      "distance": 29.846122287912,
+      "source": {
+        "distance_to_arrival": 505,
+        "market_id": 128016896,
+        "market_updated_at": 1792519884,
+        "station": "Abraham Lincoln",
+        "system": "Sol",
+        "system_id64": 10477373803,
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "total_profit": 25200
+    },
+    {
+      "commodities": [
+        {
+          "amount": 720,
+          "destination_commodity": {
+            "buy_price": 0,
+            "demand": 0,
+            "sell_price": 29646,
+            "supply": 0
+          },
+          "name": "Bauxite",
+          "profit": 26781,
+          "source_commodity": {
+            "buy_price": 2865,
+            "demand": 1,
+            "sell_price": 2715,
+            "supply": 44695
+          },
+          "total_profit": 19282320
+        }
+      ],
+      "cumulative_profit": 19307520,
+      "destination": {
+        "distance_to_arrival": 1530,
+        "market_id": 3223388416,
+        "market_updated_at": 1792522410,
+        "station": "Wrangell Dock",
+        "system": "Ross 584",
+        "system_id64": 3382387380938,
+        "x": 10.9375,
+        "y": -33.65625,
+        "z": -36.4375
+      },
+      "distance": 28.5269369686355,
+      "source": {
+        "distance_to_arrival": 2551,
+        "market_id": 4256501763,
+        "market_updated_at": 1792389783,
+        "station": "Finger Ring",
+        "system": "LHS 149",
+        "system_id64": 5069000877473,
+        "x": 1.375,
+        "y": -28.03125,
+        "z": -10.15625
+      },
+      "total_profit": 19282320
+    },
+    {
+      "commodities": [
+        {
+          "amount": 720,
+          "destination_commodity": {
+            "buy_price": 0,
+            "demand": 8225474,
+            "sell_price": 18951,
+            "supply": 0
+          },
+          "name": "Cobalt",
+          "profit": 9593,
+          "source_commodity": {
+            "buy_price": 9358,
+            "demand": 1,
+            "sell_price": 8858,
+            "supply": 81836
+          },
+          "total_profit": 6906960
+        }
+      ],
+      "cumulative_profit": 26214480,
+      "destination": {
+        "distance_to_arrival": 72702,
+        "market_id": 3223431680,
+        "market_updated_at": 1792484516,
+        "station": "Grover Terminal",
+        "system": "Borr",
+        "system_id64": 4481899008714,
+        "x": 7.65625,
+        "y": -31.0625,
+        "z": -39.28125
+      },
+      "distance": 5.05777171168292,
+      "source": {
+        "distance_to_arrival": 1530,
+        "market_id": 3223388416,
+        "market_updated_at": 1792522410,
+        "station": "Wrangell Dock",
+        "system": "Ross 584",
+        "system_id64": 3382387380938,
+        "x": 10.9375,
+        "y": -33.65625,
+        "z": -36.4375
+      },
+      "total_profit": 6906960
+    }
+  ],
+  "state": "completed",
+  "status": "ok",
+  "updated_at": "2026-10-20T19:17:15"
+}

@@ -2,7 +2,7 @@
 
 *[English](privacy.md) · Français*
 
-Dernière mise à jour : 20 octobre 2026. S'applique à l'application de bureau EDRockMaster Companion et au plugin EDRockMaster pour EDMarketConnector, publiés par DamScan, un projet personnel et non commercial.
+Dernière mise à jour : 21 octobre 2026. S'applique à l'application de bureau EDRockMaster Companion et au plugin EDRockMaster pour EDMarketConnector, publiés par DamScan, un projet personnel et non commercial.
 
 ## En bref
 
@@ -28,7 +28,7 @@ Tout reste sur votre ordinateur, dans `%LOCALAPPDATA%\EDRockMaster` :
 - **vos objectifs d'ingénierie** (`edrockmaster.sqlite3`) : les blueprints et effets que vous visez, et le nombre de passes ;
 - **un journal technique** (`logs\`) : démarrage et arrêt de l'application, fichier de journal lu, erreurs ; il ne contient aucune statistique de votre partie ;
 - **vos bons non encaissés** (dans `edrockmaster.sqlite3`) : les primes et obligations de combat que vous détenez, par faction et par commandant (par son identifiant Frontier), et les noms des fichiers de journal déjà lus pour cela, afin que chacun ne soit lu qu'une fois ;
-- **les réponses des sources communautaires** (dans `edrockmaster.sqlite3`) : ce que Spansh et Ardent Insight ont publié en réponse à vos recherches (anneaux, marchés, prix), réutilisé un temps au lieu de redemander ; rien sur vous ;
+- **les réponses des sources communautaires** (dans `edrockmaster.sqlite3`) : ce que Spansh et Ardent Insight ont publié en réponse à vos recherches (anneaux, marchés, prix, routes commerciales), réutilisé un temps au lieu de redemander ; rien sur vous (une route commerciale est gardée sous une empreinte de sa requête, sans vos crédits) ;
 - **des enregistrements du journal** (`recordings\`), **seulement si vous les activez** (désactivés par défaut) : des copies d'entrées du journal, à joindre à un signalement de bogue si vous le souhaitez.
 
 Hormis vos bons non encaissés, les statistiques de vos sessions et votre situation (commandant, vaisseau, position, escadrille) ne sont **qu'en mémoire**, reconstruites depuis le journal à chaque démarrage de l'application, et jamais écrites nulle part.
@@ -43,7 +43,7 @@ Hormis vos bons non encaissés, les statistiques de vos sessions et votre situat
 
 **Vos recherches, à des outils communautaires, et seulement quand vous les faites.** Les onglets *Minage* et *Commerce* et le bouton *Estimer la soute* demandent à deux outils communautaires indépendants ce que le journal ne dit pas :
 
-- **Spansh** (`spansh.co.uk`), pour les anneaux et leurs hotspots autour d'un système : il reçoit la marchandise, le nom du système et vos filtres ;
+- **Spansh** (`spansh.co.uk`), pour les anneaux et leurs hotspots autour d'un système : il reçoit la marchandise, le nom du système et vos filtres ; pour une route commerciale (onglet *Commerce*), le système et la station de départ, la capacité de soute de votre vaisseau, **les crédits indiqués dans le formulaire** (remplis avec vos crédits au chargement du jeu, que vous pouvez changer avant de demander) et vos filtres ;
 - **Ardent Insight** (`ardent-insight.com`), pour les marchés qui achètent ou vendent une marchandise : il reçoit la marchandise, le nom du système, la distance et la demande ou le stock minimum choisis (l'onglet *Commerce* le remplit avec la capacité de soute de votre vaisseau) ; pour une estimation, une requête par marchandise de votre soute de minage (carte de minage) ou de toute votre soute (onglet *Commerce*), autour de votre système actuel. Pour les prix d'une marchandise dans la galaxie, ou pour leur comparer le marché de la station (onglet *Commerce*), il ne reçoit rien de vous : une requête donne les prix de toutes les marchandises, demandée au plus une fois par jour sauf si vous actualisez.
 
 Rien d'autre n'est envoyé : ni le nom de votre commandant, ni vos statistiques. Comme tout site web, ils voient l'adresse IP de votre ordinateur et l'heure. Ce sont des projets bénévoles tenus par d'autres joueurs, sans politique de confidentialité de leur part à notre connaissance. Chacun se désactive dans *Réglages*, *Sources communautaires* ; désactivé, il n'est jamais interrogé, et ce qu'il avait répondu est oublié.

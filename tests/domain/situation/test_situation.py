@@ -157,6 +157,17 @@ def test_the_loadout_gives_the_cargo_capacity() -> None:
     assert renamed_ship.cargo_capacity == 720
 
 
+def test_the_loadout_gives_the_jump_range_and_load_game_the_credits() -> None:
+    # For the trade routes' form (ADR 0057)
+    loadout = {"event": "Loadout", "Ship": "type9", "ShipName": "", "MaxJumpRange": 18.47}
+    situation = situation_after({**LOAD_GAME, "Credits": 123_456_789}, loadout)
+    assert situation.ship is not None
+    assert situation.ship.jump_range == 18.47
+    assert situation.credits == 123_456_789
+    # A LoadGame without credits leaves them
+    assert situation_after({**LOAD_GAME, "Credits": 5}, LOAD_GAME).credits == 5
+
+
 def test_renaming_the_ship() -> None:
     renamed = {"event": "SetUserShipName", "UserShipName": "Nova", "UserShipId": "NV-1"}
     assert situation_after(renamed).ship is None  # no ship known yet

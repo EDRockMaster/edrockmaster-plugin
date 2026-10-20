@@ -2,7 +2,7 @@
 
 *English · [Français](privacy.fr.md)*
 
-Last updated: 20 October 2026. Applies to the EDRockMaster Companion desktop application and to the EDRockMaster plugin for EDMarketConnector, published by DamScan, a personal and non-commercial project.
+Last updated: 21 October 2026. Applies to the EDRockMaster Companion desktop application and to the EDRockMaster plugin for EDMarketConnector, published by DamScan, a personal and non-commercial project.
 
 ## In short
 
@@ -28,7 +28,7 @@ Everything stays on your computer, in `%LOCALAPPDATA%\EDRockMaster`:
 - **your engineering goals** (`edrockmaster.sqlite3`): the blueprints and effects you aim at, and how many rolls;
 - **a technical log** (`logs\`): when the application starts and stops, which journal file it reads, errors; it holds no statistics of your play;
 - **your unredeemed vouchers** (in `edrockmaster.sqlite3`): the bounties and combat bonds you hold, per faction and commander (by their Frontier id), and the names of the journal files already read for them, so that each is read only once;
-- **answers of the community sources** (in `edrockmaster.sqlite3`): what Spansh and Ardent Insight published in answer to your searches (rings, markets, prices), reused for a while instead of asking again; nothing about you;
+- **answers of the community sources** (in `edrockmaster.sqlite3`): what Spansh and Ardent Insight published in answer to your searches (rings, markets, prices, trade routes), reused for a while instead of asking again; nothing about you (a trade route is kept under a digest of its request, without your credits);
 - **journal recordings** (`recordings\`), **only if you turn them on** (off by default): copies of journal entries, for you to send with a bug report if you wish.
 
 Apart from your unredeemed vouchers, your session statistics and your situation (commander, ship, location, wing) are **only in memory**, rebuilt from the journal each time the application starts, and never written anywhere.
@@ -43,7 +43,7 @@ Apart from your unredeemed vouchers, your session statistics and your situation 
 
 **Your searches, to community tools, and only when you make them.** The *Mining* and *Trade* tabs and the *Estimate the cargo* button ask two independent community tools for what the journal does not tell:
 
-- **Spansh** (`spansh.co.uk`), for the rings and their hotspots around a system: it receives the commodity, the system's name and your filters;
+- **Spansh** (`spansh.co.uk`), for the rings and their hotspots around a system: it receives the commodity, the system's name and your filters; for a trade route (*Trade* tab), the starting system and station, your ship's cargo capacity, **the credits entered in the form** (filled with your credits at the game's load, which you can change before asking) and your filters;
 - **Ardent Insight** (`ardent-insight.com`), for the markets that buy or sell a commodity: it receives the commodity, the system's name, the distance and the least demand or stock you set (the *Trade* tab fills it with your ship's cargo capacity); for an estimate, one request per commodity of your mining cargo (mining card) or of all your cargo (*Trade* tab), around your current system. For the galaxy's prices of a commodity, or to compare the station's market with them (*Trade* tab), it receives nothing of yours: one request gives every commodity's prices, asked at most once a day unless you refresh.
 
 Nothing else is sent: not your commander's name, nor your statistics. As with any web site, they see your computer's IP address and the time. They are hobby projects run by other players, under no privacy policy of theirs that we know of. Each can be turned off in *Settings*, *Community sources*; turned off, it is never asked, and what it answered is forgotten.

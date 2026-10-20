@@ -1,7 +1,7 @@
 /* Generated from edrockmaster/desktop/schemas/trade.schema.json by 'pnpm types': do not edit. */
 
 /**
- * The Trade tab (ADR 0047): trade_options() returns TradeOptions; galaxy_prices(PricesRequest) returns PricesAnswer; station_market(StationMarketRequest) returns StationMarketAnswer; where to buy and sell is find_markets (markets.schema.json). Names in the player's language.
+ * The Trade tab (ADR 0047): trade_options() returns TradeOptions; galaxy_prices(PricesRequest) returns PricesAnswer; station_market(StationMarketRequest) returns StationMarketAnswer; plan_route(RouteRequest) and follow_route(RouteRequest with its job) return RouteAnswer (ADR 0057); where to buy and sell, and the cargo's worth, are find_markets and estimate_cargo (markets.schema.json). Names in the player's language.
  */
 export interface TradeTab {
   TradeOptions?: TradeOptions;
@@ -9,6 +9,8 @@ export interface TradeTab {
   PricesAnswer?: PricesAnswer;
   StationMarketRequest?: StationMarketRequest;
   StationMarketAnswer?: StationMarketAnswer;
+  RouteRequest?: RouteRequest;
+  RouteAnswer?: RouteAnswer;
   [k: string]: unknown;
 }
 export interface TradeOptions {
@@ -21,6 +23,10 @@ export interface TradeOptions {
    */
   system: string | null;
   /**
+   * The station the commander is docked at, if any.
+   */
+  station: string | null;
+  /**
    * The pad the ship needs; null until the journal names the ship.
    */
   pad: "small" | "medium" | "large" | null;
@@ -28,11 +34,23 @@ export interface TradeOptions {
    * The ship's cargo capacity in tonnes, from its loadout.
    */
   cargoCapacity: number | null;
+  /**
+   * The ship's jump range unladen, in light years, from its loadout.
+   */
+  jumpRange: number | null;
+  /**
+   * The commander's credits at the game's load: the journal gives no running balance.
+   */
+  credits: number | null;
   sources: {
     /**
      * Whether the player lets the application ask Ardent Insight.
      */
     ardent: boolean;
+    /**
+     * Whether the player lets the application ask Spansh.
+     */
+    spansh: boolean;
   };
 }
 export interface CommodityCategory {
@@ -178,4 +196,97 @@ export interface StationMarketLine {
      */
     gap: number | null;
   };
+}
+export interface RouteRequest {
+  system: string;
+  /**
+   * Where the route starts.
+   */
+  station: string;
+  cargoCapacity: number;
+  /**
+   * What the player may spend on the first purchase: sent to Spansh.
+   */
+  credits: number;
+  maxHops: number;
+  /**
+   * Light years per hop.
+   */
+  maxHopDistance: number;
+  pad: "small" | "medium" | "large" | null;
+  /**
+   * The oldest prices accepted, in days.
+   */
+  maxPriceDays: number;
+  planetary: boolean;
+  carriers: boolean;
+  refresh?: boolean;
+  /**
+   * follow_route only: the job plan_route answered.
+   */
+  job?: string;
+}
+export interface RouteAnswer {
+  /**
+   * found: the route (now or from the cache); pending: Spansh is computing it, ask follow_route with the job; off, busy, down: Spansh gave nothing (ADR 0039); invalid: the form was refused.
+   */
+  status: "found" | "pending" | "off" | "busy" | "down" | "invalid";
+  /**
+   * The source that answered, or would have.
+   */
+  source: "spansh" | "ardent" | null;
+  /**
+   * When the source was read (UTC): now, or when the cached answer was.
+   */
+  readAt: string | null;
+  /**
+   * Set when the source failed and the cache answered.
+   */
+  unavailable: "off" | "busy" | "down" | null;
+  /**
+   * While pending: Spansh's job.
+   */
+  job: string | null;
+  hops: {
+    source: RouteStation;
+    destination: RouteStation;
+    /**
+     * Light years.
+     */
+    distance: number;
+    profit: number;
+    commodities: {
+      name: string;
+      tons: number;
+      /**
+       * Credits per tonne at the hop's start.
+       */
+      buyPrice: number;
+      /**
+       * Credits per tonne at the hop's end.
+       */
+      sellPrice: number;
+      /**
+       * Credits per tonne.
+       */
+      profit: number;
+      totalProfit: number;
+    }[];
+  }[];
+  /**
+   * The route's hops together.
+   */
+  profit: number;
+}
+export interface RouteStation {
+  station: string;
+  system: string;
+  /**
+   * Light seconds from the arrival point.
+   */
+  arrival: number | null;
+  /**
+   * When Spansh last saw the station's prices (UTC).
+   */
+  pricesUpdated: string | null;
 }

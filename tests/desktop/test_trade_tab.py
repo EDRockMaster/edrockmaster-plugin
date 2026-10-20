@@ -47,7 +47,8 @@ def test_the_commodities_by_category_in_the_player_s_language(trade: Mining) -> 
     rare = next(row for row in categories["legal_drugs"]["commodities"] if row["rare"])
     assert rare["name"]
     assert (options["system"], options["pad"], options["cargoCapacity"]) == (None, None, None)
-    assert options["sources"] == {"ardent": True}
+    assert (options["station"], options["jumpRange"], options["credits"]) == (None, None, None)
+    assert options["sources"] == {"ardent": True, "spansh": True}
     assert trade.sources.requests == []  # nothing asked to show the tab
 
 
@@ -71,8 +72,15 @@ def test_the_ship_s_pad_and_cargo_capacity_from_the_journal(tmp_path: Path) -> N
     started.core.start()
     try:
         lines = [
-            journal_line("Location", StarSystem="Sol", SystemAddress=10477373803),
-            journal_line("Loadout", Ship="type9", ShipID=1, CargoCapacity=720),
+            journal_line("LoadGame", Commander="Nyx", Ship="type9", Credits=123_456),
+            journal_line(
+                "Location",
+                StarSystem="Sol",
+                SystemAddress=10477373803,
+                Docked=True,
+                StationName="Abraham Lincoln",
+            ),
+            journal_line("Loadout", Ship="type9", ShipID=1, CargoCapacity=720, MaxJumpRange=18.5),
         ]
         (folder / "Journal.2026-10-12T080000.01.log").write_text("".join(lines), newline="")
         options: dict[str, Any] = {}
@@ -85,6 +93,11 @@ def test_the_ship_s_pad_and_cargo_capacity_from_the_journal(tmp_path: Path) -> N
     finally:
         started.core.stop()
     assert (options["system"], options["pad"], options["cargoCapacity"]) == ("Sol", "large", 720)
+    assert (options["station"], options["jumpRange"], options["credits"]) == (
+        "Abraham Lincoln",
+        18.5,
+        123_456,
+    )
 
 
 def test_the_galaxy_s_prices_of_a_commodity(trade: Mining) -> None:
@@ -209,3 +222,46 @@ def test_the_ship_s_cargo_at_the_best_markets(tmp_path: Path) -> None:
         )["status"]
         == "invalid"
     )
+
+
+ROUTE = {
+    "system": "Sol",
+    "station": "Abraham Lincoln",
+    "cargoCapacity": 720,
+    "credits": 100_000_000,
+    "maxHops": 3,
+    "maxHopDistance": 30,
+    "pad": "large",
+    "maxPriceDays": 2,
+    "planetary": False,
+    "carriers": False,
+}
+
+
+def test_a_trade_route_planned_then_followed(trade: Mining) -> None:
+    handler = trade.core.handlers.trade
+    pending = validate("trade", "RouteAnswer", handler.plan_route(ROUTE))
+    assert (pending["status"], pending["source"]) == ("pending", "spansh")
+    job = pending["job"]
+    computing = validate("trade", "RouteAnswer", handler.follow_route({**ROUTE, "job": job}))
+    assert computing["status"] == "pending"  # Spansh still computing
+    route = validate("trade", "RouteAnswer", handler.follow_route({**ROUTE, "job": job}))
+    assert (route["status"], len(route["hops"]), route["profit"]) == ("found", 3, 26_214_480)
+    first = route["hops"][0]
+    assert first["commodities"][0]["name"] == "Carburant à base d'hydrogène"
+    assert first["source"]["pricesUpdated"] == "2026-10-20T18:11:24+00:00"
+    sent = [request.full_url for request in trade.sources.requests]
+    assert sent[0] == "https://spansh.co.uk/api/trade/route"
+    assert sent[1:] == [f"https://spansh.co.uk/api/results/{job}"] * 2
+    # Asked again within 15 minutes: the route kept, nothing sent
+    assert handler.plan_route(ROUTE)["status"] == "found"
+    assert len(trade.sources.requests) == 3
+
+
+def test_a_route_form_not_valid_is_refused(trade: Mining) -> None:
+    for change in ({"maxHops": 11}, {"pad": "huge"}, {"planetary": "no"}, {"credits": -1}):
+        answer = trade.core.handlers.trade.plan_route({**ROUTE, **change})
+        assert validate("trade", "RouteAnswer", answer)["status"] == "invalid"
+    answer = trade.core.handlers.trade.follow_route(ROUTE)  # no job
+    assert answer["status"] == "invalid"
+    assert trade.sources.requests == []

@@ -139,6 +139,12 @@ class InterfaceApi:
     def estimate_cargo(self, request: dict[str, Any]) -> dict[str, Any]:
         return self._core.handlers.trade.estimate_cargo(request)
 
+    def plan_route(self, request: dict[str, Any]) -> dict[str, Any]:
+        return self._core.handlers.trade.plan_route(request)
+
+    def follow_route(self, request: dict[str, Any]) -> dict[str, Any]:
+        return self._core.handlers.trade.follow_route(request)
+
     # The phone and tablet (ADR 0055): answered at once, the local server started or stopped
 
     def phone(self) -> dict[str, Any]:

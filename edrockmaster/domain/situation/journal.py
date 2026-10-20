@@ -39,6 +39,8 @@ class Ship:
     """The registration the player gave it."""
     cargo_capacity: int | None = None
     """Tonnes, from ``Loadout``; ``None`` until the journal gives it."""
+    jump_range: float | None = None
+    """Light years, unladen, from ``Loadout``; ``None`` until the journal gives it."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,6 +58,7 @@ class GameLoaded:
     group: str | None
     on_foot: bool = False
     """Loaded on foot: the journal then names the suit worn in place of a ship."""
+    credits: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -238,7 +241,16 @@ def _loaded(entry: Entry, at: datetime) -> GameLoaded:
     )
     mode = _MODES.get((_text(entry, "GameMode") or "").lower())
     group = _text(entry, "Group") if mode is GameMode.GROUP else None
-    return GameLoaded(at, _text(entry, "Commander"), ship, mode, group, on_foot)
+    credits = entry.get("Credits")
+    return GameLoaded(
+        at,
+        _text(entry, "Commander"),
+        ship,
+        mode,
+        group,
+        on_foot,
+        credits if isinstance(credits, int) and not isinstance(credits, bool) else None,
+    )
 
 
 def _located(entry: Entry, at: datetime) -> Located:
@@ -283,6 +295,7 @@ def _loadout(entry: Entry, at: datetime) -> ShipChanged:
             _text(entry, "ShipName"),
             _text(entry, "ShipIdent"),
             _capacity(entry),
+            number(entry, "MaxJumpRange"),
         ),
     )
 
