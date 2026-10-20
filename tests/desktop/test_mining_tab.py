@@ -22,6 +22,7 @@ SOURCES = Path(__file__).resolve().parents[1] / "fixtures" / "sources"
 SPANSH = json.loads((SOURCES / "spansh-bodies-search-painite-borann-2026-10-11.json").read_text())
 ARDENT = json.loads((SOURCES / "ardent-nearby-imports-painite-borann-2026-10-11.json").read_text())
 EXPORTS = json.loads((SOURCES / "ardent-nearby-exports-gold-sol-2026-10-20.json").read_text())
+PRICES = json.loads((SOURCES / "ardent-commodities-2026-10-20.json").read_text())
 NOW = datetime(2026, 10, 12, 9, 0, tzinfo=UTC)
 logger = logging.getLogger("test.mining_tab")
 
@@ -51,7 +52,7 @@ def valid(definition: str, view: dict[str, Any]) -> dict[str, Any]:
 
 
 class Sources:
-    """Spansh and Ardent (importers and exporters) as recorded; ``down`` makes them
+    """Spansh and Ardent (importers, exporters and prices) as recorded; ``down`` makes them
     unreachable."""
 
     def __init__(self) -> None:
@@ -66,7 +67,15 @@ class Sources:
         if self.down:
             raise urllib.error.URLError("no network")
         url = request.full_url
-        answer = SPANSH if "spansh" in url else EXPORTS if "/nearby/exports" in url else ARDENT
+        answer = (
+            SPANSH
+            if "spansh" in url
+            else EXPORTS
+            if "/nearby/exports" in url
+            else PRICES
+            if url.endswith("/commodities")
+            else ARDENT
+        )
         return FakeResponse(json.dumps(answer).encode())
 
 

@@ -84,3 +84,37 @@ def test_the_ship_s_pad_and_cargo_capacity_from_the_journal(tmp_path: Path) -> N
     finally:
         started.core.stop()
     assert (options["system"], options["pad"], options["cargoCapacity"]) == ("Sol", "large", 720)
+
+
+def test_the_galaxy_s_prices_of_a_commodity(trade: Mining) -> None:
+    handler = trade.core.handlers.trade
+    answer = validate("trade", "PricesAnswer", handler.galaxy_prices({"commodity": "gold"}))
+    assert (answer["status"], answer["source"]) == ("found", "ardent")
+    assert answer["buy"] == {"lowest": 3800, "average": 44779, "highest": 59270}
+    assert answer["sell"] == {"lowest": 3799, "average": 47791, "highest": 282678}
+    assert answer["computedAt"] == "2026-09-07T03:00:43.257000+00:00"
+    # Another commodity: the answer kept a day, nothing asked again
+    painite = validate("trade", "PricesAnswer", handler.galaxy_prices({"commodity": "painite"}))
+    assert (painite["buy"], painite["sell"]["average"]) == (None, 56364)
+    assert len(trade.sources.requests) == 1
+    handler.galaxy_prices({"commodity": "painite", "refresh": True})
+    assert len(trade.sources.requests) == 2
+
+
+def test_prices_the_source_does_not_know(trade: Mining) -> None:
+    handler = trade.core.handlers.trade
+    answer = validate("trade", "PricesAnswer", handler.galaxy_prices({"commodity": "tea"}))
+    assert (answer["status"], answer["buy"], answer["sell"], answer["computedAt"]) == (
+        "found",
+        None,
+        None,
+        None,
+    )
+    refused = validate("trade", "PricesAnswer", handler.galaxy_prices({"commodity": " "}))
+    assert refused["status"] == "invalid"
+
+
+def test_prices_with_the_source_down(trade: Mining) -> None:
+    trade.sources.down = True
+    answer = trade.core.handlers.trade.galaxy_prices({"commodity": "gold"})
+    assert (validate("trade", "PricesAnswer", answer)["status"], answer["buy"]) == ("down", None)

@@ -1,5 +1,6 @@
 """Ardent Insight, as ``CommodityMarkets`` (ADR 0039, ADR 0040, ADR 0047): the markets that
-buy a commodity near a system (``nearby/imports``), and those that sell it (``nearby/exports``).
+buy a commodity near a system (``nearby/imports``), those that sell it (``nearby/exports``),
+and every commodity's prices across the galaxy (``commodities``, one answer for all).
 
 Its routes are documented in the README of ``github.com/iaincollins/ardent-api``:
 anonymous, no rate limit enforced, respectful use appreciated.
@@ -9,18 +10,26 @@ from __future__ import annotations
 
 import math
 import urllib.parse
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
 from edrockmaster.application.community import Answer
-from edrockmaster.domain.commodities import MarketOffer, MarketQuery, Side
+from edrockmaster.domain.commodities import (
+    GalaxyPrices,
+    MarketOffer,
+    MarketQuery,
+    PriceRange,
+    Side,
+)
 from edrockmaster.domain.ships import PadSize
 from edrockmaster.infrastructure.sources.http import SourceClient
 from edrockmaster.infrastructure.sources.source import CommunitySource
 
 API = "https://api.ardent-insight.com/v2"
 MARKETS_MAX_AGE = timedelta(hours=1)
+PRICES = f"{API}/commodities"
+PRICES_MAX_AGE = timedelta(days=1)
 CARRIER = "FleetCarrier"
 _ROUTES = {Side.SELL: "imports", Side.BUY: "exports"}
 _PRICES = {Side.SELL: "sellPrice", Side.BUY: "buyPrice"}
@@ -66,6 +75,28 @@ def read_offers(answer: Sequence[Any], side: Side) -> tuple[MarketOffer, ...]:
     )
 
 
+def _range(item: Mapping[str, Any], prices: str) -> PriceRange | None:
+    """``prices``: ``BuyPrice`` or ``SellPrice``; Ardent leaves them empty when no market
+    sells (or buys) the commodity."""
+    lowest, average, highest = (item[f"{bound}{prices}"] for bound in ("min", "avg", "max"))
+    if lowest is None or average is None or highest is None:
+        return None
+    return PriceRange(int(lowest), int(average), int(highest))
+
+
+def read_prices(answer: Sequence[Any]) -> dict[str, GalaxyPrices]:
+    """Every commodity's prices, by Ardent's name: the catalogue's key, or for some an
+    English name the catalogue does not use."""
+    return {
+        str(item["commodityName"]): GalaxyPrices(
+            buy=_range(item, "BuyPrice"),
+            sell=_range(item, "SellPrice"),
+            computed_at=datetime.fromisoformat(str(item["timestamp"])),
+        )
+        for item in answer
+    }
+
+
 class ArdentMarkets:
     def __init__(self, source: CommunitySource, client: SourceClient) -> None:
         self._source = source
@@ -84,6 +115,21 @@ class ArdentMarkets:
             lambda: self._client.get(url),
             lambda answer: read_offers(answer, query.side),
             MARKETS_MAX_AGE,
+            on_answer,
+            refresh=refresh,
+        )
+
+    def find_prices(
+        self,
+        on_answer: Callable[[Answer[Mapping[str, GalaxyPrices]]], None],
+        *,
+        refresh: bool = False,
+    ) -> None:
+        self._source.ask(
+            PRICES,
+            lambda: self._client.get(PRICES),
+            read_prices,
+            PRICES_MAX_AGE,
             on_answer,
             refresh=refresh,
         )

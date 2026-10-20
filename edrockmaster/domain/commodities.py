@@ -3,7 +3,8 @@
 A market offer serves both ways (ADR 0047): the markets that buy a commodity, where
 the player sells it, and those that sell it, where the player buys it. The filters a
 source cannot apply are applied here (ADR 0040), so that what the player sees does
-not depend on the source that answered.
+not depend on the source that answered. The galaxy's prices of a commodity help judge
+an offer.
 """
 
 from __future__ import annotations
@@ -148,6 +149,27 @@ class MarketOffer:
     updated: datetime
     """When the source last saw the price."""
     is_carrier: bool
+
+
+@dataclass(frozen=True, slots=True)
+class PriceRange:
+    """Credits per tonne across the markets a source knows."""
+
+    lowest: int
+    average: int
+    highest: int
+
+
+@dataclass(frozen=True, slots=True)
+class GalaxyPrices:
+    """A commodity's prices across the galaxy, as a source computes them."""
+
+    buy: PriceRange | None
+    """What the markets ask; ``None`` when none sells the commodity."""
+    sell: PriceRange | None
+    """What the markets pay; ``None`` when none buys it."""
+    computed_at: datetime
+    """When the source computed them, from the prices it had seen."""
 
 
 @dataclass(frozen=True, slots=True)

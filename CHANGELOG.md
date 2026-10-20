@@ -8,7 +8,7 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ### Added
 
-- **A Trade tab** (design decision ADR 0047): every commodity of the game, by category (chemicals, metals, minerals…, the rare goods marked), and a field to find one by name. Choose one: *Where to buy* and *Where to sell* search the markets around your current system (Ardent Insight, as the Mining tab does), the best price first, with your ship's landing pad and, as the least stock or demand, its cargo capacity; all can be changed before searching. Next to come in this tab: the galaxy's price range, the station's market, your cargo to sell, trade routes.
+- **A Trade tab** (design decision ADR 0047): every commodity of the game, by category (chemicals, metals, minerals…, the rare goods marked), and a field to find one by name. Choose one: *Where to buy* and *Where to sell* search the markets around your current system (Ardent Insight, as the Mining tab does), the best price first, with your ship's landing pad and, as the least stock or demand, its cargo capacity; all can be changed before searching. Above them, the commodity **across the galaxy**: the lowest, average and highest price the markets ask and pay, to judge an offer (Ardent Insight, one answer for every commodity, kept a day). Next to come in this tab: the station's market, your cargo to sell, trade routes.
 
 ### Changed
 

@@ -2,11 +2,17 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://edrm.space/schemas/desktop/trade.schema.json",
   "title": "TradeTab",
-  "description": "The Trade tab (ADR 0047): trade_options() returns TradeOptions; where to buy and sell is find_markets (markets.schema.json). Names in the player's language.",
+  "description": "The Trade tab (ADR 0047): trade_options() returns TradeOptions; galaxy_prices(PricesRequest) returns PricesAnswer; where to buy and sell is find_markets (markets.schema.json). Names in the player's language.",
   "type": "object",
   "properties": {
     "TradeOptions": {
       "$ref": "#/$defs/TradeOptions"
+    },
+    "PricesRequest": {
+      "$ref": "#/$defs/PricesRequest"
+    },
+    "PricesAnswer": {
+      "$ref": "#/$defs/PricesAnswer"
     }
   },
   "$defs": {
@@ -107,6 +113,126 @@
               }
             }
           }
+        }
+      }
+    },
+    "PricesRequest": {
+      "title": "PricesRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "commodity"
+      ],
+      "properties": {
+        "commodity": {
+          "type": "string",
+          "description": "The commodity's key (gold, lowtemperaturediamond)."
+        },
+        "refresh": {
+          "type": "boolean"
+        }
+      }
+    },
+    "PricesAnswer": {
+      "title": "PricesAnswer",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "source",
+        "readAt",
+        "unavailable",
+        "buy",
+        "sell",
+        "computedAt"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "found",
+            "off",
+            "busy",
+            "down",
+            "invalid"
+          ],
+          "description": "found: the source answered (now or from the cache); off, busy, down: it gave nothing (ADR 0039); invalid: the request was refused."
+        },
+        "source": {
+          "enum": [
+            "spansh",
+            "ardent",
+            null
+          ],
+          "description": "The source that answered, or would have."
+        },
+        "readAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "When the source was read (UTC): now, or when the cached answer was."
+        },
+        "unavailable": {
+          "enum": [
+            "off",
+            "busy",
+            "down",
+            null
+          ],
+          "description": "Set when the source failed and the cache answered."
+        },
+        "buy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PriceRange"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "What the markets ask; null when none sells the commodity, or the source does not know it."
+        },
+        "sell": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PriceRange"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "What the markets pay; null when none buys the commodity, or the source does not know it."
+        },
+        "computedAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "When the source computed the prices (UTC); null without prices."
+        }
+      }
+    },
+    "PriceRange": {
+      "title": "PriceRange",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lowest",
+        "average",
+        "highest"
+      ],
+      "description": "Credits per tonne across the markets the source knows.",
+      "properties": {
+        "lowest": {
+          "type": "integer"
+        },
+        "average": {
+          "type": "integer"
+        },
+        "highest": {
+          "type": "integer"
         }
       }
     }

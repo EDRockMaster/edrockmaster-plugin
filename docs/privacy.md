@@ -42,7 +42,7 @@ Apart from your unredeemed vouchers, your session statistics and your situation 
 **Your searches, to community tools, and only when you make them.** The *Mining* and *Trade* tabs and the *Estimate the cargo* button ask two independent community tools for what the journal does not tell:
 
 - **Spansh** (`spansh.co.uk`), for the rings and their hotspots around a system: it receives the commodity, the system's name and your filters;
-- **Ardent Insight** (`ardent-insight.com`), for the markets that buy or sell a commodity: it receives the commodity, the system's name, the distance and the least demand or stock you set (the *Trade* tab fills it with your ship's cargo capacity); for an estimate, one request per commodity of your mining cargo, around your current system.
+- **Ardent Insight** (`ardent-insight.com`), for the markets that buy or sell a commodity: it receives the commodity, the system's name, the distance and the least demand or stock you set (the *Trade* tab fills it with your ship's cargo capacity); for an estimate, one request per commodity of your mining cargo, around your current system. For the galaxy's prices of a commodity (*Trade* tab), it receives nothing of yours: one request gives every commodity's prices, asked at most once a day unless you refresh.
 
 Nothing else is sent: not your commander's name, nor your statistics. As with any web site, they see your computer's IP address and the time. They are hobby projects run by other players, under no privacy policy of theirs that we know of. Each can be turned off in *Settings*, *Community sources*; turned off, it is never asked, and what it answered is forgotten.
 

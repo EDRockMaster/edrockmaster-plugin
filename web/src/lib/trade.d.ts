@@ -1,10 +1,12 @@
 /* Generated from edrockmaster/desktop/schemas/trade.schema.json by 'pnpm types': do not edit. */
 
 /**
- * The Trade tab (ADR 0047): trade_options() returns TradeOptions; where to buy and sell is find_markets (markets.schema.json). Names in the player's language.
+ * The Trade tab (ADR 0047): trade_options() returns TradeOptions; galaxy_prices(PricesRequest) returns PricesAnswer; where to buy and sell is find_markets (markets.schema.json). Names in the player's language.
  */
 export interface TradeTab {
   TradeOptions?: TradeOptions;
+  PricesRequest?: PricesRequest;
+  PricesAnswer?: PricesAnswer;
   [k: string]: unknown;
 }
 export interface TradeOptions {
@@ -45,4 +47,49 @@ export interface CommodityCategory {
     name: string;
     rare: boolean;
   }[];
+}
+export interface PricesRequest {
+  /**
+   * The commodity's key (gold, lowtemperaturediamond).
+   */
+  commodity: string;
+  refresh?: boolean;
+}
+export interface PricesAnswer {
+  /**
+   * found: the source answered (now or from the cache); off, busy, down: it gave nothing (ADR 0039); invalid: the request was refused.
+   */
+  status: "found" | "off" | "busy" | "down" | "invalid";
+  /**
+   * The source that answered, or would have.
+   */
+  source: "spansh" | "ardent" | null;
+  /**
+   * When the source was read (UTC): now, or when the cached answer was.
+   */
+  readAt: string | null;
+  /**
+   * Set when the source failed and the cache answered.
+   */
+  unavailable: "off" | "busy" | "down" | null;
+  /**
+   * What the markets ask; null when none sells the commodity, or the source does not know it.
+   */
+  buy: PriceRange | null;
+  /**
+   * What the markets pay; null when none buys the commodity, or the source does not know it.
+   */
+  sell: PriceRange | null;
+  /**
+   * When the source computed the prices (UTC); null without prices.
+   */
+  computedAt: string | null;
+}
+/**
+ * Credits per tonne across the markets the source knows.
+ */
+export interface PriceRange {
+  lowest: number;
+  average: number;
+  highest: number;
 }

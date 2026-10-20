@@ -1,5 +1,5 @@
 """The Trade tab's calls (ADR 0047), and where to buy and sell for both tabs: each search waits
-for the sources' answer (``waiting.py``)."""
+for the sources' answer (``waiting.py``), as do the galaxy's prices."""
 
 from __future__ import annotations
 
@@ -14,8 +14,9 @@ from edrockmaster.desktop.market_view import (
     markets_refused,
     markets_view,
     refresh,
+    text,
 )
-from edrockmaster.desktop.trade_view import options_view
+from edrockmaster.desktop.trade_view import options_view, prices_refused, prices_view
 from edrockmaster.domain.ships import needed_pad
 from edrockmaster.domain.trade.catalogue import CommodityCatalogue
 
@@ -54,4 +55,19 @@ class TradeHandler:
                 query, lambda answer: done(markets_view(answer)), refresh=refresh(request)
             ),
             lambda: markets_refused("down"),
+        )
+
+    def galaxy_prices(self, request: Mapping[str, Any]) -> dict[str, Any]:
+        """A commodity's lowest, average and highest prices across the galaxy."""
+        try:
+            commodity = text(request, "commodity")
+        except ValueError as error:
+            self._context.logger.warning("Prices refused: %s", error)
+            return prices_refused("invalid")
+        return wait_for_sources(
+            self._context,
+            lambda done: self._markets.find_prices(
+                commodity, lambda answer: done(prices_view(answer)), refresh=refresh(request)
+            ),
+            lambda: prices_refused("down"),
         )

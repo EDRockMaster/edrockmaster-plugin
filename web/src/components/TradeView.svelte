@@ -1,10 +1,12 @@
 <script lang="ts">
-  // The Trade tab (ADR 0047): the commodities by category, then where to buy and where to sell
-  // the one chosen, around the current system (the market search shared with the Mining tab).
+  // The Trade tab (ADR 0047): the commodities by category, then the galaxy's prices of the one
+  // chosen, and where to buy and where to sell it around the current system (the market search
+  // shared with the Mining tab).
   import { core } from "../lib/bridge";
   import { t, type Language } from "../lib/i18n";
   import type { TradeOptions } from "../lib/trade";
   import { filterCatalogue } from "../lib/trade-catalogue";
+  import GalaxyPrices from "./GalaxyPrices.svelte";
   import MarketSearch from "./MarketSearch.svelte";
 
   let { language }: { language: Language } = $props();
@@ -73,6 +75,10 @@
     {#if chosen === null}
       <p class="muted">{t(language, "trade.choose")}</p>
     {:else}
+      <section aria-labelledby="prices-title">
+        <h2 id="prices-title">{t(language, "trade.prices", { commodity: chosen.name })}</h2>
+        <GalaxyPrices {language} commodity={chosen.commodity} />
+      </section>
       <section aria-labelledby="buy-title">
         <h2 id="buy-title">{t(language, "trade.buy", { commodity: chosen.name })}</h2>
         <MarketSearch

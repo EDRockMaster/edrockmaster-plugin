@@ -8,7 +8,7 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ### Ajouté
 
-- **Un onglet Commerce** (décision de conception ADR 0047) : toutes les marchandises du jeu, par catégorie (produits chimiques, métaux, minéraux…, les marchandises rares signalées), et un champ pour en trouver une par son nom. Choisissez-en une : *Où acheter* et *Où vendre* cherchent les marchés autour de votre système actuel (Ardent Insight, comme l'onglet Minage), le meilleur prix d'abord, avec la piste de votre vaisseau et, comme stock ou demande minimum, sa capacité de soute ; tout peut être changé avant de chercher. À venir dans cet onglet : la fourchette de prix de la galaxie, le marché de la station, votre soute à vendre, les routes commerciales.
+- **Un onglet Commerce** (décision de conception ADR 0047) : toutes les marchandises du jeu, par catégorie (produits chimiques, métaux, minéraux…, les marchandises rares signalées), et un champ pour en trouver une par son nom. Choisissez-en une : *Où acheter* et *Où vendre* cherchent les marchés autour de votre système actuel (Ardent Insight, comme l'onglet Minage), le meilleur prix d'abord, avec la piste de votre vaisseau et, comme stock ou demande minimum, sa capacité de soute ; tout peut être changé avant de chercher. Au-dessus, la marchandise **dans la galaxie** : le prix le plus bas, moyen et le plus haut que demandent et paient les marchés, pour juger une offre (Ardent Insight, une réponse pour toutes les marchandises, gardée un jour). À venir dans cet onglet : le marché de la station, votre soute à vendre, les routes commerciales.
 
 ### Modifié
 

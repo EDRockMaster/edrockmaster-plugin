@@ -1,9 +1,11 @@
 """Test doubles shared by several test modules."""
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 
+from edrockmaster.application.community import Answer, Failed, Source, Unavailable
 from edrockmaster.application.settings import DEFAULT_SETTINGS, PluginSettings
+from edrockmaster.domain.commodities import GalaxyPrices, MarketOffer, MarketQuery
 from edrockmaster.domain.engineering.goals import Goal, GoalId
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.mining.limpets import LimpetAlertRaised
@@ -96,3 +98,40 @@ class FakeGoalRepository:
     def reorder(self, order: Sequence[GoalId]) -> None:
         by_id = {goal.id: goal for goal in self.stored}
         self.stored = [by_id[goal_id] for goal_id in order if goal_id in by_id]
+
+
+NO_PRICES = Failed(Source.ARDENT, Unavailable.DOWN)
+
+
+class FakeMarkets:
+    """Answers each commodity's offers, and the galaxy's prices, as given."""
+
+    def __init__(
+        self,
+        answers: dict[str, Answer[tuple[MarketOffer, ...]]],
+        prices: Answer[Mapping[str, GalaxyPrices]] = NO_PRICES,
+    ) -> None:
+        self.answers = answers
+        self.prices = prices
+        self.asked: list[MarketQuery] = []
+        self.prices_asked: list[bool] = []
+        """Whether each request for the prices skipped the cache."""
+
+    def find_offers(
+        self,
+        query: MarketQuery,
+        on_answer: Callable[[Answer[tuple[MarketOffer, ...]]], None],
+        *,
+        refresh: bool = False,
+    ) -> None:
+        self.asked.append(query)
+        on_answer(self.answers[query.commodity])
+
+    def find_prices(
+        self,
+        on_answer: Callable[[Answer[Mapping[str, GalaxyPrices]]], None],
+        *,
+        refresh: bool = False,
+    ) -> None:
+        self.prices_asked.append(refresh)
+        on_answer(self.prices)

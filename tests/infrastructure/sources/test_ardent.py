@@ -1,5 +1,5 @@
-"""Ardent's nearby importers and exporters, read from answers recorded on 11 and 20 October
-2026 (ADR 0040, ADR 0047)."""
+"""Ardent's nearby importers and exporters, and the galaxy's prices, read from answers recorded
+on 11 and 20 October 2026 (ADR 0040, ADR 0047); the prices are six of the 703 commodities."""
 
 import json
 from datetime import UTC, datetime, timedelta
@@ -7,13 +7,27 @@ from pathlib import Path
 from typing import Any
 
 from edrockmaster.application.community import Answer, Found, Source
-from edrockmaster.domain.commodities import MarketOffer, MarketQuery, Side
+from edrockmaster.domain.commodities import (
+    GalaxyPrices,
+    MarketOffer,
+    MarketQuery,
+    PriceRange,
+    Side,
+)
 from edrockmaster.domain.ships import PadSize
-from edrockmaster.infrastructure.sources.ardent import ArdentMarkets, nearby_markets, read_offers
+from edrockmaster.infrastructure.sources.ardent import (
+    PRICES,
+    PRICES_MAX_AGE,
+    ArdentMarkets,
+    nearby_markets,
+    read_offers,
+    read_prices,
+)
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "sources"
 IMPORTS = FIXTURES / "ardent-nearby-imports-painite-borann-2026-10-11.json"
 EXPORTS = FIXTURES / "ardent-nearby-exports-gold-sol-2026-10-20.json"
+COMMODITIES = FIXTURES / "ardent-commodities-2026-10-20.json"
 
 
 def recorded(fixture: Path = IMPORTS) -> Any:
@@ -94,20 +108,52 @@ def test_the_recorded_exporters_give_what_they_ask_and_their_stock() -> None:
     )
 
 
+def test_the_recorded_prices_give_each_commodity_s_range() -> None:
+    prices = read_prices(recorded(COMMODITIES))
+    assert prices["gold"] == GalaxyPrices(
+        buy=PriceRange(lowest=3800, average=44779, highest=59270),
+        sell=PriceRange(lowest=3799, average=47791, highest=282678),
+        computed_at=datetime(2026, 9, 7, 3, 0, 43, 257000, tzinfo=UTC),
+    )
+    # No market sells painite: it is mined
+    assert prices["painite"].buy is None
+    assert prices["painite"].sell == PriceRange(2064, 56364, 375928)
+    unknown = prices["antimattercontainmentunit"]
+    assert (unknown.buy, unknown.sell) == (None, None)
+    assert prices["lavianbrandy"].buy == PriceRange(371, 371, 371)
+
+
+def test_the_recorded_prices_keep_ardent_s_names() -> None:
+    # Ardent also knows commodities by their English name; the catalogue's keys are its others
+    assert set(read_prices(recorded(COMMODITIES))) == {
+        "advanced catalysers",
+        "antimattercontainmentunit",
+        "gold",
+        "lavianbrandy",
+        "painite",
+        "wreckagecomponents",
+    }
+
+
 class FakeSource:
+    def __init__(self) -> None:
+        self.ages: list[timedelta] = []
+
     def ask(
         self, request: str, fetch: Any, parse: Any, max_age: Any, on_answer: Any, **_: Any
     ) -> None:
+        self.ages.append(max_age)
         on_answer(Found(parse(fetch()), Source.ARDENT, datetime(2026, 10, 11, tzinfo=UTC)))
 
 
 class FakeClient:
-    def __init__(self) -> None:
+    def __init__(self, fixture: Path = IMPORTS) -> None:
+        self.fixture = fixture
         self.urls: list[str] = []
 
     def get(self, url: str) -> Any:
         self.urls.append(url)
-        return recorded()
+        return recorded(self.fixture)
 
 
 def test_the_markets_get_the_address_and_read_the_answer() -> None:
@@ -119,3 +165,14 @@ def test_the_markets_get_the_address_and_read_the_answer() -> None:
     [found] = answers
     assert isinstance(found, Found)
     assert len(found.value) == 6
+
+
+def test_the_prices_are_asked_in_one_request_kept_a_day() -> None:
+    source, client = FakeSource(), FakeClient(COMMODITIES)
+    answers: list[Answer[dict[str, GalaxyPrices]]] = []
+    ArdentMarkets(source, client).find_prices(answers.append)  # type: ignore[arg-type]
+    assert client.urls == [PRICES] == ["https://api.ardent-insight.com/v2/commodities"]
+    assert source.ages == [PRICES_MAX_AGE] == [timedelta(days=1)]
+    [found] = answers
+    assert isinstance(found, Found)
+    assert "gold" in found.value
