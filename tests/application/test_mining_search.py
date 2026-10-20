@@ -14,7 +14,7 @@ from edrockmaster.domain.commodities import MarketOffer, MarketQuery, Side
 from edrockmaster.domain.mining.hotspots import HotspotPage, HotspotQuery, hotspot_commodity
 from edrockmaster.domain.mining.markets import CargoEstimate, CargoLine
 from edrockmaster.domain.ships import PadSize
-from tests.fakes import FixedClock
+from tests.fakes import FakeMarkets, FixedClock
 
 NOW = datetime(2026, 10, 12, 10, 0, tzinfo=UTC)
 READ = NOW - timedelta(minutes=5)
@@ -49,22 +49,6 @@ class FakeCatalogue:
     ) -> None:
         self.asked.append((query, refresh))
         on_answer(Found(HotspotPage(query, (), 0), Source.SPANSH, READ))
-
-
-class FakeMarkets:
-    def __init__(self, answers: dict[str, Answer[tuple[MarketOffer, ...]]]) -> None:
-        self.answers = answers
-        self.asked: list[MarketQuery] = []
-
-    def find_offers(
-        self,
-        query: MarketQuery,
-        on_answer: Callable[[Answer[tuple[MarketOffer, ...]]], None],
-        *,
-        refresh: bool = False,
-    ) -> None:
-        self.asked.append(query)
-        on_answer(self.answers[query.commodity])
 
 
 def found(*offers: MarketOffer, read_at: datetime = READ) -> Answer[tuple[MarketOffer, ...]]:

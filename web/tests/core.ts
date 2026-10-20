@@ -6,7 +6,7 @@ import type { MarketOffer, MarketsAnswer } from "../src/lib/markets";
 import type { CargoEstimateAnswer, HotspotsAnswer, MiningOptions } from "../src/lib/mining";
 import type { Phone } from "../src/lib/phone";
 import type { Settings } from "../src/lib/settings";
-import type { TradeOptions } from "../src/lib/trade";
+import type { PricesAnswer, TradeOptions } from "../src/lib/trade";
 
 export const MINING_OPTIONS: MiningOptions = {
   commodities: [
@@ -60,6 +60,16 @@ export const MARKETS: MarketsAnswer = {
   readAt: "2026-10-12T08:00:00+00:00",
   unavailable: null,
   offers: [OFFER],
+};
+
+export const PRICES: PricesAnswer = {
+  status: "found",
+  source: "ardent",
+  readAt: "2026-10-12T08:00:00+00:00",
+  unavailable: null,
+  buy: { lowest: 3800, average: 44779, highest: 59270 },
+  sell: { lowest: 3799, average: 47791, highest: 282678 },
+  computedAt: "2026-09-07T03:00:43+00:00",
 };
 
 export const TRADE_OPTIONS: TradeOptions = {
@@ -276,6 +286,7 @@ export function fakeCore(): CoreApi {
     estimate_cargo: vi.fn(async () => structuredClone(ESTIMATE)),
     trade_options: vi.fn(async () => structuredClone(TRADE_OPTIONS)),
     find_markets: vi.fn(async () => structuredClone(MARKETS)),
+    galaxy_prices: vi.fn(async () => structuredClone(PRICES)),
     phone: vi.fn(async () => structuredClone(PHONE_OFF)),
     set_phone: vi.fn(async (request: { enabled: boolean; port: number }) =>
       request.enabled ? { ...PHONE_ON, port: request.port } : { ...PHONE_OFF, port: request.port },

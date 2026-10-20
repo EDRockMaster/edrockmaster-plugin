@@ -1,0 +1,77 @@
+[
+  {
+    "commodityName": "advanced catalysers",
+    "minBuyPrice": 2360,
+    "maxBuyPrice": 2681,
+    "avgBuyPrice": 2520,
+    "totalStock": 1706329,
+    "minSellPrice": 2278,
+    "maxSellPrice": 2608,
+    "avgSellPrice": 2443,
+    "totalDemand": 2,
+    "timestamp": "2026-09-06T23:51:07.174Z"
+  },
+  {
+    "commodityName": "antimattercontainmentunit",
+    "minBuyPrice": null,
+    "maxBuyPrice": null,
+    "avgBuyPrice": null,
+    "totalStock": 0,
+    "minSellPrice": null,
+    "maxSellPrice": null,
+    "avgSellPrice": null,
+    "totalDemand": 0,
+    "timestamp": "2026-09-07T00:25:14.113Z"
+  },
+  {
+    "commodityName": "gold",
+    "minBuyPrice": 3800,
+    "maxBuyPrice": 59270,
+    "avgBuyPrice": 44779,
+    "totalStock": 6426649609,
+    "minSellPrice": 3799,
+    "maxSellPrice": 282678,
+    "avgSellPrice": 47791,
+    "totalDemand": 13021460455,
+    "timestamp": "2026-09-07T03:00:43.257Z"
+  },
+  {
+    "commodityName": "lavianbrandy",
+    "rare": true,
+    "rareMarketId": 128106744,
+    "rareMaxCount": 24,
+    "minBuyPrice": 371,
+    "maxBuyPrice": 371,
+    "avgBuyPrice": 371,
+    "totalStock": null,
+    "minSellPrice": 371,
+    "maxSellPrice": 16371,
+    "avgSellPrice": 8185,
+    "totalDemand": null,
+    "timestamp": "2026-09-07T04:12:32.349Z"
+  },
+  {
+    "commodityName": "painite",
+    "minBuyPrice": null,
+    "maxBuyPrice": null,
+    "avgBuyPrice": null,
+    "totalStock": 0,
+    "minSellPrice": 2064,
+    "maxSellPrice": 375928,
+    "avgSellPrice": 56364,
+    "totalDemand": 749482521,
+    "timestamp": "2026-09-07T05:46:13.065Z"
+  },
+  {
+    "commodityName": "wreckagecomponents",
+    "minBuyPrice": null,
+    "maxBuyPrice": null,
+    "avgBuyPrice": null,
+    "totalStock": 0,
+    "minSellPrice": 835,
+    "maxSellPrice": 9406,
+    "avgSellPrice": 9055,
+    "totalDemand": 848226510,
+    "timestamp": "2026-09-07T09:13:04.856Z"
+  }
+]

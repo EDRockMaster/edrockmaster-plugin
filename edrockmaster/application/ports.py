@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Protocol
@@ -11,7 +11,7 @@ from edrockmaster.application.community import Answer
 from edrockmaster.application.settings import PluginSettings
 from edrockmaster.application.updates import UpdateChannel
 from edrockmaster.domain.combat.vouchers import CommanderKey, VoucherLedger
-from edrockmaster.domain.commodities import MarketOffer, MarketQuery
+from edrockmaster.domain.commodities import GalaxyPrices, MarketOffer, MarketQuery
 from edrockmaster.domain.engineering.goals import Goal, GoalId
 from edrockmaster.domain.journal_reading import Entry
 from edrockmaster.domain.mining.hotspots import HotspotPage, HotspotQuery
@@ -101,6 +101,15 @@ class CommodityMarkets(Protocol):
     ) -> None:
         """Markets that buy (``Side.SELL``) or sell (``Side.BUY``) the commodity around the
         system, as the source gives them."""
+        ...
+
+    def find_prices(
+        self,
+        on_answer: Callable[[Answer[Mapping[str, GalaxyPrices]]], None],
+        *,
+        refresh: bool = False,
+    ) -> None:
+        """Every commodity's prices across the galaxy, by key, in one answer."""
         ...
 
 

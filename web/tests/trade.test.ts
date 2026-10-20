@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import TradeView from "../src/components/TradeView.svelte";
 import type { CoreApi } from "../src/lib/bridge";
 import { filterCatalogue, folded } from "../src/lib/trade-catalogue";
-import { fakeCore, MARKETS, TRADE_OPTIONS } from "./core";
+import { fakeCore, MARKETS, PRICES, TRADE_OPTIONS } from "./core";
 
 function withCore(): CoreApi {
   const api = fakeCore();
@@ -57,6 +57,7 @@ describe("TradeView", () => {
     expect(within(metals as HTMLElement).getByText("rare")).toBeInTheDocument();
     expect(screen.getByText(/Choose a commodity/)).toBeInTheDocument();
     expect(api.find_markets).not.toHaveBeenCalled();
+    expect(api.galaxy_prices).not.toHaveBeenCalled();
   });
 
   it("filters the commodities, opening the categories found", async () => {
@@ -111,5 +112,55 @@ describe("TradeView", () => {
     await fireEvent.click(screen.getByRole("button", { name: "Water" }));
     await waitFor(() => expect(screen.queryByText(/No market buys it/)).not.toBeInTheDocument());
     expect(screen.getByRole("region", { name: "Where to sell Water" })).toBeInTheDocument();
+  });
+
+  it("shows the galaxy's prices of the commodity chosen", async () => {
+    const api = await opened();
+    await fireEvent.click(screen.getByRole("button", { name: "Gold" }));
+    const prices = screen.getByRole("region", { name: "Gold across the galaxy" });
+    await within(prices).findByText("44,779 CR");
+    expect(api.galaxy_prices).toHaveBeenCalledWith({ commodity: "gold", refresh: false });
+    const buying = within(prices).getByText("Markets ask").closest("tr") as HTMLElement;
+    expect(within(buying).getByText("3,800 CR")).toHaveAttribute("data-label", "Lowest");
+    expect(within(buying).getByText("59,270 CR")).toHaveAttribute("data-label", "Highest");
+    const selling = within(prices).getByText("Markets pay").closest("tr") as HTMLElement;
+    expect(within(selling).getByText("47,791 CR").closest("td")).toHaveAttribute(
+      "data-label",
+      "Average",
+    );
+    expect(
+      within(prices).getByText(/Computed by Ardent Insight on Sep 7, 2026/),
+    ).toBeInTheDocument();
+    await fireEvent.click(within(prices).getByRole("button", { name: "Refresh" }));
+    expect(api.galaxy_prices).toHaveBeenLastCalledWith({ commodity: "gold", refresh: true });
+  });
+
+  it("says when no market sells the commodity, or the source does not know it", async () => {
+    const api = await opened();
+    vi.mocked(api.galaxy_prices)
+      .mockResolvedValueOnce({ ...PRICES, buy: null })
+      .mockResolvedValueOnce({ ...PRICES, buy: null, sell: null, computedAt: null });
+    await fireEvent.click(screen.getByRole("button", { name: "Gold" }));
+    await screen.findByText("No market sells it.");
+    await fireEvent.click(screen.getByRole("button", { name: "Water" }));
+    const prices = screen.getByRole("region", { name: "Water across the galaxy" });
+    await within(prices).findByText("Ardent Insight knows no price of this commodity.");
+    expect(within(prices).queryByRole("table")).not.toBeInTheDocument();
+  });
+
+  it("says why the prices did not come", async () => {
+    const api = await opened();
+    vi.mocked(api.galaxy_prices).mockResolvedValueOnce({
+      ...PRICES,
+      status: "off",
+      readAt: null,
+      buy: null,
+      sell: null,
+      computedAt: null,
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Gold" }));
+    const prices = screen.getByRole("region", { name: "Gold across the galaxy" });
+    await within(prices).findByText(/Ardent Insight is turned off/);
+    expect(within(prices).queryByText(/knows no price/)).not.toBeInTheDocument();
   });
 });
