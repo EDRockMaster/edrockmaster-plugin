@@ -75,7 +75,7 @@
   /* The card is as wide as the window: the statistics sit side by side, as tiles */
   dl {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(11rem, 100%), 1fr));
     gap: var(--space-2) var(--space-3);
     margin: var(--space-2) 0 0;
   }

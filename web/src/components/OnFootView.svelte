@@ -345,7 +345,7 @@
   }
   .pairs {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: var(--space-1) var(--space-3);
     margin: 0;
   }
@@ -358,12 +358,12 @@
   }
   .kinds {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
     gap: var(--space-3);
   }
   .materials li {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 0 var(--space-2);
     padding: 2px var(--space-1);
     font-size: 0.9rem;

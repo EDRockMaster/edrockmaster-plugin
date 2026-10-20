@@ -285,6 +285,8 @@
 <style>
   form {
     display: grid;
+    /* A column as wide as the view, whatever its content asks: none wider than a phone */
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-3);
   }
   section {
@@ -299,7 +301,7 @@
   }
   .thresholds {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(13rem, 100%), 1fr));
     gap: var(--space-1) var(--space-3);
     margin-bottom: var(--space-2);
   }
@@ -318,7 +320,7 @@
   }
   .wide input {
     flex: 1;
-    min-width: 16rem;
+    min-width: min(16rem, 100%);
   }
   .check {
     display: flex;

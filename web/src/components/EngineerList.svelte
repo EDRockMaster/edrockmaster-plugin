@@ -116,7 +116,7 @@
   /* Name and status side by side in short rows, so that the eye does not cross the screen */
   .engineers {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(18rem, 100%), 1fr));
     align-items: start;
     gap: var(--space-1) var(--space-3);
     margin: 0 0 var(--space-2);

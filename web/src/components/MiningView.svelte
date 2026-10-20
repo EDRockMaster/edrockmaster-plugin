@@ -178,7 +178,7 @@
     {#if hotspots.status === "found" && hotspots.rings.length === 0}
       <p>{t(language, "mining.noRing")}</p>
     {:else if hotspots.rings.length > 0}
-      <table>
+      <table class="stacked">
         <thead>
           <tr>
             <th scope="col">{t(language, "mining.column.ring")}</th>
@@ -202,11 +202,11 @@
                   )}{#if ring.reserve !== null}{` · ${t(language, RESERVES[ring.reserve])}`}{/if}
                 </span>
               </td>
-              <td class="number">{ring.count}</td>
-              <td class="small">
+              <td class="number" data-label={commodityName}>{ring.count}</td>
+              <td class="small" data-label={t(language, "mining.column.others")}>
                 {ring.others.map((other) => `${other.name} ${other.count}`).join(", ")}
               </td>
-              <td class="number">
+              <td class="number" data-label={t(language, "mining.column.distance")}>
                 {t(language, "mining.lightYears", { distance: number(ring.distance, language, 1) })}
                 {#if ring.arrival !== null}
                   <span class="muted small">
@@ -216,7 +216,9 @@
                   </span>
                 {/if}
               </td>
-              <td class="small">{age(ring.seen, now, language)}</td>
+              <td class="small" data-label={t(language, "mining.column.seen")}>
+                {age(ring.seen, now, language)}
+              </td>
               <td class="row-actions">
                 <button type="button" onclick={() => searchBuyers(ring.system)}>
                   {t(language, "mining.sellHere")}
@@ -282,7 +284,7 @@
     {#if buyers.status === "found" && buyers.offers.length === 0}
       <p>{t(language, "mining.noMarket")}</p>
     {:else if buyers.offers.length > 0}
-      <table>
+      <table class="stacked">
         <thead>
           <tr>
             <th scope="col">{t(language, "mining.column.station")}</th>
@@ -300,11 +302,13 @@
                 <strong>{offer.station}</strong>
                 <CopySystem system={offer.system} {language} />
               </td>
-              <td class="number"
+              <td class="number" data-label={t(language, "mining.column.price")}
                 >{t(language, "mining.credits", { credits: number(offer.price, language) })}</td
               >
-              <td class="number">{number(offer.demand, language)}</td>
-              <td class="number">
+              <td class="number" data-label={t(language, "mining.column.demand")}>
+                {number(offer.demand, language)}
+              </td>
+              <td class="number" data-label={t(language, "mining.column.distance")}>
                 {t(language, "mining.lightYears", {
                   distance: number(offer.distance, language, 1),
                 })}
@@ -316,8 +320,12 @@
                   </span>
                 {/if}
               </td>
-              <td>{offer.pad === null ? "?" : t(language, PADS[offer.pad])}</td>
-              <td class="small">{age(offer.updated, now, language)}</td>
+              <td data-label={t(language, "mining.pad")}
+                >{offer.pad === null ? "?" : t(language, PADS[offer.pad])}</td
+              >
+              <td class="small" data-label={t(language, "mining.column.updated")}>
+                {age(offer.updated, now, language)}
+              </td>
             </tr>
           {/each}
         </tbody>

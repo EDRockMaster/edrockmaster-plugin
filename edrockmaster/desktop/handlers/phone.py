@@ -72,4 +72,8 @@ class PhoneHandler:
     def _change(self, preferences: PhonePreferences) -> None:
         self._store.save(preferences)
         self._preferences = preferences
-        self._phone.apply(preferences)
+        before = self._phone.server
+        if self._phone.apply(preferences).listening and self._phone.server is not before:
+            # A new server has no view yet: a device scanning the QR code now must not wait
+            # for the game's next event
+            self._context.on_core(self._context.refresh)

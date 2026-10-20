@@ -226,6 +226,8 @@
 <style>
   .engineering {
     display: grid;
+    /* A column as wide as the view, whatever its content asks: none wider than a phone */
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-3);
   }
   .parts {
@@ -309,7 +311,7 @@
   }
   .pairs {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: var(--space-1) var(--space-3);
     margin: 0;
   }
@@ -325,7 +327,7 @@
   }
   .grades {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
     gap: var(--space-2);
   }
   .grade {

@@ -195,6 +195,8 @@
 <style>
   .blueprints {
     display: grid;
+    /* A column as wide as the view, whatever its content asks: none wider than a phone */
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-3);
   }
   .filters {
@@ -260,7 +262,7 @@
   }
   .needs {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(18rem, 100%), 1fr));
     gap: var(--space-1) var(--space-3);
     margin: 0;
     padding: 0;

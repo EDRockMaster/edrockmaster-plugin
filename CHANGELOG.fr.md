@@ -6,6 +6,11 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
+### Corrigé
+
+- **Les écrans tiennent sur un téléphone** (décision de conception ADR 0055) : sur un téléphone (un iPhone 12, 390 pixels de large), l'onglet *Ingénierie* débordait de l'écran (la liste *Module* aussi large que son choix le plus long, la liste des ingénieurs), et les résultats de l'onglet *Minage* (six colonnes) aussi. Listes et champs ne dépassent plus l'écran, les cartes en prennent toute la largeur, et sur un écran étroit chaque résultat d'un tableau s'affiche en bloc, chaque valeur sous le nom de sa colonne. Vérifié jusqu'à 320 pixels.
+- **Un téléphone affiche l'application tout de suite** : activé pendant que le jeu n'écrivait rien, un téléphone qui scannait le QR code restait sur *Démarrage…* jusqu'au prochain événement du jeu.
+
 ## [0.8.0] - 2026-10-19
 
 ### Ajouté

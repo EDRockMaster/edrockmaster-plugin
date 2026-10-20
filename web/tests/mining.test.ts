@@ -112,6 +112,8 @@ describe("MiningView", () => {
     expect(within(row).getByText(/Metal rich · Pristine/)).toBeInTheDocument();
     expect(within(row).getByText("Platinum 3")).toBeInTheDocument();
     expect(within(row).getByText(/902 ls from arrival/)).toBeInTheDocument();
+    // On a phone, each cell shows under its column's name (ADR 0055)
+    expect(within(row).getByText("Platinum 3")).toHaveAttribute("data-label", "Other hotspots");
     await fireEvent.click(screen.getByRole("button", { name: "More" }));
     await waitFor(() =>
       expect(api.find_hotspots).toHaveBeenLastCalledWith(
@@ -143,7 +145,7 @@ describe("MiningView", () => {
     });
     const row = rowOf("Borisenko's Folly");
     expect(within(row).getByText("91,254 CR")).toBeInTheDocument();
-    expect(within(row).getByText("Large")).toBeInTheDocument();
+    expect(within(row).getByText("Large")).toHaveAttribute("data-label", "Landing pad");
     // A market's system is copied the same way as a ring's
     expect(within(row).getByRole("button", { name: "Copy Arouca" })).toHaveTextContent("Arouca");
   });
