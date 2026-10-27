@@ -7,7 +7,10 @@ the Gitea CI runs this script so that a failed Windows build blocks merging ther
 - A commit that changed only what the Windows workflow ignores (its ``paths-ignore``) gets no
   run: the run of its nearest ancestor that has one counts, when everything changed since is
   ignored as well. A branch that changed only such files needs no build at all.
-- On a tag, the tag's own run is preferred; otherwise the latest run of the commit (a rerun).
+- On a tag, the tag's own run is preferred, whatever its result. Otherwise a successful build
+  wins: when a commit has at least one succeeded run, the latest of those is chosen, even if a
+  later rerun failed. Only when there is no success at all does the script fall back to the
+  latest run.
 - No result after ``--timeout`` seconds (20 minutes by default) is a failure. GitHub not
   answering (a 502, the network) is asked again until then: it says nothing of the build.
 
@@ -121,8 +124,15 @@ def decide(  # noqa: PLR0913 - the commit, its history, the runs and how to comp
 
 
 def _chosen(runs: Sequence[Run], prefer: str | None) -> Run:
-    preferred = [run for run in runs if run.branch == prefer] or list(runs)
-    return max(preferred, key=lambda run: run.created)
+    # Prefer the tag's own run when a tag is specified (tag's build counts).
+    if prefer is not None:
+        preferred = [run for run in runs if run.branch == prefer]
+        if preferred:
+            return max(preferred, key=lambda run: run.created)
+    # When no tag is set, a successful build always wins over a failed rerun.
+    successes = [run for run in runs if run.conclusion == "success"]
+    candidates = successes if successes else list(runs)
+    return max(candidates, key=lambda run: run.created)
 
 
 def runs_by_commit(payload: Mapping[str, Any]) -> dict[str, list[Run]]:

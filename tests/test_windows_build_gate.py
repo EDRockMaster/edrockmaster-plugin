@@ -89,9 +89,6 @@ def test_a_tag_takes_its_own_run_over_the_branch_s() -> None:
         "c", ["c"], runs, changed=changes({}), base=None, patterns=PATTERNS, prefer="v1.0.0-rc.1"
     )
     assert decision == gate.Result(run("c", "failure", "v1.0.0-rc.1", at=2))
-    # Otherwise, the latest run of the commit: a rerun's result
-    latest = gate.decide("c", ["c"], runs, changed=changes({}), base=None, patterns=PATTERNS)
-    assert latest == gate.Result(run("c", "failure", "v1.0.0-rc.1", at=2))
 
 
 def test_runs_are_grouped_by_commit_from_the_api() -> None:
@@ -109,6 +106,15 @@ def test_runs_are_grouped_by_commit_from_the_api() -> None:
     }
     [only] = gate.runs_by_commit(payload)["c"]
     assert (only.conclusion, only.url, only.branch) == ("success", "u", "main")
+
+
+def test_a_success_wins_over_a_failed_rerun() -> None:
+    # A commit has a successful build at t=1 then a failed rerun at t=2
+    # (e.g. version already published). The gate must see the success, not
+    # fail on the latest run like it did before the fix.
+    runs = {"c": [run("c", "success", "main", at=1), run("c", "failure", "main", at=2)]}
+    decision = gate.decide("c", ["c"], runs, changed=changes({}), base=None, patterns=PATTERNS)
+    assert decision == gate.Result(run("c", "success", "main", at=1))
 
 
 def test_github_not_answering_is_asked_again() -> None:
