@@ -188,8 +188,20 @@ jobs:
           done
           tail -n 20 "$log"
           grep -q "<version>1.0.1</version>" "$installed/current/sq.version"
-          ! grep -E "ERROR|Traceback" "$log"
-          "$installed/Update.exe" uninstall --silent
+          # `! grep` would not stop the script under set -e
+          if grep -E "ERROR|Traceback" "$log"; then exit 1; fi
+          # sq.version changes while the Update.exe applying the update is still running, and an
+          # uninstall started then fails at once, silently
+          for _ in $(seq 1 60); do
+            tasklist //FI "IMAGENAME eq Update.exe" | grep -qi "Update.exe" || break
+            sleep 1
+          done
+          uninstalled=""
+          for _ in $(seq 1 5); do
+            "$installed/Update.exe" uninstall --silent && uninstalled=yes && break
+            sleep 3
+          done
+          [ -n "$uninstalled" ]
           for _ in $(seq 1 60); do
             [ ! -e "$installed/current" ] && break
             sleep 1
