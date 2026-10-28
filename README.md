@@ -2,7 +2,7 @@
 
 *English · [Français](README.fr.md)*
 
-**EDRockMaster Companion**, the desktop application of **EDRockMaster — Elite Dangerous Rock Master Companion** (design decisions ADR 0020 and ADR 0024). The repository keeps its name until the release of 0.4.0, when it becomes `edrockmaster-desktop`.
+**EDRockMaster Companion**, the desktop application of **EDRockMaster — Elite Dangerous Rock Master Companion** (design decisions ADR 0020 and ADR 0024). The repository keeps its name as `edrockmaster-plugin` — the rename planned in ADR 0024 has not been implemented.
 
 It reads the journal that Elite Dangerous writes on the player's computer and shows, live, in a window of its own: prospector alerts, cores and motherlodes, mining statistics, limpets, cargo and sales; a combat counter per site (conflict zones in space and on the ground, resource extraction sites, navigation beacons), with bounties, combat bonds, rates per site type, fines and unredeemed vouchers; the community goals joined, with their expiry; trade (profit, profit per hour of flight, routes, fleet carrier transfers, the station's market compared with the galaxy, the cargo's worth, trade routes from Spansh, each commodity's prices across the galaxy, and where to buy and sell it); engineering (materials, caps, engineers, blueprint goals and their shopping list, and every blueprint to browse), and on foot (materials in the ship locker and the backpack, suits and weapons, on-foot engineers, materials moved to the player's fleet carrier); the commander's situation. English and French. Nothing leaves the computer today; later versions open optional doors, each off by default (below).
 
