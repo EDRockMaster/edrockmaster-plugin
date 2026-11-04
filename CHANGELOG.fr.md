@@ -6,6 +6,12 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
+## [0.8.1] - 2026-11-04
+
+### Modifié
+
+- Pillow, la bibliothèque d'images, passe de la 12.3.0 à la 13.0.0.
+
 ## [0.8.0] - 2026-10-19
 
 ### Ajouté

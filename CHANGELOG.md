@@ -6,6 +6,12 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-11-04
+
+### Changed
+
+- Pillow, the image library, moves from 12.3.0 to 13.0.0.
+
 ## [0.8.0] - 2026-10-19
 
 ### Added
