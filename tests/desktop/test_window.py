@@ -15,6 +15,7 @@ from edrockmaster.desktop import window as window_module
 from edrockmaster.desktop.core import PACKAGE_DIRECTORY
 from edrockmaster.desktop.window import InterfaceApi, configure_logging, main
 from edrockmaster.infrastructure.build_file import load_build
+from edrockmaster.infrastructure.instance_lock import InstanceLock
 
 
 class FakeWindow:
@@ -146,6 +147,30 @@ def test_debug_on_request(tmp_path: Path, interface: Path) -> None:
     gui = FakeGui()
     main(["--debug"], {}, gui, tmp_path / "data")  # type: ignore[arg-type]
     assert gui.started["debug"] is True
+
+
+def test_a_second_instance_brings_the_first_to_the_front_and_touches_nothing(
+    tmp_path: Path, interface: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    data = tmp_path / "data"
+    gui = FakeGui()
+    shown: list[str] = []
+    with InstanceLock(data) as first:
+        assert first.acquire()
+        with caplog.at_level(logging.WARNING):
+            assert main([], {}, gui, data, front=shown.append) == 0  # type: ignore[arg-type]
+    assert "already running" in caplog.text
+    assert shown == ["EDRockMaster"]
+    assert gui.created == {}
+    assert gui.started == {}
+    assert sorted(path.name for path in data.iterdir()) == ["instance.lock", "logs"]
+
+
+def test_the_lock_is_free_once_the_window_has_closed(tmp_path: Path, interface: Path) -> None:
+    data = tmp_path / "data"
+    assert main([], {}, FakeGui(), data) == 0  # type: ignore[arg-type]
+    with InstanceLock(data) as next_instance:
+        assert next_instance.acquire()
 
 
 def test_an_interface_not_built_is_said(

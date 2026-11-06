@@ -6,6 +6,10 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
+### Corrigé
+
+- **Un seul EDRockMaster à la fois** : un second lancement tournait à côté du premier, sans téléphone ni tablette (port pris), en téléchargeant la même mise à jour et en écrivant dans la même base. Il met désormais la première fenêtre au premier plan et s'arrête ; le redémarrage qui applique une mise à jour n'est pas bloqué.
+
 ## [0.8.1] - 2026-11-04
 
 ### Modifié

@@ -34,6 +34,7 @@ from edrockmaster.desktop.folder_opener import open_in_file_manager
 from edrockmaster.desktop.journal_folder import environment_override
 from edrockmaster.desktop.phone import Phone, remote_calls
 from edrockmaster.desktop.settings_view import LANGUAGES
+from edrockmaster.infrastructure.instance_lock import InstanceLock
 from edrockmaster.infrastructure.paths import data_directory
 from edrockmaster.infrastructure.strings_catalogue import system_language
 
@@ -215,25 +216,35 @@ def configure_logging(directory: Path) -> logging.Logger:
     return logger
 
 
-def main(
+def main(  # noqa: PLR0913 - the seams of the tests
     argv: Sequence[str] = (),
     environ: Mapping[str, str] = os.environ,
     gui: ModuleType = webview,
     data: Path | None = None,
     alert: Callable[[str], None] | None = None,
+    *,
+    front: Callable[[str], None] | None = None,
 ) -> int:
-    """Run the application; ``alert`` tells the player of a failure (a message box)."""
+    """Run the application; ``alert`` tells the player of a failure (a message box), ``front``
+    brings the window of the instance already running to the front."""
     directory = data if data is not None else data_directory()
     logger = configure_logging(directory)
     if not INTERFACE.is_file():
         logger.error("The interface is not built: run 'pnpm build' in web/ (%s missing)", INTERFACE)
         return 1
     with ExitStack() as demo:
+        demo_language = _demo_language(argv)
+        # One application per user, taken before the database, the local server and the journal
+        # (a demo has files of its own). It is released when the window has closed, so the
+        # restart that applies an update finds it free
+        if demo_language is None and not demo.enter_context(InstanceLock(directory)).acquire():
+            logger.warning("EDRockMaster is already running: bringing its window to the front")
+            (front or bring_to_front)(TITLE)
+            return 0
         # The usual folder and the one the settings name are the core's to find
         folder = environment_override(environ)
         core_data = directory
         language = system_language()
-        demo_language = _demo_language(argv)
         if demo_language is not None:
             language = demo_language or language
             folder, core_data = _demo(demo, language, logger)
@@ -313,6 +324,31 @@ def failure_message(error: BaseException, log: Path) -> str:
     if "Python.Runtime" in str(error):
         text += f"\n\n{_BLOCKED_HINT}"
     return f"{text}\n\nDetails in {log}"
+
+
+def bring_to_front(title: str, platform: str = sys.platform) -> None:  # pragma: no cover - Windows
+    """Show the window of the running instance, found by its title (which ends with the version)."""
+    if platform != "win32":
+        return
+    import ctypes  # noqa: PLC0415 - Windows only
+    from ctypes import wintypes  # noqa: PLC0415 - Windows only
+
+    user32 = ctypes.windll.user32  # type: ignore[attr-defined]
+    found: list[int] = []
+
+    @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)  # type: ignore[attr-defined, untyped-decorator]
+    def visit(handle: int, _: int) -> bool:
+        buffer = ctypes.create_unicode_buffer(256)
+        user32.GetWindowTextW(handle, buffer, len(buffer))
+        if buffer.value == title or buffer.value.startswith(f"{title} "):
+            found.append(handle)
+        return True
+
+    user32.EnumWindows(visit, 0)
+    restore = 9
+    for handle in found:
+        user32.ShowWindow(handle, restore)
+        user32.SetForegroundWindow(handle)
 
 
 def show_error(message: str, platform: str = sys.platform) -> None:  # pragma: no cover - Windows

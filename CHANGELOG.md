@@ -6,6 +6,10 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
+### Fixed
+
+- **One EDRockMaster at a time**: a second launch used to run beside the first, without the phone and tablet (port taken), downloading the same update and writing to the same database. It now brings the first window to the front and quits, and the restart that applies an update is not blocked.
+
 ## [0.8.1] - 2026-11-04
 
 ### Changed
