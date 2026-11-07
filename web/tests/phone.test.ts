@@ -115,6 +115,8 @@ describe("the page on a phone or a tablet", () => {
     flushSync(() => window.edrm?.receive(view({ update: { version: "0.7.1" } })));
     expect(screen.getByText(/Version 0.7.1 is ready/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Restart to update" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Later" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Check now" })).toBeNull();
   });
 
   it("names the folders without offering to open them", async () => {

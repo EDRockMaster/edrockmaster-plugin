@@ -8,6 +8,7 @@
   import SettingsView from "./components/SettingsView.svelte";
   import SituationBanner from "./components/SituationBanner.svelte";
   import TradeView from "./components/TradeView.svelte";
+  import UpdateFooter from "./components/UpdateFooter.svelte";
   import { connect, core, isRemote } from "./lib/bridge";
   import { t, type Language } from "./lib/i18n";
   import type { LiveView } from "./lib/live-view";
@@ -32,6 +33,13 @@
       settingsUnsaved = false;
     }
     leavingFor = null;
+  }
+  // "Later" hides the banner of that version until the application starts again; the version
+  // is still applied when the application quits
+  let postponed = $state<string | null>(null);
+
+  function postponeUpdate(): void {
+    postponed = view?.update?.version ?? null;
   }
   // Each activity block is a card the player can move and fold
   const activityCards = $derived(
@@ -61,12 +69,16 @@
         </button>
       </div>
     {/if}
-    {#if view.update !== null}
+    {#if view.update !== null && view.update.version !== postponed}
       <div class="update" role="status">
         <p>{t(language, "update.ready", { version: view.update.version })}</p>
         {#if !isRemote()}
           <button type="button" onclick={() => core()?.restart_to_update()}>
             {t(language, "update.restart")}
+          </button>
+          <button type="button" onclick={postponeUpdate}>{t(language, "update.later")}</button>
+          <button type="button" onclick={() => core()?.open_release_notes()}>
+            {t(language, "update.notes")}
           </button>
         {/if}
       </div>
@@ -121,6 +133,7 @@
         />
       {/if}
     </div>
+    <UpdateFooter updates={view.updates} {language} />
   {/if}
 </main>
 

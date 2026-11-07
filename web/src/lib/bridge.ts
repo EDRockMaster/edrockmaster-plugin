@@ -31,6 +31,10 @@ export interface CoreApi {
   dismiss_notice(): Promise<void>;
   /** The window closes, the version ready is applied, the application starts again (ADR 0053). */
   restart_to_update(): Promise<void>;
+  /** Look for a newer version now, without waiting for the next check (ADR 0053). */
+  check_for_updates(): Promise<void>;
+  /** The release notes of the version ready, in the browser. */
+  open_release_notes(): Promise<void>;
   /** The first live view is shown: the core logs that its pushes reach the page. */
   shown(): Promise<void>;
   /** What the goal form offers; it never changes (ADR 0017). */
@@ -82,7 +86,8 @@ export interface CoreApi {
 }
 
 /** Calls that act on the computer itself: a phone or a tablet does not make them. */
-export type WindowOnly = "open_folder" | "restart_to_update";
+export type WindowOnly =
+  "open_folder" | "restart_to_update" | "check_for_updates" | "open_release_notes";
 
 /** A goal the player asks for; the core checks it against the catalogue. */
 export type GoalRequest =

@@ -90,6 +90,100 @@ describe("App", () => {
     expect(api.restart_to_update).toHaveBeenCalledOnce();
   });
 
+  it("postpones the banner of a version ready, which comes back for a newer one", async () => {
+    withCore();
+    render(App);
+    push(view({ update: { version: "0.7.1" } }));
+    await fireEvent.click(screen.getByRole("button", { name: "Later" }));
+    expect(screen.queryByText(/Version 0.7.1 is ready/)).toBeNull();
+    push(view({ update: { version: "0.7.1" } }));
+    expect(screen.queryByText(/Version 0.7.1 is ready/)).toBeNull();
+    push(view({ update: { version: "0.7.2" } }));
+    expect(screen.getByText(/Version 0.7.2 is ready/)).toBeInTheDocument();
+  });
+
+  it("opens the release notes of the version ready", async () => {
+    const api = withCore();
+    render(App);
+    push(view({ update: { version: "0.7.1" } }));
+    await fireEvent.click(screen.getByRole("button", { name: "Release notes" }));
+    expect(api.open_release_notes).toHaveBeenCalledOnce();
+  });
+
+  describe("the updates in the footer", () => {
+    const base = { installed: true, version: "0.8.1", checkedAt: null, error: null } as const;
+
+    it("shows the running version, and when the last check found nothing", () => {
+      withCore();
+      render(App);
+      push(
+        view({
+          updates: { ...base, state: "upToDate", checkedAt: "2026-11-05T15:23:04+00:00" },
+        }),
+      );
+      const footer = screen.getByRole("contentinfo");
+      expect(footer).toHaveTextContent("EDRockMaster 0.8.1");
+      expect(footer).toHaveTextContent("Up to date");
+      expect(footer).toHaveTextContent("checked");
+    });
+
+    it("checks now, and disables the button while checking or downloading", async () => {
+      const api = withCore();
+      render(App);
+      push(view({ updates: { ...base, state: "upToDate" } }));
+      await fireEvent.click(screen.getByRole("button", { name: "Check now" }));
+      expect(api.check_for_updates).toHaveBeenCalledOnce();
+      push(view({ updates: { ...base, state: "checking" } }));
+      expect(screen.getByRole("button", { name: "Check now" })).toBeDisabled();
+      expect(screen.getByText(/Checking for updates/)).toBeInTheDocument();
+      push(view({ updates: { ...base, state: "downloading" } }));
+      expect(screen.getByRole("button", { name: "Check now" })).toBeDisabled();
+      expect(screen.getByText(/Downloading an update/)).toBeInTheDocument();
+    });
+
+    it("says a version is ready", () => {
+      withCore();
+      render(App);
+      push(view({ updates: { ...base, state: "ready" } }));
+      expect(screen.getByRole("contentinfo")).toHaveTextContent("A version is ready");
+    });
+
+    it("tells why a check failed, discreetly", () => {
+      withCore();
+      render(App);
+      push(
+        view({
+          updates: {
+            ...base,
+            state: "failed",
+            checkedAt: "2026-11-05T15:23:04+00:00",
+            error: "os error 32",
+          },
+        }),
+      );
+      expect(screen.getByRole("contentinfo")).toHaveTextContent("Could not check for updates");
+      expect(screen.getByRole("contentinfo")).toHaveTextContent("os error 32");
+      expect(screen.getByRole("button", { name: "Check now" })).toBeEnabled();
+    });
+
+    it("disables the check, and forgets the old date, while updates are off", () => {
+      withCore();
+      render(App);
+      push(view({ updates: { ...base, state: "off", checkedAt: "2026-11-05T15:23:04+00:00" } }));
+      expect(screen.getByRole("contentinfo")).toHaveTextContent("Updates are off");
+      expect(screen.getByRole("contentinfo")).not.toHaveTextContent("checked");
+      expect(screen.getByRole("button", { name: "Check now" })).toBeDisabled();
+    });
+
+    it("offers no check to an application not installed to update itself", () => {
+      withCore();
+      render(App);
+      push(view({ updates: { installed: false, version: "0.8.1", state: "off" } }));
+      expect(screen.getByRole("contentinfo")).toHaveTextContent("EDRockMaster 0.8.1");
+      expect(screen.queryByRole("button", { name: "Check now" })).toBeNull();
+    });
+  });
+
   it("asks the core to reset an activity", async () => {
     const api = withCore();
     render(App);

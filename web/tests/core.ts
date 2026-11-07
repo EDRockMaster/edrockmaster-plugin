@@ -355,6 +355,8 @@ export function fakeCore(): CoreApi {
     reset: vi.fn(async () => {}),
     dismiss_notice: vi.fn(async () => {}),
     restart_to_update: vi.fn(async () => {}),
+    check_for_updates: vi.fn(async () => {}),
+    open_release_notes: vi.fn(async () => {}),
     shown: vi.fn(async () => {}),
     catalogue: vi.fn(async () => GOAL_CATALOGUE),
     add_goal: vi.fn(async () => {}),

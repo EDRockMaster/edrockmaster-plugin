@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
+import webbrowser
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -36,7 +37,12 @@ from edrockmaster.application.mining_search import MiningSearch
 from edrockmaster.application.past_journals import PastJournalReader, PastJournalsRead
 from edrockmaster.application.ports import Clock, UpdateSource
 from edrockmaster.application.route_planner import RoutePlanner
-from edrockmaster.application.updates import UpdateReady, UpdateService, default_channel
+from edrockmaster.application.updates import (
+    UpdateReady,
+    UpdateService,
+    UpdateStatus,
+    default_channel,
+)
 from edrockmaster.desktop.engineering_view import engineering_view
 from edrockmaster.desktop.folder_opener import open_in_file_manager
 from edrockmaster.desktop.handlers.context import CoreContext
@@ -77,7 +83,7 @@ from edrockmaster.infrastructure.sources.source import CommunitySource
 from edrockmaster.infrastructure.sources.spansh import SpanshCatalogue
 from edrockmaster.infrastructure.sources.spansh_routes import SpanshRoutes
 from edrockmaster.infrastructure.strings_catalogue import number_format, translator
-from edrockmaster.infrastructure.velopack_updates import VelopackUpdates
+from edrockmaster.infrastructure.velopack_updates import VelopackUpdates, release_notes_url
 from edrockmaster.infrastructure.worker import IoWorker
 from edrockmaster.ui.engineering_names import EngineeringNames
 from edrockmaster.ui.panel_model import LocalDataNotice
@@ -149,6 +155,7 @@ class DesktopCore:
             os.environ
         ),
         phone: Phone | None = None,
+        open_url: Callable[[str], object] = webbrowser.open,
     ) -> None:
         """``journal_folder``: set by the environment, before the settings' and the usual one;
         ``language``: the system's, unless the settings choose another; ``logs_directory``:
@@ -161,6 +168,7 @@ class DesktopCore:
             "logs": logs_directory or data_directory / "logs",
         }
         self._open_folder = open_folder
+        self._open_url = open_url
         self._http_opener = http_opener
         self._update_source = update_source
         self._phone = phone or Phone(
@@ -168,6 +176,8 @@ class DesktopCore:
         )
         self._updates: Updates | None = None
         self._update: UpdateReady | None = None
+        self._update_status: UpdateStatus | None = None
+        """``None``: not installed to update itself."""
         self._journal_override = journal_folder
         self._usual_journal_folder = usual_journal_folder
         self._journal_folder: Path | None = journal_folder
@@ -301,9 +311,10 @@ class DesktopCore:
             self._updates = Updates(
                 UpdateService(update_source, default),
                 self._handlers.settings.update_wish,
-                self._on_update_ready,
+                self._on_update_status,
                 self._logger,
             )
+            self._update_status = self._updates.status
             self._updates.start()
         if self._journal_folder is not None:
             self._past_reader = PastJournalReader(
@@ -383,11 +394,22 @@ class DesktopCore:
         if self._updates is not None:
             self._updates.check_now()
 
-    def _on_update_ready(self, ready: UpdateReady) -> None:
+    def check_for_updates(self) -> None:
+        """The player asks to check now."""
+        self._check_updates()
+
+    def open_release_notes(self) -> None:
+        """The release notes of the version ready, in the browser; nothing if none is ready."""
+        ready = self._update
+        if ready is not None:
+            self._open_url(release_notes_url(ready.version))
+
+    def _on_update_status(self, status: UpdateStatus) -> None:
         """From the updates thread: queued for the core thread."""
 
         def show() -> None:
-            self._update = ready
+            self._update_status = status
+            self._update = status.ready
             self._send()
 
         self._core.submit(show)
@@ -504,6 +526,8 @@ class DesktopCore:
             blocks=self._presenter.blocks_of(companion.settings.display.activities),
             notice=self._notice,
             update=self._update,
+            updates=self._update_status,
+            version=self.build.version,
             journal_folder=self._journal_folder,
             journal_file=self._follower.current_file if self._follower else None,
             situation=companion.situation.situation,

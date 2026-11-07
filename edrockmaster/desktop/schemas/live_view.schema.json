@@ -12,6 +12,7 @@
     "activities",
     "notice",
     "update",
+    "updates",
     "journal",
     "situation",
     "engineering",
@@ -66,6 +67,50 @@
           }
         }
       ]
+    },
+    "updates": {
+      "description": "The installed version, and how the look for updates stands (ADR 0053). Only an installed application looks for updates.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "installed",
+        "version",
+        "state"
+      ],
+      "properties": {
+        "installed": {
+          "type": "boolean",
+          "description": "Whether the application is installed to update itself."
+        },
+        "version": {
+          "type": "string",
+          "description": "The version running."
+        },
+        "state": {
+          "enum": [
+            "off",
+            "checking",
+            "downloading",
+            "upToDate",
+            "ready",
+            "failed"
+          ]
+        },
+        "checkedAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "When the last check ended (ISO 8601); null before the first."
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Why the last check failed; null otherwise."
+        }
+      }
     },
     "journal": {
       "type": "object",

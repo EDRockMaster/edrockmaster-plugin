@@ -227,7 +227,12 @@ def test_without_a_network_address_no_link() -> None:
 def test_a_device_makes_the_window_s_calls_except_those_on_the_computer() -> None:
     calls = remote_calls(InterfaceApi, WINDOW_ONLY)
     assert {"ready", "settings", "save_settings", "add_goal", "set_phone"} <= calls
-    assert not calls & {"open_folder", "restart_to_update"}
+    assert not calls & {
+        "open_folder",
+        "restart_to_update",
+        "check_for_updates",
+        "open_release_notes",
+    }
     assert not any(name.startswith("_") for name in calls)
 
 

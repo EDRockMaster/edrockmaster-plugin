@@ -156,3 +156,22 @@ def test_without_a_channel_the_installed_one_is_followed() -> None:
     service = UpdateService(source, None)
     assert service.check(enabled=True, chosen=None) == UpdateReady("1.0.1")
     assert source.asked == [None]
+
+
+def test_the_download_is_announced_only_when_there_is_one() -> None:
+    source = FakeSource()
+    announced: list[list[str]] = []
+    service = UpdateService(source, UpdateChannel.STABLE)
+
+    def check() -> None:
+        service.check(
+            enabled=True, chosen=None, downloading=lambda: announced.append(list(source.downloaded))
+        )
+
+    check()
+    assert announced == []
+    source.latest[UpdateChannel.STABLE] = "0.7.1"
+    check()
+    assert announced == [[]]  # announced before the download
+    check()
+    assert announced == [[]]  # already ready: nothing more to download

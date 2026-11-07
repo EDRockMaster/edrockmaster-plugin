@@ -22,6 +22,9 @@ const DYNAMIC_KEYS = [
     (status) => `engineering.status.${status}`,
   ),
   ...["item", "component", "data", "consumable"].map((kind) => `onFoot.kind.${kind}`),
+  ...["off", "checking", "downloading", "upToDate", "ready", "failed"].map(
+    (state) => `updates.state.${state}`,
+  ),
 ];
 
 function sources(directory: string): string[] {

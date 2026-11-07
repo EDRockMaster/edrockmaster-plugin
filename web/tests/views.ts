@@ -22,6 +22,7 @@ export function view(overrides: Partial<LiveView> = {}): LiveView {
     ],
     notice: null,
     update: null,
+    updates: { installed: true, version: "0.8.1", state: "upToDate", checkedAt: null, error: null },
     journal: { folder: "C:/Journal", file: "Journal.2026-10-08T014139.01.log" },
     situation: situation(),
     engineering: engineering(),

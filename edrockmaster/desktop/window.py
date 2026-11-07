@@ -45,7 +45,9 @@ LOG_FILE_BYTES = 1_000_000
 LOG_FILES_KEPT = 3
 DEMO = "--demo"
 WINDOW = {"width": 1100, "height": 760, "min_size": (520, 400), "background_color": "#0d0f12"}
-WINDOW_ONLY = frozenset({"open_folder", "restart_to_update"})
+WINDOW_ONLY = frozenset(
+    {"open_folder", "restart_to_update", "check_for_updates", "open_release_notes"}
+)
 """Calls that act on the computer itself: a phone or a tablet does not make them (ADR 0055)."""
 
 
@@ -71,6 +73,14 @@ class InterfaceApi:
         (ADR 0053)."""
         if self._core.restart_to_update():
             self._window.close()
+
+    def check_for_updates(self) -> None:
+        """Look for a newer version now, without waiting for the next check (ADR 0053)."""
+        self._core.check_for_updates()
+
+    def open_release_notes(self) -> None:
+        """The release notes of the version ready, in the browser."""
+        self._core.open_release_notes()
 
     def shown(self) -> None:
         self._core.shown()

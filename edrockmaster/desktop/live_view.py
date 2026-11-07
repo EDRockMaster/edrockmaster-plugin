@@ -11,7 +11,7 @@ from datetime import UTC
 from pathlib import Path
 from typing import Any
 
-from edrockmaster.application.updates import UpdateReady
+from edrockmaster.application.updates import UpdateReady, UpdateState, UpdateStatus
 from edrockmaster.domain.situation.route import CurrentRoute, scoopable
 from edrockmaster.domain.situation.situation import Situation
 from edrockmaster.domain.trade.station_market import StationMarket
@@ -27,6 +27,8 @@ def live_view(  # noqa: PLR0913 - one argument per part of the view
     blocks: tuple[ActivityBlock, ...],
     notice: LocalDataNotice | None,
     update: UpdateReady | None,
+    updates: UpdateStatus | None,
+    version: str,
     journal_folder: Path | None,
     journal_file: Path | None,
     situation: Situation,
@@ -49,6 +51,7 @@ def live_view(  # noqa: PLR0913 - one argument per part of the view
         ],
         "notice": notice.value if notice else None,
         "update": {"version": update.version} if update else None,
+        "updates": _updates(updates, version),
         "journal": {
             "folder": str(journal_folder) if journal_folder else None,
             "file": journal_file.name if journal_file else None,
@@ -61,6 +64,20 @@ def live_view(  # noqa: PLR0913 - one argument per part of the view
             "station": station_market.market.station,
             "readAt": station_market.read_at.astimezone(UTC).isoformat(),
         },
+    }
+
+
+def _updates(status: UpdateStatus | None, version: str) -> dict[str, Any]:
+    """The installed version, and how the look for updates stands; ``None`` for an application
+    not installed to update itself."""
+    if status is None:
+        return {"installed": False, "version": version, "state": UpdateState.OFF.value}
+    return {
+        "installed": True,
+        "version": version,
+        "state": status.state.value,
+        "checkedAt": status.checked_at.astimezone(UTC).isoformat() if status.checked_at else None,
+        "error": status.error,
     }
 
 

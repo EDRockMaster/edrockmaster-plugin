@@ -6,6 +6,10 @@ Les changements notables d'EDRockMaster Companion, l'application de bureau (jusq
 
 ## [Non publié]
 
+### Ajouté
+
+- **Mises à jour visibles** : un pied de page donne la version en cours, la fin de la dernière vérification et son résultat (à jour, vérification, téléchargement, prête, ou échec avec sa raison), et un bouton « Vérifier maintenant », désactivé pendant une vérification. La bannière d'une version prête propose « Plus tard » (elle s'installe quand même à la fermeture) et un lien vers les notes de version.
+
 ### Corrigé
 
 - **Un seul EDRockMaster à la fois** : un second lancement tournait à côté du premier, sans téléphone ni tablette (port pris), en téléchargeant la même mise à jour et en écrivant dans la même base. Il met désormais la première fenêtre au premier plan et s'arrête ; le redémarrage qui applique une mise à jour n'est pas bloqué.

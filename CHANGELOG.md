@@ -6,6 +6,10 @@ All notable changes to EDRockMaster Companion, the desktop application (until 0.
 
 ## [Unreleased]
 
+### Added
+
+- **Updates you can see**: a footer gives the running version, when the last check ended and its result (up to date, checking, downloading, ready, or failed with its reason), and a "Check now" button, disabled while a check runs. The banner of a version ready now offers "Later" (it is still installed when you quit) and a link to the release notes.
+
 ### Fixed
 
 - **One EDRockMaster at a time**: a second launch used to run beside the first, without the phone and tablet (port taken), downloading the same update and writing to the same database. It now brings the first window to the front and quits, and the restart that applies an update is not blocked.

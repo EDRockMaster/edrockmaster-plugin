@@ -26,6 +26,11 @@ DELTAS_BEFORE_FULL = 10
 """Velopack's default: beyond that many deltas, the full package is downloaded."""
 
 
+def release_notes_url(version: str) -> str:
+    """The page of a version's release on GitHub, where its notes are."""
+    return f"{REPOSITORY}/releases/tag/v{version}"
+
+
 class VelopackUpdates:
     def __init__(self, override: str | None = None, module: ModuleType = velopack) -> None:
         """``override``: the source to use instead of the GitHub releases."""

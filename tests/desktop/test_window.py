@@ -268,6 +268,13 @@ def test_a_device_s_calls_reach_the_window_s_api() -> None:
 
     api: Any = Api()
     assert window_module.remote_call(api, "settings", []) == {"language": "fr"}
-    for name in ("open_folder", "restart_to_update", "_private", "nothing"):
+    for name in (
+        "open_folder",
+        "restart_to_update",
+        "check_for_updates",
+        "open_release_notes",
+        "_private",
+        "nothing",
+    ):
         with pytest.raises(KeyError):
             window_module.remote_call(api, name, [])

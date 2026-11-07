@@ -7,7 +7,7 @@ from pathlib import Path
 import jsonschema
 
 from edrockmaster.application.activity import Activity
-from edrockmaster.application.updates import UpdateReady
+from edrockmaster.application.updates import UpdateReady, UpdateState, UpdateStatus
 from edrockmaster.desktop.live_view import live_view
 from edrockmaster.domain.situation.journal import GameMode, RouteStop, Ship
 from edrockmaster.domain.situation.route import CurrentRoute
@@ -46,6 +46,7 @@ def view(
     situation: Situation,
     blocks: tuple[ActivityBlock, ...] = (),
     update: UpdateReady | None = None,
+    updates: UpdateStatus | None = None,
     station_market: StationMarket | None = None,
 ) -> dict[str, object]:
     built = live_view(
@@ -54,6 +55,8 @@ def view(
         blocks=blocks,
         notice=None,
         update=update,
+        updates=updates,
+        version="0.8.1",
         journal_folder=Path("journal"),
         journal_file=None,
         situation=situation,
@@ -157,6 +160,22 @@ def test_a_route_off_its_list() -> None:
 def test_a_version_ready_in_the_view() -> None:
     assert view(Situation())["update"] is None
     assert view(Situation(), update=UpdateReady("0.7.1"))["update"] == {"version": "0.7.1"}
+
+
+def test_the_version_running_and_the_state_of_the_updates() -> None:
+    assert view(Situation())["updates"] == {"installed": False, "version": "0.8.1", "state": "off"}
+    checked = datetime(2026, 11, 5, 15, 23, 4, tzinfo=UTC)
+    failed = UpdateStatus(UpdateState.FAILED, checked, "os error 32")
+    assert view(Situation(), updates=failed)["updates"] == {
+        "installed": True,
+        "version": "0.8.1",
+        "state": "failed",
+        "checkedAt": "2026-11-05T15:23:04+00:00",
+        "error": "os error 32",
+    }
+    checking = view(Situation(), updates=UpdateStatus(UpdateState.CHECKING))["updates"]
+    assert checking["state"] == "checking"  # type: ignore[index]
+    assert checking["checkedAt"] is None  # type: ignore[index]
 
 
 def test_the_station_s_market_is_told_by_when_it_was_read() -> None:

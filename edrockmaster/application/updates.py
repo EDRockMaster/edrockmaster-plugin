@@ -15,7 +15,9 @@ a thread of its own, never on the core's.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING
 
@@ -74,6 +76,32 @@ class UpdateReady:
     version: str
 
 
+class UpdateState(Enum):
+    """Where the last look for an update stands, as the player is told."""
+
+    OFF = "off"
+    CHECKING = "checking"
+    DOWNLOADING = "downloading"
+    UP_TO_DATE = "upToDate"
+    READY = "ready"
+    FAILED = "failed"
+
+
+@dataclass(frozen=True, slots=True)
+class UpdateStatus:
+    """What the player may know of the updates: the state, when the last check ended (``None``
+    before the first), why it failed, and the version ready, if any, whatever the state."""
+
+    state: UpdateState
+    checked_at: datetime | None = None
+    error: str | None = None
+    ready: UpdateReady | None = None
+
+    @property
+    def busy(self) -> bool:
+        return self.state in (UpdateState.CHECKING, UpdateState.DOWNLOADING)
+
+
 class UpdateService:
     """Called on the updates thread only."""
 
@@ -88,8 +116,15 @@ class UpdateService:
     def ready(self) -> UpdateReady | None:
         return self._ready
 
-    def check(self, *, enabled: bool, chosen: UpdateChannel | None) -> UpdateReady | None:
-        """Look for a newer version and download it; what became ready, if anything."""
+    def check(
+        self,
+        *,
+        enabled: bool,
+        chosen: UpdateChannel | None,
+        downloading: Callable[[], None] = lambda: None,
+    ) -> UpdateReady | None:
+        """Look for a newer version and download it; what became ready, if anything.
+        ``downloading`` is called once a download is about to start."""
         channel = chosen or self._default
         if not enabled or (self._ready is not None and channel is not self._ready_channel):
             self._ready = None  # not wanted anymore: never applied
@@ -100,6 +135,7 @@ class UpdateService:
             return None
         if self._ready is not None and not is_newer(found, self._ready.version):
             return None
+        downloading()
         self._source.download()
         self._ready, self._ready_channel = UpdateReady(found), channel
         return self._ready

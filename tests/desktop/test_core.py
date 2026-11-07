@@ -66,6 +66,7 @@ class Desktop:
         self.data = tmp_path / "data"
         self.views = Views()
         self.opened: list[Path] = []
+        self.opened_urls: list[str] = []
         self.core = DesktopCore(
             data_directory=self.data,
             journal_folder=journal,
@@ -77,6 +78,7 @@ class Desktop:
             logs_directory=tmp_path / "logs",
             open_folder=self.opened.append,
             update_source=lambda: update_source,
+            open_url=self.opened_urls.append,
         )
 
 
@@ -571,4 +573,72 @@ def test_without_updates_nothing_to_restart(desktop: Desktop) -> None:
         "installed": False,
         "check": True,
         "channel": UpdateChannel.STABLE.value,
+    }
+
+
+def test_the_version_and_the_state_of_the_updates_are_in_the_view(tmp_path: Path) -> None:
+    source = FakeSource(installed="0.7.0")
+    source.latest[None] = "0.7.1"
+    desktop = Desktop(tmp_path, None, update_source=source)
+    desktop.core.start()
+    try:
+        desktop.core.ready()
+        view = desktop.views.wait_for(lambda v: v["updates"]["state"] == "ready")
+        assert view["updates"]["installed"]
+        assert view["updates"]["version"] == desktop.core.build.version
+        assert view["updates"]["checkedAt"] is not None
+        assert view["updates"]["error"] is None
+    finally:
+        desktop.core.stop()
+
+
+def test_a_failed_check_is_in_the_view_and_can_be_tried_again(tmp_path: Path) -> None:
+    source = FakeSource()
+    attempts: list[object] = []
+
+    def find(channel: object) -> str | None:
+        attempts.append(channel)
+        if len(attempts) == 1:
+            raise OSError("os error 32")
+        return None
+
+    source.find = find  # type: ignore[method-assign]
+    desktop = Desktop(tmp_path, None, update_source=source)
+    desktop.core.start()
+    try:
+        desktop.core.ready()
+        failed = desktop.views.wait_for(lambda v: v["updates"]["state"] == "failed")
+        assert failed["updates"]["error"] == "os error 32"
+        desktop.core.check_for_updates()
+        desktop.views.wait_for(lambda v: v["updates"]["state"] == "upToDate")
+    finally:
+        desktop.core.stop()
+    assert len(attempts) == 2
+
+
+def test_the_release_notes_of_the_version_ready_open_in_the_browser(tmp_path: Path) -> None:
+    source = FakeSource()
+    source.latest[None] = "0.7.1"
+    desktop = Desktop(tmp_path, None, update_source=source)
+    desktop.core.start()
+    try:
+        desktop.core.ready()
+        desktop.views.wait_for(lambda v: v["update"] is not None)
+        desktop.core.open_release_notes()
+    finally:
+        desktop.core.stop()
+    assert desktop.opened_urls == [
+        "https://github.com/EDRockMaster/edrockmaster-plugin/releases/tag/v0.7.1"
+    ]
+
+
+def test_without_updates_the_view_only_gives_the_version(desktop: Desktop) -> None:
+    desktop.core.open_release_notes()  # no version ready: nothing to open
+    assert desktop.opened_urls == []
+    desktop.core.ready()
+    view = desktop.views.wait_for(lambda v: True)
+    assert view["updates"] == {
+        "installed": False,
+        "version": desktop.core.build.version,
+        "state": "off",
     }

@@ -63,6 +63,28 @@ export interface LiveView {
   update: null | {
     version: string;
   };
+  /**
+   * The installed version, and how the look for updates stands (ADR 0053). Only an installed application looks for updates.
+   */
+  updates: {
+    /**
+     * Whether the application is installed to update itself.
+     */
+    installed: boolean;
+    /**
+     * The version running.
+     */
+    version: string;
+    state: "off" | "checking" | "downloading" | "upToDate" | "ready" | "failed";
+    /**
+     * When the last check ended (ISO 8601); null before the first.
+     */
+    checkedAt?: string | null;
+    /**
+     * Why the last check failed; null otherwise.
+     */
+    error?: string | null;
+  };
   journal: {
     /**
      * The journal folder; null when none was found.
