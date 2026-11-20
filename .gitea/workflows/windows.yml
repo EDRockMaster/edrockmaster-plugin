@@ -139,6 +139,8 @@ jobs:
         run: |
           version="$(uv run python -c 'import importlib.metadata as m; print(m.version("velopack"))')"
           dotnet tool install --global vpk --version "$version"
+          # GitHub's runners have the .NET global tools on their PATH; ours does not
+          cygpath -w "$USERPROFILE/.dotnet/tools" >> "$GITHUB_PATH"
 
       - name: Update test
         # Installed by Velopack's installer, the application finds a newer version in a local
