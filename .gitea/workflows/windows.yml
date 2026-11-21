@@ -1,0 +1,218 @@
+# Windows build of the desktop application on the organisation's own Windows runner (ADR 0058): a
+# virtual machine on our workstation, restored to a clean snapshot before each job, label `windows`.
+# The same steps as the build on the GitHub mirror (.github/workflows/windows.yml, ADR 0020,
+# ADR 0053), which it doubles while it proves itself:
+#
+# - every push of a branch that changes more than the documentation: the application, its tests
+#   on Windows, its smoke tests and the update test (installed by Velopack, then updated to a newer
+#   version); the portable zip, kept 14 days; a newer push to the same branch cancels the older
+#   build;
+# - a tag vX.Y.Z-rc.N or vX.Y.Z: the same, with the tag's version and channel, refused by the
+#   release plan as on GitHub. The release itself is still packed and drafted on GitHub: this
+#   build publishes nothing yet (ADR 0058).
+#
+# Merging still waits for the GitHub build (the windows job of ci.yml, ADR 0034) until this one
+# has given the same result on 10 builds in a row.
+name: Windows build
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+    # Documentation alone builds nothing, nor a change of the GitHub mirror's own workflow
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".github/**"
+  workflow_dispatch:
+
+# A tag's build is never cancelled
+concurrency:
+  group: windows-${{ gitea.ref }}
+  cancel-in-progress: ${{ !startsWith(gitea.ref, 'refs/tags/') }}
+
+jobs:
+  windows:
+    runs-on: windows
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the tags on this commit decide whether production is allowed
+      - uses: astral-sh/setup-uv@v5
+        with:
+          # The runner's cache server (actions/cache); uv's own default is GitHub-hosted only
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+          # Our own cache server: keep the downloaded wheels too, not only those built
+          prune-cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: web/.nvmrc
+      - name: pnpm store path
+        id: pnpm
+        working-directory: web
+        run: echo "store=$(corepack pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - name: pnpm store cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm.outputs.store }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('web/pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - name: Interface
+        working-directory: web
+        run: |
+          corepack pnpm install --frozen-lockfile
+          corepack pnpm build
+
+      - run: uv sync --locked
+      - name: Tests on Windows
+        run: uv run pytest
+
+      - name: Release plan
+        id: plan
+        run: |
+          version="$(scripts/version.sh)"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            uv run python scripts/release_plan.py "$GITHUB_REF_NAME" "$version" \
+              $(git tag --points-at HEAD) >> "$GITHUB_OUTPUT"
+            echo "build_version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "channel=dev" >> "$GITHUB_OUTPUT"
+            echo "build_version=$version-dev+$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Package
+        run: >
+          uv run python scripts/package_desktop.py
+          "${{ steps.plan.outputs.build_version }}"
+          "${{ steps.plan.outputs.channel }}"
+          dist-desktop
+
+      - name: Smoke test
+        # The packaged application starts, shows its interface (WebView2, the page, the bridge)
+        # and reads a recorded journal, with no error in its log
+        run: |
+          journal="$RUNNER_TEMP/journal"
+          mkdir -p "$journal"
+          uv run python scripts/fixture_to_journal.py \
+            tests/fixtures/engineering-power-distributor-2026-10-08.jsonl "$journal"
+          export EDROCKMASTER_JOURNAL_DIR="$(cygpath -w "$journal")"
+          ./dist-desktop/pyinstaller/EDRockMaster/EDRockMaster.exe &
+          log="$(cygpath -u "$LOCALAPPDATA")/EDRockMaster/logs/edrockmaster.log"
+          for _ in $(seq 1 60); do
+            grep -q "The interface is ready" "$log" 2>/dev/null && break
+            sleep 1
+          done
+          sleep 3
+          taskkill //F //IM EDRockMaster.exe || true
+          cat "$log"
+          grep -q "Reading the journal from Journal.2026-10-08T014139.01.log" "$log"
+          grep -q "The interface is ready" "$log"
+          ! grep -E "ERROR|Traceback" "$log"
+
+      - name: Smoke test of the demo
+        # The demo journal is packaged, and read instead of the player's
+        run: |
+          ./dist-desktop/pyinstaller/EDRockMaster/EDRockMaster.exe --demo &
+          log="$(cygpath -u "$LOCALAPPDATA")/EDRockMaster/logs/edrockmaster.log"
+          for _ in $(seq 1 60); do
+            [ "$(grep -c "The interface is ready" "$log")" -ge 2 ] && break
+            sleep 1
+          done
+          sleep 3
+          taskkill //F //IM EDRockMaster.exe || true
+          cat "$log"
+          grep -q "Demo mode (.*): a sample journal" "$log"
+          [ "$(grep -c "Reading the journal from Journal." "$log")" -ge 2 ]
+          [ "$(grep -c "The interface is ready" "$log")" -ge 2 ]
+          ! grep -E "ERROR|Traceback" "$log"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Velopack
+        # vpk's version must be the library's (ADR 0053)
+        run: |
+          version="$(uv run python -c 'import importlib.metadata as m; print(m.version("velopack"))')"
+          dotnet tool install --global vpk --version "$version"
+          # GitHub's runners have the .NET global tools on their PATH; ours does not
+          cygpath -w "$USERPROFILE/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Update test
+        # Installed by Velopack's installer, the application finds a newer version in a local
+        # feed, downloads it, and has it applied once its window is closed; the uninstall then
+        # leaves the player's data (ADR 0053). The same build, packed as 1.0.0 then as 1.0.1, on
+        # the channel it follows: its first update channel for a tag (beta for a candidate,
+        # stable for a production), the one it was packed for otherwise.
+        run: |
+          feed="$RUNNER_TEMP/feed"
+          channels="${{ steps.plan.outputs.channels }}"
+          channel="${channels%% *}"
+          channel="${channel:-test}"
+          pack() {
+            # The hooks run from Python (velopack.App().run()), which vpk cannot see in the
+            # executable: this test is what checks them
+            vpk pack --packId EDRockMaster.Companion --packVersion "$1" --channel "$channel" \
+              --packTitle "EDRockMaster Companion" --packAuthors DamScan \
+              --packDir dist-desktop/pyinstaller/EDRockMaster --mainExe EDRockMaster.exe \
+              --icon dist-desktop/assets/EDRockMaster.ico --runtime win-x64 \
+              --skipVeloAppCheck --outputDir "$feed"
+          }
+          pack 1.0.0
+          cp "$feed/EDRockMaster.Companion-$channel-Setup.exe" "$RUNNER_TEMP/setup-1.0.0.exe"
+          pack 1.0.1
+          local_app_data="$(cygpath -u "$LOCALAPPDATA")"
+          data="$local_app_data/EDRockMaster"
+          installed="$local_app_data/EDRockMaster.Companion"
+          mkdir -p "$data"
+          echo kept > "$data/update-test.txt"
+          "$RUNNER_TEMP/setup-1.0.0.exe" --silent # installs without starting the application
+          ls "$installed" "$installed/current"
+          grep -q "<version>1.0.0</version>" "$installed/current/sq.version"
+          log="$data/logs/edrockmaster.log"
+          EDROCKMASTER_UPDATE_SOURCE="$(cygpath -w "$feed")" "$installed/current/EDRockMaster.exe" &
+          for _ in $(seq 1 120); do
+            grep -q "Update 1.0.1 downloaded" "$log" 2>/dev/null && break
+            sleep 1
+          done
+          grep -q "Update 1.0.1 downloaded" "$log"
+          # Closes the window, as the player would: the version ready is applied once it has quit
+          taskkill //IM EDRockMaster.exe
+          for _ in $(seq 1 120); do
+            grep -q "<version>1.0.1</version>" "$installed/current/sq.version" 2>/dev/null && break
+            sleep 1
+          done
+          tail -n 20 "$log"
+          grep -q "<version>1.0.1</version>" "$installed/current/sq.version"
+          # `! grep` would not stop the script under set -e
+          if grep -E "ERROR|Traceback" "$log"; then exit 1; fi
+          # sq.version changes while the Update.exe applying the update is still running, and an
+          # uninstall started then fails at once, silently
+          for _ in $(seq 1 60); do
+            tasklist //FI "IMAGENAME eq Update.exe" | grep -qi "Update.exe" || break
+            sleep 1
+          done
+          uninstalled=""
+          for _ in $(seq 1 5); do
+            "$installed/Update.exe" uninstall --silent && uninstalled=yes && break
+            sleep 3
+          done
+          [ -n "$uninstalled" ]
+          for _ in $(seq 1 60); do
+            [ ! -e "$installed/current" ] && break
+            sleep 1
+          done
+          [ ! -e "$installed/current" ]
+          [ "$(cat "$data/update-test.txt")" = kept ]
+
+      - name: Keep the application
+        uses: actions/upload-artifact@v4
+        with:
+          name: EDRockMaster-windows-${{ steps.plan.outputs.build_version }}
+          path: dist-desktop/*.zip
+          retention-days: 14
+          if-no-files-found: error

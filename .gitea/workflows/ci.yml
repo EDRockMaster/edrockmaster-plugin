@@ -1,6 +1,8 @@
 # CI on Gitea Actions (the cluster's runner). The GitHub mirror runs only the Windows build of the
 # desktop application (.github/workflows/windows.yml, ADR 0053), whose result the windows job
 # below waits for (ADR 0034).
+# .gitea/workflows/windows.yml runs the same build on the organisation's own Windows runner
+# (ADR 0058); it doubles the GitHub build and gates nothing yet.
 # Release channels (ADR 0012, ADR 0053): the Windows workflow on GitHub packs a tag with Velopack
 # and leaves its GitHub release as a draft; this workflow gates merging, then gives the release
 # its notes, copies its files to Gitea and publishes it.
